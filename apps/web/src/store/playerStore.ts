@@ -35,7 +35,7 @@ interface PlayerState {
   shuffle: boolean;
   shuffleOrder: number[];
   theme: "dark" | "light";
-  activeTab: "player" | "converter" | "demo" | "about" | "settings";
+  activeTab: "player" | "converter" | "library" | "demo" | "about" | "settings";
   sessionRestored: boolean;
   setTracks: (t: PlaylistTrack[]) => void;
   appendTracks: (t: PlaylistTrack[]) => void;

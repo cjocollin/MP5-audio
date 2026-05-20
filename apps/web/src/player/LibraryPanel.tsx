@@ -22,6 +22,8 @@ function PlaylistRow({
   onSelect,
   onPlay,
   onRemove,
+  onSaveToLibrary,
+  saveBusy,
 }: {
   track: PlaylistTrack;
   index: number;
@@ -30,6 +32,8 @@ function PlaylistRow({
   onSelect: () => void;
   onPlay: () => void;
   onRemove: () => void;
+  onSaveToLibrary?: () => void;
+  saveBusy?: boolean;
 }) {
   const info = trackDisplayInfo(track);
   const coverUrl = useCoverObjectUrl(coverFromParsed(track.parsed));
@@ -106,6 +110,17 @@ function PlaylistRow({
           </span>
         </span>
       </button>
+      {onSaveToLibrary && track.file && (
+        <button
+          type="button"
+          className="shrink-0 px-2 py-1 rounded text-[10px] text-gray-400 hover:text-accent border border-white/10 disabled:opacity-30"
+          onClick={onSaveToLibrary}
+          disabled={saveBusy}
+          data-testid="playlist-item-save-library"
+        >
+          Save
+        </button>
+      )}
       <button
         type="button"
         className="shrink-0 px-2 py-1.5 rounded text-xs text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-30 border border-white/10"
@@ -142,6 +157,8 @@ interface Props {
   onClear: () => void;
   onToggleShuffle: () => void;
   onCycleRepeat: () => void;
+  onSaveToLibrary?: (track: PlaylistTrack) => void;
+  librarySaveBusy?: boolean;
 }
 
 export function LibraryPanel({
@@ -157,6 +174,8 @@ export function LibraryPanel({
   onClear,
   onToggleShuffle,
   onCycleRepeat,
+  onSaveToLibrary,
+  librarySaveBusy,
 }: Props) {
   const [search, setSearch] = useState("");
 
@@ -171,16 +190,29 @@ export function LibraryPanel({
     <section className="space-y-3" data-testid="library-panel">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium text-gray-300">Playlist</p>
-        {tracks.length > 0 && (
-          <button
-            type="button"
-            className="text-xs text-gray-500 hover:text-red-300"
-            onClick={onClear}
-            data-testid="playlist-clear"
-          >
-            Clear queue
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {tracks.length > 0 && onSaveToLibrary && tracks[currentIndex]?.file && (
+            <button
+              type="button"
+              className="text-xs text-gray-400 hover:text-accent disabled:opacity-40"
+              onClick={() => onSaveToLibrary(tracks[currentIndex]!)}
+              disabled={librarySaveBusy}
+              data-testid="playlist-save-current-library"
+            >
+              Save current to library
+            </button>
+          )}
+          {tracks.length > 0 && (
+            <button
+              type="button"
+              className="text-xs text-gray-500 hover:text-red-300"
+              onClick={onClear}
+              data-testid="playlist-clear"
+            >
+              Clear queue
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -252,6 +284,10 @@ export function LibraryPanel({
                 onSelect={() => onSelect(index)}
                 onPlay={() => onPlay(index)}
                 onRemove={() => onRemove(track.id)}
+                onSaveToLibrary={
+                  onSaveToLibrary && track.file ? () => onSaveToLibrary(track) : undefined
+                }
+                saveBusy={librarySaveBusy}
               />
             );
           })}

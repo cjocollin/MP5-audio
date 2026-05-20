@@ -6,6 +6,7 @@ interface Props {
   onDownloadAgain: () => void;
   onOpenInPlayer: () => void;
   onAddToPlaylist: () => void;
+  onSaveToLibrary?: () => void;
 }
 
 export function ExportSummaryPanel({
@@ -13,6 +14,7 @@ export function ExportSummaryPanel({
   onDownloadAgain,
   onOpenInPlayer,
   onAddToPlaylist,
+  onSaveToLibrary,
 }: Props) {
   return (
     <section
@@ -82,6 +84,16 @@ export function ExportSummaryPanel({
         >
           Add to playlist
         </button>
+        {onSaveToLibrary && (
+          <button
+            type="button"
+            className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 text-xs hover:bg-white/5"
+            onClick={onSaveToLibrary}
+            data-testid="export-save-library"
+          >
+            Save to library
+          </button>
+        )}
       </div>
     </section>
   );

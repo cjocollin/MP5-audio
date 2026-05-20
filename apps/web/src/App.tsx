@@ -6,6 +6,7 @@ import { WasmSetupBanner } from "./components/WasmSetupBanner";
 import { AboutMp5Panel } from "./components/AboutMp5Panel";
 import { DemoModePanel } from "./components/DemoModePanel";
 import { PublicLanding } from "./components/PublicLanding";
+import { LocalLibraryPanel } from "./components/LocalLibraryPanel";
 
 export default function App() {
   const { activeTab, setActiveTab, theme, setTheme } = usePlayerStore();
@@ -18,6 +19,7 @@ export default function App() {
   const tabs = [
     { id: "player" as const, label: "Player" },
     { id: "converter" as const, label: "Converter" },
+    { id: "library" as const, label: "Library" },
     { id: "demo" as const, label: "Demo" },
     { id: "about" as const, label: "About" },
     { id: "settings" as const, label: "Settings" },
@@ -48,6 +50,7 @@ export default function App() {
       <main className="space-y-6">
         {activeTab === "player" && <Mp5Player />}
         {activeTab === "converter" && <ConverterPanel />}
+        {activeTab === "library" && <LocalLibraryPanel />}
         {activeTab === "demo" && <DemoModePanel />}
         {activeTab === "about" && <AboutMp5Panel />}
         {activeTab === "settings" && (

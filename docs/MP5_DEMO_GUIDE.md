@@ -86,7 +86,15 @@ Also shown on the hosted landing at https://mp5-audio.vercel.app.
 4. Edit metadata if needed — track info, cover, lyrics, optional **Content guidance** (content notices, sensitive themes, listener comfort), mood/vibe. Haven / Recovery is under **Specialized app metadata** (last in profile list; collapsed by default).
 5. Check **Export preview** — detected vs what will be embedded.
 6. Click **Export MP5** — progress shows waveform/seek build, encode, metadata chunks, validation, then **export summary** (filename, size, embedded flags).
-7. Use **Download again**, **Open in Player**, or **Add to playlist** — or switch to **Player** and drop the `.mp5` manually.
+7. Use **Download again**, **Open in Player**, **Add to playlist**, or **Save to library** — or switch to **Player** and drop the `.mp5` manually.
+
+### 2b. Local library (device-only)
+
+1. Open the **Library** tab.
+2. Drop `.mp5` files or use **Save to library** from the player playlist or converter export summary.
+3. Search by title, artist, album, filename, genre, mood, or vibe; filter by codec, content guidance, cover, or lyrics.
+4. **Play** loads into the player; **Queue** appends to the playlist; **Download** saves the file again.
+5. Say out loud: files stay **on this browser/device** (IndexedDB). **No cloud upload.** Clearing browser/site data may remove them. Large files use storage quickly.
 
 Exported filenames use **`Artist - Title.mp5`** when tags allow (sanitized). Non-default codecs add a variant suffix, e.g. `Track (PCM reference).mp5`. Browsers cannot overwrite downloads reliably; use **Download again** or the suggested `Track (MP5-L v3).mp5` pattern if you save twice.
 
@@ -131,6 +139,8 @@ Runs fixture generation, unit tests, Rust codec tests, fixture validation, and P
 - MP5-C may hiss — lab/research only.
 - MP5-H is clean with CORR but **much larger** than MP5-L; not default.
 - Encode/decode in the browser is CPU-bound (WASM).
+- Local library is **device/browser-local** only — no sync across machines.
+- Playlist queue still does not restore file handles after a full page reload (library does persist MP5 bytes).
 - Shuffle/repeat and mobile packaging are not polished yet.
 - Mood/vibe AI tagging is not enabled; lyrics depend on source file tags.
 

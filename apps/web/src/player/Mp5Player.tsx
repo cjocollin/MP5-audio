@@ -11,6 +11,8 @@ import { useMp5AudioEngine } from "./useMp5AudioEngine";
 import { NowPlayingView } from "./NowPlayingView";
 import { LibraryPanel } from "./LibraryPanel";
 import { ingestMp5Files, type IngestResult } from "./playlistUtils";
+import { savePlaylistTrackToLibrary } from "../lib/localLibrary/libraryActions";
+import { LibraryStorageError } from "../lib/localLibrary/errors";
 import { DropImportSummary } from "../components/DropImportSummary";
 import { PlayerEmptyState } from "../components/PlayerEmptyState";
 import { DemoFixtureActions } from "../components/DemoFixtureActions";
@@ -62,6 +64,8 @@ export function Mp5Player() {
   const [mp5hInfo, setMp5hInfo] = useState<import("./decodeMp5").Mp5hDecodeInfo | undefined>();
   const [dropErrors, setDropErrors] = useState<{ name: string; message: string }[]>([]);
   const [lastDropSummary, setLastDropSummary] = useState<IngestResult | null>(null);
+  const [librarySaveBusy, setLibrarySaveBusy] = useState(false);
+  const [librarySaveNote, setLibrarySaveNote] = useState("");
   const playWhenReadyRef = useRef(false);
   const autoAdvanceRef = useRef(false);
   const seekRef = useRef<(t: number) => void>(() => {});
@@ -260,6 +264,28 @@ export function Mp5Player() {
     setCurrentIndex(index);
   };
 
+  const handleSaveToLibrary = async (t: (typeof tracks)[0]) => {
+    if (!t?.file) return;
+    setLibrarySaveBusy(true);
+    setLibrarySaveNote("");
+    try {
+      const result = await savePlaylistTrackToLibrary(t);
+      setLibrarySaveNote(
+        result.duplicate ? "Already in your local library." : "Saved to local library.",
+      );
+    } catch (e) {
+      setLibrarySaveNote(
+        e instanceof LibraryStorageError && e.code === "quota"
+          ? "Not enough browser storage to save."
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      );
+    } finally {
+      setLibrarySaveBusy(false);
+    }
+  };
+
   const handleClear = () => {
     setDropErrors([]);
     setLastDropSummary(null);
@@ -302,6 +328,12 @@ export function Mp5Player() {
 
       {lastDropSummary && <DropImportSummary summary={lastDropSummary} />}
 
+      {librarySaveNote && (
+        <p className="text-xs text-gray-400 bg-surface-elevated rounded-lg px-3 py-2" data-testid="library-save-note">
+          {librarySaveNote}
+        </p>
+      )}
+
       {sessionRestored && tracks.length === 0 && (
         <p className="text-xs text-gray-500 bg-surface-elevated rounded-lg px-3 py-2" data-testid="session-restore-note">
           {PLAYLIST_PERSISTENCE_NOTE}
@@ -325,6 +357,8 @@ export function Mp5Player() {
           onClear={handleClear}
           onToggleShuffle={toggleShuffle}
           onCycleRepeat={cycleRepeatMode}
+          onSaveToLibrary={(t) => void handleSaveToLibrary(t)}
+          librarySaveBusy={librarySaveBusy}
         />
 
         <div className="space-y-4">

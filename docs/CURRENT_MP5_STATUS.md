@@ -43,7 +43,8 @@
 - **Two-step convert:** load file → review/edit → **Export MP5** button
 - **Player import feedback:** drop summary (added / skipped / unreadable with calm reasons)
 - **Player:** MP5-L v2/v3, PCM (reference), MP5-H (hybrid + CORR), MP5-C (lab)
-- **Player library (MVP):** multi-file playlist (drop append), search, queue controls, auto-advance, repeat (off/all/one), shuffle, decode cache (3 tracks), session metadata persistence
+- **Player playlist (MVP):** multi-file playlist (drop append), search, queue controls, auto-advance, repeat (off/all/one), shuffle, decode cache (3 tracks), session metadata persistence
+- **Local library (MVP):** IndexedDB storage on device — save from player, converter export, or library import; search/filter; play, queue, download, delete; storage honesty + quota estimate when supported
 - **Now playing:** large cover, title/artist/album, codec and content guidance badges, mood/vibe chips
 - **Metadata panel:** track info, cover, lyrics, content guidance, mood/vibe, waveform stats, format — with calm empty states
 - **Format panel:** Codec, encoder version, bit-exact (MP5-L), decode path, hybrid/CORR for MP5-H
@@ -60,6 +61,7 @@ See [`docs/MP5_METADATA_SPEC.md`](MP5_METADATA_SPEC.md).
 - MP5-H: large files; base-only without CORR may hiss
 - Browser decode is CPU-bound (WASM)
 - Player: no drag-reorder; playlist file handles are not restored after full page reload (session metadata only)
+- Local library: per-browser/device only; no sync across devices; IndexedDB cleared if user clears site data; very large libraries may hit browser quota
 - Browser downloads cannot overwrite existing files predictably; use export summary **Download again** or variant filenames
 - **Open in Player** uses in-memory `File` from the last export in this session only (not persisted across reload)
 

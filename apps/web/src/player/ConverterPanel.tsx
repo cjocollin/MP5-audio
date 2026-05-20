@@ -18,6 +18,8 @@ import { buildExportFilename } from "../converter/exportFilename";
 import { buildExportSummary, type ExportSummary } from "../converter/exportSummary";
 import { LOAD_PHASE_LABELS, runExportPipeline } from "../converter/exportPipeline";
 import { importMp5ToPlayer } from "./playerImport";
+import { saveMp5ToLibrary } from "../lib/localLibrary/api";
+import { LibraryStorageError } from "../lib/localLibrary/errors";
 import { SupportedSourcesNote } from "../components/SupportedSourcesNote";
 import { ConverterEmptyState } from "../components/ConverterEmptyState";
 import { CodecModesHelper } from "../components/CodecModesHelper";
@@ -67,6 +69,7 @@ export function ConverterPanel() {
   const [exportSummary, setExportSummary] = useState<ExportSummary | null>(null);
   const [lastExportFile, setLastExportFile] = useState<File | null>(null);
   const [lastExportBlob, setLastExportBlob] = useState<Blob | null>(null);
+  const [librarySaveNote, setLibrarySaveNote] = useState("");
 
   const codecUnavailable = loadState === "unavailable";
   const codecReady = loadState === "ready";
@@ -176,6 +179,25 @@ export function ConverterPanel() {
     await importMp5ToPlayer([lastExportFile], { playFirst: false });
   }
 
+  async function handleSaveToLibrary() {
+    if (!lastExportFile) return;
+    setLibrarySaveNote("");
+    try {
+      const result = await saveMp5ToLibrary(lastExportFile, lastExportFile.name);
+      setLibrarySaveNote(
+        result.duplicate ? "Already in your local library." : "Saved to local library.",
+      );
+    } catch (e) {
+      setLibrarySaveNote(
+        e instanceof LibraryStorageError && e.code === "quota"
+          ? "Not enough browser storage to save."
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      );
+    }
+  }
+
   return (
     <div className="space-y-5" data-testid="converter-panel">
       <div className="mp5-card p-4 sm:p-5 space-y-3 border-accent/15">
@@ -251,12 +273,19 @@ export function ConverterPanel() {
         </>
       )}
 
+      {librarySaveNote && (
+        <p className="text-xs text-gray-400" data-testid="converter-library-save-note">
+          {librarySaveNote}
+        </p>
+      )}
+
       {exportSummary && exportDone && (
         <ExportSummaryPanel
           summary={exportSummary}
           onDownloadAgain={handleDownloadAgain}
           onOpenInPlayer={() => void handleOpenInPlayer()}
           onAddToPlaylist={() => void handleAddToPlaylist()}
+          onSaveToLibrary={() => void handleSaveToLibrary()}
         />
       )}
 

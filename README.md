@@ -15,7 +15,8 @@ MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP
 | Works now (Alpha) | Experimental | Future |
 |-----------------|--------------|--------|
 | MP5-L v3 convert & play | MP5-C (may hiss) | Stems / interactive audio |
-| Metadata, cover, lyrics | MP5-H (large) | Library persistence |
+| Metadata, cover, lyrics | MP5-H (large) | Cloud sync / accounts |
+| **Local library** (device-only) | Specialized app profiles | Offline polish |
 | Content guidance (optional) | Specialized app profiles | Offline polish |
 
 ---
@@ -54,6 +55,8 @@ pnpm demo          # http://localhost:5173
 **Try the hosted demo:** open https://mp5-audio.vercel.app → **Try the MP5-L demo** → play synthetic tone (no copyrighted music in repo).
 
 **Convert your own audio:** Converter → drop FLAC/WAV/MP3/M4A/OGG → edit metadata → **Export MP5-L v3** → **Open in Player**.
+
+**Local library:** **Library** tab → save `.mp5` files on this device (IndexedDB). Search, play, download again, or add to the player queue. Nothing is uploaded to a server; clearing browser data may remove saved files. Large exports can use significant storage.
 
 ---
 
