@@ -10,19 +10,19 @@ test.skip(!hostedUrl, "Set MP5_HOSTED_URL to the deployed HTTPS origin");
 test.describe("MP5 hosted demo", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /MP5 Player/i })).toBeVisible();
+    await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
     await expect(page.getByTestId("app-version")).toContainText("MP5 Alpha");
   });
 
   test("app shell and honest tagline", async ({ page }) => {
-    await expect(page.getByTestId("app-tagline")).toContainText("MP5-L v3");
-    await expect(page.getByTestId("app-tagline")).toContainText(
+    await expect(page.getByTestId("landing-honesty-claim")).toContainText(
       "does not claim to beat MP3",
     );
+    await expect(page.getByTestId("landing-demo-url")).toContainText("mp5-audio.vercel.app");
   });
 
   test("loads demo fixture and shows MP5-L v3 format panel", async ({ page }) => {
-    await page.getByTestId("welcome-load-demo-play").click({ timeout: 15_000 });
+    await page.getByTestId("landing-load-demo-play").click({ timeout: 15_000 });
     await expect
       .poll(async () => page.getByTestId("seek-slider").getAttribute("max"), {
         timeout: 30_000,

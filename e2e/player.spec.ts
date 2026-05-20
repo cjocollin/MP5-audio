@@ -12,7 +12,7 @@ const origamiFixture = path.join(
 test.describe("MP5 player playback", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: /MP5 Player/i })).toBeVisible();
+    await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
   });
 
   async function loadFixture(page: import("@playwright/test").Page, file = pcmFixture) {
@@ -24,20 +24,20 @@ test.describe("MP5 player playback", () => {
     return seek;
   }
 
-  test("shows welcome onboarding and codec helper", async ({ page }) => {
-    await page.evaluate(() => localStorage.removeItem("mp5-onboarding-v1"));
-    await page.reload();
-    await expect(page.getByTestId("welcome-onboarding")).toBeVisible();
+  test("shows public landing and codec helper on player tab", async ({ page }) => {
+    await expect(page.getByTestId("public-landing")).toBeVisible();
+    await expect(page.getByTestId("landing-github-link")).toHaveAttribute(
+      "href",
+      "https://github.com/cjocollin/MP5-audio",
+    );
+    await page.getByTestId("landing-open-player").click();
     await expect(page.getByTestId("codec-modes-helper")).toBeVisible();
-    await page.getByTestId("welcome-dismiss").click();
-    await expect(page.getByTestId("welcome-onboarding")).toHaveCount(0);
   });
 
   test("loads demo fixture from fixtures URL when available", async ({ page }) => {
     const demoPath = path.join(process.cwd(), "test-fixtures", "demo_mp5l_v3_tone.mp5");
     test.skip(!fs.existsSync(demoPath), "run pnpm fixtures:generate first");
-    await page.getByTestId("welcome-dismiss").click();
-    await page.getByTestId("player-load-demo-play").click();
+    await page.getByTestId("landing-load-demo-play").click();
     await expect
       .poll(async () => page.getByTestId("playlist-item").count(), { timeout: 15_000 })
       .toBeGreaterThan(0);

@@ -2,6 +2,8 @@
 
 **Date:** May 2026 · **Status:** **Demo-ready** (validated) · **Metadata MVP** (general-purpose framing)
 
+**Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
+
 **Share / run:** `pnpm demo` · **Checklist:** [`docs/MP5_ALPHA_RELEASE_CHECKLIST.md`](MP5_ALPHA_RELEASE_CHECKLIST.md) · **Verify:** `pnpm alpha:check`
 
 ## Codec policy
@@ -35,7 +37,9 @@
 - **Export preview:** detected vs edited vs embedded; empty fields skipped
 - **Converter polish:** numbered flow steps, export progress labels, post-export summary, safe filenames (`Artist - Title.mp5`), **Open in Player** / **Add to playlist**
 - **Compatibility pass:** synthetic WAV/MP5 fixtures, `pnpm compatibility:check`, [`MP5_COMPATIBILITY_REPORT.md`](MP5_COMPATIBILITY_REPORT.md), supported-sources UI
-- **Visual polish / first-run:** welcome onboarding, in-app demo fixture loader (`/fixtures/demo_mp5l_v3_tone.mp5`), codec helper, empty states, responsive layout, focus rings
+- **Public landing:** hero, codec cards, screenshot gallery (Player / Converter / Metadata), demo flow, honesty — [`MP5_PUBLIC_DEMO_COPY.md`](MP5_PUBLIC_DEMO_COPY.md)
+- **README screenshots:** [`docs/screenshots/`](screenshots/README.md) — linked from GitHub and copied to `/screenshots/` on deploy
+- **Visual polish:** in-app demo fixture loader (`/fixtures/demo_mp5l_v3_tone.mp5`), codec helper, empty states, responsive layout, focus rings
 - **Two-step convert:** load file → review/edit → **Export MP5** button
 - **Player import feedback:** drop summary (added / skipped / unreadable with calm reasons)
 - **Player:** MP5-L v2/v3, PCM (reference), MP5-H (hybrid + CORR), MP5-C (lab)

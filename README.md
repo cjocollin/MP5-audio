@@ -1,106 +1,126 @@
-# MP5 — Experimental Smart Audio Format (Alpha Demo)
+# MP5 Audio
 
-**MP5** is a general-purpose experimental smart audio format (`.mp5`) — music, podcasts, and apps — with custom codecs in Rust/WASM and a web player + converter.
+An experimental smart audio format, converter, and player.
 
-## Codec policy (all Alpha docs use this)
+**Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
+
+MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.**
+
+---
+
+## What is MP5?
+
+**MP5** (`.mp5`) is a general-purpose experimental smart audio container — music, podcasts, libraries, and apps. It stores audio plus context: metadata, cover art, lyrics, waveform/seek data, optional content guidance, mood/vibe tags, and room for future interactive audio.
+
+| Works now (Alpha) | Experimental | Future |
+|-----------------|--------------|--------|
+| MP5-L v3 convert & play | MP5-C (may hiss) | Stems / interactive audio |
+| Metadata, cover, lyrics | MP5-H (large) | Library persistence |
+| Content guidance (optional) | Specialized app profiles | Offline polish |
+
+---
+
+## Codec policy
 
 | Codec | Role |
 |-------|------|
-| **MP5-L v3** | **Default / recommended** — lossless, bit-exact, modest compression |
-| **PCM** | **Reference / debug** — uncompressed samples in the container |
-| **MP5-H** | **Hybrid** — MP5-C base + lossless CORR; **clean when CORR is applied**, but **large**; not default |
-| **MP5-C** | **Lab-only / experimental** — lossy; may **hiss** on all presets; not for normal listening |
+| **MP5-L v3** | **Default / recommended** — lossless, bit-exact |
+| **PCM** | **Reference / debug** only |
+| **MP5-H** | **Hybrid** — clean with CORR; **large**; not default |
+| **MP5-C** | **Lab-only** — may **hiss**; not for normal listening |
 
-**MP5 does not claim to beat MP3, AAC, Opus, or FLAC.**
+---
 
-## In 60 seconds
+## Screenshots
 
-- **MP5** is a general-purpose smart audio format — not a drop-in replacement for established codecs.
-- Optional metadata supports lyrics, content guidance, mood/vibe, and specialized app profiles; the web **player** queues multiple `.mp5` files with search, auto-advance, repeat, and shuffle (never required for playback).
-- **MP5-L v3** is the **default and recommended** export for listening-quality files.
-- **MP5-C** is lab-only (may hiss). **MP5-H** is hybrid (clean with CORR, but large). **PCM** is reference/debug only.
-- **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.**
+From the [live Alpha demo](https://mp5-audio.vercel.app) — synthetic demo audio only; no copyrighted album art.
 
-**Demo someone?** → [`docs/MP5_DEMO_GUIDE.md`](docs/MP5_DEMO_GUIDE.md)
+| Player | Converter | Metadata |
+|--------|-----------|----------|
+| ![MP5 Player — playlist, playback, Format panel](docs/screenshots/Player.png) | ![MP5 Converter — import, encode, export MP5-L v3](docs/screenshots/Converter.png) | ![MP5 Metadata — title, cover, lyrics, optional guidance](docs/screenshots/Metadata.png) |
 
-## Quick start
+More captures: [`docs/screenshots/`](docs/screenshots/README.md)
+
+---
+
+## Quick start (local)
 
 ```bash
 pnpm install
 pnpm wasm:build    # required for MP5-L — see docs/WASM_SETUP.md
-pnpm demo          # checks setup, starts http://localhost:5173
+pnpm demo          # http://localhost:5173
 ```
 
-Or `pnpm dev` directly. On first visit, a **welcome panel** explains MP5-L vs lab codecs and how to convert/play. Use **Load MP5-L demo** for a synthetic tone (no copyrighted audio), or the **Demo** tab for a step-by-step walkthrough.
+**Try the hosted demo:** open https://mp5-audio.vercel.app → **Try the MP5-L demo** → play synthetic tone (no copyrighted music in repo).
 
-**Release checklist:** [`docs/MP5_ALPHA_RELEASE_CHECKLIST.md`](docs/MP5_ALPHA_RELEASE_CHECKLIST.md)
+**Convert your own audio:** Converter → drop FLAC/WAV/MP3/M4A/OGG → edit metadata → **Export MP5-L v3** → **Open in Player**.
 
-**Try without converting:** drop `test-fixtures/demo_mp5l_v3_tone.mp5` on the Player tab.
+---
 
-**Convert:** Converter tab → drop FLAC/WAV → edit metadata → **Export MP5** (MP5-L v3 default) → summary + **Open in Player** or download `Artist - Title.mp5`.
-
-**Metadata:** track info, cover, lyrics, optional content guidance (manual only) — see [`docs/MP5_METADATA_SPEC.md`](docs/MP5_METADATA_SPEC.md).
-
-## Alpha verification
-
-Before a demo or handoff, run the full Alpha gate:
+## Verification
 
 ```bash
-pnpm alpha:check
+pnpm alpha:check          # full Alpha gate
+pnpm build
+pnpm deploy:check
+pnpm vercel:check
 ```
 
-This runs, in order:
+---
 
-1. `pnpm fixtures:generate` — rebuild WASM demo fixtures
-2. `pnpm test` — Vitest unit tests
-3. `cargo test -p mp5-codec --release` — Rust codec tests
-4. `node scripts/validate-demo-fixtures.mjs` — parse demo `.mp5` files
-5. `pnpm test:e2e` — Playwright player/converter smoke tests
+## Deploy
 
-Expect a few minutes (WASM build included). All steps must pass for **demo-ready** status.
+Vercel project **`mp5-audio`** → https://mp5-audio.vercel.app
+
+→ [`docs/MP5_VERCEL_SETUP.md`](docs/MP5_VERCEL_SETUP.md) · [`docs/MP5_DEPLOYMENT_GUIDE.md`](docs/MP5_DEPLOYMENT_GUIDE.md)
+
+---
+
+## Alpha roadmap
+
+- Metadata polish
+- Better MP5-L compression
+- MP5-C redesign
+- Stems / interactive audio research
+- Desktop / mobile packaging
+- Offline improvements
+- Library persistence
+
+---
+
+## Important limitations
+
+- Experimental Alpha — not production-ready
+- Large WASM/FFmpeg download on first visit (~30+ MB precache)
+- Browser encode/decode is CPU- and memory-intensive
+- MP5-C may hiss; MP5-H files are large
+- Playlist file handles are not restored after full page reload
+- **MP5 does not claim to beat MP3, AAC, Opus, or FLAC**
+
+---
 
 ## Project layout
 
 | Path | Purpose |
 |------|---------|
-| `apps/web/` | Player + converter UI |
+| `apps/web/` | Player + converter + public landing |
 | `packages/mp5-container/` | `.mp5` parser/writer |
 | `rust/mp5-codec/` | MP5-L / MP5-C / MP5-H (WASM) |
-| `test-fixtures/` | Synthetic demo tones (no copyrighted audio) |
-| `docs/` | Specs, demo guide, release notes |
+| `test-fixtures/` | Synthetic demo tones only |
+| `docs/` | Specs, demo guides, deployment |
 
-## Deploy web demo
-
-**Vercel project:** `mp5-audio` → https://mp5-audio.vercel.app
-
-→ [`docs/MP5_VERCEL_SETUP.md`](docs/MP5_VERCEL_SETUP.md) · [`docs/MP5_DEPLOYMENT_GUIDE.md`](docs/MP5_DEPLOYMENT_GUIDE.md) · [`docs/MP5_HOSTED_DEMO.md`](docs/MP5_HOSTED_DEMO.md)
-
-```bash
-pnpm build
-pnpm deploy:check
-pnpm demo:prod          # production preview :4173
-```
-
-## Install & share (PWA / platforms)
-
-Primary Alpha distribution is the **web app / PWA**. Desktop (Tauri) and mobile (Capacitor) are scaffolds only.
-
-→ [`docs/MP5_INSTALL_GUIDE.md`](docs/MP5_INSTALL_GUIDE.md)
-
-```bash
-pnpm icons:generate   # if icons missing
-pnpm build            # apps/web/dist
-pnpm pwa:check
-```
+---
 
 ## Docs
 
-- [Install guide](docs/MP5_INSTALL_GUIDE.md)
-- [Metadata spec (MVP)](docs/MP5_METADATA_SPEC.md)
+- [Public demo copy](docs/MP5_PUBLIC_DEMO_COPY.md)
 - [Demo guide](docs/MP5_DEMO_GUIDE.md)
-- [Alpha release notes](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [Current status](docs/CURRENT_MP5_STATUS.md)
+- [Hosted demo](docs/MP5_HOSTED_DEMO.md)
+- [Metadata spec](docs/MP5_METADATA_SPEC.md)
 - [Roadmap](docs/MP5_ROADMAP.md)
+
+---
 
 ## License
 

@@ -5,8 +5,7 @@ import { ConverterPanel } from "./player/ConverterPanel";
 import { WasmSetupBanner } from "./components/WasmSetupBanner";
 import { AboutMp5Panel } from "./components/AboutMp5Panel";
 import { DemoModePanel } from "./components/DemoModePanel";
-import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
-import { AppVersionBadge } from "./components/AppVersionBadge";
+import { PublicLanding } from "./components/PublicLanding";
 
 export default function App() {
   const { activeTab, setActiveTab, theme, setTheme } = usePlayerStore();
@@ -25,26 +24,12 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      <header className="mb-8 space-y-3">
-        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
-          MP5 Player
-        </h1>
-        <p className="text-gray-400 text-sm sm:text-base leading-relaxed max-w-2xl" data-testid="app-tagline">
-          <strong className="text-gray-300">MP5</strong> is an experimental smart audio format.{" "}
-          <strong className="text-gray-300">MP5-L v3</strong> is the recommended lossless mode.{" "}
-          <strong className="text-gray-300">MP5-C</strong> and{" "}
-          <strong className="text-gray-300">MP5-H</strong> are experimental lab modes. MP5 does not
-          claim to beat MP3, AAC, Opus, or FLAC.
-        </p>
-        <AppVersionBadge />
-      </header>
-
+    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
       <div className="mb-6">
         <WasmSetupBanner />
       </div>
 
-      <WelcomeOnboarding />
+      <PublicLanding />
 
       <nav className="flex gap-2 mb-8 flex-wrap" aria-label="Main">
         {tabs.map((t) => (
