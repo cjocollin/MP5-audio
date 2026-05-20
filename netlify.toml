@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm wasm:build && pnpm icons:generate && pnpm build"
+  command = "node scripts/vercel-build.mjs"
   publish = "apps/web/dist"
 
 [build.environment]

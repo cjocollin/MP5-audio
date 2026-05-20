@@ -93,24 +93,28 @@ Preview URL: **http://127.0.0.1:4173**
 
 ---
 
-## Vercel
+## Vercel (`mp5-audio`)
 
-Repo includes [`vercel.json`](../vercel.json) at the root:
+**Canonical public demo:** Vercel project **`mp5-audio`** → **https://mp5-audio.vercel.app**
 
-- **Build:** `pnpm wasm:build && pnpm icons:generate && pnpm build`
-- **Output:** `apps/web/dist`
-- **WASM headers:** `Content-Type: application/wasm` for `/assets/*.wasm`
+Do **not** use `mp5-alpha-demo.vercel.app` (broken) or `dist-livid-two-82.vercel.app` (temporary validation).
 
-**Deploy from CLI:**
+Step-by-step: [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md)
+
+Repo includes [`vercel.json`](../vercel.json):
+
+| Setting | Value |
+|---------|--------|
+| **Install** | `pnpm install` |
+| **Build** | `node scripts/vercel-build.mjs` (Rust + wasm-pack on fresh clone) |
+| **Output** | `apps/web/dist` |
+| **WASM headers** | `Content-Type: application/wasm` for `/assets/*.wasm` |
 
 ```bash
-npx vercel          # preview
-npx vercel --prod   # production
+pnpm vercel:check    # validate vercel.json + vercel-build.mjs
 ```
 
-**Project settings (dashboard):** if not using `vercel.json`, set root directory to repo root, output `apps/web/dist`, build command as above, Node 20+.
-
-**Monorepo note:** `pnpm install` at root; WASM build must run **before** `vite build`.
+**Monorepo note:** root directory = repo root (not `apps/web`). No env vars. No local `C:\Users\` paths.
 
 ---
 
@@ -209,6 +213,7 @@ Full checklist, validated URL, and limitations: [`MP5_HOSTED_DEMO.md`](MP5_HOSTE
 
 ## Related docs
 
+- [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md) — create project **mp5-audio**
 - [`MP5_HOSTED_DEMO.md`](MP5_HOSTED_DEMO.md) — hosted HTTPS validation record
 - [`MP5_INSTALL_GUIDE.md`](MP5_INSTALL_GUIDE.md) — PWA install, platform table
 - [`MP5_DEMO_GUIDE.md`](MP5_DEMO_GUIDE.md) — demo walkthrough

@@ -34,6 +34,7 @@
     "deploy:check": "node scripts/deployment-check.mjs",
     "audit:deploy": "node scripts/audit-deploy-content.mjs",
     "hosted:verify": "node scripts/verify-hosted-demo.mjs",
+    "vercel:check": "node scripts/vercel-config-check.mjs",
     "test:e2e:hosted": "playwright test --config playwright.hosted.config.ts",
     "alpha:origami-smoke": "cargo run --release -p mp5-codec --features bench_tools --bin alpha_origami_smoke && node scripts/alpha-origami-smoke-validate.mjs",
     "alpha:origami-parity": "cargo run --release -p mp5-codec --features bench_tools --bin alpha_origami_parity",

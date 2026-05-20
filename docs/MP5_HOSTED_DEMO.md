@@ -10,27 +10,34 @@ This document records **HTTPS hosted demo** validation for MP5 Alpha. Use it aft
 
 | Platform | Status | Notes |
 |----------|--------|--------|
-| **Vercel** | **Recommended** | `vercel.json` at repo root; static `apps/web/dist` or `node scripts/vercel-build.mjs` on CI |
+| **Vercel** | **Recommended** | Project name **`mp5-audio`** → https://mp5-audio.vercel.app — see [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md) |
 | **Netlify** | Supported | `netlify.toml` — same build command pattern |
 | **Any static host** | Supported | Upload `apps/web/dist` over HTTPS |
 
 **Environment variables:** none required for the Alpha web demo. No private paths, API keys, or local `C:\Users\...` references in shipped bundles.
 
+### Vercel URLs (do not confuse)
+
+| URL | Role |
+|-----|------|
+| **https://mp5-audio.vercel.app** | **Canonical** public demo (after `mp5-audio` project deploy) |
+| https://mp5-alpha-demo.vercel.app | **Invalid** — broken/blank; do not share |
+| https://dist-livid-two-82.vercel.app | **Temporary** — prebuilt validation only |
+
 ---
 
 ## Vercel deployment checklist
 
-- [ ] `pnpm alpha:check` passes locally
-- [ ] `pnpm audit:deploy` passes (no copyrighted source audio; dist safe)
-- [ ] `pnpm build` and `pnpm deploy:check` pass
-- [ ] Repo linked in Vercel **or** deploy prebuilt: `npx vercel deploy apps/web/dist --yes`
-- [ ] Build command (Git deploy): `node scripts/vercel-build.mjs` (installs wasm-pack on Linux if WASM pkg absent)
-- [ ] Output directory: `apps/web/dist`
-- [ ] Node 20+
-- [ ] Confirm deployment URL uses **HTTPS**
-- [ ] Run hosted smoke: `MP5_HOSTED_URL=https://… node scripts/verify-hosted-demo.mjs`
-- [ ] Run browser checks: `MP5_HOSTED_URL=https://… pnpm test:e2e:hosted`
-- [ ] Manual: Converter → export WAV → **Open in Player** → Format panel **MP5-L v3**
+Full steps: [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md)
+
+- [ ] GitHub repo **`mp5-audio`**
+- [ ] Vercel project **`mp5-audio`** (not `mp5-alpha-demo` or `dist`)
+- [ ] `pnpm alpha:check` / `pnpm deploy:check` / `pnpm vercel:check` pass locally
+- [ ] Root directory = repo root; output **`apps/web/dist`**
+- [ ] Build: `node scripts/vercel-build.mjs` (from `vercel.json`)
+- [ ] Production URL: **https://mp5-audio.vercel.app**
+- [ ] `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm hosted:verify`
+- [ ] `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted`
 
 ## Netlify deployment checklist
 
@@ -55,17 +62,25 @@ Audit: `pnpm audit:deploy`
 
 ---
 
-## Validated hosted deployment (May 2026)
+## Hosted validation (May 2026)
 
 | Field | Value |
 |-------|--------|
-| **Platform** | Vercel (static deploy of `apps/web/dist`) |
-| **Production URL** | https://dist-livid-two-82.vercel.app |
-| **HTTP smoke** | **Pass** — shell, manifest, SW, WASM, FFmpeg, demo fixture, main bundle |
-| **Browser e2e** | **Pass** (3/3) — tagline, MP5-L demo play, Converter tab |
-| **Manual (recommended)** | WAV export → **Open in Player** → Format **MP5-L v3** on hosted URL |
+| **Canonical URL** | **https://mp5-audio.vercel.app** |
+| **Vercel project** | `mp5-audio` (Git: `cjocollin/MP5-audio`) |
+| **Git build** | `node scripts/vercel-build.mjs` → **Pass** |
+| **HTTP smoke** | **Pass** on `mp5-audio.vercel.app` |
+| **Browser e2e** | Run: `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted` |
 
-> **Note:** Git-connected deploy to project `mp5-alpha-demo` requires `wasm-pack` on the builder (`scripts/vercel-build.mjs`). Prebuilt deploy of local `dist/` avoids Rust on CI.
+**Retired URLs (do not share):**
+
+- https://mp5-alpha-demo.vercel.app — broken/blank
+- https://dist-livid-two-82.vercel.app — temporary prebuilt validation only
+
+```bash
+MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm hosted:verify
+MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted
+```
 
 ---
 
@@ -106,24 +121,23 @@ Automated browser: `MP5_HOSTED_URL=… pnpm test:e2e:hosted`
 
 ## Exact deploy steps (this environment)
 
-### Option A — Prebuilt dist (fastest; used for validation URL)
+### Option A — Git-connected `mp5-audio` (recommended)
+
+See [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md).
+
+1. Push to GitHub repo **`mp5-audio`**.
+2. Vercel → New project → **`mp5-audio`** → import repo.
+3. Confirm `vercel.json` settings (root, `node scripts/vercel-build.mjs`, `apps/web/dist`).
+4. Deploy → **https://mp5-audio.vercel.app**
+
+### Option B — Prebuilt dist (emergency / validation only)
 
 ```bash
-pnpm wasm:build
-pnpm fixtures:generate
-pnpm build
-pnpm deploy:check
+pnpm build && pnpm deploy:check
 npx vercel deploy apps/web/dist --yes
 ```
 
-Copy the **Production** / **Aliased** HTTPS URL from CLI output.
-
-### Option B — Git-connected Vercel (reproducible CI)
-
-1. Push repo to GitHub/GitLab.
-2. Import project in Vercel; root directory = repo root.
-3. Use `vercel.json` (`buildCommand`: `node scripts/vercel-build.mjs`, `outputDirectory`: `apps/web/dist`).
-4. Deploy; open production URL.
+Produces a **temporary** URL (e.g. `dist-*.vercel.app`) — not the canonical demo.
 
 ### Option C — Netlify
 

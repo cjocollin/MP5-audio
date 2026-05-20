@@ -26,10 +26,20 @@ function run(label, command, args) {
 }
 
 if (!existsSync(wasmBg)) {
-  console.log("WASM pkg missing — installing wasm-pack on builder…\n");
-  run("wasm-pack installer", "bash", [
+  console.log("WASM pkg missing — installing Rust + wasm-pack on Vercel builder…\n");
+  run("rust + wasm-pack", "bash", [
     "-c",
-    'curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh && source "$HOME/.cargo/env" && rustup target add wasm32-unknown-unknown 2>/dev/null || true',
+    [
+      "set -e",
+      'if ! command -v rustc >/dev/null 2>&1; then',
+      "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y -q",
+      "fi",
+      'source "$HOME/.cargo/env"',
+      'if ! command -v wasm-pack >/dev/null 2>&1; then',
+      "  curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh",
+      "fi",
+      "rustup target add wasm32-unknown-unknown",
+    ].join("\n"),
   ]);
   run("wasm:build", "pnpm", ["wasm:build"]);
 } else {

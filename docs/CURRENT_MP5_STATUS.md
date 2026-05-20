@@ -95,13 +95,13 @@ See [`MP5_INSTALL_GUIDE.md`](MP5_INSTALL_GUIDE.md) · checks: `pnpm pwa:check`, 
 |------|--------|
 | **Production build** | `pnpm build` → `apps/web/dist` |
 | **Deploy guide** | [`MP5_DEPLOYMENT_GUIDE.md`](MP5_DEPLOYMENT_GUIDE.md) |
-| **Vercel / Netlify** | `vercel.json`, `netlify.toml` at repo root |
+| **Vercel / Netlify** | Project **`mp5-audio`** — `vercel.json`, [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md) |
 | **Local prod preview** | `pnpm demo:prod` or `pnpm preview` |
 | **Dist validation** | `pnpm deploy:check` |
 
 Deploy checklist: `alpha:check` → `build` → `deploy:check` → `demo:prod` → browser smoke.
 
-**Validated hosted demo (Vercel):** https://dist-livid-two-82.vercel.app — see [`MP5_HOSTED_DEMO.md`](MP5_HOSTED_DEMO.md).
+**Public demo URL:** https://mp5-audio.vercel.app — [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md). Do not use `mp5-alpha-demo.vercel.app` or `dist-livid-two-82.vercel.app`.
 
 ## Commands
 

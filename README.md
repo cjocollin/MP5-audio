@@ -71,7 +71,9 @@ Expect a few minutes (WASM build included). All steps must pass for **demo-ready
 
 ## Deploy web demo
 
-→ [`docs/MP5_DEPLOYMENT_GUIDE.md`](docs/MP5_DEPLOYMENT_GUIDE.md) · Hosted validation: [`docs/MP5_HOSTED_DEMO.md`](docs/MP5_HOSTED_DEMO.md)
+**Vercel project:** `mp5-audio` → https://mp5-audio.vercel.app
+
+→ [`docs/MP5_VERCEL_SETUP.md`](docs/MP5_VERCEL_SETUP.md) · [`docs/MP5_DEPLOYMENT_GUIDE.md`](docs/MP5_DEPLOYMENT_GUIDE.md) · [`docs/MP5_HOSTED_DEMO.md`](docs/MP5_HOSTED_DEMO.md)
 
 ```bash
 pnpm build
