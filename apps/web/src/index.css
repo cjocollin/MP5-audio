@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-surface text-gray-100 font-sans antialiased min-h-screen;
+}
+
+@layer components {
+  .mp5-card {
+    @apply rounded-2xl border border-white/[0.06] bg-surface-elevated/80 shadow-lg shadow-black/25;
+  }
+
+  .mp5-focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12121a];
+  }
+
+  .mp5-btn-primary {
+    @apply px-4 py-2 rounded-xl bg-accent text-black font-semibold hover:opacity-90 disabled:opacity-40 mp5-focus-ring transition-opacity;
+  }
+
+  .mp5-btn-secondary {
+    @apply px-4 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 disabled:opacity-40 mp5-focus-ring transition-colors;
+  }
+
+  .mp5-tab {
+    @apply px-4 py-2 rounded-full text-sm font-medium transition-colors mp5-focus-ring;
+  }
+
+  .mp5-tab-active {
+    @apply bg-accent text-white;
+  }
+
+  .mp5-tab-inactive {
+    @apply bg-surface-elevated/80 text-gray-400 hover:text-white;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

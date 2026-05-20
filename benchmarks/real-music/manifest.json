@@ -1,0 +1,46 @@
+{
+  "description": "Real-world MP5-C v3 validation. Set MP5_BENCH_ROOT to the folder containing source FLACs (default: Desktop).",
+  "sources": [
+    {
+      "id": "origami_full",
+      "file": "- ORIGAMI!.flac",
+      "category": "full_song_dense_loud",
+      "notes": "Full-length ORIGAMI (electronic, dense)"
+    },
+    {
+      "id": "origami_clip_30s",
+      "file": "- ORIGAMI!.flac",
+      "start_sec": 45,
+      "duration_sec": 30,
+      "category": "short_song_clip",
+      "notes": "30s excerpt from middle"
+    },
+    {
+      "id": "origami_quiet_window",
+      "file": "- ORIGAMI!.flac",
+      "quiet_window_sec": 30,
+      "category": "quiet_acoustic_window",
+      "notes": "Quietest 30s window by RMS"
+    },
+    {
+      "id": "origami_vocal_band",
+      "file": "- ORIGAMI!.flac",
+      "start_sec": 30,
+      "duration_sec": 30,
+      "category": "vocal_heavy_midrange",
+      "notes": "Mid-song 30s excerpt"
+    },
+    {
+      "id": "origami_bass_drop",
+      "file": "- ORIGAMI!.flac",
+      "start_sec": 0,
+      "duration_sec": 30,
+      "category": "bass_heavy_intro",
+      "notes": "Opening 30s"
+    }
+  ],
+  "v2_regression": {
+    "file": "- ORIGAMI! test2.mp5",
+    "notes": "Legacy MP5-C v2 Standard on Desktop"
+  }
+}

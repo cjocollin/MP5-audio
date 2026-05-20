@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MP5 Player",
+  "version": "0.1.0",
+  "identifier": "com.mp5.player",
+  "build": {
+    "frontendDist": "../apps/web/dist",
+    "devUrl": "http://localhost:5173"
+  },
+  "app": {
+    "windows": [{ "title": "MP5 Player", "width": 900, "height": 700 }]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "fileAssociations": [
+      {
+        "ext": ["mp5"],
+        "mimeType": "audio/mp5",
+        "description": "MP5 Audio"
+      }
+    ]
+  }
+}

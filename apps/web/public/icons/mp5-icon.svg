@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MP5">
+  <rect width="512" height="512" fill="#0a0a0f"/>
+  <rect x="48" y="48" width="416" height="416" fill="none" stroke="#22d3ee" stroke-width="16" rx="32"/>
+  <text x="256" y="290" text-anchor="middle" font-family="system-ui,sans-serif" font-size="120" font-weight="700" fill="#e6f0ff">MP5</text>
+</svg>

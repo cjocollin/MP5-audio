@@ -1,0 +1,52 @@
+{
+  "name": "mp5",
+  "private": true,
+  "version": "0.1.0",
+  "description": "MP5 experimental audio format ecosystem",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "dev": "pnpm --filter @mp5/web dev",
+    "demo": "node scripts/demo.mjs",
+    "wasm:build": "wasm-pack build rust/mp5-codec --target web --out-dir ../../apps/web/src/wasm/pkg --release",
+    "bench:mp5c": "cargo test -p mp5-codec mp5c_bench_report -- --nocapture",
+    "bench:real-music": "cargo run --release -p mp5-codec --features bench_tools --bin bench_real_music",
+    "export:origami-listening": "cargo run --release -p mp5-codec --features bench_tools --bin export_listening_set",
+    "bench:v5-compare": "cargo run --release -p mp5-codec --features bench_tools --bin bench_v5_compare",
+    "bench:v51-compare": "cargo run --release -p mp5-codec --features bench_tools --bin bench_v51_compare",
+    "bench:hiss-investigation": "cargo run --release -p mp5-codec --features bench_tools --bin bench_hiss_investigation",
+    "bench:mp5c-blocker": "cargo run --release -p mp5-codec --features bench_tools --bin bench_mp5c_blocker",
+    "bench:mp5h-validation": "cargo run --release -p mp5-codec --features bench_tools --bin bench_mp5h_validation",
+    "bench:mp5l-compression": "cargo run --release -p mp5-codec --features bench_tools --bin bench_mp5l_compression",
+    "fixtures:generate": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-demo-fixtures.mjs",
+    "fixtures:validate": "node scripts/validate-demo-fixtures.mjs",
+    "compatibility:fixtures": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-compatibility-fixtures.mjs",
+    "compatibility:check": "node scripts/compatibility-check.mjs",
+    "alpha:check": "node scripts/alpha-check.mjs",
+    "icons:generate": "node scripts/generate-pwa-icons.mjs",
+    "pwa:check": "node scripts/pwa-check.mjs",
+    "desktop:check": "node scripts/desktop-check.mjs",
+    "mobile:check": "node scripts/mobile-check.mjs",
+    "preview": "pnpm --filter @mp5/web preview",
+    "demo:prod": "node scripts/demo-prod.mjs",
+    "deploy:check": "node scripts/deployment-check.mjs",
+    "audit:deploy": "node scripts/audit-deploy-content.mjs",
+    "hosted:verify": "node scripts/verify-hosted-demo.mjs",
+    "test:e2e:hosted": "playwright test --config playwright.hosted.config.ts",
+    "alpha:origami-smoke": "cargo run --release -p mp5-codec --features bench_tools --bin alpha_origami_smoke && node scripts/alpha-origami-smoke-validate.mjs",
+    "alpha:origami-parity": "cargo run --release -p mp5-codec --features bench_tools --bin alpha_origami_parity",
+    "inspect:mp5": "node scripts/inspect-mp5.mjs",
+    "lint": "pnpm -r run lint"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

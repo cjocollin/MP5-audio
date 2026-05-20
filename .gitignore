@@ -1,0 +1,19 @@
+node_modules/
+dist/
+apps/web/dist/
+apps/web/public/wasm/
+packages/*/dist/
+target/
+.DS_Store
+*.mp5
+!test-fixtures/
+!test-fixtures/*.mp5
+# Keep copyrighted / local music out of the repo
+*.flac
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.ogg
+.env
+.vercel

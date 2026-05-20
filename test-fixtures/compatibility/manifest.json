@@ -1,0 +1,89 @@
+{
+  "generated": "2026-05-20T05:57:25.690Z",
+  "wav": [
+    {
+      "file": "wav_mono_44k_short.wav",
+      "sampleRate": 44100,
+      "channels": 1,
+      "durationSec": 1.5
+    },
+    {
+      "file": "wav_stereo_44k_short.wav",
+      "sampleRate": 44100,
+      "channels": 2,
+      "durationSec": 1.5
+    },
+    {
+      "file": "wav_mono_48k_short.wav",
+      "sampleRate": 48000,
+      "channels": 1,
+      "durationSec": 1
+    },
+    {
+      "file": "wav_stereo_48k_short.wav",
+      "sampleRate": 48000,
+      "channels": 2,
+      "durationSec": 1
+    },
+    {
+      "file": "wav_stereo_44k_long.wav",
+      "sampleRate": 44100,
+      "channels": 2,
+      "durationSec": 8
+    }
+  ],
+  "compressed": [
+    {
+      "note": "ffmpeg not on PATH — FLAC/MP3/M4A/OGG fixtures skipped (WAV tests still run)"
+    }
+  ],
+  "mp5": [
+    {
+      "file": "mp5l_metadata_full.mp5",
+      "bytes": 44888,
+      "codecId": 2
+    },
+    {
+      "file": "mp5l_missing_artist.mp5",
+      "bytes": 44811,
+      "codecId": 2
+    },
+    {
+      "file": "mp5l_missing_title.mp5",
+      "bytes": 44808,
+      "codecId": 2
+    },
+    {
+      "file": "mp5l_long_title.mp5",
+      "bytes": 45001,
+      "codecId": 2
+    },
+    {
+      "file": "mp5l_with_cover.mp5",
+      "bytes": 44873
+    },
+    {
+      "file": "mp5c_lab.mp5",
+      "bytes": 75497,
+      "codecId": 1
+    },
+    {
+      "file": "mp5h_with_corr.mp5",
+      "bytes": 140064,
+      "codecId": 3
+    },
+    {
+      "file": "mp5h_no_corr.mp5",
+      "bytes": 75495,
+      "codecId": 3
+    },
+    {
+      "file": "corrupt_truncated.mp5",
+      "corrupt": true
+    },
+    {
+      "file": "mp5l_unknown_futr.mp5",
+      "unknownChunk": "FUTR"
+    }
+  ]
+}

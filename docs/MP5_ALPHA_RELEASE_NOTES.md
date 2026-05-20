@@ -1,0 +1,113 @@
+# MP5 Alpha release notes
+
+## Milestone: MP5 Alpha Release Package
+
+The project is **validated**, **demo-ready**, and packaged for sharing:
+
+- **One-command demo:** `pnpm demo` (setup checks + dev server)
+- **Release checklist:** [`docs/MP5_ALPHA_RELEASE_CHECKLIST.md`](MP5_ALPHA_RELEASE_CHECKLIST.md)
+- **In-app:** About + Demo tabs, global WASM setup banner
+- Demo guide: [`docs/MP5_DEMO_GUIDE.md`](MP5_DEMO_GUIDE.md)
+- Verification gate: **`pnpm alpha:check`**
+- Synthetic fixtures only in `test-fixtures/` (no copyrighted songs in repo)
+
+---
+
+## Codec policy
+
+| Codec | Role |
+|-------|------|
+| **MP5-L v3** | **Default / recommended** — lossless, bit-exact, modest compression |
+| **PCM** | **Reference / debug** — uncompressed fallback when WASM unavailable |
+| **MP5-H** | **Hybrid** — MP5-C base + lossless CORR; **clean when CORR is applied**; **large**; not default |
+| **MP5-C** | **Lab-only / experimental** — may hiss on all presets; not for normal listening |
+
+**MP5 does not claim to beat MP3, AAC, Opus, or FLAC.**
+
+---
+
+## Status: validated
+
+**MP5 Alpha is validated** on the ORIGAMI reference track (`- ORIGAMI!.flac` → `ORIGAMI_mp5l_v3_alpha.mp5`).
+
+| Check | Result |
+|-------|--------|
+| Digital bit-exact (FLAC PCM vs MP5-L decode) | Pass — max diff 0, null test silent |
+| Automated tests | `pnpm alpha:check` |
+| Subjective headphone pass (MP5-L v3) | Clean — no obvious MP5-C-style hiss |
+| Default / recommended export | **MP5-L v3** |
+
+### Follow-up (post-Alpha)
+
+- [ ] **MP5-L vs PCM playback parity** — same browser player, matched volume, blind A/B
+
+See `benchmarks/real-music/ORIGAMI_L_PCM_PARITY.md`.
+
+---
+
+## What works
+
+- **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default; auto-download on drop
+- **Player:** MP5-L v2/v3, PCM (reference), MP5-H (hybrid + CORR), MP5-C (lab)
+- **Format panel:** Codec, encoder version, bit-exact line (MP5-L), decode path
+- **Demo fixtures:** `demo_mp5l_v3_tone.mp5`, `demo_pcm_reference_tone.mp5`, `demo_mp5c_lab_tone.mp5`
+- **WASM round-trip tests** and ORIGAMI benchmark tooling
+
+## What is experimental
+
+| Codec | Notes |
+|-------|--------|
+| **MP5-C** | Lab-only — may hiss; not for normal playback |
+| **MP5-H** | Hybrid — clean with CORR; **~2× PCM** on ORIGAMI; not default |
+| **PCM** | Reference / debug only |
+
+## What is postponed
+
+- MP5-C / MP5-H optimization and further MP5-L compression tuning
+- MP5-L stretch goal ≤0.80× PCM (currently ~0.945× on ORIGAMI)
+- Batch converter UI, shuffle/repeat, mobile/PWA polish
+- Moonshot / advanced optional chunks
+
+## Known limitations
+
+- MP5 does **not** claim to beat MP3, AAC, Opus, or FLAC
+- MP5-L does **not** beat FLAC on reference material
+- MP5-C may hiss — lab/research only
+- MP5-H files are much larger than MP5-L
+- Browser encode/decode is CPU-bound (WASM)
+- Lab tab and some optional chunks are stubs
+
+## Next roadmap
+
+See [`docs/MP5_ROADMAP.md`](MP5_ROADMAP.md):
+
+1. Playback parity A/B in one browser session
+2. Optional converter queue UI
+3. v0.2 optional metadata display (LYRC, MOOD, …)
+4. Further MP5-L compression research (no product promises)
+
+---
+
+## Default export: MP5-L v3
+
+- **Recommended** for listening-quality exports
+- **Lossless** and **bit-exact** (decoded PCM matches source)
+- Modest compression (~5% smaller than raw PCM on ORIGAMI)
+- Bitstream: `0x4c 0x03` (v3)
+
+## How to demo
+
+```bash
+pnpm install
+pnpm wasm:build
+pnpm dev
+pnpm alpha:check   # run before handoff
+```
+
+See [`docs/MP5_DEMO_GUIDE.md`](MP5_DEMO_GUIDE.md).
+
+## Upgrade notes
+
+- New exports use MP5-L **v3** bitstream
+- **v2** MP5-L (raw PCM blocks) still decodes
+- Re-export old files for best compression

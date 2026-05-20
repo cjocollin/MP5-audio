@@ -1,0 +1,73 @@
+[package]
+name = "mp5-codec"
+version = "0.1.0"
+edition = "2021"
+description = "MP5 experimental audio codecs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.100"
+symphonia = { version = "0.5.4", features = ["flac", "pcm", "mp3", "isomp4", "aac"], optional = true }
+crc32fast = { version = "1.4", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+bytemuck = { version = "1.14", optional = true }
+
+[features]
+default = []
+bench_tools = ["symphonia", "crc32fast", "serde", "serde_json", "bytemuck"]
+
+[[bin]]
+name = "bench_real_music"
+path = "src/bin/bench_real_music.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "export_listening_set"
+path = "src/bin/export_listening_set.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "bench_v5_compare"
+path = "src/bin/bench_v5_compare.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "bench_v51_compare"
+path = "src/bin/bench_v51_compare.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "bench_hiss_investigation"
+path = "src/bin/bench_hiss_investigation.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "bench_mp5c_blocker"
+path = "src/bin/bench_mp5c_blocker.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "bench_mp5h_validation"
+path = "src/bin/bench_mp5h_validation.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "bench_mp5l_compression"
+path = "src/bin/bench_mp5l_compression.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "alpha_origami_smoke"
+path = "src/bin/alpha_origami_smoke.rs"
+required-features = ["bench_tools"]
+
+[[bin]]
+name = "alpha_origami_parity"
+path = "src/bin/alpha_origami_parity.rs"
+required-features = ["bench_tools"]
+
+[dev-dependencies]
+approx = "0.5.1"

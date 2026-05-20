@@ -1,0 +1,117 @@
+﻿cargo : warning: unnecessary parentheses around assigned value
+At C:\Users\colli\AppData\Local\Temp\ps-script-c4da91de-7d2d-4b41-8318-995d3ae38f18.ps1:87 char:101
++ ...  $env:Path; cargo test -p mp5-codec mp5c_bench_report -- --nocapture  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (warning: unnece... assigned value:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   --> rust\mp5-codec\src\mp5c\mod.rs:305:34
+    |
+305 |             samples[i * 2 + 1] = ((v as f32 * 0.95) as i16);
+    |                                  ^                        ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+305 -             samples[i * 2 + 1] = ((v as f32 * 0.95) as i16);
+305 +             samples[i * 2 + 1] = (v as f32 * 0.95) as i16 ;
+    |
+
+warning: unused variable: `overhead`
+  --> rust\mp5-codec\src\mp5c\bench.rs:97:13
+   |
+97 |         let overhead = header + (frames as usize * 2 * per_frame);
+   |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_overhead`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `mp5-codec` (lib test) generated 2 warnings (run `cargo fix --lib -p mp5-codec --tests` to apply 2 
+suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.20s
+     Running unittests src\lib.rs (target\debug\deps\mp5_codec-0fc02b255fa6b8e7.exe)
+
+running 1 test
+
+=== MP5-C experimental benchmark (v3) ===
+
+## Fixture: sine_2s (2 ch, 88200 samples, PCM 352800 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 352800 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 212296 | 0.602 | 18.0 | 0.0983 | 0.0380 | 32.97 | 38.10 | low SNR ΓÇö audible quantization; peak error >2% FS |
+| Standard | 251004 | 0.711 | 23.1 | 0.0491 | 0.0212 | 25.10 | 32.89 | moderate SNR ΓÇö may hear grain on sine/noise; peak error >2% FS |
+| High | 317892 | 0.901 | 29.2 | 0.0247 | 0.0105 | 23.54 | 18.48 | peak error >2% FS |
+| Extreme | 356932 | 1.012 | 35.9 | 0.0119 | 0.0049 | 30.32 | 34.14 | larger than PCM (header/overhead or fine quant); Extreme prioritizes quality over size |
+
+## Fixture: silence_2s (2 ch, 88200 samples, PCM 352800 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 352800 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 272 | 0.001 | 120.0 | 0.0000 | 0.0000 | 19.47 | 19.32 | ok |
+| Standard | 272 | 0.001 | 120.0 | 0.0000 | 0.0000 | 21.64 | 20.86 | ok |
+| High | 272 | 0.001 | 120.0 | 0.0000 | 0.0000 | 30.30 | 38.34 | ok |
+| Extreme | 272 | 0.001 | 120.0 | 0.0000 | 0.0000 | 33.12 | 29.95 | ok |
+
+## Fixture: white_noise_2s (2 ch, 88200 samples, PCM 352800 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 352800 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 357056 | 1.012 | 23.0 | 0.0998 | 0.0408 | 60.58 | 50.27 | moderate SNR ΓÇö may hear grain on sine/noise; larger than PCM (header/overhead or fine quant); peak error >2% FS |
+| Standard | 357100 | 1.012 | 29.0 | 0.0499 | 0.0205 | 64.54 | 61.31 | larger than PCM (header/overhead or fine quant); peak error >2% FS |
+| High | 357112 | 1.012 | 35.1 | 0.0249 | 0.0102 | 49.79 | 65.30 | larger than PCM (header/overhead or fine quant); peak error >2% FS |
+| Extreme | 357136 | 1.012 | 41.5 | 0.0120 | 0.0049 | 62.17 | 53.35 | larger than PCM (header/overhead or fine quant); Extreme prioritizes quality over size |
+
+## Fixture: pink_noise_2s (2 ch, 88200 samples, PCM 352800 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 352800 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 356996 | 1.012 | 18.1 | 0.0997 | 0.0386 | 69.56 | 46.58 | low SNR ΓÇö audible quantization; larger than PCM (header/overhead or fine quant); peak error >2% FS |
+| Standard | 357028 | 1.012 | 24.3 | 0.0498 | 0.0188 | 60.90 | 48.38 | moderate SNR ΓÇö may hear grain on sine/noise; larger than PCM (header/overhead or fine quant); peak error >2% FS |
+| High | 357052 | 1.012 | 30.0 | 0.0249 | 0.0097 | 57.25 | 41.87 | larger than PCM (header/overhead or fine quant); peak error >2% FS |
+| Extreme | 357068 | 1.012 | 35.3 | 0.0119 | 0.0053 | 31.65 | 34.82 | larger than PCM (header/overhead or fine quant); Extreme prioritizes quality over size |
+
+## Fixture: drums_5s (2 ch, 220500 samples, PCM 882000 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 882000 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 189056 | 0.214 | 19.0 | 0.0500 | 0.0274 | 49.71 | 61.17 | low SNR ΓÇö audible quantization; peak error >2% FS |
+| Standard | 200988 | 0.228 | 25.1 | 0.0250 | 0.0135 | 51.14 | 38.24 | moderate SNR ΓÇö may hear grain on sine/noise; peak error >2% FS |
+| High | 214964 | 0.244 | 30.9 | 0.0125 | 0.0069 | 32.82 | 35.36 | ok |
+| Extreme | 226883 | 0.257 | 37.2 | 0.0060 | 0.0034 | 72.37 | 87.40 | ok |
+
+## Fixture: vocal_like_5s (2 ch, 220500 samples, PCM 882000 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 882000 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 252656 | 0.286 | 15.2 | 0.0688 | 0.0304 | 40.56 | 40.03 | low SNR ΓÇö audible quantization; peak error >2% FS |
+| Standard | 282288 | 0.320 | 20.7 | 0.0448 | 0.0162 | 39.72 | 50.29 | moderate SNR ΓÇö may hear grain on sine/noise; peak error >2% FS |
+| High | 445888 | 0.506 | 25.2 | 0.0245 | 0.0097 | 56.18 | 34.60 | moderate SNR ΓÇö may hear grain on sine/noise; peak error >2% FS |
+| Extreme | 636504 | 0.722 | 30.8 | 0.0117 | 0.0050 | 51.84 | 44.46 | ok |
+
+## Fixture: music_like_30s (2 ch, 1323000 samples, PCM 5292000 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 5292000 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 1547844 | 0.292 | 24.2 | 0.0645 | 0.0299 | 204.40 | 215.82 | moderate SNR ΓÇö may hear grain on sine/noise; peak error >2% FS |
+| Standard | 1767600 | 0.334 | 29.5 | 0.0399 | 0.0162 | 236.22 | 404.60 | peak error >2% FS |
+| High | 3135528 | 0.593 | 33.6 | 0.0249 | 0.0101 | 414.54 | 246.39 | peak error >2% FS |
+| Extreme | 3999880 | 0.756 | 40.0 | 0.0119 | 0.0048 | 308.36 | 306.00 | ok |
+
+## Fixture: sine_0.5s_short (2 ch, 22050 samples, PCM 88200 bytes)
+| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |
+|--------|-----------|--------------|--------|----------|---------|-----------|-----------|-------|
+| PCM fallback | 88200 | 1.000 | ΓÇö | 0 | 0 | ΓÇö | ΓÇö | uncompressed |
+| Low | 29654 | 0.336 | 21.0 | 0.0500 | 0.0269 | 4.76 | 4.62 | moderate SNR ΓÇö may hear grain on sine/noise; peak error >2% FS |
+| Standard | 38446 | 0.436 | 25.8 | 0.0250 | 0.0155 | 3.84 | 3.67 | moderate SNR ΓÇö may hear grain on sine/noise; peak error >2% FS |
+| High | 45130 | 0.512 | 32.8 | 0.0125 | 0.0069 | 6.47 | 4.99 | ok |
+| Extreme | 45130 | 0.512 | 38.5 | 0.0060 | 0.0036 | 5.16 | 4.61 | ok |
+
+--- Short sine Extreme overhead ---
+frames/ch: 11, stream header: 8 B
+min frame headers (stereo): ~66 B, total enc: 45130 B, PCM: 88200 B
+v3 uses 3-byte frame headers (vs v2 8-byte) + 2048-sample frames + rice/silence
+
+test mp5c::bench::run::mp5c_bench_report ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 6.39s
+

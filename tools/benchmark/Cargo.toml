@@ -1,0 +1,11 @@
+[package]
+name = "mp5-benchmark"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mp5-benchmark"
+path = "src/main.rs"
+
+[dependencies]
+mp5-codec = { path = "../../rust/mp5-codec" }
