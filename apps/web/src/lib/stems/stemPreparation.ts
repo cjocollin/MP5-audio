@@ -3,12 +3,15 @@ import { StemDecodeCache, type DecodedStemPcm } from "./stemDecodeCache";
 import type { ParsedStemFile } from "./parseStems";
 import { yieldToMain } from "./stemFrameLoader";
 
+import type { StemWorkerTaskPhase } from "./stemWorkerProtocol";
+
 export interface StemPrepareProgress {
-  phase: "idle" | "preparing" | "done" | "cancelled" | "error";
+  phase: StemWorkerTaskPhase | "preparing" | "done" | "cancelled" | "error";
   currentStemName?: string;
   currentIndex: number;
   total: number;
   decodedRamBytes: number;
+  percent?: number;
 }
 
 export interface PrepareStemsOptions {
@@ -30,14 +33,23 @@ export async function prepareStemsSequential(
     if (signal?.aborted) throw new DOMException("Stem preparation cancelled", "AbortError");
     const stem = stems[i]!;
     const stemIndex = file.stems.findIndex((s) => s.stemId === stem.stemId);
-    onProgress?.({
-      phase: "preparing",
-      currentStemName: stem.stemName,
-      currentIndex: i + 1,
-      total,
-      decodedRamBytes: cache.stats().decodedRamBytes,
-    });
-    const decoded = await cache.decodeStem(file, stem, Math.max(0, stemIndex), signal);
+    const decoded = await cache.decodeStem(
+      file,
+      stem,
+      Math.max(0, stemIndex),
+      signal,
+      (p) => {
+        onProgress?.({
+          phase: p.phase === "idle" ? "preparing" : p.phase,
+          currentStemName: p.stemName ?? stem.stemName,
+          currentIndex: i + 1,
+          total,
+          decodedRamBytes: cache.stats().decodedRamBytes,
+          percent: p.percent,
+        });
+      },
+      { currentIndex: i + 1, total },
+    );
     out.push(decoded);
     await yieldToMain();
   }

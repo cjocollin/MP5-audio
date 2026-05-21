@@ -1,5 +1,23 @@
 # MP5 Alpha release notes
 
+## v0.10.4-alpha — Worker-based stem decoding hotfix (May 2026)
+
+**Version:** MP5 Audio **v0.10.4-alpha**
+
+### Added
+
+- **Web Worker** for heavy stem preparation (STDF reconstruct + MP5-L WASM decode).
+- **Per-stem transferable payloads** — only the selected stem’s fragments are posted to the worker (not a full-file copy per stem).
+- **Progress UI** — phases (loading fragments / reconstructing / decoding), percent, cancel.
+- **Worker diagnostics** in Stems panel; calm **fallback** to main-thread decode if Worker/WASM unavailable.
+- Profile notes: [`MP5_STEM_WORKER_PROFILE.md`](MP5_STEM_WORKER_PROFILE.md).
+
+### Unchanged
+
+- Lazy/selected stem behavior, full mix on main path, karaoke subset rules, STDF/STDA v1, codec policy, 64 MiB cap, no AI separation.
+
+---
+
 ## v0.10.3-alpha — Large stem playback / mixer performance (May 2026)
 
 **Version:** MP5 Audio **v0.10.3-alpha**

@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.10.3-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.10.4-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -34,7 +34,8 @@
 
 - **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default (recommended)
 - **Batch converter (MVP):** **Batch** tab — multi-file import, queue with per-file status, **MP5-L v3 only**, progress summary, retry failed, download individual/all (no ZIP), optional auto-save to local library with FING duplicate detection; browser-local (no upload)
-- **Large stem playback (v0.10.3-alpha):** lazy/selected stem decode, solo, progressive prepare + cancel, instrumental karaoke path, playback-clock synced lyrics, stem diagnostics — full mix never blocked
+- **Worker stem decode (v0.10.4-alpha):** Web Worker for STDF reconstruct + MP5-L decode; per-stem transferable payloads; progress phases + cancel; main-thread fallback; worker diagnostics in Stems panel — full mix never blocked
+- **Large stem playback (v0.10.3-alpha):** lazy/selected stem decode, solo, progressive prepare + cancel, instrumental karaoke path, playback-clock synced lyrics — full mix never blocked
 - **Large embedded stems (v0.10.2-alpha):** **STDF** segmented stem fragments when **STDA** would exceed 64 MiB; **STDA v1** unchanged for small sets; `pnpm inspect:mp5` reports storage mode and fragment stats
 - **Stem import fix (v0.10.1-alpha):** single file picker; pre-import RAM **warnings only**; sequential normalize for large batches
 - **Stem normalize (v0.10.1-alpha):** normalize stems **one at a time** with progress status (avoids crashing when normalizing many large stems at once)

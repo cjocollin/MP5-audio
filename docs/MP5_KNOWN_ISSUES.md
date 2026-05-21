@@ -1,6 +1,6 @@
 # MP5 known issues and limitations (Alpha)
 
-**Version:** MP5 Audio v0.10.0-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
+**Version:** MP5 Audio v0.10.4-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
 
 This page lists honest limitations for testers, demo hosts, and future Beta planning. See also [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) and [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md).
 
@@ -56,7 +56,9 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 | Issue | Detail |
 |-------|--------|
 | **No AI separation** | Users supply stems manually; no vocal remover or auto-alignment. |
-| **Large stem prepare time** | STDF files with 200+ MB embedded stems require progressive decode; solo/selected only — not instant all-stem mix. |
+| **Large stem prepare time** | STDF files with 200+ MB embedded stems require progressive decode (Web Worker when available); solo/selected only — not instant all-stem mix. |
+| **Large file open** | Dropping a 250+ MB `.mp5` still parses the full container on the main thread before playback; stem worker does not move initial ingest. |
+| **Worker fallback** | Some browsers or blocked workers fall back to main-thread stem decode with a warning; full mix still works. |
 | **RAM cap** | Preparing many large stems at once may be blocked (~384 MB selected decode cap); full mix always works. |
 | **Normalization helper** | Resample/pad/trim only — not sample-accurate DAW sync. |
 | **Third-party players** | Most players will ignore STEM/STDA/STDF and play AUDI only. |

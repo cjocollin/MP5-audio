@@ -16,6 +16,10 @@ import { StemDecodeCache } from "../lib/stems/stemDecodeCache";
 import { parseStemsFromFile } from "../lib/stems/parseStems";
 import { prepareStemsSequential, type StemPrepareProgress } from "../lib/stems/stemPreparation";
 import { loadStemFrameData } from "../lib/stems/stemFrameLoader";
+import {
+  getStemWorkerClient,
+  STEM_WORKER_FALLBACK_WARNING,
+} from "../lib/stems/stemWorkerClient";
 import { downloadBlob } from "../lib/performance/downloadBlob";
 import { formatDuration } from "./playlistUtils";
 import type { StemPcmTrack } from "./useStemMixerEngine";
@@ -110,6 +114,7 @@ export function StemsPanel({
   const [statusNote, setStatusNote] = useState("");
   const [downloadBusy, setDownloadBusy] = useState<string | null>(null);
   const [soloStemId, setSoloStemId] = useState<string | null>(null);
+  const [workerDiag, setWorkerDiag] = useState(() => getStemWorkerClient().diagnostics);
 
   useEffect(() => {
     if (!parsedStems) {
@@ -136,9 +141,11 @@ export function StemsPanel({
 
   const cancelPrepare = useCallback(() => {
     abortRef.current?.abort();
+    getStemWorkerClient().cancelActive();
     abortRef.current = null;
     setPrepareProgress((p) => ({ ...p, phase: "cancelled" }));
     setStatusNote("Stem preparation cancelled.");
+    setWorkerDiag(getStemWorkerClient().diagnostics);
   }, []);
 
   const syncTracksToMixer = useCallback(
@@ -168,6 +175,14 @@ export function StemsPanel({
       abortRef.current?.abort();
       const ac = new AbortController();
       abortRef.current = ac;
+      setPrepareProgress({
+        phase: "loading_fragments",
+        currentStemName: stemsToLoad[0]?.stemName,
+        currentIndex: 0,
+        total: stemsToLoad.length,
+        decodedRamBytes: cacheRef.current.stats().decodedRamBytes,
+        percent: 0,
+      });
 
       try {
         await prepareStemsSequential({
@@ -175,8 +190,16 @@ export function StemsPanel({
           stems: stemsToLoad,
           cache: cacheRef.current,
           signal: ac.signal,
-          onProgress: setPrepareProgress,
+          onProgress: (p) => {
+            setPrepareProgress(p);
+            setWorkerDiag(getStemWorkerClient().diagnostics);
+          },
         });
+        const diag = getStemWorkerClient().diagnostics;
+        setWorkerDiag(diag);
+        if (diag.fallbackMode && !safety.warning) {
+          setStatusNote(STEM_WORKER_FALLBACK_WARNING);
+        }
         if (uiOverride) setUiState(uiOverride);
         setMixMode(mode);
         onStemMixActiveChange(true);
@@ -305,7 +328,21 @@ export function StemsPanel({
   const selectedEstimate = estimateStemsDecodedBytes(
     parsedStems.stems.filter((s) => uiState.find((u) => u.id === s.stemId)?.selected),
   );
-  const preparing = prepareProgress.phase === "preparing";
+  const preparing =
+    prepareProgress.phase === "preparing" ||
+    prepareProgress.phase === "loading_fragments" ||
+    prepareProgress.phase === "reconstructing" ||
+    prepareProgress.phase === "decoding";
+  const phaseLabel =
+    prepareProgress.phase === "loading_fragments"
+      ? "loading fragments"
+      : prepareProgress.phase === "reconstructing"
+        ? "reconstructing"
+        : prepareProgress.phase === "decoding"
+          ? "decoding"
+          : prepareProgress.phase === "ready"
+            ? "ready"
+            : "preparing";
 
   return (
     <section className="rounded-xl bg-surface-elevated p-4 space-y-3" data-testid="stems-panel">
@@ -356,7 +393,20 @@ export function StemsPanel({
             ? ` · Selected estimate ~${Math.round(selectedEstimate / (1024 * 1024))} MB`
             : ""}
         </p>
+        <p data-testid="stems-worker-diagnostics">
+          Worker: {workerDiag.workerAvailable ? "yes" : "no"} · status {workerDiag.workerStatus} ·
+          phase {workerDiag.taskPhase}
+          {workerDiag.queuedStemIds.length ? ` · queued ${workerDiag.queuedStemIds.join(", ")}` : ""}
+          {workerDiag.fallbackMode ? " · fallback" : ""}
+          {workerDiag.lastError ? ` · err ${workerDiag.lastError}` : ""}
+        </p>
       </div>
+
+      {workerDiag.fallbackMode && (
+        <p className="text-xs text-amber-200/70" data-testid="stems-worker-fallback-warning">
+          {STEM_WORKER_FALLBACK_WARNING}
+        </p>
+      )}
 
       {fileTier?.warning && (
         <p className="text-xs text-amber-200/80 bg-amber-950/30 rounded-lg px-3 py-2" data-testid="stems-memory-warning">
@@ -367,8 +417,9 @@ export function StemsPanel({
       {preparing && (
         <div className="text-xs text-gray-400 space-y-2" data-testid="stems-prepare-progress">
           <p>
-            Preparing {prepareProgress.currentStemName ?? "stem"} (
-            {prepareProgress.currentIndex}/{prepareProgress.total})…
+            {phaseLabel}: {prepareProgress.currentStemName ?? "stem"} (
+            {prepareProgress.currentIndex}/{prepareProgress.total})
+            {prepareProgress.percent != null ? ` · ${prepareProgress.percent}%` : ""}…
           </p>
           <button
             type="button"

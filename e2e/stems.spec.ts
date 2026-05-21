@@ -36,6 +36,25 @@ test.describe("stem playback UI", () => {
     await expect(page.getByTestId("stems-decode-error")).toHaveCount(0);
   });
 
+  test("shows progress and cancel during stem preparation", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Player", exact: true }).click();
+    await page.getByTestId("player-file-input").setInputFiles(stemFixture);
+    await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
+
+    const items = page.getByTestId("stems-item");
+    await items.nth(0).getByTestId("stems-item-select").check();
+    await items.nth(1).getByTestId("stems-item-select").check();
+    await page.getByTestId("stems-prepare-selected").click();
+    await expect(page.getByTestId("stems-prepare-progress")).toBeVisible({ timeout: 5000 });
+    await page.getByTestId("stems-prepare-cancel").click();
+    await expect(page.getByTestId("stems-status-note")).toContainText(/cancelled/i, {
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("stems-panel")).toBeVisible();
+    await expect(page.getByTestId("play-pause")).toBeEnabled();
+  });
+
   test("solo loads one stem without preparing all", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();

@@ -1,6 +1,6 @@
 # MP5 Alpha Demo Guide
 
-**Version:** MP5 Audio v0.10.3-alpha · Inspect: `pnpm inspect:mp5 <file>` (reports **STDA** vs **STDF** stem storage) · Pre-Beta: [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) · `pnpm beta:check`
+**Version:** MP5 Audio v0.10.4-alpha · Inspect: `pnpm inspect:mp5 <file>` (reports **STDA** vs **STDF** stem storage) · Pre-Beta: [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) · `pnpm beta:check`
 
 Use this guide to show MP5 to someone in about five minutes. No copyrighted music is required — use the bundled synthetic fixtures or your own FLAC/WAV.
 

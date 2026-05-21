@@ -1,6 +1,6 @@
 {
   "name": "@mp5/web",
-  "version": "0.10.3-alpha",
+  "version": "0.10.4-alpha",
   "private": true,
   "type": "module",
   "scripts": {

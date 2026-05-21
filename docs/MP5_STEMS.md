@@ -1,6 +1,6 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
-**Version:** MP5 Audio v0.10.3-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+**Version:** MP5 Audio v0.10.4-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
 
 Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** / **STDF** and behave as today.
 
@@ -9,7 +9,7 @@ Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI**
 - **No AI stem separation** — users provide stem files manually (WAV, FLAC, MP3, M4A, OGG via the converter decode path).
 - **No MP5-C for stems by default** — stems encode as **MP5-L v3** when WASM is available; PCM reference fallback if not.
 - **Full mix required** — `fullMixInAudi: true` in the STEM manifest; AUDI is the default playback path.
-- **Experimental MVP** — stem mixing in the web player is **lazy and selective** (v0.10.3+); full mix in AUDI is always instant.
+- **Experimental MVP** — stem mixing in the web player is **lazy and selective** (v0.10.3+), with **background worker decode** (v0.10.4+); full mix in AUDI is always instant.
 
 ## Chunks
 
@@ -87,17 +87,32 @@ Multiple **STDF** chunks may appear in one file (one fragment per chunk). **STEM
 
 Stems should ideally come from the **same session/export** as the full mix; normalization is a helper for rate/duration mismatches only.
 
-## Player playback (v0.10.3-alpha)
+## Player playback (v0.10.4-alpha)
 
 Large embedded stem sets (**STDF**) must not freeze the browser:
 
-- **Full mix (AUDI)** — always the default; no stem decode required to play.
+- **Full mix (AUDI)** — always the default; no stem decode required to play (main thread).
 - **Stem list** — metadata shows immediately; stems are **not** all decoded on file open.
+- **Background worker** — solo, prepare selected, and karaoke stem prep run in a **Web Worker** when available: STDF fragment transfer per stem (not the whole file), WASM MP5-L decode initialized once per worker, PCM returned via transferable `ArrayBuffer`s.
+- **Progress UI** — phase labels (loading fragments / reconstructing / decoding / ready), stem index/total, optional percent, cancel.
+- **Fallback** — if Worker or worker WASM fails, the app uses the prior yielded main-thread path and shows: *Background stem decoding is unavailable. Large stems may feel slower.*
 - **Solo** — decode and play **one** stem at a time.
 - **Prepare selected** — decode only checked stems for mixing (progress + cancel).
 - **Karaoke** — **instrumental-only** decode when an instrumental stem exists; otherwise prepare non-vocal stems only (may take time).
-- **Memory** — per-stem decode cache with unload; extreme single-stem or selected totals may still be blocked with a calm message.
-- **Synced lyrics** — follow the Web Audio playback clock (~15 fps UI), not laggy React state.
+- **Memory** — per-stem decode cache with unload; browser limits still apply; workers improve **responsiveness**, not file size.
+- **Synced lyrics** — follow the Web Audio playback clock (~15 fps UI), not stem-prep state.
+
+### Remaining lag (honest profile)
+
+| Phase | Thread | Notes |
+|-------|--------|-------|
+| File drop / `parseMp5` | Main | Full container read + HASH still on main thread (~1 s for 270 MB in Node; browser can be slower). |
+| STDF fragment grouping | Main | Cheap map build at stem panel parse. |
+| Stem reconstruct + MP5-L decode | **Worker** (or main fallback) | Per selected/solo/karaoke stem only. |
+| Waveform / song map | Main | Can add cost on open; unrelated to stem worker. |
+| Lyrics active line | Main | Clock-based ~15 fps; should stay smooth during worker prep. |
+
+See [`MP5_STEM_WORKER_PROFILE.md`](MP5_STEM_WORKER_PROFILE.md) for the v0.10.4 hotfix profile notes.
 
 ## Karaoke mode (player)
 

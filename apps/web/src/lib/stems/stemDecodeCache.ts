@@ -1,8 +1,7 @@
 import type { StemDescriptor } from "@mp5/container";
-import { decodeStemFrame } from "../../player/decodeStemFrame";
-import { loadStemFrameData, yieldToMain } from "./stemFrameLoader";
 import type { ParsedStemFile } from "./parseStems";
-import { estimateStemDecodedBytes, estimateStemsDecodedBytes } from "./stemLimits";
+import { estimateStemsDecodedBytes } from "./stemLimits";
+import { getStemWorkerClient, type StemDecodeProgress } from "./stemWorkerClient";
 
 export interface DecodedStemPcm {
   stemId: string;
@@ -80,6 +79,8 @@ export class StemDecodeCache {
     stem: StemDescriptor,
     stemIndex: number,
     signal?: AbortSignal,
+    onProgress?: (p: StemDecodeProgress) => void,
+    batch?: { currentIndex: number; total: number },
   ): Promise<DecodedStemPcm> {
     const cached = this.decoded.get(stem.stemId);
     if (cached) {
@@ -87,29 +88,13 @@ export class StemDecodeCache {
       return cached;
     }
 
-    const { frameData, errors } = await loadStemFrameData(file, stem, stemIndex, signal);
-    if (signal?.aborted) throw new DOMException("Stem preparation cancelled", "AbortError");
-    if (errors.length || !frameData.length) {
-      throw new Error(errors[0] ?? `Could not load stem "${stem.stemName}".`);
-    }
+    const entry = await getStemWorkerClient().decodeStem(file, stem, stemIndex, {
+      signal,
+      onProgress,
+      currentIndex: batch?.currentIndex,
+      total: batch?.total,
+    });
 
-    await yieldToMain();
-    const { samples, sampleRate, channels } = await decodeStemFrame(
-      frameData,
-      stem.codecId,
-      stem.channels,
-      stem.sampleRate,
-    );
-    if (signal?.aborted) throw new DOMException("Stem preparation cancelled", "AbortError");
-
-    const decodedBytes = samples.byteLength;
-    const entry: DecodedStemPcm = {
-      stemId: stem.stemId,
-      samples,
-      sampleRate,
-      channels,
-      decodedBytes,
-    };
     this.decoded.set(stem.stemId, entry);
     this.touch(stem.stemId);
     this.evictIfNeeded();
