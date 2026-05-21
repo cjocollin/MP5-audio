@@ -23,6 +23,7 @@ import { SavedAlbumsPanel } from "./SavedAlbumsPanel";
 import { decodeCache } from "../player/decodeCache";
 import { assessLibraryStorage, type GuardrailMessage } from "../lib/performance/guardrails";
 import { GuardrailNotice } from "./GuardrailNotice";
+import { USER_ERRORS } from "../lib/userFacingErrors";
 
 const EMPTY_MESSAGE =
   "Save MP5 files to your local library so you can play them again later on this device.";
@@ -229,7 +230,7 @@ export function LocalLibraryPanel() {
       );
     } catch (e) {
       if (e instanceof LibraryStorageError && e.code === "quota") {
-        setError("Not enough browser storage to save. Remove older library items or free disk space.");
+        setError(USER_ERRORS.libraryQuota);
       } else {
         setError(e instanceof Error ? e.message : String(e));
       }

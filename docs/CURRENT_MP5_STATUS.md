@@ -1,12 +1,12 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.9.0-alpha** · **Date:** May 2026 · **Status:** **Spec-freeze / compatibility toolkit** (validated)
+**Version:** MP5 Audio **v0.10.0-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Share / run:** `pnpm demo` · **Checklist:** [`docs/MP5_ALPHA_RELEASE_CHECKLIST.md`](MP5_ALPHA_RELEASE_CHECKLIST.md) · **Verify:** `pnpm alpha:check`
+**Share / run:** `pnpm demo` · **Checklist:** [`docs/MP5_ALPHA_RELEASE_CHECKLIST.md`](MP5_ALPHA_RELEASE_CHECKLIST.md) · **Verify:** `pnpm alpha:check` · **Pre-Beta gate:** [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) · `pnpm beta:check`
 
 ## Codec policy
 
@@ -34,6 +34,7 @@
 
 - **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default (recommended)
 - **Batch converter (MVP):** **Batch** tab — multi-file import, queue with per-file status, **MP5-L v3 only**, progress summary, retry failed, download individual/all (no ZIP), optional auto-save to local library with FING duplicate detection; browser-local (no upload)
+- **Beta readiness (v0.10.0-alpha):** [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md), [`MP5_KNOWN_ISSUES.md`](MP5_KNOWN_ISSUES.md), `pnpm beta:check`, golden fixture validation, public-claims audit tests, centralized user-facing errors
 - **Spec freeze / compatibility toolkit (v0.9.0-alpha):** canonical chunk registry, compatibility policy, feature matrix; `inspect:mp5` / `validate:mp5` CLIs; player Format compatibility summary; golden fixture validation profiles
 - **Batch stem import + normalization (v0.8.2-alpha):** import multiple stems at once, filename type guessing, batch summary, bulk normalize/remove; **Normalize stems to match full mix** — [`MP5_STEMS.md`](MP5_STEMS.md)
 - **Performance / reliability (v0.8.0-alpha):** Settings **Diagnostics** panel; guardrails for large sources, batch queues, library quota, stem RAM; improved cancel/cleanup for single + batch conversion; decode cache stats/clear on queue/library clear; object URL revoke on downloads; FFmpeg load failure messaging

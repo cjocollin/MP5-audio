@@ -7,6 +7,7 @@ import {
   type Mp5File,
 } from "@mp5/container";
 import type { PlaylistTrack } from "../store/playerStore";
+import { USER_ERRORS, formatPlaylistParseError } from "../lib/userFacingErrors";
 
 export interface TrackDisplayInfo {
   title: string;
@@ -141,11 +142,11 @@ export async function ingestMp5Files(files: File[]): Promise<IngestResult> {
         id: crypto.randomUUID(),
         name: file.name,
         file,
-        parseError: "This file could not be loaded.",
+        parseError: USER_ERRORS.invalidMp5,
       });
       dropErrors.push({
         name: file.name,
-        message: "This file could not be loaded — listed as unreadable.",
+        message: formatPlaylistParseError(file.name),
         reason: "unreadable",
       });
     }

@@ -1,8 +1,12 @@
-# MP5 Known Limitations (v0.1)
+# MP5 limitations (technical notes)
+
+**Version:** MP5 Audio v0.10.0-alpha
+
+For the canonical Alpha limitations list (codec, browser, library, `.mp5p`, stems, batch), see **[`MP5_KNOWN_ISSUES.md`](MP5_KNOWN_ISSUES.md)**. For the Beta gate checklist, see **[`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md)**.
 
 ## Format status
 
-MP5 is an **experimental prototype**, not a standardized format.
+MP5 is an **experimental Alpha prototype**, not production-ready and not a standardized format.
 
 ## MP5-C
 

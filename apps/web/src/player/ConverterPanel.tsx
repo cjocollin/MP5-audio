@@ -20,6 +20,10 @@ import { LOAD_PHASE_LABELS, runExportPipeline } from "../converter/exportPipelin
 import { importMp5ToPlayer } from "./playerImport";
 import { saveMp5ToLibrary } from "../lib/localLibrary/api";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
+import {
+  USER_ERRORS,
+  formatConverterDecodeError,
+} from "../lib/userFacingErrors";
 import { SupportedSourcesNote } from "../components/SupportedSourcesNote";
 import { ConverterEmptyState } from "../components/ConverterEmptyState";
 import { CodecModesHelper } from "../components/CodecModesHelper";
@@ -142,7 +146,7 @@ export function ConverterPanel() {
     const guardrails = assessSourceFile(file);
     setSourceGuardrails(guardrails);
     if (guardrails.some((g) => g.level === "block")) {
-      setError("This file is too large or long for a safe browser conversion. Try a shorter clip.");
+      setError(USER_ERRORS.sourceTooLarge);
       return;
     }
     setBusy(true);
@@ -188,7 +192,8 @@ export function ConverterPanel() {
         setStatus("Conversion cancelled.");
         return;
       }
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = formatConverterDecodeError(file.name, e);
+      if (msg) setError(msg);
       setStatus("");
       resetSingle();
     } finally {
@@ -246,7 +251,7 @@ export function ConverterPanel() {
       );
       setError(
         partition.unsupported.length
-          ? "No supported stem files to import. Use WAV, FLAC, MP3, M4A, or OGG."
+          ? USER_ERRORS.stemUnsupportedBatch
           : "All selected files were duplicates or unsupported.",
       );
       return;
@@ -311,7 +316,7 @@ export function ConverterPanel() {
           `Imported ${imported.length} stem${imported.length === 1 ? "" : "s"}${alignHint}`,
         );
       } else {
-        setError("No stems could be decoded.");
+        setError(USER_ERRORS.stemDecodeFailed);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -326,11 +331,7 @@ export function ConverterPanel() {
     const normalized = normalizeAllStemsToMix(mixPcm, stems, allowLargeTrim);
     const stillMisaligned = analyzeStemAlignment(mixPcm, normalized, mixDurationSec);
     if (stillMisaligned.needsNormalization) {
-      setError(
-        allowLargeTrim
-          ? "Some stems could not be aligned. Remove and re-import, or adjust the full mix length."
-          : "Large duration mismatch — confirm trimming when prompted, or pad the full mix.",
-      );
+      setError(USER_ERRORS.stemAlignBlocked);
       return;
     }
     const aligned = normalized.map((s) => ensureStemSourceSnapshot(s));
@@ -383,7 +384,7 @@ export function ConverterPanel() {
       stems,
     );
     if (!validation.canExport) {
-      setError("Fix stem errors before export.");
+      setError(USER_ERRORS.stemExportBlocked);
       return;
     }
     const hasWarnings = validation.issues.some((i) => i.level === "warning");
@@ -477,7 +478,7 @@ export function ConverterPanel() {
     } catch (e) {
       setLibrarySaveNote(
         e instanceof LibraryStorageError && e.code === "quota"
-          ? "Not enough browser storage to save."
+          ? USER_ERRORS.libraryQuota
           : e instanceof Error
             ? e.message
             : String(e),

@@ -70,7 +70,7 @@ describe("player playlist utilities", () => {
     const { tracks, dropErrors } = await ingestMp5Files([corrupt]);
     expect(tracks).toHaveLength(1);
     expect(tracks[0]?.parseError).toBeTruthy();
-    expect(dropErrors[0]?.message).toContain("could not be loaded");
+    expect(dropErrors[0]?.message).toContain("could not be read as MP5");
     expect(dropErrors[0]?.reason).toBe("unreadable");
   });
 

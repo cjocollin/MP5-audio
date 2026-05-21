@@ -5,6 +5,7 @@ import { enrichResolvedAlbum, resolveAlbumTracks } from "./resolveAlbum";
 import { isAlbumPackageFileName } from "./createAlbumPackage";
 import type { PlaylistTrack } from "../../store/playerStore";
 import { ingestMp5Files, isMp5FileName, type IngestResult } from "../../player/playlistUtils";
+import { USER_ERRORS } from "../userFacingErrors";
 
 export interface AlbumIngestResult {
   album: ResolvedAlbumPackage | null;
@@ -48,7 +49,7 @@ export async function ingestAlbumPackageFiles(
     return {
       album: null,
       mp5: mp5Result,
-      manifestError: "Could not read album manifest file.",
+      manifestError: USER_ERRORS.albumManifestUnreadable,
       manifestName: manifestFile.name,
     };
   }
@@ -58,7 +59,7 @@ export async function ingestAlbumPackageFiles(
     return {
       album: null,
       mp5: mp5Result,
-      manifestError: errors[0]?.message ?? "Invalid album manifest.",
+      manifestError: errors[0]?.message ?? USER_ERRORS.albumManifestInvalid,
       manifestName: manifestFile.name,
     };
   }

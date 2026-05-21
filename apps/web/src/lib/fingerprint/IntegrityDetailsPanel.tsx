@@ -1,5 +1,6 @@
 import type { IntegrityCheckResult } from "@mp5/container";
 import { shortHashPreview } from "@mp5/container";
+import { USER_ERRORS } from "../userFacingErrors";
 
 const STATUS_LABEL: Record<string, string> = {
   verified: "Verified",
@@ -115,7 +116,7 @@ export function IntegrityDetailsPanel({ integrity }: Props) {
           className="text-xs text-amber-200/80 bg-amber-950/20 rounded-lg px-2 py-1.5"
           data-testid="integrity-mismatch-warning"
         >
-          A fingerprint mismatch was detected. Playback continues — verify the file source if
+          {USER_ERRORS.fingerprintMismatch} Playback continues — verify the file source if
           unexpected.
         </p>
       )}

@@ -43,6 +43,7 @@ import { decodeFing, fingIdentityKey } from "@mp5/container";
 import { verifyMp5Integrity } from "../lib/fingerprint/verify";
 import type { IntegrityCheckResult } from "@mp5/container";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
+import { USER_ERRORS } from "../lib/userFacingErrors";
 import { DropImportSummary } from "../components/DropImportSummary";
 import { PlayerEmptyState } from "../components/PlayerEmptyState";
 import { DemoFixtureActions } from "../components/DemoFixtureActions";
@@ -582,7 +583,7 @@ export function Mp5Player() {
     } catch (e) {
       setLibrarySaveNote(
         e instanceof LibraryStorageError && e.code === "quota"
-          ? "Not enough browser storage to save."
+          ? USER_ERRORS.libraryQuota
           : e instanceof Error
             ? e.message
             : String(e),

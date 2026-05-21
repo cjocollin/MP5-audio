@@ -1,7 +1,7 @@
 {
   "name": "mp5",
   "private": true,
-  "version": "0.9.0-alpha",
+  "version": "0.10.0-alpha",
   "description": "MP5 experimental audio format ecosystem",
   "scripts": {
     "build": "pnpm -r run build",
@@ -21,7 +21,8 @@
     "bench:mp5h-validation": "cargo run --release -p mp5-codec --features bench_tools --bin bench_mp5h_validation",
     "bench:mp5l-compression": "cargo run --release -p mp5-codec --features bench_tools --bin bench_mp5l_compression",
     "fixtures:generate": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-demo-fixtures.mjs && node scripts/generate-demo-album-package.mjs",
-    "fixtures:validate": "node scripts/validate-demo-fixtures.mjs",
+    "fixtures:validate": "node scripts/validate-golden-fixtures.mjs",
+    "beta:check": "node scripts/beta-check.mjs",
     "compatibility:fixtures": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-compatibility-fixtures.mjs",
     "compatibility:check": "node scripts/compatibility-check.mjs",
     "alpha:check": "node scripts/alpha-check.mjs",

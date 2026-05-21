@@ -42,7 +42,12 @@ function txDone(tx: IDBTransaction): Promise<void> {
     tx.onerror = () => {
       const err = tx.error;
       if (isQuotaExceededError(err)) {
-        reject(new LibraryStorageError("Not enough browser storage to save this file.", "quota"));
+        reject(
+          new LibraryStorageError(
+            "Not enough browser storage to save. Remove older library items or free disk space in your browser settings.",
+            "quota",
+          ),
+        );
       } else {
         reject(err ?? new LibraryStorageError("Library storage transaction failed."));
       }

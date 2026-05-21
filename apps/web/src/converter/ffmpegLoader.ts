@@ -2,6 +2,7 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { toBlobURL } from "@ffmpeg/util";
 import coreJs from "@ffmpeg/core?url";
 import coreWasm from "@ffmpeg/core/wasm?url";
+import { USER_ERRORS } from "../lib/userFacingErrors";
 
 export type FfmpegLoadState = "idle" | "loading" | "ready" | "failed";
 
@@ -55,7 +56,7 @@ export async function getFfmpeg(onStatus?: (message: string) => void): Promise<F
       await withTimeout(
         instance.load({ coreURL, wasmURL }),
         LOAD_TIMEOUT_MS,
-        "FFmpeg load timed out. Try refreshing the page or use a WAV file.",
+        USER_ERRORS.ffmpegTimeout,
       );
 
       ffmpeg = instance;

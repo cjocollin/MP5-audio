@@ -34,7 +34,7 @@ if (existsSync(wasmPkg)) {
 }
 run("Unit tests (vitest)", "pnpm", ["test"]);
 run("Rust codec tests", "cargo", ["test", "-p", "mp5-codec", "--release"]);
-run("Fixture validation", "node", ["scripts/validate-demo-fixtures.mjs"]);
+run("Golden fixture validation", "node", ["scripts/validate-golden-fixtures.mjs"]);
 run("Stem fixture validation", "node", ["scripts/validate-stem-fixture.mjs"]);
 run("E2E (Playwright)", "pnpm", ["test:e2e"]);
 
