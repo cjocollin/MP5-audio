@@ -13,6 +13,7 @@ import { isMoonshotChunk } from "./moonshotChunks.js";
 import { Mp5ParseError } from "./errors.js";
 import { decodeCover } from "./coverArt.js";
 import { decodeMeta } from "./metadata.js";
+import { STEM_FRAGMENT_FOURCC } from "./stemStdf.js";
 import { validateChunkPayloadSize, validateFileSize, validateParsedFile } from "./validator.js";
 import type {
   AudioFrame,
@@ -118,6 +119,7 @@ export function parseMp5(buffer: ArrayBuffer | Uint8Array): Mp5File {
     info: [],
     corr: [],
     optional: new Map(),
+    stdfFragments: [],
     warnings: [],
   };
 
@@ -203,8 +205,15 @@ export function parseMp5(buffer: ArrayBuffer | Uint8Array): Mp5File {
         }
         break;
       }
+      case STEM_FRAGMENT_FOURCC:
+        file.stdfFragments.push(payload);
+        break;
       default:
-        file.optional.set(fourcc, payload);
+        if (file.optional.has(fourcc)) {
+          file.warnings.push(`Duplicate optional chunk ${fourcc} — keeping first`);
+        } else {
+          file.optional.set(fourcc, payload);
+        }
         break;
     }
   }

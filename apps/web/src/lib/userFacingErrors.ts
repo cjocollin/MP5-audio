@@ -26,6 +26,8 @@ export const USER_ERRORS = {
     "No stems could be decoded. Check file format (WAV, FLAC, MP3, M4A, OGG) and try fewer files at once.",
   stemUnsupportedBatch:
     "No supported stem files to import. Use WAV, FLAC, MP3, M4A, or OGG.",
+  stemChunkTooLarge:
+    "Embedded stem data is too large for one chunk. Try segmented stem export or fewer stems.",
   libraryQuota:
     "Not enough browser storage to save. Remove older library items or free disk space in your browser settings.",
   libraryUnavailable: "Local library storage is not available in this browser.",
@@ -38,6 +40,7 @@ export function formatConverterDecodeError(fileName: string, err: unknown): stri
   const msg = err instanceof Error ? err.message : String(err);
   if (/timed out/i.test(msg)) return USER_ERRORS.ffmpegTimeout;
   if (/ffmpeg/i.test(msg) && /load|fail/i.test(msg)) return USER_ERRORS.ffmpegLoadFailed;
+  if (/Chunk payload exceeds|67108864/i.test(msg)) return USER_ERRORS.stemChunkTooLarge;
   const hint = decodeFailureHint(fileName);
   return msg && !msg.includes(hint.slice(0, 20))
     ? `${hint} Details: ${msg}`

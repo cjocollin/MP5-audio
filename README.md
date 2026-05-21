@@ -4,7 +4,7 @@ An experimental smart audio format, converter, and player.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.10.1-alpha**
+**Version:** MP5 Audio **v0.10.2-alpha**
 
 MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only.
 
@@ -70,7 +70,7 @@ pnpm demo          # http://localhost:5173
 
 **Local library:** **Library** tab → save `.mp5` files on this device (IndexedDB). Search, play, download again, or add to the player queue. Nothing is uploaded to a server; clearing browser data may remove saved files. Large exports can use significant storage.
 
-**Optional stems:** Converter **Stems** section — add WAV/FLAC stems manually (no AI). Full mix stays in AUDI; optional **STEM** + **STDA** chunks. Demo: `test-fixtures/demo_mp5l_v3_stems.mp5` or **Load karaoke demo** in the player. Stem mix is opt-in and memory-limited. See [`docs/MP5_STEMS.md`](docs/MP5_STEMS.md).
+**Optional stems:** Converter **Stems** section — add WAV/FLAC stems manually (no AI). Full mix stays in AUDI; optional **STEM** + **STDA** (small sets) or **STDF** segmented fragments (large embedded sets). Demo: `test-fixtures/demo_mp5l_v3_stems.mp5` or **Load karaoke demo** in the player. Stem mix is opt-in and memory-limited. See [`docs/MP5_STEMS.md`](docs/MP5_STEMS.md).
 
 **Synced lyrics / karaoke:** Optional **LYRC** synced lines (`timeMs`) via converter `[mm:ss.xx]` editor; player lyrics panel + karaoke mode (synced lyrics + stems). No AI lyric generation. See [`docs/MP5_METADATA_SPEC.md`](docs/MP5_METADATA_SPEC.md).
 

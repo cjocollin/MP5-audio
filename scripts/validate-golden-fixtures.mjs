@@ -14,7 +14,7 @@ const {
   CodecId,
   parseMp5,
   validateParsedFile,
-  validateStemChunks,
+  validateStemFromParsed,
   decodeStemManifest,
   decodeLyrc,
   decodeSect,
@@ -79,7 +79,7 @@ for (const spec of DEMO_FIXTURES) {
   }
   if (spec.stems) {
     const manifest = decodeStemManifest(parsed.optional.get("STEM"));
-    const check = validateStemChunks(manifest, parsed.optional.get(STEM_DATA_FOURCC));
+    const check = validateStemFromParsed(parsed);
     if (!check.valid) {
       fail(`${spec.file} stems: ${check.errors.join("; ")}`);
       continue;

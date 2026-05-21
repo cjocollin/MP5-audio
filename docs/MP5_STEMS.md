@@ -1,8 +1,8 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
-**Version:** MP5 Audio v0.9.0-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+**Version:** MP5 Audio v0.10.2-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
 
-Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** and behave as today.
+Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** / **STDF** and behave as today.
 
 ## Policy
 
@@ -17,7 +17,8 @@ Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI**
 |--------|------|
 | **AUDI** | Required full mix (default playback) |
 | **STEM** | JSON manifest — per-stem metadata |
-| **STDA** | Binary stem audio payloads (length-prefixed frames) |
+| **STDA** | Single-chunk stem audio (small / legacy; length-prefixed frames) |
+| **STDF** | Segmented stem data fragments (large embedded stem sets; v1) |
 
 ### STEM manifest (JSON, version 1)
 
@@ -39,9 +40,11 @@ Each stem entry includes:
 | `requiredForPlayback` | Default **false** — stems never block AUDI playback |
 | `explicitContent` | Optional content flag |
 | `cleanAlternateStemId` | Optional linked stem |
-| `dataOffset` / `dataLength` | Byte range in STDA |
+| `dataOffset` / `dataLength` | Logical byte range in stem frame data |
+| `fragmentCount` | STDF only — number of STDF chunks for this stem |
+| `storageMode` (manifest) | `stda-v1` or `stdf-v1` |
 
-### STDA binary layout
+### STDA binary layout (stda-v1)
 
 ```
 u8 version (=1)
@@ -50,6 +53,23 @@ repeat stem_count:
   u32 frame_length
   u8[frame_length]  // MP5-L v3 or PCM bitstream (single frame)
 ```
+
+### STDF fragment layout (stdf-v1)
+
+Used when embedded stem data is too large for one **STDA** chunk (container max **64 MiB** per chunk — not raised for safety).
+
+```
+u8 version (=1)
+u8 stem_id_length
+u8[stem_id_length] stem_id (UTF-8)
+u16 part_index
+u16 part_count
+u32 payload_length
+u32 payload_crc32
+u8[payload_length]  // slice of stem frame bitstream
+```
+
+Multiple **STDF** chunks may appear in one file (one fragment per chunk). **STEM** manifest `storageMode: "stdf-v1"` and per-stem `fragmentCount` describe reconstruction.
 
 ### Recommended `stemType` values
 
@@ -63,7 +83,7 @@ repeat stem_count:
 4. Validation: sample rate must match mix before export; channel/duration mismatches warn with **Normalize stems to match full mix** (applies to all stems).
 5. **Stem normalization (v0.8.1+):** resample to the mix rate (e.g. 48000 → 44100 Hz), align channels (mono ↔ stereo), pad short stems with silence, trim long stems (small mismatches &lt; 500 ms by default; large trims confirm first). Optional **pad full mix** when all stems are consistently longer. Original stem PCM is kept in memory until export — **not** AI alignment.
 6. **Bulk actions:** normalize all, remove all, set all volumes to 100%. Large batch imports show memory/time guardrails.
-7. Export merges **STEM** + **STDA** into optional chunks (MP5-L v3 for stems when WASM is ready).
+7. Export merges **STEM** + **STDA** (small sets) or **STEM** + multiple **STDF** fragments (large sets) — auto-selected when combined stem data would exceed the 64 MiB per-chunk limit. Fragment size ~12 MiB. MP5-L v3 for stems when WASM is ready.
 
 Stems should ideally come from the **same session/export** as the full mix; normalization is a helper for rate/duration mismatches only.
 
@@ -93,7 +113,7 @@ Validation:
 node scripts/validate-stem-fixture.mjs   # also run via pnpm alpha:check
 ```
 
-Checks: STEM + STDA present, checksums, offsets, `fullMixInAudi`, AUDI decode, per-stem WASM decode, corrupt checksum rejected.
+Checks: STEM + **STDA** (small demo) or **STDF** fragments (large sets), checksums, offsets, `fullMixInAudi`, AUDI decode, per-stem WASM decode, corrupt checksum rejected. CLI: `pnpm inspect:mp5 <file>` shows `stda-v1` vs `stdf-v1` and STDF fragment count.
 
 ## Memory guardrails (web player)
 

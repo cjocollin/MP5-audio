@@ -91,9 +91,33 @@ export async function verifyMp5Integrity(
     if (fourcc === "FING" || fourcc === "HASH") continue;
     actualByFourcc.set(fourcc, await sha256Hex(payload));
   }
+  const stdfActual: { size: number; sha256: string }[] = [];
+  for (const payload of parsed.stdfFragments ?? []) {
+    stdfActual.push({ size: payload.length, sha256: await sha256Hex(payload) });
+  }
 
   const chunkChecks = hash?.chunks?.length
-    ? mergeChunkCheck(hash.chunks, actualByFourcc)
+    ? hash.chunks.map((e) => {
+        if (e.fourcc === "STDF" && stdfActual.length) {
+          const match = e.size
+            ? stdfActual.find((a) => a.size === e.size)
+            : stdfActual[0];
+          const actual = match?.sha256;
+          return {
+            fourcc: e.fourcc,
+            expected: e.sha256,
+            actual,
+            ok: compareSha256(e.sha256, actual),
+          };
+        }
+        const actual = actualByFourcc.get(e.fourcc);
+        return {
+          fourcc: e.fourcc,
+          expected: e.sha256,
+          actual,
+          ok: compareSha256(e.sha256, actual),
+        };
+      })
     : [];
 
   const result = buildIntegrityResult({

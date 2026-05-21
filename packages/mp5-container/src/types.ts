@@ -56,5 +56,7 @@ export interface Mp5File {
   info: MetaField[];
   corr: { frameIndex: number; data: Uint8Array }[];
   optional: Map<string, Uint8Array>;
+  /** STDF v1 segmented stem payloads (one file chunk per fragment). */
+  stdfFragments: Uint8Array[];
   warnings: string[];
 }

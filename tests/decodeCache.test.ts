@@ -13,7 +13,7 @@ describe("DecodeCache", () => {
       samples: new Int16Array(4),
       sampleRate: 48000,
       channels: 1,
-      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
+      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), stdfFragments: [], warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
       decodePath: "PCM",
       duration: 1,
     });
@@ -25,7 +25,7 @@ describe("DecodeCache", () => {
       samples: new Int16Array(1),
       sampleRate: 48000,
       channels: 1,
-      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
+      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), stdfFragments: [], warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
       decodePath: "PCM",
       duration: 1,
     });
@@ -42,7 +42,7 @@ describe("DecodeCache", () => {
       samples: new Int16Array(1),
       sampleRate: 48000,
       channels: 1,
-      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
+      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), stdfFragments: [], warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
       decodePath: "PCM",
       duration: 1,
     };
@@ -55,7 +55,7 @@ describe("DecodeCache", () => {
       samples: new Int16Array(1),
       sampleRate: 48000,
       channels: 1,
-      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
+      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), stdfFragments: [], warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
       decodePath: "PCM",
       duration: 1,
     });

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Validate .mp5 / .mp5p with profiles: basic | playable | rich | strict | package
+ * Rich/strict include STEM + STDA or segmented STDF stem payloads when present.
  * Usage:
  *   pnpm validate:mp5 <file> [--profile playable]
  *   pnpm validate:mp5p <manifest.mp5p> [--dir <sidecars>] [--profile package]

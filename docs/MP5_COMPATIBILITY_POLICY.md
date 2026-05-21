@@ -73,7 +73,7 @@ Missing required chunks → **not playable** (`playable` validation profile fail
 | Required chunk CRC fail | Parse error |
 | Optional chunk CRC fail | Warning + chunk skipped |
 | Invalid JSON in optional chunk | Decode fails; chunk ignored for UI; export validation may warn |
-| STEM without STDA | Stem validation errors on `rich` profile |
+| STEM without STDA or STDF | Stem validation errors on `rich` profile |
 | Oversize payload | Security error at parser limits |
 
 ## Old files
@@ -118,7 +118,7 @@ CLI: `pnpm validate:mp5 <file> [--profile playable]` · `pnpm validate:mp5p <man
 
 - Existing `.mp5` with HEAD+AUDI+MP5-L v3
 - Unknown optional chunk forward compatibility
-- STEM/STDA layout v1
+- STEM/STDA/STDF layout v1 (large embedded sets use segmented **STDF**)
 - VISU, SECT, HOOK, HILT, LYRC, FING, HASH for files that already validate at `rich`
 - `.mp5p` manifest format `mp5-album-manifest-v1`
 
@@ -126,7 +126,7 @@ CLI: `pnpm validate:mp5 <file> [--profile playable]` · `pnpm validate:mp5p <man
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm inspect:mp5 <file>` | Human-readable compatibility report |
+| `pnpm inspect:mp5 <file>` | Human-readable report (codec, chunks, stem **stda-v1** / **stdf-v1**, STDF fragment stats) |
 | `pnpm validate:mp5 <file>` | Exit code validation by profile |
 | `pnpm validate:mp5p <file.mp5p>` | Album manifest validation |
 | `pnpm fixtures:validate` | Golden demo fixture gate |

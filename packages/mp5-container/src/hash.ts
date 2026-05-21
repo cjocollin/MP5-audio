@@ -33,6 +33,7 @@ const ALLOWED_INTEGRITY_FOURCC = new Set([
   "CORR",
   "STEM",
   "STDA",
+  "STDF",
   "SECT",
   "HOOK",
   "HILT",

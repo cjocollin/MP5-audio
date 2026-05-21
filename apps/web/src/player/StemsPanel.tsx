@@ -165,6 +165,8 @@ export function StemsPanel({
 
   if (!parsedStems?.stems.length) return null;
 
+  const stemDataBroken = parsedStems.errors.length > 0 && !parsedStems.stems.some((s) => s.frameData.length);
+
   const updateUi = (id: string, patch: Partial<StemUiState>) => {
     setUiState((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
   };
@@ -192,7 +194,7 @@ export function StemsPanel({
             type="checkbox"
             checked={stemMixActive}
             onChange={(e) => handleMixToggle(e.target.checked)}
-            disabled={loading || decodeBusy || !safety.ok}
+            disabled={loading || decodeBusy || !safety.ok || stemDataBroken}
             data-testid="stem-mix-toggle"
           />
           Mix stems in player
@@ -208,7 +210,7 @@ export function StemsPanel({
           stems in addition to the full mix. Normal playback uses the <strong className="text-gray-400 font-normal">full mix in AUDI</strong> — always available below.
         </p>
         <p>
-          Third-party players can ignore STEM/STDA and play the full mix only. No AI stem separation —
+          Third-party players can ignore STEM/STDA/STDF and play the full mix only. No AI stem separation —
           stems were provided manually at export.
         </p>
         <p>
@@ -226,6 +228,20 @@ export function StemsPanel({
       {safety.block && (
         <p className="text-xs text-red-300/90 bg-red-950/30 rounded-lg px-3 py-2" data-testid="stems-mix-blocked">
           {safety.block}
+        </p>
+      )}
+      {stemDataBroken && (
+        <p
+          className="text-xs text-amber-200/90 bg-amber-950/30 rounded-lg px-3 py-2"
+          data-testid="stems-reconstruct-warning"
+        >
+          Stem data could not be reconstructed ({parsedStems.storageMode}). Full mix playback is
+          unchanged. {parsedStems.errors[0]}
+        </p>
+      )}
+      {parsedStems.storageMode === "stdf-v1" && !stemDataBroken && (
+        <p className="text-xs text-gray-500" data-testid="stems-stdf-notice">
+          Segmented STDF stem storage — large embedded stem set.
         </p>
       )}
 

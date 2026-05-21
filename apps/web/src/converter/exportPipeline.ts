@@ -75,10 +75,16 @@ export async function runExportPipeline(
   onPhase("writing-metadata", phaseLabel(input.codec, "writing-metadata"));
 
   let optional = bundle.optional;
+  let extraChunks: { fourcc: string; payload: Uint8Array }[] | undefined;
+  let fingerprintWarning: string | undefined;
   if (input.stems?.length) {
-    const { optional: stemOptional } = await encodeStemsForExport(input.stems);
+    const stemResult = await encodeStemsForExport(input.stems);
     optional = new Map(optional);
-    for (const [k, v] of stemOptional) optional.set(k, v);
+    for (const [k, v] of stemResult.optional) optional.set(k, v);
+    extraChunks = stemResult.extraChunks;
+    if (stemResult.warnings.length) {
+      fingerprintWarning = stemResult.warnings.join(" ");
+    }
   }
 
   let mp5 = await convertToMp5({
@@ -90,13 +96,13 @@ export async function runExportPipeline(
     metaFields: bundle.metaFields,
     cover: bundle.cover,
     optional,
+    extraChunks,
   });
 
   onPhase("validating", phaseLabel(input.codec, "validating"));
   let validated = parseMp5(mp5);
   validateParsedFile(validated, 16);
 
-  let fingerprintWarning: string | undefined;
   if (input.codec === "mp5l") {
     const fpOptional = new Map(optional);
     const fpNote = await attachFingerprintOptional(fpOptional, {
@@ -106,7 +112,9 @@ export async function runExportPipeline(
       pcmChannels: input.pcm.channels,
     });
     if (fpNote.warning) {
-      fingerprintWarning = fpNote.warning;
+      fingerprintWarning = fingerprintWarning
+        ? `${fingerprintWarning} ${fpNote.warning}`
+        : fpNote.warning;
     } else if (fpOptional.has("FING")) {
       mp5 = writeMp5({
         head: validated.head!,
@@ -118,6 +126,10 @@ export async function runExportPipeline(
         info: validated.info,
         corr: validated.corr,
         optional: fpOptional,
+        extraChunks: validated.stdfFragments.map((payload) => ({
+          fourcc: "STDF",
+          payload,
+        })),
       });
       validated = parseMp5(mp5);
       validateParsedFile(validated, 16);

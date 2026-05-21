@@ -14,6 +14,7 @@ export interface ConvertOptions {
   metaFields?: MetaField[];
   cover?: CoverArt | Uint8Array;
   optional?: Map<string, Uint8Array>;
+  extraChunks?: { fourcc: string; payload: Uint8Array }[];
 }
 
 export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
@@ -95,5 +96,6 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     info: [{ key: "encoder", value: encoderLabel }],
     corr: corrFrames,
     optional: opts.optional,
+    extraChunks: opts.extraChunks,
   });
 }

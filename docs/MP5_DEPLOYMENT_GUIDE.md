@@ -193,7 +193,7 @@ Vite bundles FFmpeg via `?url` imports in `ffmpegLoader.ts`; paths are hashed un
 
 ## App version label
 
-The UI shows **MP5 Alpha · v0.1.0** (from root `package.json`) in the header — helps confirm which build is deployed.
+The UI shows **MP5 Alpha · v0.10.2-alpha** (from root `package.json` via `AppVersionBadge`) in the header — helps confirm which build is deployed.
 
 ---
 

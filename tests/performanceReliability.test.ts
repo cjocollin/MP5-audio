@@ -20,6 +20,7 @@ const stubParsed = {
   info: [],
   corr: [],
   optional: new Map(),
+  stdfFragments: [],
   warnings: [],
   header: { majorVersion: 1, fileFlags: 0 },
 };

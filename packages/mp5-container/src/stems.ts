@@ -1,12 +1,43 @@
 import { crc32 } from "./checksum.js";
 import { CodecId } from "./constants.js";
 import { decodeJsonChunk, encodeJsonChunk, sanitizeJsonString } from "./chunkJson.js";
+import type { Mp5File } from "./types.js";
+import {
+  STEM_FRAGMENT_FOURCC,
+  buildStemExportSizeReport,
+  encodeStdfFragment,
+  formatStemExportSizeLog,
+  groupStdfFragments,
+  parseStemStorageMode,
+  reconstructStemFrameFromFragments,
+  splitStemFrameIntoFragments,
+  type StemExportSizeReport,
+} from "./stemStdf.js";
+
+export {
+  STEM_FRAGMENT_FOURCC,
+  STDA_SAFE_MAX_BYTES,
+  STDF_DEFAULT_FRAGMENT_PAYLOAD,
+  STDF_VERSION,
+  buildStemExportSizeReport,
+  formatStemExportSizeLog,
+  encodeStdfFragment,
+  decodeStdfFragment,
+  splitStemFrameIntoFragments,
+  reconstructStemFrameFromFragments,
+  groupStdfFragments,
+  setStdfFragmentPayloadTargetForTests,
+  resetStdfFragmentPayloadTarget,
+  type StemExportSizeReport,
+} from "./stemStdf.js";
 
 /** Companion chunk for STEM manifest — concatenated stem audio payloads. */
 export const STEM_DATA_FOURCC = "STDA";
 
 export const STEM_MANIFEST_VERSION = 1;
 export const STDA_VERSION = 1;
+
+export type StemStorageMode = "stda-v1" | "stdf-v1";
 
 /** Recommended stem taxonomy (MVP). */
 export const STEM_TYPES = [
@@ -44,15 +75,18 @@ export interface StemDescriptor {
   requiredForPlayback: boolean;
   explicitContent?: boolean;
   cleanAlternateStemId?: string;
-  /** Byte offset in STDA chunk payload (after STDA header). */
+  /** Byte offset in STDA/STDF logical payload. */
   dataOffset: number;
   dataLength: number;
+  /** STDF v1: number of STDF chunks for this stem. */
+  fragmentCount?: number;
 }
 
 export interface StemManifest {
   version: number;
   /** AUDI chunk holds the default full mix (required for playback). */
   fullMixInAudi: boolean;
+  storageMode?: StemStorageMode;
   stems: StemDescriptor[];
 }
 
@@ -82,6 +116,8 @@ function parseStemEntry(raw: Record<string, unknown>): StemDescriptor | null {
   const dataOffset = typeof raw.dataOffset === "number" ? Math.max(0, Math.floor(raw.dataOffset)) : 0;
   const dataLength = typeof raw.dataLength === "number" ? Math.max(0, Math.floor(raw.dataLength)) : 0;
   const byteLength = typeof raw.byteLength === "number" ? Math.max(0, Math.floor(raw.byteLength)) : dataLength;
+  const fragmentCount =
+    typeof raw.fragmentCount === "number" ? Math.max(0, Math.floor(raw.fragmentCount)) : undefined;
 
   const codecId =
     typeof raw.codecId === "number" && raw.codecId >= 0 && raw.codecId <= 255
@@ -105,6 +141,7 @@ function parseStemEntry(raw: Record<string, unknown>): StemDescriptor | null {
     cleanAlternateStemId: sanitizeJsonString(raw.cleanAlternateStemId, 64),
     dataOffset,
     dataLength,
+    fragmentCount,
   };
 }
 
@@ -112,6 +149,7 @@ export function encodeStemManifest(manifest: StemManifest): Uint8Array {
   return encodeJsonChunk({
     version: STEM_MANIFEST_VERSION,
     fullMixInAudi: manifest.fullMixInAudi,
+    storageMode: manifest.storageMode,
     stems: manifest.stems.map((s) => ({
       ...s,
       durationSamples: s.durationSamples,
@@ -132,11 +170,62 @@ export function decodeStemManifest(data?: Uint8Array): StemManifest | null {
   }
   if (!stems.length) return null;
 
+  const storageMode =
+    parseStemStorageMode(raw) ??
+    (raw.stems?.length ? undefined : undefined);
+
   return {
     version: typeof raw.version === "number" ? raw.version : 1,
     fullMixInAudi: raw.fullMixInAudi !== false,
+    storageMode,
     stems,
   };
+}
+
+/** Resolve stem storage mode from manifest + present chunks. */
+export function resolveStemStorageMode(
+  manifest: StemManifest,
+  hasStda: boolean,
+  stdfCount: number,
+): StemStorageMode {
+  if (manifest.storageMode === "stdf-v1" || (!hasStda && stdfCount > 0)) return "stdf-v1";
+  return "stda-v1";
+}
+
+export function decodeStemFrameEntries(
+  manifest: StemManifest,
+  stda?: Uint8Array,
+  stdfFragments?: readonly Uint8Array[],
+): { entries: Uint8Array[]; errors: string[]; warnings: string[] } {
+  const mode = resolveStemStorageMode(
+    manifest,
+    !!stda?.length,
+    stdfFragments?.length ?? 0,
+  );
+  if (mode === "stda-v1") {
+    return { entries: decodeStdaEntries(stda), errors: [], warnings: [] };
+  }
+  const grouped = groupStdfFragments(stdfFragments ?? []);
+  const entries: Uint8Array[] = [];
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  for (const stem of manifest.stems) {
+    const frags = grouped.get(stem.stemId) ?? [];
+    const { frameData, errors: stemErrors, warnings: stemWarnings } =
+      reconstructStemFrameFromFragments(stem.stemId, frags, stem.dataLength);
+    warnings.push(...stemWarnings);
+    if (!frameData) {
+      errors.push(...stemErrors);
+      entries.push(new Uint8Array(0));
+      continue;
+    }
+    const checksum = crc32(frameData).toString(16).padStart(8, "0");
+    if (stem.checksum && stem.checksum.toLowerCase() !== checksum) {
+      errors.push(`Stem "${stem.stemName}" checksum mismatch after STDF reconstruction.`);
+    }
+    entries.push(frameData);
+  }
+  return { entries, errors, warnings };
 }
 
 /** Build STDA payload: version byte + per-stem length-prefixed frame data. */
@@ -189,17 +278,23 @@ export interface StemBundleInput {
   explicitContent?: boolean;
 }
 
-/** Build STEM + STDA optional chunks from encoded stem frames. */
-export function buildStemOptionalChunks(stems: StemBundleInput[]): {
+export interface StemOptionalChunksResult {
   optional: Map<string, Uint8Array>;
+  extraChunks: { fourcc: string; payload: Uint8Array }[];
   manifest: StemManifest;
-} {
+  report: StemExportSizeReport;
+}
+
+/** Build STEM + STDA or segmented STDF optional chunks from encoded stem frames. */
+export function buildStemOptionalChunks(stems: StemBundleInput[]): StemOptionalChunksResult {
   const frameList = stems.map((s) => s.frameData);
   const stda = encodeStda(frameList);
-  let offset = 0;
+  const report = buildStemExportSizeReport(frameList, stda.length);
+  const useSegmented = report.exceedsStdaSafeLimit;
+
   const descriptors: StemDescriptor[] = stems.map((s) => {
     const dataLength = s.frameData.length;
-    const desc: StemDescriptor = {
+    return {
       stemId: s.stemId,
       stemName: s.stemName,
       stemType: s.stemType,
@@ -213,38 +308,80 @@ export function buildStemOptionalChunks(stems: StemBundleInput[]): {
       soloMuteCapable: true,
       requiredForPlayback: s.requiredForPlayback === true,
       explicitContent: s.explicitContent === true,
-      dataOffset: offset,
+      dataOffset: 0,
       dataLength,
+      fragmentCount: useSegmented
+        ? splitStemFrameIntoFragments(s.stemId, s.frameData).length
+        : undefined,
     };
-    offset += dataLength;
-    return desc;
   });
+
+  const optional = new Map<string, Uint8Array>();
+  const extraChunks: { fourcc: string; payload: Uint8Array }[] = [];
+  let storageMode: StemStorageMode = "stda-v1";
+
+  if (useSegmented) {
+    storageMode = "stdf-v1";
+    let fragmentCount = 0;
+    let largestFragment = 0;
+    for (const s of stems) {
+      const frags = splitStemFrameIntoFragments(s.stemId, s.frameData);
+      for (const frag of frags) {
+        const payload = encodeStdfFragment(frag);
+        largestFragment = Math.max(largestFragment, payload.length);
+        extraChunks.push({ fourcc: STEM_FRAGMENT_FOURCC, payload });
+        fragmentCount++;
+      }
+    }
+    report.chosenStorage = "stdf-v1";
+    report.fragmentCount = fragmentCount;
+    report.largestFragmentBytes = largestFragment;
+    console.info(formatStemExportSizeLog(report));
+  } else {
+    let offset = 0;
+    for (const d of descriptors) {
+      d.dataOffset = offset;
+      offset += d.dataLength;
+    }
+    optional.set(STEM_DATA_FOURCC, stda);
+    console.info(formatStemExportSizeLog(report));
+  }
 
   const manifest: StemManifest = {
     version: STEM_MANIFEST_VERSION,
     fullMixInAudi: true,
+    storageMode,
     stems: descriptors,
   };
 
-  const optional = new Map<string, Uint8Array>();
   optional.set("STEM", encodeStemManifest(manifest));
-  optional.set(STEM_DATA_FOURCC, stda);
-  return { optional, manifest };
+  return { optional, extraChunks, manifest, report };
 }
 
-/** Validate STEM manifest + STDA payloads (checksums, offsets, lengths). */
+/** Validate STEM manifest + STDA or STDF payloads (checksums, offsets, lengths). */
 export function validateStemChunks(
   manifest: StemManifest | null | undefined,
   stda?: Uint8Array,
-): { valid: boolean; errors: string[] } {
+  stdfFragments?: readonly Uint8Array[],
+): { valid: boolean; errors: string[]; warnings: string[]; storageMode?: StemStorageMode } {
   const errors: string[] = [];
+  const warnings: string[] = [];
   if (!manifest) {
     errors.push("Missing STEM manifest.");
-    return { valid: false, errors };
+    return { valid: false, errors, warnings };
   }
-  if (!stda?.length) {
+  const mode = resolveStemStorageMode(
+    manifest,
+    !!stda?.length,
+    stdfFragments?.length ?? 0,
+  );
+  if (mode === "stda-v1" && !stda?.length) {
     errors.push("Missing STDA stem data chunk.");
-    return { valid: false, errors };
+    return { valid: false, errors, warnings, storageMode: mode };
+  }
+  if (mode === "stdf-v1" && !stdfFragments?.length) {
+    errors.push("Missing STDF stem data fragments.");
+    return { valid: false, errors, warnings, storageMode: mode };
   }
   if (!manifest.fullMixInAudi) {
     errors.push("fullMixInAudi must be true — AUDI is the default playable mix.");
@@ -253,48 +390,130 @@ export function validateStemChunks(
     errors.push(`Unsupported STEM manifest version ${manifest.version}.`);
   }
 
-  const entries = decodeStdaEntries(stda);
+  const { entries, errors: decodeErrors, warnings: decodeWarnings } = decodeStemFrameEntries(
+    manifest,
+    stda,
+    stdfFragments,
+  );
+  errors.push(...decodeErrors);
+  warnings.push(...decodeWarnings);
+
   if (manifest.stems.length !== entries.length) {
-    errors.push("STEM stem count does not match STDA audio entries.");
+    errors.push("STEM stem count does not match stem audio entries.");
   }
   if (manifest.stems.length > 32) {
     errors.push("Too many stems in manifest (max 32).");
   }
 
-  let offset = 0;
-  for (let i = 0; i < manifest.stems.length; i++) {
-    const stem = manifest.stems[i]!;
-    const entry = entries[i];
-
-    if (!stem.stemName.trim()) {
-      errors.push(`Stem ${stem.stemId} is missing a name.`);
+  if (mode === "stda-v1") {
+    let offset = 0;
+    for (let i = 0; i < manifest.stems.length; i++) {
+      const stem = manifest.stems[i]!;
+      const entry = entries[i];
+      if (!stem.stemName.trim()) {
+        errors.push(`Stem ${stem.stemId} is missing a name.`);
+      }
+      if (stem.codecId === CodecId.MP5C) {
+        errors.push(`Stem "${stem.stemName}" uses MP5-C — not recommended for stems.`);
+      }
+      if (!entry?.length) {
+        errors.push(`Stem "${stem.stemName}" has no STDA audio data.`);
+        continue;
+      }
+      if (stem.dataOffset !== offset) {
+        errors.push(`Stem "${stem.stemName}" dataOffset ${stem.dataOffset} expected ${offset}.`);
+      }
+      if (stem.dataLength !== entry.length) {
+        errors.push(
+          `Stem "${stem.stemName}" dataLength ${stem.dataLength} does not match STDA entry ${entry.length}.`,
+        );
+      }
+      if (stem.byteLength !== entry.length) {
+        errors.push(`Stem "${stem.stemName}" byteLength does not match payload.`);
+      }
+      const checksum = crc32(entry).toString(16).padStart(8, "0");
+      if (stem.checksum && stem.checksum.toLowerCase() !== checksum) {
+        errors.push(`Stem "${stem.stemName}" checksum mismatch.`);
+      }
+      offset += entry.length;
     }
-    if (stem.codecId === CodecId.MP5C) {
-      errors.push(`Stem "${stem.stemName}" uses MP5-C — not recommended for stems.`);
+  } else {
+    for (let i = 0; i < manifest.stems.length; i++) {
+      const stem = manifest.stems[i]!;
+      const entry = entries[i];
+      if (!stem.stemName.trim()) {
+        errors.push(`Stem ${stem.stemId} is missing a name.`);
+      }
+      if (stem.codecId === CodecId.MP5C) {
+        errors.push(`Stem "${stem.stemName}" uses MP5-C — not recommended for stems.`);
+      }
+      if (!entry?.length) {
+        errors.push(`Stem "${stem.stemName}" has no reconstructed STDF audio data.`);
+        continue;
+      }
+      if (stem.dataLength !== entry.length) {
+        errors.push(
+          `Stem "${stem.stemName}" dataLength ${stem.dataLength} does not match reconstructed ${entry.length}.`,
+        );
+      }
+      if (stem.fragmentCount != null) {
+        const grouped = groupStdfFragments(stdfFragments ?? []);
+        const count = grouped.get(stem.stemId)?.length ?? 0;
+        if (count !== stem.fragmentCount) {
+          warnings.push(
+            `Stem "${stem.stemName}" fragmentCount ${stem.fragmentCount} but found ${count} STDF chunk(s).`,
+          );
+        }
+      }
     }
-    if (!entry?.length) {
-      errors.push(`Stem "${stem.stemName}" has no STDA audio data.`);
-      continue;
-    }
-    if (stem.dataOffset !== offset) {
-      errors.push(`Stem "${stem.stemName}" dataOffset ${stem.dataOffset} expected ${offset}.`);
-    }
-    if (stem.dataLength !== entry.length) {
-      errors.push(
-        `Stem "${stem.stemName}" dataLength ${stem.dataLength} does not match STDA entry ${entry.length}.`,
-      );
-    }
-    if (stem.byteLength !== entry.length) {
-      errors.push(`Stem "${stem.stemName}" byteLength does not match payload.`);
-    }
-    const checksum = crc32(entry).toString(16).padStart(8, "0");
-    if (stem.checksum && stem.checksum.toLowerCase() !== checksum) {
-      errors.push(`Stem "${stem.stemName}" checksum mismatch.`);
-    }
-    offset += entry.length;
   }
 
-  return { valid: errors.length === 0, errors };
+  return { valid: errors.length === 0, errors, warnings, storageMode: mode };
+}
+
+export function validateStemFromParsed(file: Mp5File): ReturnType<typeof validateStemChunks> {
+  const manifest = decodeStemManifest(file.optional.get("STEM"));
+  return validateStemChunks(
+    manifest,
+    file.optional.get(STEM_DATA_FOURCC),
+    file.stdfFragments,
+  );
+}
+
+export function summarizeStemStorage(file: Mp5File): {
+  stemCount: number;
+  storageMode: StemStorageMode | "none";
+  fragmentCount: number;
+  totalStemBytes: number;
+  largestFragmentBytes: number;
+} {
+  const manifest = decodeStemManifest(file.optional.get("STEM"));
+  if (!manifest?.stems.length) {
+    return { stemCount: 0, storageMode: "none", fragmentCount: 0, totalStemBytes: 0, largestFragmentBytes: 0 };
+  }
+  const mode = resolveStemStorageMode(
+    manifest,
+    file.optional.has(STEM_DATA_FOURCC),
+    file.stdfFragments.length,
+  );
+  const { entries } = decodeStemFrameEntries(
+    manifest,
+    file.optional.get(STEM_DATA_FOURCC),
+    file.stdfFragments,
+  );
+  let largest = 0;
+  for (const f of file.stdfFragments) {
+    largest = Math.max(largest, f.length);
+  }
+  const stda = file.optional.get(STEM_DATA_FOURCC);
+  if (stda?.length) largest = Math.max(largest, stda.length);
+  return {
+    stemCount: manifest.stems.length,
+    storageMode: mode,
+    fragmentCount: file.stdfFragments.length,
+    totalStemBytes: entries.reduce((s, e) => s + e.length, 0),
+    largestFragmentBytes: largest,
+  };
 }
 
 /** @deprecated Use validateStemChunks */
@@ -307,10 +526,11 @@ export function validateStemManifest(
 
 export function validateStemOptionalMap(
   optional: Map<string, Uint8Array>,
-): { valid: boolean; errors: string[]; manifest: StemManifest | null } {
+  stdfFragments: readonly Uint8Array[] = [],
+): { valid: boolean; errors: string[]; warnings: string[]; manifest: StemManifest | null } {
   const manifest = decodeStemManifest(optional.get("STEM"));
   const stda = optional.get(STEM_DATA_FOURCC);
-  const result = validateStemChunks(manifest, stda);
+  const result = validateStemChunks(manifest, stda, stdfFragments);
   return { ...result, manifest };
 }
 

@@ -4,7 +4,13 @@ import { validateParsedFile } from "./validator.js";
 import { decodeLyrc } from "./lyrc.js";
 import { decodeSect, decodeHook, decodeHilt } from "./sects.js";
 import { decodeVisu } from "./visu.js";
-import { decodeStemManifest, validateStemChunks, STEM_DATA_FOURCC } from "./stems.js";
+import {
+  decodeStemManifest,
+  validateStemFromParsed,
+  summarizeStemStorage,
+  STEM_DATA_FOURCC,
+  STEM_FRAGMENT_FOURCC,
+} from "./stems.js";
 import { decodeCrdt, decodeLicn, decodeIden } from "./creditsRights.js";
 import { getFingFromParsed, getHashFromParsed, buildIntegrityResult } from "./integrity.js";
 import { AI_FOURCC_SET } from "./aiChunks.js";
@@ -54,6 +60,10 @@ export interface Mp5CompatibilityReport {
   lyricsUnsynced: number;
   stemsCount: number;
   stemTypes: string[];
+  stemStorageMode: string;
+  stemFragmentCount: number;
+  stemDataTotalBytes: number;
+  largestStemChunkBytes: number;
   sectionsCount: number;
   hooksCount: number;
   highlightsCount: number;
@@ -92,6 +102,9 @@ function listChunks(file: Mp5File): string[] {
   if (file.info.length) out.push("INFO");
   if (file.corr.length) out.push("CORR");
   for (const k of file.optional.keys()) out.push(k);
+  if (file.stdfFragments.length) {
+    out.push(`${STEM_FRAGMENT_FOURCC}×${file.stdfFragments.length}`);
+  }
   return out;
 }
 
@@ -101,7 +114,8 @@ function classifyOptional(fourcc: string): "known" | "unknown" {
     AI_FOURCC_SET.has(fourcc) ||
     isWarningChunk(fourcc) ||
     isOptionalChunk(fourcc) ||
-    fourcc === STEM_DATA_FOURCC
+    fourcc === STEM_DATA_FOURCC ||
+    fourcc === STEM_FRAGMENT_FOURCC
   ) {
     return "known";
   }
@@ -207,15 +221,26 @@ export function assessMp5Compatibility(
   const lyricsSynced = lyrc?.synced?.length ?? 0;
   const lyricsUnsynced = lyrc?.unsynced?.length ?? 0;
   const stemManifest = decodeStemManifest(file.optional.get("STEM"));
-  const stemCheck =
-    stemManifest && file.optional.has(STEM_DATA_FOURCC)
-      ? validateStemChunks(stemManifest, file.optional.get(STEM_DATA_FOURCC))
-      : null;
+  const stemSummary = summarizeStemStorage(file);
+  const stemCheck = stemManifest ? validateStemFromParsed(file) : null;
   if (stemCheck && !stemCheck.valid) {
     for (const err of stemCheck.errors) {
       issues.push({ level: "error", code: "stem_invalid", message: err });
       errors.push(err);
     }
+  }
+  if (stemCheck?.warnings.length) {
+    for (const w of stemCheck.warnings) {
+      issues.push({ level: "warning", code: "stem_warning", message: w });
+      warnings.push(w);
+    }
+  }
+  if (stemSummary.storageMode === "stdf-v1") {
+    issues.push({
+      level: "info",
+      code: "stem_stdf",
+      message: `Segmented stem storage (STDF): ${stemSummary.fragmentCount} fragment(s), ~${Math.round(stemSummary.totalStemBytes / (1024 * 1024))} MB stem data.`,
+    });
   }
   const sect = decodeSect(file.optional.get("SECT"));
   const hook = decodeHook(file.optional.get("HOOK"));
@@ -321,6 +346,10 @@ export function assessMp5Compatibility(
     lyricsUnsynced,
     stemsCount: stemManifest?.stems.length ?? 0,
     stemTypes: stemManifest?.stems.map((s) => s.stemType) ?? [],
+    stemStorageMode: stemSummary.storageMode,
+    stemFragmentCount: stemSummary.fragmentCount,
+    stemDataTotalBytes: stemSummary.totalStemBytes,
+    largestStemChunkBytes: stemSummary.largestFragmentBytes,
     sectionsCount: sect?.sections.length ?? 0,
     hooksCount: hook ? 1 : 0,
     highlightsCount: hilt?.highlights.length ?? 0,

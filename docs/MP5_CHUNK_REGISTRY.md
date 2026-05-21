@@ -44,7 +44,8 @@ Column key: **Req** = required for playback · **Parser** / **Writer** / **Conve
 | **VIBE** | Vibe / energy | 1 | JSON | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | [MP5_METADATA_SPEC.md](MP5_METADATA_SPEC.md) |
 | **LYRC** | Lyrics (synced + unsynced) | 1 | JSON | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | [MP5_METADATA_SPEC.md](MP5_METADATA_SPEC.md) |
 | **STEM** | Stem manifest | 1 | JSON | ✅ | ✅ | ✅ | ✅ optional | ✅ | ✅ | [MP5_STEMS.md](MP5_STEMS.md) |
-| **STDA** | Stem audio payloads | 1 | Binary | ✅ | ✅ | ✅ | ✅ optional | ✅ mix | ✅ | [MP5_STEMS.md](MP5_STEMS.md) |
+| **STDA** | Stem audio (single chunk, small sets) | 1 | Binary | ✅ | ✅ | ✅ | ✅ optional | ✅ mix | ✅ | [MP5_STEMS.md](MP5_STEMS.md) |
+| **STDF** | Stem data fragments (large sets) | 1 | Binary | ✅ | ✅ | ✅ auto | ✅ optional | ✅ mix | ✅ | [MP5_STEMS.md](MP5_STEMS.md) |
 | **SECT** | Song sections / structure | 1 | JSON | ✅ | ✅ | ✅ | — | ✅ | ✅ | [MP5_SECTIONS.md](MP5_SECTIONS.md) |
 | **HOOK** | Hook window (one) | 1 | JSON | ✅ | ✅ | demo | — | ✅ | ✅ | [MP5_SECTIONS.md](MP5_SECTIONS.md) |
 | **HILT** | Highlight moments | 1 | JSON | ✅ | ✅ | demo | — | ✅ | ✅ | [MP5_SECTIONS.md](MP5_SECTIONS.md) |

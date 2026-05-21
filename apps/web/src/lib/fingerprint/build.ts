@@ -103,6 +103,9 @@ export async function buildFingerprintChunks(
     if (fourcc === "FING" || fourcc === "HASH") continue;
     await push(fourcc, payload);
   }
+  for (const payload of parsed.stdfFragments ?? []) {
+    await push("STDF", payload);
+  }
 
   const hash: HashPayload = {
     version: 1,

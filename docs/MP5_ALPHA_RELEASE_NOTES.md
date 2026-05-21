@@ -1,5 +1,40 @@
 # MP5 Alpha release notes
 
+## v0.10.2-alpha — Large embedded stems hotfix (May 2026)
+
+**Version:** MP5 Audio **v0.10.2-alpha** (no version bump beyond this milestone)
+
+### Fixed
+
+- **Large stem exports** no longer fail with `Chunk payload exceeds 67108864` when many embedded stems (e.g. 10× ~35 MB) plus rich metadata would overflow a single **STDA** chunk.
+- **Segmented STDF v1** storage: large embedded stem sets are split into multiple **STDF** fragments (~12 MiB each), each under the container **64 MiB** per-chunk cap (unchanged).
+- **STDA v1** unchanged for small stem sets (combined stem data under ~48 MiB safe budget).
+- **STEM** manifest reports `storageMode: "stda-v1" | "stdf-v1"` and per-stem `fragmentCount` when segmented.
+- **`pnpm inspect:mp5`** reports stem storage mode, fragment count, and stem data sizes.
+- **HASH** integrity entries include each **STDF** fragment.
+
+### Also in v0.10.x (prior patches)
+
+- **v0.10.1-alpha:** stem import single file picker; pre-import RAM warnings (not hard block); sequential normalize for large batches.
+- **v0.10.0-alpha:** beta readiness docs, `pnpm beta:check`, golden fixtures, centralized user-facing errors.
+
+### Unchanged (this milestone)
+
+- Codec policy: **MP5-L v3** default · **MP5-C** lab-only · **MP5-H** hybrid/large/not default · **PCM** reference/debug.
+- No new product features; no codec work; **64 MiB** chunk limit not raised.
+
+### Verify
+
+```bash
+pnpm alpha:check    # or pnpm beta:check
+pnpm inspect:mp5 <file>    # shows stdf-v1 + STDF×N when segmented
+pnpm validate:mp5 <file> --profile rich
+```
+
+Hosted demo: **https://mp5-audio.vercel.app** — UI badge **MP5 Alpha · v0.10.2-alpha**.
+
+---
+
 ## Milestone: MP5 Alpha Release Package
 
 The project is **validated**, **demo-ready**, and packaged for sharing:

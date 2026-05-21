@@ -14,6 +14,10 @@ Update `apps/web/src/lib/publicLinks.ts` and `publicLandingCopy.ts` when URLs ch
 
 **Badges:** MP5 Alpha · MP5-L v3 default · Lossless · PWA-ready · Experimental
 
+**Build label:** `MP5 Alpha · v0.10.2-alpha` (`data-testid="app-version"`)
+
+**v0.10.2 note (stems):** Large embedded stem exports use segmented **STDF** fragments when a single **STDA** chunk would exceed the 64 MiB limit; small demos still use **STDA**. Full mix always in **AUDI**.
+
 ## Primary actions
 
 - Try the MP5-L demo

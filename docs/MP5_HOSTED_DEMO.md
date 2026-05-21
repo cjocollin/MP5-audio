@@ -67,10 +67,11 @@ Audit: `pnpm audit:deploy`
 | Field | Value |
 |-------|--------|
 | **Canonical URL** | **https://mp5-audio.vercel.app** |
+| **Release** | **v0.10.2-alpha** — large embedded stems (**STDF** segmented storage) |
 | **Vercel project** | `mp5-audio` (Git: `cjocollin/MP5-audio`) |
 | **Git build** | `node scripts/vercel-build.mjs` → **Pass** |
-| **HTTP smoke** | **Pass** on `mp5-audio.vercel.app` |
-| **Browser e2e** | Run: `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted` |
+| **HTTP smoke** | **Pass** — `pnpm hosted:verify` (May 2026, v0.10.2-alpha deploy) |
+| **Browser e2e** | **Pass** — 3/3 hosted tests (`app-version` includes **v0.10.2-alpha**) |
 
 **Retired URLs (do not share):**
 
@@ -99,7 +100,7 @@ MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted
 | Converter loads | Browser — Converter tab | Panel visible |
 | Export MP5-L | Browser — drop WAV, export | Download / summary |
 | Open in Player | Browser — after export | Track in queue |
-| Version label | `data-testid="app-version"` | `MP5 Alpha · v0.1.0` |
+| Version label | `data-testid="app-version"` | `MP5 Alpha · v0.10.2-alpha` |
 
 Automated HTTP: `MP5_HOSTED_URL=… node scripts/verify-hosted-demo.mjs`  
 Automated browser: `MP5_HOSTED_URL=… pnpm test:e2e:hosted`

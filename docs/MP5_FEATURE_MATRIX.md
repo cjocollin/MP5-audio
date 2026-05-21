@@ -15,7 +15,7 @@
 | Content guidance (EXPL/SAFE/SENS/RECV) | ✅ | ✅ | editor | ✅ | | [MP5_CONTENT_WARNINGS.md](MP5_CONTENT_WARNINGS.md) |
 | Mood / vibe (MOOD/VIBE) | ✅ | ✅ | export | ✅ | | [MP5_METADATA_SPEC.md](MP5_METADATA_SPEC.md) |
 | Specialized app metadata | ✅ | ✅ | editor | ✅ | | [MP5_METADATA_SPEC.md](MP5_METADATA_SPEC.md) |
-| Stems STEM/STDA | ✅ | ✅ | `demo_mp5l_v3_stems.mp5` | ✅ | | [MP5_STEMS.md](MP5_STEMS.md) |
+| Stems STEM/STDA/STDF | ✅ | ✅ | `demo_mp5l_v3_stems.mp5` (stda-v1) | ✅ | Large sets → stdf-v1 | [MP5_STEMS.md](MP5_STEMS.md) |
 | Batch stem import | ✅ | ✅ | unit tests | ✅ | | [MP5_STEMS.md](MP5_STEMS.md) |
 | Stem normalization | ✅ | ✅ | unit tests | ✅ | | [MP5_STEMS.md](MP5_STEMS.md) |
 | Stem mixer (player) | ✅ | ✅ | stems demo | | experimental | [MP5_STEMS.md](MP5_STEMS.md) |

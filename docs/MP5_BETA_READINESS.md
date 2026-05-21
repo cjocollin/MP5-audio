@@ -49,10 +49,10 @@ pnpm beta:check          # golden fixtures + docs audit + alpha:check + build + 
 |--------|--------------|----------------|
 | `.mp5` single track | HEAD + AUDI required; optional chunks forward-compatible | Stable parse/write for v0.9+ golden fixtures |
 | `.mp5p` album manifest | Experimental sidecar package | Document limitations; manifest v1 frozen |
-| STEM/STDA | Optional; full mix in AUDI required | No breaking STEM v1 without migration doc |
+| STEM/STDA/STDF | Optional; full mix in AUDI required; large sets use **STDF** fragments | No breaking STEM/STDA/STDF v1 without migration doc |
 | Unknown optional chunks | Safe to ignore | Must remain true |
 
-Validate: `pnpm inspect:mp5 <file>` · `pnpm validate:mp5 <file> --profile rich`
+Validate: `pnpm inspect:mp5 <file>` (stem storage **stda-v1** / **stdf-v1**, STDF fragment count) · `pnpm validate:mp5 <file> --profile rich`
 
 ---
 

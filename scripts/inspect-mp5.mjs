@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Inspect .mp5 or .mp5p files (human-readable compatibility report).
+ * Stem storage: stda-v1 (single STDA) or stdf-v1 (STDF×N fragments) when reported in STEM manifest.
  * Usage:
  *   pnpm inspect:mp5 <file.mp5>
  *   pnpm inspect:mp5 <manifest.mp5p> [--dir <folder-with-sidecars>]
@@ -66,8 +67,18 @@ function printMp5Report(r) {
   );
   console.log(
     "Stems:            ",
-    r.stemsCount ? `${r.stemsCount} (${r.stemTypes.join(", ")})` : "none",
+    r.stemsCount
+      ? `${r.stemsCount} (${r.stemTypes.join(", ")}) · ${r.stemStorageMode}${
+          r.stemFragmentCount ? ` · ${r.stemFragmentCount} STDF fragment(s)` : ""
+        }`
+      : "none",
   );
+  if (r.stemsCount) {
+    console.log(
+      "Stem data:        ",
+      `~${Math.round(r.stemDataTotalBytes / (1024 * 1024))} MB total · largest chunk ${Math.round(r.largestStemChunkBytes / (1024 * 1024))} MB`,
+    );
+  }
   console.log(
     "Sections/HOOK/HILT:",
     `${r.sectionsCount} sections`,

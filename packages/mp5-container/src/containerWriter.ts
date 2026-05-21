@@ -21,6 +21,8 @@ export interface WriteMp5Options {
   info?: MetaField[];
   corr?: { frameIndex: number; data: Uint8Array }[];
   optional?: Map<string, Uint8Array>;
+  /** Additional chunks (e.g. multiple STDF fragments). Each must respect MAX_CHUNK_PAYLOAD. */
+  extraChunks?: { fourcc: string; payload: Uint8Array }[];
 }
 
 function writeChunk(
@@ -133,6 +135,11 @@ export function writeMp5(options: WriteMp5Options): Uint8Array {
   if (options.corr?.length) writeChunk(parts, "CORR", encodeCorr(options.corr));
   if (options.optional) {
     for (const [fourcc, payload] of options.optional) {
+      writeChunk(parts, fourcc, payload);
+    }
+  }
+  if (options.extraChunks?.length) {
+    for (const { fourcc, payload } of options.extraChunks) {
       writeChunk(parts, fourcc, payload);
     }
   }

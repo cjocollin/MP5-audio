@@ -104,7 +104,7 @@ Future source values may include artist-provided, distributor-provided, AI-sugge
 
 | **MOOD** / **VIBE** | Display-only | Discovery tags |
 
-| **STEM** / **STDA** | Optional MVP | Optional separated stems — see [`MP5_STEMS.md`](MP5_STEMS.md) |
+| **STEM** / **STDA** / **STDF** | Optional MVP | Optional separated stems — **STDA** for small sets, **STDF** fragments for large embedded sets — see [`MP5_STEMS.md`](MP5_STEMS.md) |
 | **SECT** | Optional MVP | Song sections / structure — see [`MP5_SECTIONS.md`](MP5_SECTIONS.md) |
 | **HOOK** / **HILT** | Optional MVP | Hook replay + highlight moments — see [`MP5_SECTIONS.md`](MP5_SECTIONS.md) |
 | **VISU** | Optional MVP | Visual theme (colors, mood) — see [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md) |

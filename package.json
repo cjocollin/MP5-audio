@@ -1,7 +1,7 @@
 {
   "name": "mp5",
   "private": true,
-  "version": "0.10.1-alpha",
+  "version": "0.10.2-alpha",
   "description": "MP5 experimental audio format ecosystem",
   "scripts": {
     "build": "pnpm -r run build",

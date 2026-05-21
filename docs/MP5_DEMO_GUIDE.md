@@ -1,6 +1,6 @@
 # MP5 Alpha Demo Guide
 
-**Version:** MP5 Audio v0.10.0-alpha · Inspect: `pnpm inspect:mp5 <file>` · Pre-Beta: [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) · `pnpm beta:check`
+**Version:** MP5 Audio v0.10.2-alpha · Inspect: `pnpm inspect:mp5 <file>` (reports **STDA** vs **STDF** stem storage) · Pre-Beta: [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) · `pnpm beta:check`
 
 Use this guide to show MP5 to someone in about five minutes. No copyrighted music is required — use the bundled synthetic fixtures or your own FLAC/WAV.
 
@@ -108,7 +108,7 @@ Also shown on the hosted landing at https://mp5-audio.vercel.app.
 6. Export — full mix is still MP5-L v3 in AUDI; stems are optional add-ons.
 7. In **Player**, read the **Stems** panel help text, then optionally enable **Mix stems in player** for mute/solo/volume.
 
-Say out loud: stems are optional; full mix always works; no AI separation; normalization is a helper for session mismatches (trimming can remove audio); other players can ignore STEM/STDA; stem mix uses more memory and is experimental.
+Say out loud: stems are optional; full mix always works; no AI separation; normalization is a helper for session mismatches (trimming can remove audio); other players can ignore STEM/STDA/STDF; large exports use segmented **STDF** automatically; stem mix uses more memory and is experimental.
 
 ### 2d. Synced lyrics and karaoke (demo)
 

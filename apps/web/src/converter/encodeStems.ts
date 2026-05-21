@@ -1,12 +1,27 @@
-import { CodecId, buildStemOptionalChunks, type StemBundleInput, type StemType } from "@mp5/container";
+import {
+  buildStemOptionalChunks,
+  type StemBundleInput,
+  type StemExportSizeReport,
+  type StemType,
+} from "@mp5/container";
+import { CodecId } from "@mp5/container";
 import { getCodec, isWasmCodecReady } from "../wasm/codec";
+import { Mp5SecurityError } from "@mp5/container";
 import type { PendingStemPcm } from "./stemValidation";
+import { USER_ERRORS } from "../lib/userFacingErrors";
+
+export interface EncodeStemsResult {
+  optional: Map<string, Uint8Array>;
+  extraChunks: { fourcc: string; payload: Uint8Array }[];
+  warnings: string[];
+  report?: StemExportSizeReport;
+}
 
 export async function encodeStemsForExport(
   stems: PendingStemPcm[],
-): Promise<{ optional: Map<string, Uint8Array>; warnings: string[] }> {
+): Promise<EncodeStemsResult> {
   if (!stems.length) {
-    return { optional: new Map(), warnings: [] };
+    return { optional: new Map(), extraChunks: [], warnings: [] };
   }
 
   const wasmReady = isWasmCodecReady();
@@ -35,7 +50,7 @@ export async function encodeStemsForExport(
     bundles.push({
       stemId: stem.id,
       stemName: stem.name.trim() || stem.fileName,
-      stemType: stem.stemType,
+      stemType: stem.stemType as StemType,
       codecId,
       sampleRate: stem.sampleRate,
       channels: ch,
@@ -46,6 +61,19 @@ export async function encodeStemsForExport(
     });
   }
 
-  const { optional } = buildStemOptionalChunks(bundles);
-  return { optional, warnings };
+  try {
+    const { optional, extraChunks, report } = buildStemOptionalChunks(bundles);
+    if (report.chosenStorage === "stdf-v1") {
+      warnings.push(
+        `Large embedded stems (~${Math.round(report.totalStemFrameBytes / (1024 * 1024))} MB) — using segmented STDF storage (${report.fragmentCount} fragments).`,
+      );
+    }
+    return { optional, extraChunks, warnings, report };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (e instanceof Mp5SecurityError || /Chunk payload exceeds|67108864/i.test(msg)) {
+      throw new Error(USER_ERRORS.stemChunkTooLarge);
+    }
+    throw e;
+  }
 }
