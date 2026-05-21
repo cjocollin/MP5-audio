@@ -54,7 +54,7 @@ function encodeHead(head: HeadPayload): Uint8Array {
   return buf;
 }
 
-function encodeAudi(frames: AudioFrame[]): Uint8Array {
+export function encodeAudiPayload(frames: AudioFrame[]): Uint8Array {
   let size = 0;
   for (const f of frames) size += 10 + f.data.length;
   const out = new Uint8Array(size);
@@ -126,7 +126,7 @@ export function writeMp5(options: WriteMp5Options): Uint8Array {
         : encodeCover(options.cover);
     if (covPayload.length) writeChunk(parts, "COVR", covPayload);
   }
-  writeChunk(parts, "AUDI", encodeAudi(options.audioFrames));
+  writeChunk(parts, "AUDI", encodeAudiPayload(options.audioFrames));
   if (options.seek?.length) writeChunk(parts, "SEEK", encodeSeek(options.seek));
   if (options.waveform?.length) writeChunk(parts, "WAVE", encodeWave(options.waveform));
   if (options.info?.length) writeChunk(parts, "INFO", encodeMeta(options.info));

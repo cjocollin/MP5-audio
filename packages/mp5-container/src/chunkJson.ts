@@ -44,3 +44,17 @@ export function sanitizeStringArray(arr: unknown, maxItems = 32, maxLen = 128): 
     .map((s) => sanitizeMetadata(s).slice(0, maxLen))
     .filter(Boolean);
 }
+
+/** http/https only — rejects javascript:, data:, credentials in URL. */
+export function sanitizeHttpUrl(s: unknown, maxLen = 2048): string | undefined {
+  const v = sanitizeJsonString(s, maxLen);
+  if (!v) return undefined;
+  try {
+    const u = new URL(v.trim());
+    if (u.protocol !== "http:" && u.protocol !== "https:") return undefined;
+    if (u.username || u.password) return undefined;
+    return u.href.slice(0, maxLen);
+  } catch {
+    return undefined;
+  }
+}

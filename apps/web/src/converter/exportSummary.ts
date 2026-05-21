@@ -1,4 +1,4 @@
-import { CodecId, type Mp5File } from "@mp5/container";
+import { CodecId, decodeStemManifest, type Mp5File } from "@mp5/container";
 import type { ExportMetadataBundle } from "./buildExportBundles";
 import type { OutputCodec } from "./convertToMp5";
 import { codecLabel } from "../lib/codecDisplay";
@@ -14,6 +14,7 @@ export interface ExportSummary {
   hasCoverArt: boolean;
   hasLyrics: boolean;
   hasContentGuidance: boolean;
+  stemCount: number;
 }
 
 export function buildExportSummary(args: {
@@ -59,6 +60,7 @@ export function buildExportSummary(args: {
     hasCoverArt,
     hasLyrics,
     hasContentGuidance,
+    stemCount: decodeStemManifest(args.validated.optional.get("STEM"))?.stems.length ?? 0,
   };
 }
 

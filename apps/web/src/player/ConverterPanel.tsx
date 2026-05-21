@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { decodeSourceToPcm } from "../converter/decodeSourceToPcm";
 import type { OutputCodec } from "../converter/convertToMp5";
@@ -26,6 +26,32 @@ import { CodecModesHelper } from "../components/CodecModesHelper";
 import { DemoFixtureActions } from "../components/DemoFixtureActions";
 import { dismissOnboarding } from "../lib/firstRun";
 import { FileDropZone } from "./FileDropZone";
+import { BatchConverterPanel } from "../components/BatchConverterPanel";
+import { StemImportSection } from "../components/StemImportSection";
+import {
+  validateStemsForExport,
+  type PendingStemPcm,
+} from "../converter/stemValidation";
+import {
+  analyzeStemAlignment,
+  ensureStemSourceSnapshot,
+  normalizeAllStemsToMix,
+  padMixToDuration,
+  pcmDurationSec,
+  type StemAlignmentStrategy,
+} from "../converter/stemNormalize";
+import {
+  assessBatchStemImport,
+  buildBatchStemImportSummary,
+  createPendingStemFromPcm,
+  estimatePendingStemDecodedBytes,
+  partitionStemFiles,
+  type BatchStemImportSummary,
+} from "../converter/batchStemImport";
+import { downloadBlob } from "../lib/performance/downloadBlob";
+import { assessSourceFile, type GuardrailMessage } from "../lib/performance/guardrails";
+import { GuardrailNotice } from "../components/GuardrailNotice";
+import { useConversionStore } from "../store/conversionStore";
 
 type PendingPcm = {
   samples: Int16Array;
@@ -55,7 +81,10 @@ function metaFromEdits(edits: ManualMetadataEdits) {
   };
 }
 
+type ConverterMode = "single" | "batch";
+
 export function ConverterPanel() {
+  const [mode, setMode] = useState<ConverterMode>("single");
   const [codec, setCodec] = useState<OutputCodec>("mp5l");
   const [preset, setPreset] = useState(2);
   const [status, setStatus] = useState<string>("");
@@ -70,6 +99,13 @@ export function ConverterPanel() {
   const [lastExportFile, setLastExportFile] = useState<File | null>(null);
   const [lastExportBlob, setLastExportBlob] = useState<Blob | null>(null);
   const [librarySaveNote, setLibrarySaveNote] = useState("");
+  const [stems, setStems] = useState<PendingStemPcm[]>([]);
+  const [stemIssues, setStemIssues] = useState<ReturnType<typeof validateStemsForExport>["issues"]>([]);
+  const [stemBatchSummary, setStemBatchSummary] = useState<BatchStemImportSummary | null>(null);
+  const [stemImportGuardrails, setStemImportGuardrails] = useState<GuardrailMessage[]>([]);
+  const [sourceGuardrails, setSourceGuardrails] = useState<GuardrailMessage[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
+  const { bumpCancelGeneration, setSinglePhase, resetSingle } = useConversionStore();
 
   const codecUnavailable = loadState === "unavailable";
   const codecReady = loadState === "ready";
@@ -86,9 +122,29 @@ export function ConverterPanel() {
     }
   }, [codecUnavailable, codec]);
 
+  function handleCancelConversion() {
+    abortRef.current?.abort();
+    bumpCancelGeneration();
+    resetSingle();
+    setBusy(false);
+    setStatus("Conversion cancelled.");
+    setPending(null);
+    setEdits(null);
+    setExportDone(false);
+    setExportSummary(null);
+    setLastExportFile(null);
+    setLastExportBlob(null);
+  }
+
   async function handleFiles(files: FileList) {
     const file = files[0];
     if (!file || busy) return;
+    const guardrails = assessSourceFile(file);
+    setSourceGuardrails(guardrails);
+    if (guardrails.some((g) => g.level === "block")) {
+      setError("This file is too large or long for a safe browser conversion. Try a shorter clip.");
+      return;
+    }
     setBusy(true);
     setError("");
     setExportDone(false);
@@ -98,34 +154,251 @@ export function ConverterPanel() {
     setStatus(LOAD_PHASE_LABELS.decoding);
     setPending(null);
     setEdits(null);
+    setStems([]);
+    setStemIssues([]);
     setCoverError("");
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const gen = useConversionStore.getState().cancelGeneration;
+    setSinglePhase("decoding", file.name);
     try {
-      const pcm = await decodeSourceToPcm(file, (msg) => setStatus(msg));
+      const pcm = await decodeSourceToPcm(
+        file,
+        (msg) => setStatus(msg),
+        controller.signal,
+      );
+      if (controller.signal.aborted || useConversionStore.getState().cancelGeneration !== gen) {
+        return;
+      }
       setStatus(LOAD_PHASE_LABELS.extracting);
+      setSinglePhase("extracting", file.name);
       const extracted = await extractSourceMetadata(file, setStatus).catch(() => ({
         meta: { title: file.name.replace(/\.[^.]+$/, "") },
       }));
+      if (controller.signal.aborted || useConversionStore.getState().cancelGeneration !== gen) {
+        return;
+      }
       setPending({ file, pcm, extracted });
       setEdits(manualEditsFromSource(extracted));
       dismissOnboarding();
+      resetSingle();
       setStatus("Source loaded — edit metadata, preview tags, then export MP5-L v3.");
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        setStatus("Conversion cancelled.");
+        return;
+      }
       setError(e instanceof Error ? e.message : String(e));
       setStatus("");
+      resetSingle();
+    } finally {
+      setBusy(false);
+      abortRef.current = null;
+    }
+  }
+
+  const mixDurationSec =
+    pending != null
+      ? pending.pcm.samples.length / pending.pcm.channels / pending.pcm.sampleRate
+      : 0;
+
+  useEffect(() => {
+    if (!pending) {
+      setStemIssues([]);
+      return;
+    }
+    const { issues } = validateStemsForExport(
+      {
+        sampleRate: pending.pcm.sampleRate,
+        channels: pending.pcm.channels,
+        durationSec: mixDurationSec,
+      },
+      stems,
+    );
+    setStemIssues(issues);
+  }, [pending, stems, mixDurationSec]);
+
+  async function handleAddStems(files: File[]) {
+    if (!pending || busy || !files.length) return;
+
+    const partition = partitionStemFiles(
+      files,
+      stems.map((s) => s.fileName),
+    );
+    const skipped =
+      partition.unsupported.length + partition.duplicates.length;
+
+    if (!partition.toImport.length) {
+      setStemBatchSummary(
+        buildBatchStemImportSummary({
+          imported: 0,
+          skipped,
+          failed: [],
+          partition,
+          guessedTypes: [],
+          mix: {
+            sampleRate: pending.pcm.sampleRate,
+            channels: pending.pcm.channels,
+            durationSec: mixDurationSec,
+          },
+          stems,
+        }),
+      );
+      setError(
+        partition.unsupported.length
+          ? "No supported stem files to import. Use WAV, FLAC, MP3, M4A, or OGG."
+          : "All selected files were duplicates or unsupported.",
+      );
+      return;
+    }
+
+    const guardrails = assessBatchStemImport(
+      stems.length,
+      partition.toImport,
+      estimatePendingStemDecodedBytes(stems),
+    );
+    setStemImportGuardrails(guardrails);
+    const blocked = guardrails.filter((g) => g.level === "block");
+    if (blocked.length) {
+      setError(blocked.map((g) => g.message).join(" "));
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    const imported: PendingStemPcm[] = [];
+    const failed: string[] = [];
+    const guessedTypes: { fileName: string; stemType: PendingStemPcm["stemType"] }[] = [];
+
+    try {
+      for (let i = 0; i < partition.toImport.length; i++) {
+        const file = partition.toImport[i]!;
+        setStatus(`Decoding stem ${i + 1}/${partition.toImport.length}: ${file.name}…`);
+        try {
+          const pcm = await decodeSourceToPcm(file, (msg) =>
+            setStatus(`Stem ${i + 1}/${partition.toImport.length}: ${msg}`),
+          );
+          const stem = createPendingStemFromPcm(file, pcm);
+          imported.push(stem);
+          guessedTypes.push({ fileName: file.name, stemType: stem.stemType });
+        } catch {
+          failed.push(file.name);
+        }
+      }
+
+      const nextStems = [...stems, ...imported];
+      setStems(nextStems);
+      const summary = buildBatchStemImportSummary({
+        imported: imported.length,
+        skipped: skipped + failed.length,
+        failed,
+        partition,
+        guessedTypes,
+        mix: {
+          sampleRate: pending.pcm.sampleRate,
+          channels: pending.pcm.channels,
+          durationSec: mixDurationSec,
+        },
+        stems: nextStems,
+      });
+      setStemBatchSummary(summary);
+
+      if (imported.length) {
+        const alignHint = summary.alignment?.needsNormalization
+          ? " — use Normalize stems if sample rate or duration differs."
+          : "";
+        setStatus(
+          `Imported ${imported.length} stem${imported.length === 1 ? "" : "s"}${alignHint}`,
+        );
+      } else {
+        setError("No stems could be decoded.");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }
 
+  function handleNormalizeStems(strategy: StemAlignmentStrategy, allowLargeTrim: boolean) {
+    if (!pending || strategy !== "trim-pad-stems") return;
+    const mixPcm = pending.pcm;
+    const normalized = normalizeAllStemsToMix(mixPcm, stems, allowLargeTrim);
+    const stillMisaligned = analyzeStemAlignment(mixPcm, normalized, mixDurationSec);
+    if (stillMisaligned.needsNormalization) {
+      setError(
+        allowLargeTrim
+          ? "Some stems could not be aligned. Remove and re-import, or adjust the full mix length."
+          : "Large duration mismatch — confirm trimming when prompted, or pad the full mix.",
+      );
+      return;
+    }
+    const aligned = normalized.map((s) => ensureStemSourceSnapshot(s));
+    setStems(aligned);
+    if (pending) {
+      setStemBatchSummary((prev) =>
+        buildBatchStemImportSummary({
+          imported: prev?.imported ?? aligned.length,
+          skipped: prev?.skipped ?? 0,
+          failed: prev?.failed ?? [],
+          partition: {
+            toImport: [],
+            unsupported: prev?.unsupported ?? [],
+            duplicates: prev?.duplicates ?? [],
+          },
+          guessedTypes: prev?.guessedTypes ?? [],
+          mix: {
+            sampleRate: pending.pcm.sampleRate,
+            channels: pending.pcm.channels,
+            durationSec: mixDurationSec,
+          },
+          stems: aligned,
+        }),
+      );
+    }
+    setError("");
+    setStatus("Stems normalized to match full mix — review alignment status, then export.");
+  }
+
+  function handlePadMixToStems(targetDurationSec: number) {
+    if (!pending) return;
+    const padded = padMixToDuration(pending.pcm, targetDurationSec);
+    setPending({ ...pending, pcm: { ...pending.pcm, ...padded } });
+    const normalized = normalizeAllStemsToMix(padded, stems, true);
+    setStems(normalized.map((s) => ensureStemSourceSnapshot(s)));
+    setError("");
+    setStatus(
+      `Full mix padded to ${targetDurationSec.toFixed(1)}s and stems aligned — review before export.`,
+    );
+  }
+
   async function handleExport() {
     if (!pending || !edits || busy) return;
+    const validation = validateStemsForExport(
+      {
+        sampleRate: pending.pcm.sampleRate,
+        channels: pending.pcm.channels,
+        durationSec: mixDurationSec,
+      },
+      stems,
+    );
+    if (!validation.canExport) {
+      setError("Fix stem errors before export.");
+      return;
+    }
+    const hasWarnings = validation.issues.some((i) => i.level === "warning");
+    if (hasWarnings && !window.confirm("Stem alignment warnings — export anyway?")) {
+      return;
+    }
     setBusy(true);
     setError("");
     setExportDone(false);
     setExportSummary(null);
+    const exportGen = useConversionStore.getState().cancelGeneration;
+    setSinglePhase("exporting", pending.file.name);
     try {
       const exportCodec = codecUnavailable ? "pcm" : codec;
-      const { mp5, bundle } = await runExportPipeline(
+      const { mp5, bundle, fingerprintWarning } = await runExportPipeline(
         {
           pcm: pending.pcm,
           extracted: pending.extracted,
@@ -133,6 +406,7 @@ export function ConverterPanel() {
           codec: exportCodec,
           preset,
           sourceBytes: pending.file.size,
+          stems: stems.length ? stems : undefined,
         },
         (_phase, label) => setStatus(label),
       );
@@ -150,22 +424,31 @@ export function ConverterPanel() {
 
       const blob = new Blob([new Uint8Array(mp5)], { type: "audio/mp5" });
       const file = new File([blob], filename, { type: "audio/mp5" });
+      if (useConversionStore.getState().cancelGeneration !== exportGen) {
+        setStatus("Export cancelled — no download.");
+        return;
+      }
       setLastExportBlob(blob);
       setLastExportFile(file);
       setExportSummary(summary);
       setExportDone(true);
-      triggerDownload(blob, filename);
+      if (fingerprintWarning) {
+        setStatus((s) => `${s} ${fingerprintWarning}`.trim());
+      }
+      downloadBlob(blob, filename);
       setStatus("Export complete — ready to download or open in player.");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setStatus("");
     } finally {
       setBusy(false);
+      resetSingle();
     }
   }
 
   function handleDownloadAgain() {
     if (lastExportBlob && exportSummary) {
-      triggerDownload(lastExportBlob, exportSummary.filename);
+      downloadBlob(lastExportBlob, exportSummary.filename);
     }
   }
 
@@ -185,7 +468,11 @@ export function ConverterPanel() {
     try {
       const result = await saveMp5ToLibrary(lastExportFile, lastExportFile.name);
       setLibrarySaveNote(
-        result.duplicate ? "Already in your local library." : "Saved to local library.",
+        result.duplicate
+          ? result.duplicateReason === "fingerprint"
+            ? "Already in library (same fingerprint)."
+            : "Already in library (same name and size)."
+          : "Saved to local library.",
       );
     } catch (e) {
       setLibrarySaveNote(
@@ -200,6 +487,41 @@ export function ConverterPanel() {
 
   return (
     <div className="space-y-5" data-testid="converter-panel">
+      <div className="flex gap-2" role="tablist" aria-label="Converter mode">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "single"}
+          onClick={() => setMode("single")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            mode === "single"
+              ? "bg-accent text-black"
+              : "bg-surface-elevated text-gray-400 border border-white/10"
+          }`}
+          data-testid="converter-mode-single"
+        >
+          Single file
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === "batch"}
+          onClick={() => setMode("batch")}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            mode === "batch"
+              ? "bg-accent text-black"
+              : "bg-surface-elevated text-gray-400 border border-white/10"
+          }`}
+          data-testid="converter-mode-batch"
+        >
+          Batch
+        </button>
+      </div>
+
+      {mode === "batch" ? (
+        <BatchConverterPanel />
+      ) : (
+        <>
       <div className="mp5-card p-4 sm:p-5 space-y-3 border-accent/15">
         <h2 className="text-lg font-semibold text-white">Convert to MP5</h2>
         <p className="text-sm text-gray-400 leading-relaxed" data-testid="converter-export-help">
@@ -244,12 +566,26 @@ export function ConverterPanel() {
 
       <SupportedSourcesNote />
 
+      <GuardrailNotice messages={sourceGuardrails} testId="converter-source-guardrails" />
+
       <FileDropZone
         accept="audio/*,.mp3,.wav,.flac,.aac,.m4a,.ogg,.opus"
         label={busy && !pending ? "Loading source…" : "1. Drop source audio (FLAC / WAV / MP3 / …)"}
         onFiles={handleFiles}
         disabled={busy}
+        testId="converter-file-input"
       />
+
+      {busy && (
+        <button
+          type="button"
+          onClick={handleCancelConversion}
+          className="text-sm text-red-300/90 hover:underline"
+          data-testid="converter-cancel"
+        >
+          Cancel conversion
+        </button>
+      )}
 
       {pending && edits && (
         <>
@@ -261,6 +597,36 @@ export function ConverterPanel() {
             onCoverError={setCoverError}
           />
           <MetadataReviewPanel extracted={pending.extracted} edits={edits} />
+          <StemImportSection
+            stems={stems}
+            issues={stemIssues}
+            mix={
+              pending
+                ? {
+                    sampleRate: pending.pcm.sampleRate,
+                    channels: pending.pcm.channels,
+                    durationSec: mixDurationSec,
+                  }
+                : null
+            }
+            busy={busy}
+            batchSummary={stemBatchSummary}
+            importGuardrails={stemImportGuardrails}
+            onAddStems={(files) => void handleAddStems(files)}
+            onUpdateStem={(id, patch) =>
+              setStems((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
+            }
+            onRemoveStem={(id) => setStems((prev) => prev.filter((s) => s.id !== id))}
+            onRemoveAllStems={() => {
+              setStems([]);
+              setStemBatchSummary(null);
+            }}
+            onSetAllVolumesFull={() =>
+              setStems((prev) => prev.map((s) => ({ ...s, defaultVolume: 1 })))
+            }
+            onNormalizeStems={handleNormalizeStems}
+            onPadMixToStems={handlePadMixToStems}
+          />
           <button
             type="button"
             onClick={() => void handleExport()}
@@ -361,6 +727,8 @@ export function ConverterPanel() {
         <p className="text-sm text-red-400" data-testid="convert-error">
           {error}
         </p>
+      )}
+        </>
       )}
     </div>
   );

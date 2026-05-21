@@ -3,8 +3,19 @@ import { toBlobURL } from "@ffmpeg/util";
 import coreJs from "@ffmpeg/core?url";
 import coreWasm from "@ffmpeg/core/wasm?url";
 
+export type FfmpegLoadState = "idle" | "loading" | "ready" | "failed";
+
 let ffmpeg: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
+let ffmpegState: FfmpegLoadState = "idle";
+
+export function getFfmpegLoadState(): FfmpegLoadState {
+  return ffmpegState;
+}
+
+export function isFfmpegReady(): boolean {
+  return ffmpegState === "ready" && !!ffmpeg?.loaded;
+}
 
 const LOAD_TIMEOUT_MS = 180_000;
 
@@ -48,9 +59,11 @@ export async function getFfmpeg(onStatus?: (message: string) => void): Promise<F
       );
 
       ffmpeg = instance;
+      ffmpegState = "ready";
       return instance;
     })().catch((err) => {
       loadPromise = null;
+      ffmpegState = "failed";
       throw err;
     });
   }

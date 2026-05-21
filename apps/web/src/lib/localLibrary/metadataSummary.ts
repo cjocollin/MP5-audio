@@ -1,8 +1,11 @@
 import {
   CodecId,
   decodeExpl,
+  decodeFing,
   decodeMood,
+  decodeStemManifest,
   decodeVibe,
+  fingIdentityKey,
   getMetaValue,
   parseMp5,
   type Mp5File,
@@ -94,6 +97,18 @@ export function buildMetadataSummaryFromParsed(
     parsed?.optional.has("RECV")
   );
 
+  let fingerprintKey: string | undefined;
+  let hasFingerprint = false;
+  if (parsed) {
+    try {
+      const fing = decodeFing(parsed.optional.get("FING"));
+      fingerprintKey = fingIdentityKey(fing) ?? undefined;
+      hasFingerprint = !!fing;
+    } catch {
+      /* optional */
+    }
+  }
+
   return {
     title,
     artist,
@@ -107,8 +122,12 @@ export function buildMetadataSummaryFromParsed(
     contentGuidanceSummary: buildContentGuidanceSummary(parsed),
     hasCoverArt: !!(parsed?.coverArt?.data.length || parsed?.cover?.length),
     hasLyrics: !!parsed?.optional.has("LYRC"),
+    hasStems: !!(parsed && decodeStemManifest(parsed.optional.get("STEM"))?.stems.length),
+    stemCount: parsed ? (decodeStemManifest(parsed.optional.get("STEM"))?.stems.length ?? 0) : 0,
     formatWarnings: buildFormatWarnings(parsed),
     parseError,
+    fingerprintKey,
+    hasFingerprint,
   };
 }
 

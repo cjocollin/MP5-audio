@@ -12,8 +12,13 @@ export interface LibraryMetadataSummary {
   contentGuidanceSummary: string;
   hasCoverArt: boolean;
   hasLyrics: boolean;
+  hasStems: boolean;
+  stemCount: number;
   formatWarnings: string[];
   parseError?: string;
+  /** PCM or AUDI fingerprint identity for duplicate detection. */
+  fingerprintKey?: string;
+  hasFingerprint?: boolean;
 }
 
 export interface LocalLibraryRecord {

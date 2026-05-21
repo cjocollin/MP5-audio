@@ -130,7 +130,7 @@ Metadata from **FFmpeg** depends on source tags; failures fall back to filename 
 
 - First Converter load downloads FFmpeg.wasm (~tens of MB) — needs network
 - FFmpeg path forces **44.1 kHz stereo** before encode
-- No batch/folder convert UI
+- Batch convert is sequential and browser-local (see Settings → Diagnostics); no ZIP export
 - Player playlist files are not restored after full page reload
 - 32-bit float / multichannel exotic WAV may need re-export
 - Synced lyrics editor not in converter UI
@@ -161,3 +161,14 @@ Fixture manifest: `test-fixtures/compatibility/manifest.json`
 The Converter tab includes **Supported source formats (Alpha)** with per-format notes, FFmpeg transcode disclaimer, and metadata limits. Decode errors use format-specific hints via `decodeFailureHint()`.
 
 Codec policy banners are unchanged: MP5-L recommended, MP5-C lab-only, MP5-H hybrid/large.
+
+## 9. Performance & reliability (v0.8.0-alpha)
+
+| Feature | Behavior |
+|---------|----------|
+| **Settings → Diagnostics** | Collapsed panel: playlist queue size, decode cache (max 3 tracks + RAM estimate), library storage, current file size, WASM/FFmpeg load state, active conversion |
+| **Guardrails** | Calm warnings for large sources, long batches (12+), library quota pressure, heavy stem mix; hard block only for extreme sizes |
+| **Cancel** | Single-file and batch conversion support cancel; stale exports skip auto-download |
+| **Object URLs** | Download helpers revoke blob URLs after each click; cover previews revoke on change/unmount |
+| **Decode cache** | Cleared when player queue is cleared or local library is cleared |
+| **FFmpeg** | Explicit error if WASM assets fail to load (hosted builds must include FFmpeg in dist) |

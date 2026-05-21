@@ -7,6 +7,7 @@ Small **synthetic** test tones (440 Hz sine, 2 s, mono, 44.1 kHz). No copyrighte
 | `demo_mp5l_v3_tone.mp5` | **MP5-L v3** (lossless · default) | Primary demo — drop in Player |
 | `demo_pcm_reference_tone.mp5` | PCM (reference / debug) | Uncompressed container baseline |
 | `demo_mp5c_lab_tone.mp5` | MP5-C (experimental / lab) | Lossy lab codec — **may hiss** |
+| `demo_mp5l_v3_stems.mp5` | MP5-L v3 + STEM/LYRC/SECT | Full demo: stems, synced lyrics, song map, HOOK, HILT |
 
 Legacy names used by automated tests: `validation_mp5l_v3.mp5`, `validation_pcm_slice.mp5` (same content as the `demo_*` files).
 

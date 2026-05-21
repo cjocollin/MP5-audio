@@ -27,12 +27,15 @@ run("Container build", "pnpm", ["--filter", "@mp5/container", "build"]);
 if (existsSync(wasmPkg)) {
   console.log("\n(WASM pkg present — skipping wasm:build for demo fixtures)\n");
   run("Demo fixtures", "node", ["scripts/generate-demo-fixtures.mjs"]);
+  run("Demo album package", "node", ["scripts/generate-demo-album-package.mjs"]);
 } else {
   run("Demo fixtures", "pnpm", ["fixtures:generate"]);
+  run("Demo album package", "node", ["scripts/generate-demo-album-package.mjs"]);
 }
 run("Unit tests (vitest)", "pnpm", ["test"]);
 run("Rust codec tests", "cargo", ["test", "-p", "mp5-codec", "--release"]);
 run("Fixture validation", "node", ["scripts/validate-demo-fixtures.mjs"]);
+run("Stem fixture validation", "node", ["scripts/validate-stem-fixture.mjs"]);
 run("E2E (Playwright)", "pnpm", ["test:e2e"]);
 
 console.log("\n=== MP5 Alpha check: all passed ===\n");

@@ -7,9 +7,11 @@ import { AboutMp5Panel } from "./components/AboutMp5Panel";
 import { DemoModePanel } from "./components/DemoModePanel";
 import { PublicLanding } from "./components/PublicLanding";
 import { LocalLibraryPanel } from "./components/LocalLibraryPanel";
+import { PerformanceDiagnosticsPanel } from "./components/PerformanceDiagnosticsPanel";
 
 export default function App() {
-  const { activeTab, setActiveTab, theme, setTheme } = usePlayerStore();
+  const { activeTab, setActiveTab, theme, setTheme, useFileThemes, setUseFileThemes } =
+    usePlayerStore();
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -68,9 +70,33 @@ export default function App() {
                 <option value="light">Light</option>
               </select>
             </label>
+            <label className="flex items-center justify-between gap-4 text-sm" data-testid="use-file-themes-setting">
+              <span className="text-gray-400">Apply VISU file themes</span>
+              <input
+                type="checkbox"
+                checked={useFileThemes}
+                onChange={(e) => setUseFileThemes(e.target.checked)}
+                className="rounded border-white/20"
+                aria-label="Apply VISU file themes"
+              />
+            </label>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Optional content guidance and specialized app metadata never affect playback.
+              Optional content guidance, visual themes (VISU), and specialized app metadata never
+              affect playback.
             </p>
+            <div
+              className="text-xs text-gray-500 space-y-2 leading-relaxed border border-white/5 rounded-lg p-3"
+              data-testid="settings-reliability-note"
+            >
+              <p>
+                <strong className="text-gray-400">Performance & offline:</strong> First visit downloads
+                WASM (~90 KB) and FFmpeg (~31 MB) for conversion. Large files and batch queues run
+                locally and can be slow. The PWA caches assets after first load; full offline
+                conversion of all formats is not guaranteed.
+              </p>
+              <p>Local library uses browser storage (IndexedDB) on this device only.</p>
+            </div>
+            <PerformanceDiagnosticsPanel />
           </div>
         )}
       </main>

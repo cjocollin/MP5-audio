@@ -261,7 +261,7 @@ export function LibraryPanel({
 
       {!tracks.length ? (
         <div className="py-4 px-2 text-center sm:text-left" data-testid="library-empty">
-          <p className="text-sm text-gray-500">No tracks yet — drop .mp5 files above.</p>
+          <p className="text-sm text-gray-500">No tracks yet — drop .mp5 or .mp5p files above.</p>
           <p className="text-xs text-gray-600 mt-2 leading-relaxed">
             Search by title, artist, album, genre, or mood/vibe once tracks are loaded.
           </p>

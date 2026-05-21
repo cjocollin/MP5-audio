@@ -11,10 +11,14 @@ export function WasmSetupBanner() {
   if (state === "loading") {
     return (
       <div
-        className="rounded-xl border border-white/10 bg-surface-elevated px-4 py-3 text-sm text-gray-400"
+        className="rounded-xl border border-white/10 bg-surface-elevated px-4 py-3 text-sm text-gray-400 space-y-1"
         data-testid="wasm-setup-banner"
       >
-        Loading MP5 WASM codecs…
+        <p>Loading MP5 WASM codecs…</p>
+        <p className="text-xs text-gray-500">
+          First load also fetches FFmpeg when you convert non-WAV audio (~31 MB, one-time per session).
+          Playback of existing .mp5 files works once codecs are ready.
+        </p>
       </div>
     );
   }

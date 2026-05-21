@@ -1,20 +1,34 @@
 import {
   encodeExpl,
   encodeLyrc,
+  encodeSect,
+  encodeHook,
+  encodeHilt,
   encodeMood,
   encodeRecv,
   encodeSafe,
   encodeSens,
   encodeVibe,
+  encodeVisu,
+  encodeCrdt,
+  encodeLicn,
+  encodeIden,
   metaFieldsFromRecord,
   type CoverArt,
+  type CrdtPayload,
   type ExplPayload,
+  type IdenPayload,
+  type LicnPayload,
   type LyrcPayload,
+  type SectPayload,
+  type HookPayload,
+  type HiltPayload,
   type MoodPayload,
   type RecvPayload,
   type SafePayload,
   type SensPayload,
   type VibePayload,
+  type VisuPayload,
 } from "@mp5/container";
 import type { SourceMetadata } from "./extractSourceMetadata";
 
@@ -30,12 +44,19 @@ export interface UserMetadataOverrides {
   /** `null` = user removed cover; omit to keep detected cover */
   cover?: CoverArt | null;
   lyrics?: LyrcPayload | null;
+  sect?: SectPayload | null;
+  hook?: HookPayload | null;
+  hilt?: HiltPayload | null;
   expl?: ExplPayload;
   safe?: SafePayload;
   recv?: RecvPayload;
   sens?: SensPayload;
   mood?: MoodPayload;
   vibe?: VibePayload;
+  visu?: VisuPayload | null;
+  crdt?: CrdtPayload | null;
+  licn?: LicnPayload | null;
+  iden?: IdenPayload | null;
 }
 
 /** Build container metadata from extracted source + optional user overrides. */
@@ -84,6 +105,18 @@ export function buildExportMetadataBundle(
     optional.set("LYRC", encodeLyrc(lyrics));
   }
 
+  if (overrides && "sect" in overrides) {
+    if (overrides.sect?.sections.length) {
+      optional.set("SECT", encodeSect(overrides.sect));
+    }
+  }
+  if (overrides && "hook" in overrides && overrides.hook) {
+    optional.set("HOOK", encodeHook(overrides.hook));
+  }
+  if (overrides && "hilt" in overrides && overrides.hilt?.highlights.length) {
+    optional.set("HILT", encodeHilt(overrides.hilt));
+  }
+
   if (overrides?.expl && hasExplContent(overrides.expl)) {
     optional.set("EXPL", encodeExpl({ ...overrides.expl, warningSource: overrides.expl.warningSource ?? "user" }));
   }
@@ -101,6 +134,43 @@ export function buildExportMetadataBundle(
   }
   if (overrides?.vibe?.tags?.length) {
     optional.set("VIBE", encodeVibe(overrides.vibe));
+  }
+  if (overrides && "visu" in overrides) {
+    if (overrides.visu) {
+      try {
+        optional.set("VISU", encodeVisu(overrides.visu));
+      } catch {
+        /* invalid theme fields — skip VISU */
+      }
+    }
+  }
+
+  if (overrides && "crdt" in overrides) {
+    if (overrides.crdt) {
+      try {
+        optional.set("CRDT", encodeCrdt(overrides.crdt));
+      } catch {
+        /* no credit fields */
+      }
+    }
+  }
+  if (overrides && "licn" in overrides) {
+    if (overrides.licn) {
+      try {
+        optional.set("LICN", encodeLicn(overrides.licn));
+      } catch {
+        /* no rights fields */
+      }
+    }
+  }
+  if (overrides && "iden" in overrides) {
+    if (overrides.iden) {
+      try {
+        optional.set("IDEN", encodeIden(overrides.iden));
+      } catch {
+        /* no identifier fields */
+      }
+    }
   }
 
   return {

@@ -1,10 +1,13 @@
-import { parseMp5, validateParsedFile } from "@mp5/container";
+import { parseMp5, validateParsedFile, writeMp5 } from "@mp5/container";
 import { convertToMp5, type OutputCodec } from "./convertToMp5";
 import { buildExportMetadataBundle, type ExportMetadataBundle } from "./buildExportBundles";
 import { generateWaveform } from "./generateWaveform";
 import type { ManualMetadataEdits } from "./manualMetadata";
 import { buildOverridesFromEdits } from "./manualMetadata";
 import type { SourceMetadata } from "./extractSourceMetadata";
+import { encodeStemsForExport } from "./encodeStems";
+import type { PendingStemPcm } from "./stemValidation";
+import { attachFingerprintOptional } from "../lib/fingerprint/build";
 
 export type ExportPhase =
   | "building-waveform"
@@ -33,12 +36,14 @@ export interface ExportPipelineInput {
   codec: OutputCodec;
   preset: number;
   sourceBytes?: number;
+  stems?: PendingStemPcm[];
 }
 
 export interface ExportPipelineResult {
   mp5: Uint8Array;
   bundle: ExportMetadataBundle;
   exportCodec: OutputCodec;
+  fingerprintWarning?: string;
 }
 
 function phaseLabel(codec: OutputCodec, phase: ExportPhase): string {
@@ -68,7 +73,15 @@ export async function runExportPipeline(
 
   onPhase("encoding", phaseLabel(input.codec, "encoding"));
   onPhase("writing-metadata", phaseLabel(input.codec, "writing-metadata"));
-  const mp5 = await convertToMp5({
+
+  let optional = bundle.optional;
+  if (input.stems?.length) {
+    const { optional: stemOptional } = await encodeStemsForExport(input.stems);
+    optional = new Map(optional);
+    for (const [k, v] of stemOptional) optional.set(k, v);
+  }
+
+  let mp5 = await convertToMp5({
     samples: input.pcm.samples,
     sampleRate: input.pcm.sampleRate,
     channels: input.pcm.channels,
@@ -76,14 +89,42 @@ export async function runExportPipeline(
     preset: input.preset,
     metaFields: bundle.metaFields,
     cover: bundle.cover,
-    optional: bundle.optional,
+    optional,
   });
 
   onPhase("validating", phaseLabel(input.codec, "validating"));
-  const validated = parseMp5(mp5);
+  let validated = parseMp5(mp5);
   validateParsedFile(validated, 16);
+
+  let fingerprintWarning: string | undefined;
+  if (input.codec === "mp5l") {
+    const fpOptional = new Map(optional);
+    const fpNote = await attachFingerprintOptional(fpOptional, {
+      parsed: validated,
+      fileBytes: mp5,
+      pcmSamples: input.pcm.samples,
+      pcmChannels: input.pcm.channels,
+    });
+    if (fpNote.warning) {
+      fingerprintWarning = fpNote.warning;
+    } else if (fpOptional.has("FING")) {
+      mp5 = writeMp5({
+        head: validated.head!,
+        meta: validated.meta,
+        cover: validated.coverArt,
+        audioFrames: validated.audioFrames,
+        seek: validated.seek,
+        waveform: validated.waveform,
+        info: validated.info,
+        corr: validated.corr,
+        optional: fpOptional,
+      });
+      validated = parseMp5(mp5);
+      validateParsedFile(validated, 16);
+    }
+  }
 
   onPhase("ready", "Export complete — ready to download");
 
-  return { mp5, bundle, exportCodec: input.codec };
+  return { mp5, bundle, exportCodec: input.codec, fingerprintWarning };
 }

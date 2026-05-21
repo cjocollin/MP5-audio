@@ -1,5 +1,8 @@
 import type { Mp5File } from "@mp5/container";
+import { estimateCachedDecodeBytes } from "../lib/performance/memoryEstimates";
 import type { DecodePath, Mp5hDecodeInfo } from "./decodeMp5";
+
+export const DECODE_CACHE_MAX_ENTRIES = 3;
 
 export interface CachedDecode {
   samples: Int16Array;
@@ -10,8 +13,6 @@ export interface CachedDecode {
   mp5h?: Mp5hDecodeInfo;
   duration: number;
 }
-
-const MAX_ENTRIES = 3;
 
 export class DecodeCache {
   private entries = new Map<string, CachedDecode>();
@@ -31,7 +32,7 @@ export class DecodeCache {
       this.touch(trackId);
       return;
     }
-    while (this.order.length >= MAX_ENTRIES) {
+    while (this.order.length >= DECODE_CACHE_MAX_ENTRIES) {
       const evict = this.order.shift();
       if (evict) this.entries.delete(evict);
     }
@@ -54,6 +55,31 @@ export class DecodeCache {
   private touch(trackId: string): void {
     this.order = this.order.filter((id) => id !== trackId);
     this.order.push(trackId);
+  }
+
+  size(): number {
+    return this.entries.size;
+  }
+
+  getStats(currentTrackId?: string): {
+    entryCount: number;
+    estimatedBytes: number;
+    currentTrackBytes: number;
+    trackIds: string[];
+  } {
+    let estimatedBytes = 0;
+    let currentTrackBytes = 0;
+    for (const [id, entry] of this.entries) {
+      const bytes = estimateCachedDecodeBytes(entry);
+      estimatedBytes += bytes;
+      if (id === currentTrackId) currentTrackBytes = bytes;
+    }
+    return {
+      entryCount: this.entries.size,
+      estimatedBytes,
+      currentTrackBytes,
+      trackIds: [...this.order],
+    };
   }
 }
 

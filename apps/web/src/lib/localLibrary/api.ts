@@ -1,5 +1,6 @@
-import { parseMp5 } from "@mp5/container";
+import { decodeFing, fingIdentityKey, parseMp5 } from "@mp5/container";
 import { LibraryStorageError } from "./errors";
+import { findLibraryDuplicate } from "../fingerprint/duplicates";
 import { parseForLibrary } from "./metadataSummary";
 import { getLibraryStore } from "./store";
 import type { LocalLibraryEntry, LocalLibraryRecord, StorageQuotaInfo } from "./types";
@@ -7,6 +8,14 @@ import type { LocalLibraryEntry, LocalLibraryRecord, StorageQuotaInfo } from "./
 export interface SaveToLibraryResult {
   record: LocalLibraryRecord;
   duplicate: boolean;
+  duplicateReason?: "fingerprint" | "filename-size";
+  skipped?: boolean;
+}
+
+export interface SaveToLibraryOptions {
+  allowUnreadable?: boolean;
+  /** When true, do not write if a duplicate is detected (returns duplicate: true, skipped: true). */
+  skipIfDuplicate?: boolean;
 }
 
 async function fileToArrayBuffer(file: File | Blob): Promise<ArrayBuffer> {
@@ -35,7 +44,7 @@ function buildEntry(
 export async function saveMp5ToLibrary(
   source: File | Blob | ArrayBuffer,
   filename: string,
-  opts?: { allowUnreadable?: boolean },
+  opts?: SaveToLibraryOptions,
 ): Promise<SaveToLibraryResult> {
   const data =
     source instanceof ArrayBuffer ? source.slice(0) : await fileToArrayBuffer(source as File | Blob);
@@ -46,11 +55,34 @@ export async function saveMp5ToLibrary(
   }
 
   const store = getLibraryStore();
-  const existing = (await store.listRecords()).find(
-    (r) => r.filename === filename && r.fileSize === data.byteLength,
-  );
-  if (existing) {
-    return { record: existing, duplicate: true };
+  const records = await store.listRecords();
+  let identityKey = parsed.summary.fingerprintKey;
+  if (!identityKey && parsed.parsed) {
+    try {
+      identityKey = fingIdentityKey(decodeFing(parsed.parsed.optional.get("FING"))) ?? undefined;
+    } catch {
+      /* optional */
+    }
+  }
+  const dup = findLibraryDuplicate(records, {
+    filename,
+    fileSize: data.byteLength,
+    identityKey,
+  });
+  if (dup) {
+    if (opts?.skipIfDuplicate) {
+      return {
+        record: dup.record,
+        duplicate: true,
+        duplicateReason: dup.reason,
+        skipped: true,
+      };
+    }
+    return {
+      record: dup.record,
+      duplicate: true,
+      duplicateReason: dup.reason,
+    };
   }
 
   const id = crypto.randomUUID();

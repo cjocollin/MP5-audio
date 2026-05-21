@@ -4,14 +4,100 @@ import {
   sanitizeJsonString,
   sanitizeStringArray,
 } from "./chunkJson.js";
+import { decodeStemManifest } from "./stems.js";
+import { decodeLyrc, type LyrcPayload, type LyricLine, type LyricSyncedLine } from "./lyrc.js";
+import { decodeSect, decodeHook, decodeHilt } from "./sects.js";
+import { decodeVisu } from "./visu.js";
+import { decodeCrdt, decodeLicn, decodeIden } from "./creditsRights.js";
+import { decodeFing } from "./fing.js";
+import { decodeHash } from "./hash.js";
 
-export type LyricLine = { time: number; text: string };
-
-export interface LyrcPayload {
-  unsynced?: string;
-  synced?: LyricLine[];
-  source?: string;
-}
+export type { LyrcPayload, LyricLine, LyricSyncedLine };
+export { decodeLyrc, encodeLyrc } from "./lyrc.js";
+export {
+  decodeSect,
+  encodeSect,
+  decodeHook,
+  encodeHook,
+  decodeHilt,
+  encodeHilt,
+  sectTypeLabel,
+  sortSections,
+  SECT_TYPES,
+  type SectPayload,
+  type SongSection,
+  type SectType,
+  type HookPayload,
+  type HiltPayload,
+  type HighlightMoment,
+} from "./sects.js";
+export {
+  decodeVisu,
+  encodeVisu,
+  hasVisuContent,
+  parseHexColor,
+  type VisuPayload,
+  type VisuSource,
+  type VisualIntensity,
+  type VisuPlayerStyle,
+} from "./visu.js";
+export {
+  decodeCrdt,
+  encodeCrdt,
+  decodeLicn,
+  encodeLicn,
+  decodeIden,
+  encodeIden,
+  hasCrdtContent,
+  hasLicnContent,
+  hasIdenContent,
+  parseTriState,
+  parseCrdtObject,
+  parseLicnObject,
+  parseIdenObject,
+  normalizeCrdtRecord,
+  normalizeLicnRecord,
+  normalizeIdenRecord,
+  LICN_INFORMATIONAL_DEFAULT,
+  type CrdtPayload,
+  type LicnPayload,
+  type IdenPayload,
+  type TriState,
+  type PerformerCredit,
+  type AdditionalCredit,
+} from "./creditsRights.js";
+export {
+  decodeFing,
+  encodeFing,
+  hasFingContent,
+  fingIdentityKey,
+  shortHashPreview,
+  FING_VERSION,
+  type FingPayload,
+  type FingSource,
+  type AudioFingerprintType,
+} from "./fing.js";
+export {
+  decodeHash,
+  encodeHash,
+  hasHashContent,
+  HASH_VERSION,
+  MAX_CHUNK_HASH_ENTRIES,
+  type HashPayload,
+  type ChunkHashEntry,
+} from "./hash.js";
+export {
+  getFingFromParsed,
+  getHashFromParsed,
+  compareSha256,
+  summarizeIntegrity,
+  buildIntegrityResult,
+  expectedChunkHashes,
+  mergeChunkCheck,
+  type IntegrityCheckStatus,
+  type IntegrityCheckResult,
+} from "./integrity.js";
+export { isSha256Hex, normalizeSha256Hex } from "./sha256Hex.js";
 
 export type WarningSource = "artist" | "user" | "ai" | "unknown";
 
@@ -88,49 +174,6 @@ function clampConfidence(n: unknown): number | undefined {
 function parseWarningSource(s: unknown): WarningSource | undefined {
   if (s === "artist" || s === "user" || s === "ai" || s === "unknown") return s;
   return undefined;
-}
-
-function normalizeLyrc(raw: Record<string, unknown>): LyrcPayload | null {
-  const unsynced = sanitizeJsonString(raw.unsynced, 256 * 1024);
-  let synced: LyricLine[] | undefined;
-  if (Array.isArray(raw.synced)) {
-    synced = raw.synced
-      .slice(0, 5000)
-      .map((line) => {
-        if (!line || typeof line !== "object") return null;
-        const o = line as Record<string, unknown>;
-        const text = sanitizeJsonString(o.text, 512);
-        const time = typeof o.time === "number" ? Math.max(0, o.time) : NaN;
-        if (!text || Number.isNaN(time)) return null;
-        return { time, text };
-      })
-      .filter((x): x is LyricLine => x !== null);
-    if (!synced.length) synced = undefined;
-  }
-  const source = sanitizeJsonString(raw.source, 64);
-  if (!unsynced && !synced) return null;
-  return { unsynced, synced, source };
-}
-
-export function encodeLyrc(payload: LyrcPayload): Uint8Array {
-  return encodeJsonChunk({
-    unsynced: payload.unsynced,
-    synced: payload.synced,
-    source: payload.source ?? "unknown",
-  });
-}
-
-export function decodeLyrc(data?: Uint8Array): LyrcPayload | null {
-  const raw = decodeJsonChunk<Record<string, unknown>>(data, "LYRC");
-  if (!raw) {
-    if (data?.length) {
-      const text = new TextDecoder().decode(data);
-      const unsynced = sanitizeJsonString(text, 256 * 1024);
-      return unsynced ? { unsynced, source: "legacy" } : null;
-    }
-    return null;
-  }
-  return normalizeLyrc(raw);
 }
 
 export function encodeExpl(p: ExplPayload): Uint8Array {
@@ -258,6 +301,16 @@ export function parseOptionalMetadata(optional: Map<string, Uint8Array>) {
       sens: decodeSens(optional.get("SENS")),
       mood: decodeMood(optional.get("MOOD")),
       vibe: decodeVibe(optional.get("VIBE")),
+      stems: decodeStemManifest(optional.get("STEM")),
+      sect: decodeSect(optional.get("SECT")),
+      hook: decodeHook(optional.get("HOOK")),
+      hilt: decodeHilt(optional.get("HILT")),
+      visu: decodeVisu(optional.get("VISU")),
+      crdt: decodeCrdt(optional.get("CRDT")),
+      licn: decodeLicn(optional.get("LICN")),
+      iden: decodeIden(optional.get("IDEN")),
+      fing: decodeFing(optional.get("FING")),
+      hash: decodeHash(optional.get("HASH")),
     };
   } catch {
     return {
@@ -268,6 +321,16 @@ export function parseOptionalMetadata(optional: Map<string, Uint8Array>) {
       sens: null,
       mood: null,
       vibe: null,
+      stems: null,
+      sect: null,
+      hook: null,
+      hilt: null,
+      visu: null,
+      crdt: null,
+      licn: null,
+      iden: null,
+      fing: null,
+      hash: null,
     };
   }
 }

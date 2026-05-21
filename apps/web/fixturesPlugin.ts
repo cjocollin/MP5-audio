@@ -4,23 +4,28 @@ import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
-const DEMO_FIXTURE = "demo_mp5l_v3_tone.mp5";
+const DEMO_FIXTURES = ["demo_mp5l_v3_tone.mp5", "demo_mp5l_v3_stems.mp5"] as const;
 const fixturesDir = path.resolve(webRoot, "../../test-fixtures");
 const screenshotsDir = path.resolve(webRoot, "../../docs/screenshots");
 const SCREENSHOT_FILES = ["Player.png", "Metadata.png", "Converter.png"] as const;
 
 /** Serve repo test-fixtures at /fixtures for demo MP5 loading in dev and preview. */
 function copyDemoFixtureToDist() {
-  const src = path.join(fixturesDir, DEMO_FIXTURE);
   const destDir = path.resolve(webRoot, "dist/fixtures");
-  if (!fs.existsSync(src)) {
-    console.warn(
-      `[mp5-fixtures] ${DEMO_FIXTURE} missing — run pnpm fixtures:generate before deploy (demo button will fail gracefully).`,
-    );
-    return;
-  }
   fs.mkdirSync(destDir, { recursive: true });
-  fs.copyFileSync(src, path.join(destDir, DEMO_FIXTURE));
+  let copied = 0;
+  for (const name of DEMO_FIXTURES) {
+    const src = path.join(fixturesDir, name);
+    if (!fs.existsSync(src)) {
+      console.warn(`[mp5-fixtures] ${name} missing — run pnpm fixtures:generate before deploy.`);
+      continue;
+    }
+    fs.copyFileSync(src, path.join(destDir, name));
+    copied++;
+  }
+  if (copied === 0) {
+    console.warn("[mp5-fixtures] No demo fixtures copied — demo buttons will fail gracefully.");
+  }
 }
 
 function copyScreenshotsToDist() {

@@ -1,4 +1,48 @@
-import type { CoverArt, ExplPayload, RecvPayload, SafePayload, SensPayload } from "@mp5/container";
+import type {
+  CoverArt,
+  CrdtPayload,
+  ExplPayload,
+  HiltPayload,
+  IdenPayload,
+  LicnPayload,
+  LyrcPayload,
+  RecvPayload,
+  SafePayload,
+  SensPayload,
+  SectPayload,
+  VisuPayload,
+  VisualIntensity,
+  VisuPlayerStyle,
+} from "@mp5/container";
+import {
+  formatSyncedLyricsText,
+  parseSyncedLyricsText,
+} from "../lib/lyrics/lyrcTimestampParser";
+import {
+  formatHighlightsText,
+  formatSectionsText,
+  hookFromSections,
+  parseHighlightsText,
+  parseSectionsText,
+} from "../lib/sections/sectionParser";
+import { decodeSect, decodeHilt, decodeVisu, decodeCrdt, decodeLicn, decodeIden } from "@mp5/container";
+import {
+  crdtEditsFromPayload,
+  emptyCrdtEdits,
+  crdtPayloadFromEdits,
+  hasCrdtEdits,
+  emptyLicnEdits,
+  licnEditsFromPayload,
+  licnPayloadFromEdits,
+  hasLicnEdits,
+  emptyIdenEdits,
+  idenEditsFromPayload,
+  idenPayloadFromEdits,
+  hasIdenEdits,
+  type ManualCrdtEdits,
+  type ManualLicnEdits,
+  type ManualIdenEdits,
+} from "../lib/creditsRights/textFormat";
 import type { SpecializedProfileId } from "../lib/metadataLabels";
 import type { SourceMetadata } from "./extractSourceMetadata";
 import type { UserMetadataOverrides } from "./buildExportBundles";
@@ -24,7 +68,12 @@ export interface ManualMetadataEdits {
   /** undefined = use detected cover; null = user removed cover */
   cover: CoverArt | null | undefined;
   lyricsUnsynced: string;
+  /** LRC-style synced lines — `[mm:ss.xx] text` */
+  lyricsSyncedText: string;
   lyricsSource: string;
+  /** Song sections — `[mm:ss.xx-mm:ss.xx|Type] title` */
+  sectionsText: string;
+  highlightsText: string;
   expl: {
     explicit: boolean;
     cleanVersionAvailable: boolean;
@@ -39,6 +88,10 @@ export interface ManualMetadataEdits {
   };
   moodTags: string;
   vibeTags: string;
+  visualTheme: ManualVisualThemeEdits;
+  credits: ManualCrdtEdits;
+  rights: ManualLicnEdits;
+  identifiers: ManualIdenEdits;
   safe: {
     griefThemes: boolean;
     traumaThemes: boolean;
@@ -63,6 +116,43 @@ export interface ManualMetadataEdits {
 
 export const MOOD_TAG_SUGGESTIONS = ["calm", "sad", "energetic", "hopeful", "dark", "emotional"] as const;
 export const VIBE_TAG_SUGGESTIONS = ["focus", "sleep", "workout", "study", "grounding", "party"] as const;
+
+export const VISU_INTENSITY_OPTIONS: { id: VisualIntensity | ""; label: string }[] = [
+  { id: "", label: "(default)" },
+  { id: "low", label: "Low" },
+  { id: "medium", label: "Medium" },
+  { id: "high", label: "High" },
+];
+
+export const VISU_STYLE_OPTIONS: { id: VisuPlayerStyle | ""; label: string }[] = [
+  { id: "", label: "(default)" },
+  { id: "calm", label: "Calm" },
+  { id: "bold", label: "Bold" },
+  { id: "minimal", label: "Minimal" },
+  { id: "cinematic", label: "Cinematic" },
+  { id: "neon", label: "Neon" },
+  { id: "custom", label: "Custom" },
+];
+
+export interface ManualVisualThemeEdits {
+  themeName: string;
+  primaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+  moodLabel: string;
+  visualIntensity: VisualIntensity | "";
+  playerStyle: VisuPlayerStyle | "";
+}
+
+export const EMPTY_VISUAL_THEME: ManualVisualThemeEdits = {
+  themeName: "",
+  primaryColor: "",
+  accentColor: "",
+  backgroundColor: "",
+  moodLabel: "",
+  visualIntensity: "",
+  playerStyle: "",
+};
 
 const EMPTY_SAFE = {
   griefThemes: false,
@@ -118,7 +208,12 @@ export function manualEditsFromSource(source: SourceMetadata): ManualMetadataEdi
     },
     cover: source.cover,
     lyricsUnsynced: source.lyrics?.unsynced ?? "",
+    lyricsSyncedText: source.lyrics?.synced?.length
+      ? formatSyncedLyricsText(source.lyrics.synced)
+      : "",
     lyricsSource: source.lyrics?.source ?? "",
+    sectionsText: "",
+    highlightsText: "",
     expl: {
       explicit: false,
       cleanVersionAvailable: false,
@@ -133,6 +228,10 @@ export function manualEditsFromSource(source: SourceMetadata): ManualMetadataEdi
     },
     moodTags: "",
     vibeTags: "",
+    visualTheme: { ...EMPTY_VISUAL_THEME },
+    credits: { ...emptyCrdtEdits() },
+    rights: { ...emptyLicnEdits() },
+    identifiers: { ...emptyIdenEdits() },
     safe: { ...EMPTY_SAFE },
     sens: { ...EMPTY_SENS },
     specializedProfile: "none",
@@ -167,6 +266,80 @@ export function hasExplFlags(expl: ManualMetadataEdits["expl"]): boolean {
   return Object.values(expl).some(Boolean);
 }
 
+export function manualEditsFromParsedOptional(
+  optional: Map<string, Uint8Array>,
+): Pick<
+  ManualMetadataEdits,
+  "sectionsText" | "highlightsText" | "visualTheme" | "credits" | "rights" | "identifiers"
+> {
+  const sect = decodeSect(optional.get("SECT"));
+  const hilt = decodeHilt(optional.get("HILT"));
+  const visu = decodeVisu(optional.get("VISU"));
+  const crdt = decodeCrdt(optional.get("CRDT"));
+  const licn = decodeLicn(optional.get("LICN"));
+  const iden = decodeIden(optional.get("IDEN"));
+  return {
+    sectionsText: sect?.sections.length ? formatSectionsText(sect.sections) : "",
+    highlightsText: hilt?.highlights.length ? formatHighlightsText(hilt.highlights) : "",
+    visualTheme: visu ? visualThemeEditsFromPayload(visu) : { ...EMPTY_VISUAL_THEME },
+    credits: crdtEditsFromPayload(crdt),
+    rights: licnEditsFromPayload(licn),
+    identifiers: idenEditsFromPayload(iden),
+  };
+}
+
+export function visualThemeEditsFromPayload(visu: VisuPayload): ManualVisualThemeEdits {
+  return {
+    themeName: visu.themeName ?? "",
+    primaryColor: visu.primaryColor ?? "",
+    accentColor: visu.accentColor ?? "",
+    backgroundColor: visu.backgroundColor ?? "",
+    moodLabel: visu.moodLabel ?? "",
+    visualIntensity: visu.visualIntensity ?? "",
+    playerStyle: visu.playerStyle ?? "",
+  };
+}
+
+export function hasVisualThemeEdits(v: ManualVisualThemeEdits): boolean {
+  return !!(
+    v.themeName.trim() ||
+    v.primaryColor.trim() ||
+    v.accentColor.trim() ||
+    v.backgroundColor.trim() ||
+    v.moodLabel.trim() ||
+    v.visualIntensity ||
+    v.playerStyle
+  );
+}
+
+export function visuPayloadFromEdits(v: ManualVisualThemeEdits): VisuPayload | null {
+  if (!hasVisualThemeEdits(v)) return null;
+  const payload: VisuPayload = { source: "user" };
+  const name = v.themeName.trim();
+  if (name) payload.themeName = name;
+  const primary = v.primaryColor.trim();
+  if (primary) payload.primaryColor = primary;
+  const accent = v.accentColor.trim();
+  if (accent) payload.accentColor = accent;
+  const bg = v.backgroundColor.trim();
+  if (bg) payload.backgroundColor = bg;
+  const mood = v.moodLabel.trim();
+  if (mood) payload.moodLabel = mood;
+  if (v.visualIntensity) payload.visualIntensity = v.visualIntensity;
+  if (v.playerStyle) payload.playerStyle = v.playerStyle;
+  return payload;
+}
+
+export function sectionsParseErrors(text: string): string[] {
+  if (!text.trim()) return [];
+  return parseSectionsText(text).errors;
+}
+
+export function syncedLyricsParseErrors(syncedText: string): string[] {
+  if (!syncedText.trim()) return [];
+  return parseSyncedLyricsText(syncedText).errors;
+}
+
 export function buildOverridesFromEdits(edits: ManualMetadataEdits): UserMetadataOverrides {
   const overrides: UserMetadataOverrides = {
     meta: metaRecordFromManual(edits.meta),
@@ -179,13 +352,48 @@ export function buildOverridesFromEdits(edits: ManualMetadataEdits): UserMetadat
   }
 
   const unsynced = edits.lyricsUnsynced.trim();
-  if (unsynced) {
-    overrides.lyrics = {
-      unsynced,
-      source: edits.lyricsSource.trim() || "user",
-    };
+  const syncedRaw = edits.lyricsSyncedText.trim();
+  let lyrics: LyrcPayload | null = null;
+
+  if (unsynced || syncedRaw) {
+    const source = edits.lyricsSource.trim() || "user";
+    const payload: LyrcPayload = { source };
+    if (unsynced) payload.unsynced = unsynced;
+    if (syncedRaw) {
+      const { lines, errors } = parseSyncedLyricsText(syncedRaw);
+      if (errors.length) {
+        /* Caller should surface parse errors; skip invalid synced on export. */
+      } else if (lines.length) {
+        payload.synced = lines;
+      }
+    }
+    if (payload.unsynced || payload.synced?.length) {
+      lyrics = payload;
+    }
+  }
+
+  overrides.lyrics = lyrics;
+
+  const sectionsRaw = edits.sectionsText.trim();
+  const highlightsRaw = edits.highlightsText.trim();
+  if (sectionsRaw) {
+    const { sections, errors } = parseSectionsText(sectionsRaw);
+    if (!errors.length && sections.length) {
+      overrides.sect = { version: 1, sections, source: "user" };
+      const hook = hookFromSections(sections);
+      if (hook) overrides.hook = hook;
+    }
   } else {
-    overrides.lyrics = null;
+    overrides.sect = null;
+    overrides.hook = null;
+  }
+  if (highlightsRaw) {
+    const { highlights, errors } = parseHighlightsText(highlightsRaw);
+    if (!errors.length && highlights.length) {
+      overrides.hilt = { highlights, source: "user" };
+    }
+  } else {
+    overrides.hilt = null;
   }
 
   if (hasExplFlags(edits.expl)) {
@@ -205,6 +413,29 @@ export function buildOverridesFromEdits(edits: ManualMetadataEdits): UserMetadat
   const vibeTags = parseTagInput(edits.vibeTags);
   if (vibeTags.length) {
     overrides.vibe = { tags: vibeTags, source: "user" };
+  }
+
+  const visu = visuPayloadFromEdits(edits.visualTheme);
+  if (visu) {
+    overrides.visu = visu;
+  }
+
+  if (hasCrdtEdits(edits.credits)) {
+    overrides.crdt = crdtPayloadFromEdits(edits.credits);
+  } else {
+    overrides.crdt = null;
+  }
+
+  if (hasLicnEdits(edits.rights)) {
+    overrides.licn = licnPayloadFromEdits(edits.rights);
+  } else {
+    overrides.licn = null;
+  }
+
+  if (hasIdenEdits(edits.identifiers)) {
+    overrides.iden = idenPayloadFromEdits(edits.identifiers);
+  } else {
+    overrides.iden = null;
   }
 
   if (hasSafeFlags(edits.safe)) {

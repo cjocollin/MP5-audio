@@ -15,7 +15,7 @@ All AI chunks are **optional**. Files without them decode and play normally.
 | SUMM | AI summary |
 | FING | Fingerprint |
 | RECS | Playlist/DJ hints |
-| VISU | Visual theme |
+| VISU | Visual theme (hex colors, mood, player style) — see [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md) |
 
 ## Flags
 

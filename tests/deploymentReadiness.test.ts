@@ -40,10 +40,12 @@ describe("deployment readiness", () => {
     expect(netlify).toContain("apps/web/dist");
   });
 
-  it("vite injects version defines", () => {
+  it("vite syncs version from root package.json", () => {
     const vite = readFileSync(join(root, "apps/web/vite.config.ts"), "utf8");
-    expect(vite).toContain("__MP5_APP_VERSION__");
-    expect(vite).toContain("__MP5_BUILD_LABEL__");
+    expect(vite).toContain("mp5AppVersionPlugin");
+    const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+    const generated = readFileSync(join(root, "apps/web/src/generated/appVersion.ts"), "utf8");
+    expect(generated).toContain(rootPkg.version);
   });
 
   it("fixtures plugin copies demo to dist on build", () => {

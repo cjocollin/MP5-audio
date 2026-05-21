@@ -2,6 +2,7 @@ import type { PlaylistTrack } from "../../store/playerStore";
 import { importMp5ToPlayer } from "../../player/playerImport";
 import { saveMp5ToLibrary, libraryEntryToFile, loadLibraryEntry } from "./api";
 import type { SaveToLibraryResult } from "./api";
+import { downloadBlob } from "../performance/downloadBlob";
 
 export async function savePlaylistTrackToLibrary(track: PlaylistTrack): Promise<SaveToLibraryResult> {
   if (!track.file) {
@@ -31,10 +32,5 @@ export async function addLibraryEntryToPlaylist(id: string): Promise<void> {
 }
 
 export function downloadLibraryEntry(entry: { data: ArrayBuffer; filename: string }): void {
-  const blob = new Blob([entry.data], { type: "audio/mp5" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = entry.filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadBlob(new Blob([entry.data], { type: "audio/mp5" }), entry.filename);
 }

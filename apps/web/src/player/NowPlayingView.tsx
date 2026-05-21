@@ -4,6 +4,7 @@ import { codecLabel } from "../lib/codecDisplay";
 import type { Mp5hDecodeInfo } from "./decodeMp5";
 import { hasContentNotice, trackDisplayInfo } from "./playlistUtils";
 import type { PlaylistTrack } from "../store/playerStore";
+import type { ResolvedPlayerTheme } from "../lib/visualTheme/applyVisualTheme";
 import { TrackMetadata } from "./TrackMetadata";
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   loadError: string;
   decodePath: string;
   mp5h?: Mp5hDecodeInfo;
+  playerTheme?: ResolvedPlayerTheme | null;
 }
 
 function coverFromParsed(parsed?: Mp5File) {
@@ -30,6 +32,7 @@ export function NowPlayingView({
   loadError,
   decodePath,
   mp5h,
+  playerTheme,
 }: Props) {
   const cover = coverFromParsed(parsed);
   const coverUrl = useCoverObjectUrl(cover);
@@ -39,9 +42,21 @@ export function NowPlayingView({
   const moodTags = info?.moodTags ?? [];
   const vibeTags = info?.vibeTags ?? [];
 
+  const cardClass = playerTheme
+    ? "aspect-square max-w-md mx-auto w-full rounded-2xl shadow-xl overflow-hidden flex items-center justify-center border"
+    : "aspect-square max-w-md mx-auto w-full rounded-2xl bg-surface-elevated shadow-xl overflow-hidden flex items-center justify-center";
+
   return (
-    <div className="space-y-4" data-testid="now-playing">
-      <div className="aspect-square max-w-md mx-auto w-full rounded-2xl bg-surface-elevated shadow-xl overflow-hidden flex items-center justify-center">
+    <div
+      className="space-y-4 rounded-2xl p-4 -m-4"
+      data-testid="now-playing"
+      data-theme-active={playerTheme ? "true" : "false"}
+    >
+      <div
+        className={cardClass}
+        style={playerTheme?.cardStyle}
+        data-testid="now-playing-theme-card"
+      >
         {coverUrl ? (
           <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" data-testid="now-playing-cover" />
         ) : (
@@ -66,10 +81,32 @@ export function NowPlayingView({
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
           {codec && (
             <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/15 text-accent border border-accent/30"
+              className={
+                playerTheme
+                  ? "px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                  : "px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/15 text-accent border border-accent/30"
+              }
+              style={playerTheme?.badgeStyle}
               data-testid="now-playing-codec-badge"
             >
               {codec}
+            </span>
+          )}
+          {playerTheme?.themeName && (
+            <span
+              className="px-2 py-0.5 rounded-full text-[10px] font-medium border"
+              style={playerTheme.badgeStyle}
+              data-testid="now-playing-theme-badge"
+            >
+              {playerTheme.themeName}
+            </span>
+          )}
+          {playerTheme?.moodLabel && (
+            <span
+              className="px-2 py-0.5 rounded-full text-[10px] font-medium text-gray-400 border border-white/10"
+              data-testid="now-playing-mood-badge"
+            >
+              {playerTheme.moodLabel}
             </span>
           )}
           {showContentBadge && (

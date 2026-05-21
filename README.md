@@ -56,7 +56,27 @@ pnpm demo          # http://localhost:5173
 
 **Convert your own audio:** Converter → drop FLAC/WAV/MP3/M4A/OGG → edit metadata → **Export MP5-L v3** → **Open in Player**.
 
+**Batch convert:** Converter → **Batch** → drop multiple sources → **Start batch** (MP5-L v3 only). Progress per file; download individually or **Download all** (separate files, no ZIP). Optional **auto-save to library** with FING duplicate detection. All processing stays in the browser — large batches can be slow; closing the tab cancels work. Per-file metadata editing uses **Single file** mode.
+
+**Stems (v0.8.2):** Import stems **one-by-one or in batch** (WAV/FLAC/MP3/M4A/OGG); filename-based type guessing; **normalize** rate/duration vs the full mix — see [`docs/MP5_STEMS.md`](docs/MP5_STEMS.md).
+
+**Performance (v0.8):** Settings → **Diagnostics** shows queue size, decode cache, library storage, WASM/FFmpeg status, and conversion activity. Calm warnings appear for very large files, long batches, stem RAM limits, and storage pressure. First load downloads WASM + FFmpeg (~31 MB for non-WAV conversion).
+
 **Local library:** **Library** tab → save `.mp5` files on this device (IndexedDB). Search, play, download again, or add to the player queue. Nothing is uploaded to a server; clearing browser data may remove saved files. Large exports can use significant storage.
+
+**Optional stems:** Converter **Stems** section — add WAV/FLAC stems manually (no AI). Full mix stays in AUDI; optional **STEM** + **STDA** chunks. Demo: `test-fixtures/demo_mp5l_v3_stems.mp5` or **Load karaoke demo** in the player. Stem mix is opt-in and memory-limited. See [`docs/MP5_STEMS.md`](docs/MP5_STEMS.md).
+
+**Synced lyrics / karaoke:** Optional **LYRC** synced lines (`timeMs`) via converter `[mm:ss.xx]` editor; player lyrics panel + karaoke mode (synced lyrics + stems). No AI lyric generation. See [`docs/MP5_METADATA_SPEC.md`](docs/MP5_METADATA_SPEC.md).
+
+**Song sections:** Optional **SECT** / **HOOK** / **HILT** — manual song map, smart navigation, highlight preview/loop in the player (no clip export). See [`docs/MP5_SECTIONS.md`](docs/MP5_SECTIONS.md).
+
+**Visual themes:** Optional **VISU** — per-file accent colors and mood for the player UI (no effect on audio). See [`docs/MP5_VISUAL_THEMES.md`](docs/MP5_VISUAL_THEMES.md).
+
+**Credits & rights:** Optional **CRDT**, **LICN**, and **IDEN** metadata for credits, license hints, and release IDs — informational only (no DRM or enforcement). See [`docs/MP5_CREDITS_RIGHTS.md`](docs/MP5_CREDITS_RIGHTS.md).
+
+**Fingerprints:** Optional **FING** / **HASH** for duplicate detection and local integrity checks — not DRM or legal proof. See [`docs/MP5_FINGERPRINT_INTEGRITY.md`](docs/MP5_FINGERPRINT_INTEGRITY.md).
+
+**Album packages:** Optional **`.mp5p`** manifest (experimental) references sidecar `.mp5` files — not an embedded archive. Import, create, and saved-album playback in the reference app. Single-track `.mp5` remains the core format. See [`docs/MP5_ALBUM_PACKAGE.md`](docs/MP5_ALBUM_PACKAGE.md).
 
 ---
 

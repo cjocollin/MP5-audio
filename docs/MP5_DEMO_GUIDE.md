@@ -80,6 +80,10 @@ Also shown on the hosted landing at https://mp5-audio.vercel.app.
 
 ### 2. Convert your own FLAC/WAV
 
+**Batch (multiple files):** Converter → **Batch** → drop several WAV/FLAC/MP3/M4A/OGG files → **Start batch**. Each file exports **MP5-L v3** with detected tags, waveform/seek, and FING/HASH when possible. Say: **nothing uploads**; conversion is heavy; large batches are slow; closing the tab stops the queue. Use **Single file** to edit metadata before export. **Download all** saves separate `.mp5` files (no ZIP in this MVP).
+
+**Performance / diagnostics:** Settings → open **Diagnostics (optional)** — playlist queue, decode cache (max 3 tracks), library bytes, WASM/FFmpeg status. Mention first-load codec download and that very large files or 12+ batch items show calm warnings (not hard blocks unless extreme).
+
 1. Open the **Converter** tab — the step strip shows: drop source → edit metadata → preview → export → download / open in player.
 2. Confirm **MP5-L v3** is selected (default).
 3. Drop a FLAC or WAV file — status shows **decoding** then **extracting metadata** (no immediate download).
@@ -87,6 +91,71 @@ Also shown on the hosted landing at https://mp5-audio.vercel.app.
 5. Check **Export preview** — detected vs what will be embedded.
 6. Click **Export MP5** — progress shows waveform/seek build, encode, metadata chunks, validation, then **export summary** (filename, size, embedded flags).
 7. Use **Download again**, **Open in Player**, **Add to playlist**, or **Save to library** — or switch to **Player** and drop the `.mp5` manually.
+
+### 2c. Optional stems (manual or demo fixture)
+
+**Quick demo:** Player → **Load stems demo** (or drop `test-fixtures/demo_mp5l_v3_stems.mp5`) — synthetic drums, bass, and melody; no copyrighted audio.
+
+**Your own export:**
+
+1. In **Converter**, after loading a source, open **Stems (optional)**.
+2. Click **Import stems** or drop multiple WAV/FLAC/MP3/M4A/OGG files — review the batch summary (imported, skipped, guessed types).
+3. Edit stem names/types if filename guessing is wrong (e.g. `lead_vocal.wav` → Lead vocals).
+4. If sample rate or duration differs from the full mix, click **Normalize stems to match full mix** (applies to all stems). Use **Normalize all** or **Remove all** for bulk actions.
+5. If all stems are longer than the mix, consider **Pad full mix** instead of trimming.
+6. Export — full mix is still MP5-L v3 in AUDI; stems are optional add-ons.
+7. In **Player**, read the **Stems** panel help text, then optionally enable **Mix stems in player** for mute/solo/volume.
+
+Say out loud: stems are optional; full mix always works; no AI separation; normalization is a helper for session mismatches (trimming can remove audio); other players can ignore STEM/STDA; stem mix uses more memory and is experimental.
+
+### 2d. Synced lyrics and karaoke (demo)
+
+1. Player → **Load karaoke demo** (or drop `test-fixtures/demo_mp5l_v3_stems.mp5`).
+2. Open the **Lyrics** panel — synced lines highlight during playback.
+3. Toggle **Karaoke mode** — stem mix enables with instrumental/vocal preset when stems allow.
+4. In **Converter**, add synced lines manually: `[00:12.50] Your line` (no AI lyrics).
+
+Say: lyrics are optional; synced lyrics are manual; karaoke audio needs compatible stems.
+
+### 2e. Song map / sections (demo)
+
+1. Same **Load karaoke demo** file includes **SECT**, **HOOK**, and **HILT**.
+2. Open **Song map** — five synthetic sections (Intro → Outro).
+3. Use **Jump to chorus**, **Replay hook**, **Skip intro**, or click a section row.
+4. Waveform shows faint section markers when WAVE data is present.
+
+In **Converter**, add sections manually: `[00:00.00-00:12.00|Intro] Opening` — no AI analysis.
+
+### 2f. Highlights and preview clips
+
+1. In the **Highlights** list, try **Preview** on the verse clip (stops at end).
+2. **Play** on the share highlight; use **Loop hook** for the hook range.
+3. **Stop loop** returns to normal transport; repeat/shuffle unchanged.
+
+Say: highlights are manual HILT metadata; no AI detection; no social export yet.
+
+### 2g. Visual theme (VISU)
+
+1. **Load karaoke demo** — Now Playing picks up **Calm demo** accent colors (soft indigo gradient on the cover card).
+2. Open **Metadata** panel — **Visual theme (VISU)** shows theme name, mood, style, source, and color swatches.
+3. **Settings** → uncheck **Apply VISU file themes** — player returns to default chrome (metadata still lists VISU).
+
+In **Converter**, set theme name and hex colors under **Visual theme** — no AI palette extraction.
+
+Say: VISU is optional display metadata; playback and codec path are unchanged; other players may ignore it.
+
+### 2h. Album package (.mp5p)
+
+1. Run `node scripts/generate-demo-album-package.mjs` after demo fixtures (or `pnpm fixtures:generate`).
+2. On the **Player** tab, drop **`demo_album_package.mp5p`** together with **`demo_mp5l_v3_tone.mp5`** and **`demo_mp5l_v3_stems.mp5`**.
+3. Read the manifest explainer banner; confirm **Found sidecar tracks** lists both files.
+4. Track 1 = plain demo tone; track 2 = stems + karaoke + sections + highlights + VISU demo.
+5. Album view may show optional **album credits / rights / identifiers** on the demo manifest (informational only).
+6. **Play album** or **Add album to queue**; try **Save album** then open **Library → Saved albums**.
+7. With 2+ tracks in the playlist, use **Create album package** — reorder tracks, read filename list, download manifest.
+8. **Converter** — expand **Credits**, **Rights & license**, or **Release identifiers** (collapsed by default) before export.
+
+Say: **`.mp5` is core**; **`.mp5p` is experimental**; keep manifest and sidecars in the same folder; no embedded archive yet; third-party players may ignore `.mp5p`.
 
 ### 2b. Local library (device-only)
 

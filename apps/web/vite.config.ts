@@ -1,20 +1,13 @@
-import { readFileSync } from "node:fs";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { fixturesPlugin } from "./fixturesPlugin";
-
-const rootPkg = JSON.parse(
-  readFileSync(path.resolve(__dirname, "../../package.json"), "utf8"),
-) as { version: string };
+import { mp5AppVersionPlugin } from "./mp5AppVersionPlugin";
 
 export default defineConfig({
-  define: {
-    __MP5_APP_VERSION__: JSON.stringify(rootPkg.version),
-    __MP5_BUILD_LABEL__: JSON.stringify("Alpha"),
-  },
   plugins: [
+    mp5AppVersionPlugin(),
     react(),
     fixturesPlugin(),
     VitePWA({

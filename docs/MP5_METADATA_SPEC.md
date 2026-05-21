@@ -86,7 +86,7 @@ Future source values may include artist-provided, distributor-provided, AI-sugge
 
 | **COVR** | Yes | Cover art |
 
-| **LYRC** | Yes | Lyrics |
+| **LYRC** | Yes | Lyrics (unsynced and/or synced) |
 
 | **EXPL** | Optional | Content notices (explicit, clean version, mature themes, …) |
 
@@ -103,6 +103,16 @@ Future source values may include artist-provided, distributor-provided, AI-sugge
 | **INFO** | Yes | Encoder strings |
 
 | **MOOD** / **VIBE** | Display-only | Discovery tags |
+
+| **STEM** / **STDA** | Optional MVP | Optional separated stems — see [`MP5_STEMS.md`](MP5_STEMS.md) |
+| **SECT** | Optional MVP | Song sections / structure — see [`MP5_SECTIONS.md`](MP5_SECTIONS.md) |
+| **HOOK** / **HILT** | Optional MVP | Hook replay + highlight moments — see [`MP5_SECTIONS.md`](MP5_SECTIONS.md) |
+| **VISU** | Optional MVP | Visual theme (colors, mood) — see [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md) |
+| **CRDT** | Optional MVP | Detailed credits — see [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md) |
+| **LICN** | Optional MVP | Rights / license (informational only) — see [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md) |
+| **IDEN** | Optional MVP | Release identifiers — see [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md) |
+| **FING** | Optional MVP | Fingerprints / library identity — see [`MP5_FINGERPRINT_INTEGRITY.md`](MP5_FINGERPRINT_INTEGRITY.md) |
+| **HASH** | Optional MVP | Per-chunk SHA-256 integrity — see [`MP5_FINGERPRINT_INTEGRITY.md`](MP5_FINGERPRINT_INTEGRITY.md) |
 
 
 
@@ -172,13 +182,49 @@ Standard music players can ignore RECV. Only embed it when the Haven / Recovery 
 
 
 
+## LYRC — Lyrics (unsynced + synced)
+
+Optional JSON chunk. **No AI lyric generation** — lyrics are manually provided at export or detected from source tags.
+
+| Field | Description |
+|-------|-------------|
+| `unsynced` | Plain lyrics text (always supported) |
+| `synced` | Array of timed lines |
+| `source` | Optional source label (for example `user`, `embedded`) |
+
+Each synced line:
+
+```json
+{
+  "timeMs": 12500,
+  "text": "Example lyric line",
+  "section": "Chorus",
+  "source": "user"
+}
+```
+
+- `timeMs` — milliseconds from track start (legacy `time` in seconds is decoded as ms).
+- `section` — optional label (Intro, Verse, Chorus, Bridge, Outro, …).
+- `source` — optional per-line source label.
+
+**Converter (MVP):** optional synced lyrics textarea using LRC-style lines:
+
+```text
+[00:12.50] lyric text
+[00:15.20|Chorus] next line
+```
+
+Parse errors are shown in the UI; invalid lines are omitted on export. Synced lyrics are **not required** for export.
+
+**Player:** lyrics panel shows unsynced or synced lines, highlights the active line during playback, and supports optional **karaoke mode** when synced lyrics and compatible stems are present (see [`MP5_STEMS.md`](MP5_STEMS.md)).
+
 ## Manual overrides (converter)
 
 
 
 1. **Detect** — FFmpeg/ffmetadata + optional embedded cover/lyrics  
 
-2. **Edit** — track info, cover, lyrics, optional content guidance, mood/vibe, optional specialized profile  
+2. **Edit** — track info, cover, unsynced/synced lyrics, optional content guidance, mood/vibe, optional **visual theme (VISU)**, optional **credits (CRDT)**, **rights (LICN)**, **identifiers (IDEN)** (collapsed by default), optional specialized profile  
 
 3. **Preview** — detected vs embedded summary; content guidance source shown as user-provided when embedded  
 
@@ -216,5 +262,5 @@ Haven / Recovery fields appear only when that **specialized profile** is selecte
 
 
 
-See also: [`MP5_DEMO_GUIDE.md`](MP5_DEMO_GUIDE.md), [`CURRENT_MP5_STATUS.md`](CURRENT_MP5_STATUS.md).
+See also: [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md), [`MP5_FINGERPRINT_INTEGRITY.md`](MP5_FINGERPRINT_INTEGRITY.md), [`MP5_DEMO_GUIDE.md`](MP5_DEMO_GUIDE.md), [`CURRENT_MP5_STATUS.md`](CURRENT_MP5_STATUS.md).
 

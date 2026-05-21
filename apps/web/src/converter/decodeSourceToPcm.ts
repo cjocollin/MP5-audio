@@ -11,6 +11,12 @@ export interface PcmResult {
 
 export type DecodeProgress = (message: string) => void;
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new DOMException("Conversion cancelled", "AbortError");
+  }
+}
+
 export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI__" in window;
 }
@@ -71,25 +77,45 @@ async function tryDecodeWav(file: File, onProgress?: DecodeProgress): Promise<Pc
   }
 }
 
-export async function decodeSourceToPcm(file: File, onProgress?: DecodeProgress): Promise<PcmResult> {
+export async function decodeSourceToPcm(
+  file: File,
+  onProgress?: DecodeProgress,
+  signal?: AbortSignal,
+): Promise<PcmResult> {
   if (isTauri()) {
     throw new Error("Native FFmpeg in Tauri is not configured in this build. Use WAV upload or web build.");
   }
 
+  throwIfAborted(signal);
   const wav = await tryDecodeWav(file, onProgress);
   if (wav) return wav;
 
-  return decodeWithFfmpegWasm(file, onProgress);
+  return decodeWithFfmpegWasm(file, onProgress, signal);
 }
 
-async function decodeWithFfmpegWasm(file: File, onProgress?: DecodeProgress): Promise<PcmResult> {
-  const ffmpeg = await getFfmpeg(onProgress);
+async function decodeWithFfmpegWasm(
+  file: File,
+  onProgress?: DecodeProgress,
+  signal?: AbortSignal,
+): Promise<PcmResult> {
+  throwIfAborted(signal);
+  let ffmpeg;
+  try {
+    ffmpeg = await getFfmpeg(onProgress);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      `FFmpeg could not load (${msg}). Refresh the page, check your network, or use WAV. Hosted demos need FFmpeg WASM assets in the build.`,
+    );
+  }
+  throwIfAborted(signal);
 
   const input = `input${extOf(file.name)}`;
   const output = "out.pcm";
 
   onProgress?.("Reading file…");
   await ffmpeg.writeFile(input, await fetchFile(file));
+  throwIfAborted(signal);
 
   onProgress?.("Transcoding to PCM (FFmpeg)…");
   const exit = await ffmpeg.exec(

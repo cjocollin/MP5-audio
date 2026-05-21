@@ -11,6 +11,7 @@ import {
   type RepeatMode,
   resolveAutoAdvanceIndex,
 } from "../player/queueNavigation";
+import type { ResolvedAlbumPackage } from "../lib/album/resolveAlbum";
 
 export type { RepeatMode };
 
@@ -35,8 +36,12 @@ interface PlayerState {
   shuffle: boolean;
   shuffleOrder: number[];
   theme: "dark" | "light";
+  /** When false, ignore VISU chunk styling and use default app chrome. */
+  useFileThemes: boolean;
   activeTab: "player" | "converter" | "library" | "demo" | "about" | "settings";
   sessionRestored: boolean;
+  /** Set from Library when opening a saved album; consumed by Mp5Player. */
+  pendingAlbumPackage: ResolvedAlbumPackage | null;
   setTracks: (t: PlaylistTrack[]) => void;
   appendTracks: (t: PlaylistTrack[]) => void;
   removeTrack: (id: string) => void;
@@ -54,8 +59,11 @@ interface PlayerState {
   setDuration: (d: number) => void;
   setVolume: (v: number) => void;
   setTheme: (t: "dark" | "light") => void;
+  setUseFileThemes: (v: boolean) => void;
   setActiveTab: (t: PlayerState["activeTab"]) => void;
   setSessionRestored: (v: boolean) => void;
+  setPendingAlbumPackage: (album: ResolvedAlbumPackage | null) => void;
+  consumePendingAlbumPackage: () => ResolvedAlbumPackage | null;
   syncShuffleOrder: () => void;
   navArgs: () => {
     tracks: PlaylistTrack[];
@@ -76,9 +84,29 @@ function clampIndex(index: number, length: number): number {
   return Math.max(0, Math.min(index, length - 1));
 }
 
+const FILE_THEMES_STORAGE_KEY = "mp5-use-file-themes-v1";
+
+function loadUseFileThemesPref(): boolean {
+  try {
+    const v = localStorage.getItem(FILE_THEMES_STORAGE_KEY);
+    if (v === "0" || v === "false") return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 function rebuildShuffle(tracks: PlaylistTrack[], currentIndex: number): number[] {
   if (!tracks.length) return [];
   return buildShuffleOrder(tracks, currentIndex);
+}
+
+function revokeTrackObjectUrls(tracks: PlaylistTrack[]): void {
+  for (const t of tracks) {
+    if (t.objectUrl) {
+      URL.revokeObjectURL(t.objectUrl);
+    }
+  }
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -92,8 +120,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   shuffle: false,
   shuffleOrder: [],
   theme: "dark",
+  useFileThemes: loadUseFileThemesPref(),
   activeTab: "player",
   sessionRestored: false,
+  pendingAlbumPackage: null,
   navArgs: () => {
     const s = get();
     return {
@@ -127,6 +157,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set((s) => {
       const removeIndex = s.tracks.findIndex((t) => t.id === id);
       if (removeIndex < 0) return s;
+      const removed = s.tracks[removeIndex];
+      if (removed?.objectUrl) URL.revokeObjectURL(removed.objectUrl);
       const tracks = s.tracks.filter((t) => t.id !== id);
       if (!tracks.length) {
         return {
@@ -149,13 +181,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       };
     }),
   clearTracks: () =>
-    set({
-      tracks: [],
-      currentIndex: 0,
-      isPlaying: false,
-      currentTime: 0,
-      duration: 0,
-      shuffleOrder: [],
+    set((s) => {
+      revokeTrackObjectUrls(s.tracks);
+      return {
+        tracks: [],
+        currentIndex: 0,
+        isPlaying: false,
+        currentTime: 0,
+        duration: 0,
+        shuffleOrder: [],
+      };
     }),
   setCurrentIndex: (currentIndex, opts) =>
     set((s) => ({
@@ -227,8 +262,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setDuration: (duration) => set({ duration }),
   setVolume: (volume) => set({ volume }),
   setTheme: (theme) => set({ theme }),
+  setUseFileThemes: (useFileThemes) => {
+    try {
+      localStorage.setItem(FILE_THEMES_STORAGE_KEY, useFileThemes ? "1" : "0");
+    } catch {
+      /* private mode */
+    }
+    set({ useFileThemes });
+  },
   setActiveTab: (activeTab) => set({ activeTab }),
   setSessionRestored: (sessionRestored) => set({ sessionRestored }),
+  setPendingAlbumPackage: (pendingAlbumPackage) => set({ pendingAlbumPackage }),
+  consumePendingAlbumPackage: () => {
+    const album = get().pendingAlbumPackage;
+    set({ pendingAlbumPackage: null });
+    return album;
+  },
 }));
 
 export function selectCanGoNext(state: PlayerState): boolean {

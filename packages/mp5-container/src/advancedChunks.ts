@@ -22,6 +22,7 @@ export const ADVANCED_CHUNKS: ChunkRegistryEntry[] = [
   { fourcc: "ARTS", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "CRDT", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "LICN", requiredForPlayback: false, tier: "advanced" },
+  { fourcc: "IDEN", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "SHAR", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "CLIP", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "NOTE", requiredForPlayback: false, tier: "advanced" },
@@ -32,6 +33,7 @@ export const ADVANCED_CHUNKS: ChunkRegistryEntry[] = [
   { fourcc: "AIPR", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "VERS", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "ALBM", requiredForPlayback: false, tier: "advanced" },
+  { fourcc: "HASH", requiredForPlayback: false, tier: "advanced" },
   { fourcc: "SIGN", requiredForPlayback: false, tier: "advanced" },
 ];
 

@@ -19,6 +19,10 @@ import { LibraryStorageError } from "../lib/localLibrary/errors";
 import { filterLibraryRecords } from "../lib/localLibrary/search";
 import type { LibraryCodecFilter, LibrarySearchFilters, LocalLibraryRecord } from "../lib/localLibrary/types";
 import { isMp5FileName } from "../player/playlistUtils";
+import { SavedAlbumsPanel } from "./SavedAlbumsPanel";
+import { decodeCache } from "../player/decodeCache";
+import { assessLibraryStorage, type GuardrailMessage } from "../lib/performance/guardrails";
+import { GuardrailNotice } from "./GuardrailNotice";
 
 const EMPTY_MESSAGE =
   "Save MP5 files to your local library so you can play them again later on this device.";
@@ -94,6 +98,14 @@ function LibraryRow({
               Content
             </span>
           )}
+          {s.hasStems && (
+            <span
+              className="px-1.5 py-0 rounded bg-purple-900/40 text-purple-200/90 border border-purple-800/40"
+              data-testid="local-library-stems-badge"
+            >
+              Stems{s.stemCount > 0 ? ` (${s.stemCount})` : ""}
+            </span>
+          )}
           {unreadable && (
             <span className="text-red-300/90" data-testid="local-library-unreadable">
               Unreadable
@@ -156,6 +168,7 @@ export function LocalLibraryPanel() {
   const [contentGuidanceOnly, setContentGuidanceOnly] = useState(false);
   const [hasCoverOnly, setHasCoverOnly] = useState(false);
   const [hasLyricsOnly, setHasLyricsOnly] = useState(false);
+  const [storageGuardrails, setStorageGuardrails] = useState<GuardrailMessage[]>([]);
 
   const filters: LibrarySearchFilters = useMemo(
     () => ({ query, codec, contentGuidanceOnly, hasCoverOnly, hasLyricsOnly }),
@@ -173,8 +186,10 @@ export function LocalLibraryPanel() {
         setStorageLine(
           `Storage: ${formatBytes(storage.usedBytes)} used of ${formatBytes(storage.quotaBytes)} available on this device.`,
         );
+        setStorageGuardrails(assessLibraryStorage(storage.usedBytes, storage.quotaBytes));
       } else {
         setStorageLine(`Library size on this device: ${formatBytes(storage.usedBytes)}.`);
+        setStorageGuardrails([]);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -225,9 +240,18 @@ export function LocalLibraryPanel() {
 
   const handleClear = () => {
     if (!records.length) return;
-    if (!window.confirm("Clear all saved MP5 files from this library? This cannot be undone.")) return;
+    if (
+      !window.confirm(
+        "Clear all saved MP5 files from this library? Saved album manifests in this browser will remain until you remove them separately. This cannot be undone.",
+      )
+    ) {
+      return;
+    }
     setBusy(true);
     void clearLocalLibrary()
+      .then(() => {
+        decodeCache.clear();
+      })
       .then(() => refresh())
       .then(() => setStatus("Library cleared."))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
@@ -258,6 +282,7 @@ export function LocalLibraryPanel() {
           <p>Large audio files can use significant storage.</p>
           <p>No files are uploaded to a server.</p>
           {storageLine && <p className="text-gray-400 pt-1">{storageLine}</p>}
+          <GuardrailNotice messages={storageGuardrails} testId="library-storage-guardrails" />
         </div>
       </div>
 
@@ -385,6 +410,10 @@ export function LocalLibraryPanel() {
           ))}
         </ul>
       )}
+
+      <div className="mp5-card p-4">
+        <SavedAlbumsPanel />
+      </div>
     </div>
   );
 }

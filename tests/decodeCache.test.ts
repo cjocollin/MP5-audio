@@ -37,6 +37,19 @@ describe("DecodeCache", () => {
     expect(cache.get("4")).toBeDefined();
   });
 
+  it("repeated set for same id does not grow entry count", () => {
+    const stub = {
+      samples: new Int16Array(1),
+      sampleRate: 48000,
+      channels: 1,
+      parsed: { meta: [], audioFrames: [], seek: [], waveform: [], info: [], corr: [], optional: new Map(), warnings: [], header: { majorVersion: 1, fileFlags: 0 } },
+      decodePath: "PCM",
+      duration: 1,
+    };
+    for (let i = 0; i < 5; i++) cache.set("same", stub);
+    expect(cache.size()).toBe(1);
+  });
+
   it("clear removes all entries", () => {
     cache.set("a", {
       samples: new Int16Array(1),

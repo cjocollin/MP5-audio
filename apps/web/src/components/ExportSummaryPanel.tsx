@@ -58,6 +58,10 @@ export function ExportSummaryPanel({
         <dd data-testid="export-summary-lyrics">{summary.hasLyrics ? "Yes" : "No"}</dd>
         <dt className="text-gray-500">Content guidance</dt>
         <dd data-testid="export-summary-guidance">{summary.hasContentGuidance ? "Yes" : "No"}</dd>
+        <dt className="text-gray-500">Stems</dt>
+        <dd data-testid="export-summary-stems">
+          {summary.stemCount > 0 ? `${summary.stemCount} optional stem(s)` : "None"}
+        </dd>
       </dl>
       <div className="flex flex-wrap gap-2 pt-1">
         <button

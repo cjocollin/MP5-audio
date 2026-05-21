@@ -6,6 +6,9 @@ import {
   decodeLyrc,
   decodeMood,
   decodeVibe,
+  decodeCrdt,
+  decodeLicn,
+  decodeIden,
   getMetaValue,
   parseMp5,
   parseOptionalMetadata,
@@ -43,7 +46,12 @@ const extractedBase = {
 
 function editsWith(partial: Partial<ManualMetadataEdits>): ManualMetadataEdits {
   const base = manualEditsFromSource(extractedBase);
-  return { ...base, ...partial, meta: { ...base.meta, ...partial.meta } };
+  return {
+    ...base,
+    ...partial,
+    meta: { ...base.meta, ...partial.meta },
+    visualTheme: { ...base.visualTheme, ...partial.visualTheme },
+  };
 }
 
 describe("manual metadata overrides", () => {
@@ -109,6 +117,25 @@ describe("manual metadata overrides", () => {
     const p = parseMp5(buf);
     expect(p.coverArt).toBeUndefined();
     expect(decodeCover(p.cover ?? new Uint8Array(0))).toBeNull();
+  });
+
+  it("manual LYRC synced roundtrip", async () => {
+    const edits = editsWith({
+      lyricsSyncedText: "[00:01.00] Synced line\n[00:02.50|Verse] Second",
+      lyricsSource: "user",
+    });
+    const bundle = buildExportMetadataBundle(extractedBase, buildOverridesFromEdits(edits));
+    const buf = await convertToMp5({
+      samples,
+      sampleRate: 48000,
+      channels: 1,
+      codec: "pcm",
+      optional: bundle.optional,
+    });
+    const ly = decodeLyrc(parseMp5(buf).optional.get("LYRC"));
+    expect(ly?.synced?.length).toBe(2);
+    expect(ly?.synced?.[0]?.timeMs).toBe(1000);
+    expect(ly?.synced?.[1]?.section).toBe("Verse");
   });
 
   it("manual LYRC roundtrip", async () => {
@@ -243,6 +270,77 @@ describe("manual metadata overrides", () => {
     expect(chunks.safe?.tags).toContain("intense emotional content");
     expect(chunks.sens?.suddenLoudSounds).toBe(true);
     expect(chunks.recv?.groundingFriendly).toBe(true);
+  });
+
+  it("exports VISU when visual theme fields are set", () => {
+    const edits = editsWith({
+      visualTheme: {
+        themeName: "Studio night",
+        primaryColor: "#6366f1",
+        accentColor: "#8b5cf6",
+        backgroundColor: "#1e1b4b",
+        moodLabel: "calm",
+        visualIntensity: "low",
+        playerStyle: "calm",
+      },
+    });
+    const bundle = buildExportMetadataBundle(extractedBase, buildOverridesFromEdits(edits));
+    expect(bundle.optional.has("VISU")).toBe(true);
+    const chunks = parseOptionalMetadata(bundle.optional);
+    expect(chunks.visu?.themeName).toBe("Studio night");
+    expect(chunks.visu?.accentColor).toBe("#8b5cf6");
+  });
+
+  it("skips invalid VISU colors on export", () => {
+    const edits = editsWith({
+      visualTheme: {
+        themeName: "Bad colors",
+        primaryColor: "red",
+        accentColor: "#aabbcc",
+        backgroundColor: "",
+        moodLabel: "",
+        visualIntensity: "",
+        playerStyle: "",
+      },
+    });
+    const bundle = buildExportMetadataBundle(extractedBase, buildOverridesFromEdits(edits));
+    const chunks = parseOptionalMetadata(bundle.optional);
+    expect(chunks.visu?.primaryColor).toBeUndefined();
+    expect(chunks.visu?.accentColor).toBe("#aabbcc");
+  });
+
+  it("exports CRDT, LICN, and IDEN optional chunks from manual edits", () => {
+    const edits = editsWith({
+      credits: {
+        ...manualEditsFromSource(extractedBase).credits,
+        producer: "Studio Lead\nCo-Producer",
+        notes: "Demo credits",
+      },
+      rights: {
+        ...manualEditsFromSource(extractedBase).rights,
+        copyrightNotice: "© 2026 Demo",
+        licenseType: "CC BY 4.0",
+        licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+        remixAllowed: "true",
+        commercialUseAllowed: "",
+        attributionRequired: "true",
+      },
+      identifiers: {
+        ...manualEditsFromSource(extractedBase).identifiers,
+        isrc: "USRC17607839",
+        catalogNumber: "DEMO-001",
+      },
+    });
+    const bundle = buildExportMetadataBundle(extractedBase, buildOverridesFromEdits(edits));
+    expect(bundle.optional.has("CRDT")).toBe(true);
+    expect(bundle.optional.has("LICN")).toBe(true);
+    expect(bundle.optional.has("IDEN")).toBe(true);
+    const crdt = decodeCrdt(bundle.optional.get("CRDT"));
+    const licn = decodeLicn(bundle.optional.get("LICN"));
+    const iden = decodeIden(bundle.optional.get("IDEN"));
+    expect(crdt?.producer).toHaveLength(2);
+    expect(licn?.copyrightNotice).toBe("© 2026 Demo");
+    expect(iden?.isrc).toBe("USRC17607839");
   });
 
   it("metadata editing does not break MP5-L container path structure", async () => {

@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { fetchDemoMp5lFixture, DEMO_MP5L_FIXTURE_NAME } from "../lib/demoFixture";
+import {
+  fetchDemoMp5lFixture,
+  fetchDemoStemsFixture,
+  DEMO_MP5L_FIXTURE_NAME,
+  DEMO_STEMS_FIXTURE_NAME,
+} from "../lib/demoFixture";
 import { dismissOnboarding } from "../lib/firstRun";
 
 interface Props {
@@ -12,14 +17,16 @@ export function DemoFixtureActions({ onLoaded, compact, testIdPrefix = "demo" }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleLoad(playAfter = false) {
+  async function handleLoad(playAfter = false, stems = false) {
     setLoading(true);
     setError("");
     try {
-      const file = await fetchDemoMp5lFixture();
+      const file = stems ? await fetchDemoStemsFixture() : await fetchDemoMp5lFixture();
       if (!file) {
         setError(
-          "Demo file not available on this server. Drop your own .mp5, or convert WAV/FLAC in the Converter.",
+          stems
+            ? "Karaoke demo not available on this server. Run pnpm fixtures:generate, or add your own stems and synced lyrics in the Converter."
+            : "Demo file not available on this server. Drop your own .mp5, or convert WAV/FLAC in the Converter.",
         );
         return;
       }
@@ -65,8 +72,19 @@ export function DemoFixtureActions({ onLoaded, compact, testIdPrefix = "demo" }:
         >
           Add demo to playlist
         </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void handleLoad(true, true)}
+          className="mp5-btn-secondary text-xs sm:text-sm"
+          data-testid={`${testIdPrefix}-load-stems-demo`}
+        >
+          Load karaoke demo
+        </button>
       </div>
-      <p className="text-[10px] text-gray-600 font-mono">{DEMO_MP5L_FIXTURE_NAME}</p>
+      <p className="text-[10px] text-gray-600 font-mono">
+        {DEMO_MP5L_FIXTURE_NAME} · {DEMO_STEMS_FIXTURE_NAME}
+      </p>
       {error && (
         <p className="text-xs text-amber-200/80" role="status" data-testid="demo-fixture-error">
           {error}
