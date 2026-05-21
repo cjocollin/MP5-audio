@@ -201,5 +201,18 @@ export function useMp5AudioEngine({
     };
   }, []);
 
-  return { loadPcm, seek, stopSource };
+  const getPlaybackTime = useCallback(() => {
+    const ctx = ctxRef.current;
+    if (ctx && srcRef.current && isContextUsable(ctx)) {
+      return computePlaybackTime(
+        offsetRef.current,
+        ctx.currentTime,
+        startedAtRef.current,
+        duration,
+      );
+    }
+    return offsetRef.current;
+  }, [duration]);
+
+  return { loadPcm, seek, stopSource, getPlaybackTime };
 }

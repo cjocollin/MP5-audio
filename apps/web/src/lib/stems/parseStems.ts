@@ -1,62 +1,55 @@
 import {
-  decodeStemFrameEntries,
   decodeStemManifest,
+  groupStdfFragments,
   resolveStemStorageMode,
   STEM_DATA_FOURCC,
   type Mp5File,
   type StemDescriptor,
   type StemManifest,
   type StemStorageMode,
+  type StdfFragmentRecord,
 } from "@mp5/container";
 
+/** Manifest + lazy frame sources — no full stem reconstruction on parse. */
 export interface ParsedStemFile {
   manifest: StemManifest;
-  stems: (StemDescriptor & { frameData: Uint8Array })[];
+  stems: StemDescriptor[];
   fullMixInAudi: boolean;
   storageMode: StemStorageMode;
   warnings: string[];
   errors: string[];
+  stda?: Uint8Array;
+  stdfGrouped: Map<string, StdfFragmentRecord[]>;
+  totalEmbeddedBytes: number;
 }
 
 export function parseStemsFromFile(parsed: Mp5File): ParsedStemFile | null {
   try {
     const manifest = decodeStemManifest(parsed.optional.get("STEM"));
     if (!manifest?.stems.length) return null;
-    const { entries, errors, warnings } = decodeStemFrameEntries(
+    const stda = parsed.optional.get(STEM_DATA_FOURCC);
+    const stdfFragments = parsed.stdfFragments ?? [];
+    const storageMode = resolveStemStorageMode(
       manifest,
-      parsed.optional.get(STEM_DATA_FOURCC),
-      parsed.stdfFragments,
+      !!stda?.length,
+      stdfFragments.length,
     );
-    const playable = entries.some((e) => e.length > 0);
-    if (!playable && errors.length) {
-      return {
-        manifest,
-        stems: manifest.stems.map((desc) => ({ ...desc, frameData: new Uint8Array(0) })),
-        fullMixInAudi: manifest.fullMixInAudi,
-        storageMode: resolveStemStorageMode(
-          manifest,
-          parsed.optional.has(STEM_DATA_FOURCC),
-          parsed.stdfFragments.length,
-        ),
-        warnings,
-        errors,
-      };
-    }
-    const stems = manifest.stems.map((desc, i) => ({
-      ...desc,
-      frameData: entries[i] ?? new Uint8Array(0),
-    }));
+    const stdfGrouped =
+      storageMode === "stdf-v1" ? groupStdfFragments(stdfFragments) : new Map();
+    const totalEmbeddedBytes = manifest.stems.reduce(
+      (s, d) => s + Math.max(0, d.dataLength || d.byteLength || 0),
+      0,
+    );
     return {
       manifest,
-      stems,
+      stems: manifest.stems,
       fullMixInAudi: manifest.fullMixInAudi,
-      storageMode: resolveStemStorageMode(
-        manifest,
-        parsed.optional.has(STEM_DATA_FOURCC),
-        parsed.stdfFragments.length,
-      ),
-      warnings,
-      errors,
+      storageMode,
+      warnings: [],
+      errors: [],
+      stda: stda?.length ? stda : undefined,
+      stdfGrouped,
+      totalEmbeddedBytes,
     };
   } catch {
     return null;

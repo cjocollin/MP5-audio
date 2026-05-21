@@ -183,8 +183,8 @@ describe("batch import guardrails", () => {
   });
 
   it("warns when total decoded estimate is high but does not block import", () => {
-    const files = Array.from({ length: 5 }, (_, i) =>
-      fakeFile(`long-${i}.wav`, 55 * 1024 * 1024),
+    const files = Array.from({ length: 6 }, (_, i) =>
+      fakeFile(`long-${i}.wav`, 70 * 1024 * 1024),
     );
     const msgs = assessBatchStemImport(0, files, 0);
     expect(msgs.some((m) => m.level === "block")).toBe(false);

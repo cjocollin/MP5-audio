@@ -1,5 +1,23 @@
 # MP5 Alpha release notes
 
+## v0.10.3-alpha — Large stem playback / mixer performance (May 2026)
+
+**Version:** MP5 Audio **v0.10.3-alpha**
+
+### Fixed
+
+- **Player no longer freezes** on large STDF stem files (e.g. 10 stems / 200+ MB embedded data).
+- **Lazy stem parsing** — stem frames are not all reconstructed on file open.
+- **Adaptive Stems panel** — full mix always ready; solo, prepare selected, progress + cancel.
+- **Karaoke** — instrumental-only decode when available; otherwise progressive non-vocal stems.
+- **Synced lyrics** — active line follows Web Audio playback clock (~15 fps UI).
+
+### Unchanged
+
+- STDF/STDA v1 storage (v0.10.2), codec policy, 64 MiB chunk cap, no AI stem separation.
+
+---
+
 ## v0.10.2-alpha — Large embedded stems hotfix (May 2026)
 
 **Version:** MP5 Audio **v0.10.2-alpha** (no version bump beyond this milestone)

@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.10.2-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.10.3-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -34,6 +34,7 @@
 
 - **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default (recommended)
 - **Batch converter (MVP):** **Batch** tab — multi-file import, queue with per-file status, **MP5-L v3 only**, progress summary, retry failed, download individual/all (no ZIP), optional auto-save to local library with FING duplicate detection; browser-local (no upload)
+- **Large stem playback (v0.10.3-alpha):** lazy/selected stem decode, solo, progressive prepare + cancel, instrumental karaoke path, playback-clock synced lyrics, stem diagnostics — full mix never blocked
 - **Large embedded stems (v0.10.2-alpha):** **STDF** segmented stem fragments when **STDA** would exceed 64 MiB; **STDA v1** unchanged for small sets; `pnpm inspect:mp5` reports storage mode and fragment stats
 - **Stem import fix (v0.10.1-alpha):** single file picker; pre-import RAM **warnings only**; sequential normalize for large batches
 - **Stem normalize (v0.10.1-alpha):** normalize stems **one at a time** with progress status (avoids crashing when normalizing many large stems at once)
@@ -79,7 +80,7 @@ See [`docs/MP5_METADATA_SPEC.md`](MP5_METADATA_SPEC.md).
 - Browser memory: decode cache holds up to 3 decoded tracks; stem mix loads all stems into RAM; diagnostics estimates are approximate
 - Player: no drag-reorder; playlist file handles are not restored after full page reload (session metadata only)
 - Local library: per-browser/device only; no sync across devices; IndexedDB cleared if user clears site data; very large libraries may hit browser quota
-- Stems: no AI separation; stem mix loads all stems into RAM (~120 MB MVP cap); no per-stem seek; max 32 stems; `demo_mp5l_v3_stems.mp5` for demos (stda-v1); large exports auto-use stdf-v1; other players may ignore STEM/STDA/STDF
+- Stems: no AI separation; lazy selected/solo decode (not all-at-once); preparing 200+ MB embedded sets takes time; no per-stem seek; max 32 stems; other players may ignore STEM/STDA/STDF
 - Browser downloads cannot overwrite existing files predictably; use export summary **Download again** or variant filenames
 - **Open in Player** uses in-memory `File` from the last export in this session only (not persisted across reload)
 

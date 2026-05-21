@@ -104,10 +104,10 @@ export function Mp5Player() {
   const [stemMixActive, setStemMixActive] = useState(false);
   const [stemTracks, setStemTracks] = useState<StemPcmTrack[] | null>(null);
   const [karaokeMode, setKaraokeMode] = useState(false);
-  const [karaokeStemPreset, setKaraokeStemPreset] = useState<Map<
-    string,
-    { muted: boolean; solo: boolean }
-  > | null>(null);
+  const [karaokePrepareRequest, setKaraokePrepareRequest] = useState<{
+    stemIds: string[];
+    preset: Map<string, { muted: boolean; solo: boolean }>;
+  } | null>(null);
   const [activePlaybackRange, setActivePlaybackRange] =
     useState<ActivePlaybackRange | null>(null);
   const [activeAlbum, setActiveAlbum] = useState<ResolvedAlbumPackage | null>(null);
@@ -129,7 +129,7 @@ export function Mp5Player() {
 
   const useStemPlayback = stemMixActive && (stemTracks?.length ?? 0) > 0;
 
-  const { loadPcm, seek: seekMain } = useMp5AudioEngine({
+  const { loadPcm, seek: seekMain, getPlaybackTime: getMainPlaybackTime } = useMp5AudioEngine({
     volume,
     isPlaying: isPlaying && !useStemPlayback,
     duration,
@@ -152,7 +152,7 @@ export function Mp5Player() {
     },
   });
 
-  const { loadTracks, seek: seekStems } = useStemMixerEngine({
+  const { loadTracks, seek: seekStems, getPlaybackTime: getStemPlaybackTime } = useStemMixerEngine({
     volume,
     isPlaying: isPlaying && useStemPlayback,
     duration,
@@ -188,6 +188,10 @@ export function Mp5Player() {
 
   const seek = useStemPlayback ? seekStems : seekMain;
   seekRef.current = seek;
+
+  const getPlaybackTime = useCallback(() => {
+    return useStemPlayback ? getStemPlaybackTime() : getMainPlaybackTime();
+  }, [useStemPlayback, getStemPlaybackTime, getMainPlaybackTime]);
 
   const track = tracks[currentIndex];
   const songStructure = useMemo(() => parseStructureFromFile(parsed), [parsed]);
@@ -323,7 +327,7 @@ export function Mp5Player() {
 
   useEffect(() => {
     setKaraokeMode(false);
-    setKaraokeStemPreset(null);
+    setKaraokePrepareRequest(null);
     setActivePlaybackRange(null);
   }, [track?.id]);
 
@@ -404,7 +408,7 @@ export function Mp5Player() {
       setDecodePath("");
       setMp5hInfo(undefined);
       setKaraokeMode(false);
-      setKaraokeStemPreset(null);
+      setKaraokePrepareRequest(null);
       setActivePlaybackRange(null);
       setDuration(0);
       setCurrentTime(0);
@@ -792,12 +796,13 @@ export function Mp5Player() {
       <LyricsPanel
         parsed={parsed}
         currentTime={currentTime}
+        getPlaybackTime={getPlaybackTime}
         duration={duration}
         isPlaying={isPlaying}
         onSeek={seek}
         karaokeMode={karaokeMode}
         onKaraokeModeChange={setKaraokeMode}
-        onKaraokePreset={setKaraokeStemPreset}
+        onKaraokePrepare={(req) => setKaraokePrepareRequest(req)}
       />
       <StemsPanel
         parsed={parsed}
@@ -806,8 +811,8 @@ export function Mp5Player() {
         onStemTracksReady={setStemTracks}
         isPlaying={isPlaying}
         loading={loading}
-        karaokeMode={karaokeMode}
-        karaokeStemPreset={karaokeStemPreset}
+        karaokePrepareRequest={karaokePrepareRequest}
+        onKaraokePrepareDone={() => setKaraokePrepareRequest(null)}
       />
       <MetadataDetailsPanel parsed={parsed} integrity={integrity} />
     </div>

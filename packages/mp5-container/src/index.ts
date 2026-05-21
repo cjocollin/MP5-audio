@@ -182,4 +182,5 @@ export {
   splitStemFrameIntoFragments,
   reconstructStemFrameFromFragments,
   groupStdfFragments,
+  type StdfFragmentRecord,
 } from "./stemStdf.js";

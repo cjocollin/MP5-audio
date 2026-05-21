@@ -1,6 +1,6 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
-**Version:** MP5 Audio v0.10.2-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+**Version:** MP5 Audio v0.10.3-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
 
 Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** / **STDF** and behave as today.
 
@@ -9,7 +9,7 @@ Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI**
 - **No AI stem separation** — users provide stem files manually (WAV, FLAC, MP3, M4A, OGG via the converter decode path).
 - **No MP5-C for stems by default** — stems encode as **MP5-L v3** when WASM is available; PCM reference fallback if not.
 - **Full mix required** — `fullMixInAudi: true` in the STEM manifest; AUDI is the default playback path.
-- **Experimental MVP** — stem mixing in the web player is opt-in and may use significant memory on long files.
+- **Experimental MVP** — stem mixing in the web player is **lazy and selective** (v0.10.3+); full mix in AUDI is always instant.
 
 ## Chunks
 
@@ -87,12 +87,24 @@ Multiple **STDF** chunks may appear in one file (one fragment per chunk). **STEM
 
 Stems should ideally come from the **same session/export** as the full mix; normalization is a helper for rate/duration mismatches only.
 
+## Player playback (v0.10.3-alpha)
+
+Large embedded stem sets (**STDF**) must not freeze the browser:
+
+- **Full mix (AUDI)** — always the default; no stem decode required to play.
+- **Stem list** — metadata shows immediately; stems are **not** all decoded on file open.
+- **Solo** — decode and play **one** stem at a time.
+- **Prepare selected** — decode only checked stems for mixing (progress + cancel).
+- **Karaoke** — **instrumental-only** decode when an instrumental stem exists; otherwise prepare non-vocal stems only (may take time).
+- **Memory** — per-stem decode cache with unload; extreme single-stem or selected totals may still be blocked with a calm message.
+- **Synced lyrics** — follow the Web Audio playback clock (~15 fps UI), not laggy React state.
+
 ## Karaoke mode (player)
 
 When a file has **synced LYRC** lines and compatible stems:
 
-- **Instrumental** stem — karaoke mode solos instrumental (mutes other stems in stem mix).
-- **Vocal stems** (`lead_vocals`, `background_vocals`, `acapella`) — karaoke mode mutes vocals when no instrumental stem is present.
+- **Instrumental** stem — karaoke decodes **only** the instrumental stem (fast path).
+- **Vocal stems** (`lead_vocals`, `background_vocals`, `acapella`) — karaoke prepares **non-vocal** stems when no instrumental is present (progressive; not all stems at once).
 
 Karaoke mode is opt-in, enables **stem mix**, and does not change the AUDI decode path when stem mix is off. Without stems, synced lyrics still highlight during playback. No AI vocal removal.
 
@@ -117,23 +129,23 @@ Checks: STEM + **STDA** (small demo) or **STDF** fragments (large sets), checksu
 
 ## Memory guardrails (web player)
 
-Stem mix decodes **all** stems at once. MVP limits (see `apps/web/src/lib/stems/stemLimits.ts`):
+Selected / solo stem decode only (see `apps/web/src/lib/stems/stemLimits.ts`):
 
 | Guard | Value |
 |-------|--------|
-| Max stems | 32 |
-| Block total decoded RAM | ~120 MB |
-| Warn total decoded RAM | ~48 MB |
-| Warn duration | > 3 minutes |
-| Block single stem decode | ~50 MB |
+| Max stems in manifest | 32 |
+| Large embedded file hint | > ~48 MB total stem data in file |
+| Warn selected decode RAM | ~96 MB |
+| Block selected decode RAM | ~384 MB |
+| Block single stem decode | ~128 MB |
 
-If limits are exceeded, stem mix is blocked with a calm message; **full mix playback still works**.
+If a **prepare** action exceeds limits, it is blocked with a calm message; **full mix playback still works**. Preparing every stem at once on huge files is not supported — use solo or selected stems.
 
 ## Limitations (MVP)
 
 - No automatic stem generation or alignment editing
 - No separate per-stem seek tables
-- Stem mix loads all decoded stems into memory
+- No live all-stem mix on 200+ MB embedded stem sets without preparation time
 - Maximum 32 stems in manifest (parser cap)
 - `full_mix` stem type in taxonomy is for labeling; playable full mix remains AUDI only
 

@@ -16,12 +16,16 @@ test.describe("karaoke / synced lyrics UI", () => {
 
     await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("lyrics-sync-indicator")).toContainText("Synced");
-    await expect(page.getByTestId("lyrics-karaoke-availability")).toContainText("available");
+    await expect(page.getByTestId("lyrics-karaoke-availability")).toContainText(
+      /available|instrumental/i,
+    );
     await expect(page.getByTestId("lyrics-synced-line")).toHaveCount(5);
 
     await page.getByTestId("karaoke-mode-toggle").click();
     await expect(page.getByTestId("karaoke-mode-toggle")).toContainText("on");
-    await expect(page.getByTestId("stem-mix-toggle")).toBeChecked({ timeout: 10_000 });
+    await expect(page.getByTestId("stems-mix-active-note").or(page.getByTestId("stems-item-loaded"))).toBeVisible({
+      timeout: 30_000,
+    });
 
     await page.getByTestId("lyrics-synced-line").nth(1).click();
     await page.getByTestId("play-pause").click();

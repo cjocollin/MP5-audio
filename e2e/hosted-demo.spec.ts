@@ -12,7 +12,7 @@ test.describe("MP5 hosted demo", () => {
     await page.goto("/");
     await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
     await expect(page.getByTestId("app-version")).toContainText("MP5 Alpha");
-    await expect(page.getByTestId("app-version")).toContainText("v0.10.2-alpha");
+    await expect(page.getByTestId("app-version")).toContainText("v0.10.3-alpha");
   });
 
   test("app shell and honest tagline", async ({ page }) => {

@@ -2,33 +2,40 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mp5File } from "@mp5/container";
 import { decodeStemManifest } from "@mp5/container";
 import { assessKaraokeAvailability, karaokeStemUiPreset } from "../lib/lyrics/karaokeMode";
+import { stemsForKaraokeAudio } from "../lib/lyrics/karaokePlan";
 import {
   currentSyncedLineIndex,
   hasSyncedLyrics,
   seekTimeSecForLine,
 } from "../lib/lyrics/lyricPlayback";
 import { parseLyrcFromFile } from "../lib/lyrics/parseLyrics";
+import { usePlaybackClock } from "./usePlaybackClock";
 
 interface Props {
   parsed?: Mp5File;
   currentTime: number;
+  getPlaybackTime: () => number;
   duration: number;
   isPlaying: boolean;
   onSeek: (sec: number) => void;
   karaokeMode: boolean;
   onKaraokeModeChange: (active: boolean) => void;
-  onKaraokePreset: (preset: Map<string, { muted: boolean; solo: boolean }> | null) => void;
+  onKaraokePrepare: (req: {
+    stemIds: string[];
+    preset: Map<string, { muted: boolean; solo: boolean }>;
+  }) => void;
 }
 
 export function LyricsPanel({
   parsed,
   currentTime,
+  getPlaybackTime,
   duration,
   isPlaying,
   onSeek,
   karaokeMode,
   onKaraokeModeChange,
-  onKaraokePreset,
+  onKaraokePrepare,
 }: Props) {
   const lyrc = useMemo(() => parseLyrcFromFile(parsed), [parsed]);
   const stems = useMemo(
@@ -39,6 +46,12 @@ export function LyricsPanel({
     () => assessKaraokeAvailability(lyrc?.synced, stems),
     [lyrc?.synced, stems],
   );
+  const karaokePlan = useMemo(
+    () => (stems?.length ? stemsForKaraokeAudio(stems, karaoke) : null),
+    [stems, karaoke],
+  );
+
+  const lyricTime = usePlaybackClock(getPlaybackTime, isPlaying, currentTime);
 
   const [showLyrics, setShowLyrics] = useState(true);
   const activeLineRef = useRef<HTMLButtonElement | null>(null);
@@ -46,7 +59,7 @@ export function LyricsPanel({
 
   const synced = lyrc?.synced;
   const useSynced = hasSyncedLyrics(synced);
-  const activeIdx = useSynced ? currentSyncedLineIndex(synced!, currentTime) : -1;
+  const activeIdx = useSynced ? currentSyncedLineIndex(synced!, lyricTime) : -1;
 
   const hasAnyLyrics = !!(lyrc?.unsynced?.trim() || useSynced);
 
@@ -59,22 +72,14 @@ export function LyricsPanel({
     if (!karaoke.hasSyncedLyrics) return;
     const next = !karaokeMode;
     onKaraokeModeChange(next);
-    if (next && stems?.length && karaoke.audioAvailable) {
-      onKaraokePreset(karaokeStemUiPreset(stems, karaoke));
-    } else {
-      onKaraokePreset(null);
+    if (!next) return;
+    if (stems?.length && karaoke.audioAvailable && karaokePlan?.stemIds.length) {
+      onKaraokePrepare({
+        stemIds: karaokePlan.stemIds,
+        preset: karaokeStemUiPreset(stems, karaoke),
+      });
     }
-  }, [
-    karaoke,
-    karaokeMode,
-    onKaraokeModeChange,
-    onKaraokePreset,
-    stems,
-  ]);
-
-  useEffect(() => {
-    if (!karaokeMode) onKaraokePreset(null);
-  }, [karaokeMode, onKaraokePreset]);
+  }, [karaoke, karaokeMode, karaokePlan, onKaraokeModeChange, onKaraokePrepare, stems]);
 
   if (!parsed) return null;
 
@@ -101,12 +106,13 @@ export function LyricsPanel({
         data-testid="lyrics-panel-help"
       >
         <p>
-          Lyrics are optional and manually provided — no AI lyric generation. Normal playback
-          does not require lyrics.
+          Lyrics are optional and manually provided — no AI lyric generation. Synced lines follow
+          the audio playback clock.
         </p>
         <p>
-          Karaoke mode uses synced lyrics plus optional stems (instrumental or muted vocals). It
-          does not remove vocals from the full mix without stem mixing enabled.
+          Karaoke mode uses synced lyrics plus optional stems. With an instrumental stem, only that
+          stem is decoded. Otherwise non-vocal stems may be prepared — this can take time on large
+          files.
         </p>
       </div>
 
@@ -127,7 +133,9 @@ export function LyricsPanel({
             <span data-testid="lyrics-karaoke-availability">
               Karaoke audio:{" "}
               {karaoke.audioAvailable
-                ? "available"
+                ? karaokePlan?.mode === "instrumental_only"
+                  ? "instrumental stem (fast)"
+                  : "available"
                 : karaoke.hasSyncedLyrics
                   ? "unavailable (no compatible stems)"
                   : "needs synced lyrics"}
@@ -143,16 +151,20 @@ export function LyricsPanel({
                   : "border-white/10 text-gray-400 hover:text-gray-200"
               }`}
               onClick={toggleKaraoke}
-              disabled={!karaoke.hasSyncedLyrics}
               data-testid="karaoke-mode-toggle"
             >
               {karaokeMode ? "Karaoke mode on" : "Karaoke mode"}
             </button>
           )}
+          {karaokeMode && karaokePlan?.message && (
+            <p className="text-xs text-gray-500" data-testid="karaoke-plan-note">
+              {karaokePlan.message}
+            </p>
+          )}
           {karaoke.hasSyncedLyrics && !karaoke.audioAvailable && (
             <p className="text-xs text-gray-500" data-testid="karaoke-audio-unavailable">
-              Synced lyrics will highlight during playback. Enable stem mix and mute vocal stems
-              manually if this file includes them.
+              Synced lyrics will highlight during playback. No instrumental or vocal stems for
+              karaoke audio.
             </p>
           )}
 
@@ -211,8 +223,8 @@ export function LyricsPanel({
 
       {karaokeMode && isPlaying && useSynced && (
         <p className="text-[10px] text-accent/80" data-testid="karaoke-active-note">
-          Karaoke mode — synced lyrics highlighted
-          {karaoke.audioAvailable ? "; stem mix should be active with vocals reduced" : ""}.
+          Karaoke mode — synced lyrics follow playback
+          {karaoke.audioAvailable ? " · stem mix when preparation finishes" : ""}.
         </p>
       )}
     </section>

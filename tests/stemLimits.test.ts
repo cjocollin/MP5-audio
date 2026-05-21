@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { CodecId } from "@mp5/container";
-import { assessStemMixSafety, estimateStemDecodedBytes } from "../apps/web/src/lib/stems/stemLimits";
+import {
+  assessSelectedStemsPrepare,
+  assessStemMixSafety,
+  estimateStemDecodedBytes,
+} from "../apps/web/src/lib/stems/stemLimits";
 import type { StemDescriptor } from "@mp5/container";
 
 function fakeStem(overrides: Partial<StemDescriptor>): StemDescriptor {
@@ -31,15 +35,15 @@ describe("stem mix memory guardrails", () => {
     expect(assessStemMixSafety(stems).ok).toBe(true);
   });
 
-  it("blocks excessive total decoded size", () => {
+  it("blocks excessive single stem decoded size", () => {
     const huge = fakeStem({
-      durationSamples: 48_000_000,
+      durationSamples: 40_000_000,
       sampleRate: 48000,
       channels: 2,
     });
-    const result = assessStemMixSafety([huge]);
+    const result = assessSelectedStemsPrepare([huge]);
     expect(result.ok).toBe(false);
-    expect(result.block).toBeTruthy();
+    expect(result.block).toMatch(/too large/i);
   });
 
   it("estimates decoded bytes from duration", () => {

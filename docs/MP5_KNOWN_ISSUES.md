@@ -56,7 +56,8 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 | Issue | Detail |
 |-------|--------|
 | **No AI separation** | Users supply stems manually; no vocal remover or auto-alignment. |
-| **RAM cap** | Stem mix decodes all stems (~120 MB MVP cap); long or many stems may fail. |
+| **Large stem prepare time** | STDF files with 200+ MB embedded stems require progressive decode; solo/selected only — not instant all-stem mix. |
+| **RAM cap** | Preparing many large stems at once may be blocked (~384 MB selected decode cap); full mix always works. |
 | **Normalization helper** | Resample/pad/trim only — not sample-accurate DAW sync. |
 | **Third-party players** | Most players will ignore STEM/STDA/STDF and play AUDI only. |
 

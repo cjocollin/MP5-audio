@@ -231,5 +231,18 @@ export function useStemMixerEngine({
     };
   }, [stopAll]);
 
-  return { loadTracks, seek, stopAll, applyGains };
+  const getPlaybackTime = useCallback(() => {
+    const ctx = ctxRef.current;
+    if (ctx && sourcesRef.current.length) {
+      return computePlaybackTime(
+        offsetRef.current,
+        ctx.currentTime,
+        startedAtRef.current,
+        duration,
+      );
+    }
+    return offsetRef.current;
+  }, [duration]);
+
+  return { loadTracks, seek, stopAll, applyGains, getPlaybackTime };
 }
