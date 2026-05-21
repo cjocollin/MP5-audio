@@ -25,6 +25,12 @@ import { useStemMixerEngine, type StemPcmTrack } from "./useStemMixerEngine";
 import { NowPlayingView } from "./NowPlayingView";
 import { LibraryPanel } from "./LibraryPanel";
 import { ingestMp5Files, type IngestResult } from "./playlistUtils";
+import {
+  ingestStageLabel,
+  mapParseProgressToIngestStage,
+  parseStageDetail,
+  type IngestLoadStage,
+} from "../lib/ingest/ingestStages";
 import { ingestAlbumPackageFiles } from "../lib/album/ingestAlbumPackage";
 import {
   enrichResolvedAlbum,
@@ -57,6 +63,7 @@ import {
   trackToSummary,
 } from "./playerSession";
 import type { Mp5File } from "@mp5/container";
+import type { PlaylistTrack } from "../store/playerStore";
 import { parseVisuFromFile } from "../lib/visualTheme/parseVisuFromFile";
 import { resolvePlayerTheme, themeRootStyle } from "../lib/visualTheme/applyVisualTheme";
 
@@ -115,6 +122,8 @@ export function Mp5Player() {
   const [albumSaveBusy, setAlbumSaveBusy] = useState(false);
   const [albumSaveNote, setAlbumSaveNote] = useState("");
   const [integrity, setIntegrity] = useState<IntegrityCheckResult | null>(null);
+  const [ingestStage, setIngestStage] = useState<IngestLoadStage>("idle");
+  const [ingestStageDetail, setIngestStageDetail] = useState("");
   useEffect(() => {
     const pending = consumePendingAlbumPackage();
     if (pending) {
@@ -219,14 +228,43 @@ export function Mp5Player() {
   }, [tracks, currentIndex, repeatMode, shuffle, volume]);
 
   const loadFile = useCallback(
-    async (trackId: string, file: File) => {
+    async (playlistTrack: PlaylistTrack) => {
+      const { id: trackId, file, rawBuffer, parsed: ingestParsed } = playlistTrack;
+      if (!file) return;
       setLoadError("");
       setLoading(true);
+      setIngestStage("decoding_audio");
+      setIngestStageDetail(ingestStageLabel("decoding_audio"));
       if (!autoAdvanceRef.current) {
         setPlaying(false);
       }
 
       const cached = decodeCache.get(trackId);
+      const scheduleIntegrity = (
+        pr: Mp5File,
+        buf: ArrayBuffer,
+        samples: Int16Array,
+      ) => {
+        const run = async () => {
+          setIngestStage("checking_integrity");
+          setIngestStageDetail(ingestStageLabel("checking_integrity"));
+          try {
+            setIntegrity(
+              await verifyMp5Integrity(pr, new Uint8Array(buf), { pcmSamples: samples }),
+            );
+          } catch {
+            setIntegrity(null);
+          }
+          setIngestStage("ready");
+          setIngestStageDetail("");
+        };
+        if (typeof requestIdleCallback === "function") {
+          requestIdleCallback(() => void run());
+        } else {
+          setTimeout(() => void run(), 0);
+        }
+      };
+
       try {
         if (cached) {
           setDecodePath(cached.decodePath);
@@ -239,20 +277,14 @@ export function Mp5Player() {
           setParsed(cached.parsed);
           setDuration(cached.duration);
           setCurrentTime(0);
-          try {
-            const buf = await file.arrayBuffer();
-            setIntegrity(
-              await verifyMp5Integrity(cached.parsed, new Uint8Array(buf), {
-                pcmSamples: cached.samples,
-              }),
-            );
-          } catch {
-            setIntegrity(null);
-          }
+          setIngestStage("ready");
+          setIngestStageDetail("");
+          const buf = rawBuffer ?? (await file.arrayBuffer());
+          scheduleIntegrity(cached.parsed, buf, cached.samples);
         } else {
-          const buf = await file.arrayBuffer();
+          const buf = rawBuffer ?? (await file.arrayBuffer());
           const { samples, sampleRate, channels, parsed: pr, decodePath: path, mp5h } =
-            await decodeMp5ToPcm(buf);
+            await decodeMp5ToPcm(buf, ingestParsed);
           const dur = samples.length / channels / sampleRate;
           decodeCache.set(trackId, {
             samples,
@@ -269,13 +301,9 @@ export function Mp5Player() {
           setParsed(pr);
           setDuration(dur);
           setCurrentTime(0);
-          try {
-            setIntegrity(
-              await verifyMp5Integrity(pr, new Uint8Array(buf), { pcmSamples: samples }),
-            );
-          } catch {
-            setIntegrity(null);
-          }
+          setIngestStage("ready");
+          setIngestStageDetail("");
+          scheduleIntegrity(pr, buf, samples);
         }
 
         const neighborIds = [
@@ -439,15 +467,25 @@ export function Mp5Player() {
     if (track.parsed) {
       setParsed(track.parsed);
     }
-    if (track.file) void loadFile(track.id, track.file);
-  }, [track?.id, track?.file, track?.parseError, loadFile, setCurrentTime, setDuration, setPlaying, handleTrackEnded, setCurrentIndex]);
+    if (track.file) void loadFile(track);
+  }, [track?.id, track?.file, track?.parseError, track?.rawBuffer, track?.parsed, loadFile, setCurrentTime, setDuration, setPlaying, handleTrackEnded, setCurrentIndex]);
 
   const handleFiles = async (files: FileList) => {
     setSessionRestored(false);
     dismissOnboarding();
     setAlbumManifestError("");
     const fileList = Array.from(files);
-    const ingest = await ingestAlbumPackageFiles(fileList, tracks);
+    setIngestStage("loading_mp5");
+    setIngestStageDetail(ingestStageLabel("loading_mp5"));
+    const ingest = await ingestAlbumPackageFiles(fileList, tracks, (name, progress) => {
+      const stage = mapParseProgressToIngestStage(progress);
+      setIngestStage(stage);
+      setIngestStageDetail(
+        ingestStageLabel(stage, parseStageDetail(progress) ?? `Loading ${name}…`),
+      );
+    });
+    setIngestStage("ready");
+    setIngestStageDetail("");
     setLastDropSummary(ingest.mp5);
     if (ingest.manifestError) {
       setAlbumManifestError(ingest.manifestError);
@@ -668,6 +706,15 @@ export function Mp5Player() {
         label="Drop .mp5 or .mp5p album manifest files to build a playlist"
         onFiles={(files) => void handleFiles(files)}
       />
+
+      {ingestStage !== "idle" && ingestStage !== "ready" && (
+        <p
+          className="text-xs text-accent/90 bg-accent/5 rounded-lg px-3 py-2"
+          data-testid="player-ingest-status"
+        >
+          {ingestStageDetail || ingestStageLabel(ingestStage)}
+        </p>
+      )}
 
       {albumManifestError && (
         <p className="text-xs text-amber-200/80 bg-amber-950/20 rounded-lg px-3 py-2" data-testid="album-manifest-error">

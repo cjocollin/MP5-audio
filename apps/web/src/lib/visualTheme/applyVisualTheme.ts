@@ -1,12 +1,14 @@
 import type { CSSProperties } from "react";
 import type { VisuPayload } from "@mp5/container";
 import { ensureReadableText, hexWithAlpha, parseHexColor } from "./colorUtils";
+import { enrichVisuColors } from "./visuStylePresets";
 
 export interface ResolvedPlayerTheme {
   themeName?: string;
   moodLabel?: string;
   playerStyle?: string;
   source?: string;
+  colorsDerived?: boolean;
   accent: string;
   primary?: string;
   secondary?: string;
@@ -21,15 +23,17 @@ const DEFAULT_ACCENT = "#8b5cf6";
 
 export function resolvePlayerTheme(visu: VisuPayload | null | undefined): ResolvedPlayerTheme | null {
   if (!visu) return null;
-  const accent = parseHexColor(visu.accentColor) ?? parseHexColor(visu.primaryColor) ?? DEFAULT_ACCENT;
-  const primary = parseHexColor(visu.primaryColor);
-  const secondary = parseHexColor(visu.secondaryColor);
-  const background = parseHexColor(visu.backgroundColor);
+  const { visu: filled, colorsDerived } = enrichVisuColors(visu);
+  const accent =
+    parseHexColor(filled.accentColor) ?? parseHexColor(filled.primaryColor) ?? DEFAULT_ACCENT;
+  const primary = parseHexColor(filled.primaryColor);
+  const secondary = parseHexColor(filled.secondaryColor);
+  const background = parseHexColor(filled.backgroundColor);
   const text = background
-    ? ensureReadableText(background, visu.textColor)
-    : parseHexColor(visu.textColor) ?? "#f3f4f6";
+    ? ensureReadableText(background, filled.textColor)
+    : parseHexColor(filled.textColor) ?? "#f3f4f6";
 
-  const stops = visu.gradientStops?.filter((s) => parseHexColor(s)) ?? [];
+  const stops = filled.gradientStops?.filter((s) => parseHexColor(s)) ?? [];
   let cardBackground: string | undefined;
   if (stops.length >= 2) {
     cardBackground = `linear-gradient(135deg, ${stops.join(", ")})`;
@@ -41,10 +45,15 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
     cardBackground = `linear-gradient(160deg, ${hexWithAlpha(primary, 0.18)} 0%, transparent 70%)`;
   }
 
-  const cardStyle: CSSProperties = {};
+  const cardStyle: CSSProperties = {
+    boxShadow: `0 0 0 1px ${hexWithAlpha(accent, 0.25)}, 0 12px 40px ${hexWithAlpha(accent, 0.15)}`,
+  };
   if (cardBackground) {
     cardStyle.background = cardBackground;
-    cardStyle.borderColor = hexWithAlpha(accent, 0.35);
+    cardStyle.borderColor = hexWithAlpha(accent, 0.45);
+  } else {
+    cardStyle.borderColor = hexWithAlpha(accent, 0.4);
+    cardStyle.background = hexWithAlpha(accent, 0.08);
   }
 
   const badgeStyle: CSSProperties = {
@@ -62,10 +71,11 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
   vars["--mp5-visu-text"] = text;
 
   return {
-    themeName: visu.themeName,
-    moodLabel: visu.moodLabel,
-    playerStyle: visu.playerStyle,
-    source: visu.source,
+    themeName: filled.themeName,
+    moodLabel: filled.moodLabel,
+    playerStyle: filled.playerStyle,
+    source: filled.source,
+    colorsDerived,
     accent,
     primary,
     secondary,
@@ -79,5 +89,9 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
 
 export function themeRootStyle(theme: ResolvedPlayerTheme | null): CSSProperties | undefined {
   if (!theme) return undefined;
-  return theme.vars as CSSProperties;
+  const style: CSSProperties = { ...(theme.vars as CSSProperties) };
+  if (theme.background) {
+    style.background = `linear-gradient(180deg, ${hexWithAlpha(theme.background, 0.35)} 0%, transparent 48%)`;
+  }
+  return style;
 }

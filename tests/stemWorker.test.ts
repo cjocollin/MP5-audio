@@ -55,7 +55,11 @@ describe("stem worker protocol", () => {
     expect(job.stemId).toBe("a");
     expect(job.stdaPayload?.length).toBe(2000);
     expect(transfer.length).toBe(1);
-    expect((job as StemDecodeJobRequest).stdfFragments).toBeUndefined();
+    expect(job.stdfFragments).toBeUndefined();
+    if (job.stdfFragments?.[0]) {
+      expect(job.stdfFragments[0].payloadCrc32).toBeDefined();
+      expect(job.stdfFragments[0].payloadLength).toBeGreaterThan(0);
+    }
   });
 
   it("karaoke instrumental still requests one stem", () => {

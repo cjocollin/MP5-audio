@@ -4,7 +4,10 @@ import {
   decodeVibe,
   getMetaValue,
   parseMp5,
+  parseMp5Async,
+  LARGE_MP5_PARSE_BYTES,
   type Mp5File,
+  type Mp5ParseProgress,
 } from "@mp5/container";
 import type { PlaylistTrack } from "../store/playerStore";
 import { USER_ERRORS, formatPlaylistParseError } from "../lib/userFacingErrors";
@@ -113,7 +116,12 @@ export interface IngestResult {
   unreadableCount: number;
 }
 
-export async function ingestMp5Files(files: File[]): Promise<IngestResult> {
+export type IngestProgressCallback = (fileName: string, progress: Mp5ParseProgress) => void;
+
+export async function ingestMp5Files(
+  files: File[],
+  onProgress?: IngestProgressCallback,
+): Promise<IngestResult> {
   const tracks: PlaylistTrack[] = [];
   const dropErrors: IngestResult["dropErrors"] = [];
 
@@ -129,11 +137,18 @@ export async function ingestMp5Files(files: File[]): Promise<IngestResult> {
 
     try {
       const buf = await file.arrayBuffer();
-      const parsed = parseMp5(buf);
+      const large = buf.byteLength >= LARGE_MP5_PARSE_BYTES;
+      const parsed = large
+        ? await parseMp5Async(buf, {
+            yieldEveryChunks: 2,
+            onProgress: (p) => onProgress?.(file.name, p),
+          })
+        : parseMp5(buf);
       tracks.push({
         id: crypto.randomUUID(),
         name: file.name,
         file,
+        rawBuffer: buf,
         parsed,
         durationSec: trackDurationSec(parsed) ?? undefined,
       });

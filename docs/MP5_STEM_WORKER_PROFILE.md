@@ -1,7 +1,15 @@
 # MP5 stem worker profile (v0.10.4-alpha hotfix)
 
 **Milestone:** Worker-Based Stem Decoding Hotfix  
-**Version:** MP5 Audio v0.10.4-alpha
+**Version:** MP5 Audio v0.10.5-alpha
+
+## v0.10.5 STDF CRC hotfix
+
+**Root cause:** Worker wire messages omitted `payloadCrc32` and `payloadLength`. Reconstruction compared `crc32(payload)` to `undefined` → false CRC mismatch. A secondary risk was transferring the same `ArrayBuffer` backing parsed fragments (detached after first job).
+
+**Fix:** Include CRC metadata on wire fragments; always `slice()` before transfer.
+
+## v0.10.4 profile (baseline)
 
 ## Method
 
@@ -13,7 +21,7 @@ Code-path review plus prior Node/browser measurements on a large real-world file
 
 | Area | v0.10.3 | v0.10.4 |
 |------|---------|---------|
-| Initial `parseMp5` on file drop | **High** — full read + integrity | **Unchanged** (main) |
+| Initial `parseMp5` on file drop | **High** — full read + integrity | **Yielding** `parseMp5Async` for files ≥ 48 MiB; staged status UI; integrity deferred until after decode |
 | STDF `groupStdfFragments` | Low | Low (main) |
 | HASH / integrity | Part of parse | Part of parse |
 | Stem manifest parse | Low | Low |

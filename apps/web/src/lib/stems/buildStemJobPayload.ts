@@ -2,11 +2,8 @@ import { decodeStdaEntries, type StemDescriptor } from "@mp5/container";
 import type { ParsedStemFile } from "./parseStems";
 import type { StemDecodeJobRequest, StdfFragmentWire } from "./stemWorkerProtocol";
 
-/** Copy fragment bytes into an owned buffer suitable for postMessage transfer. */
+/** Always copy so postMessage transfer cannot detach parsed-file fragment buffers. */
 function ownedBytes(src: Uint8Array): Uint8Array {
-  if (src.byteOffset === 0 && src.byteLength === src.buffer.byteLength) {
-    return src;
-  }
   return src.slice();
 }
 
@@ -24,6 +21,8 @@ function wireFragments(file: ParsedStemFile, stemId: string): {
       stemId: f.stemId,
       partIndex: f.partIndex,
       partCount: f.partCount,
+      payloadLength: f.payloadLength,
+      payloadCrc32: f.payloadCrc32,
       payload,
     });
     transfer.push(payload.buffer);

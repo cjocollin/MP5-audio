@@ -1,6 +1,6 @@
 # MP5 known issues and limitations (Alpha)
 
-**Version:** MP5 Audio v0.10.4-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
+**Version:** MP5 Audio v0.10.5-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
 
 This page lists honest limitations for testers, demo hosts, and future Beta planning. See also [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) and [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md).
 

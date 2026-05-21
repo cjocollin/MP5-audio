@@ -1,5 +1,7 @@
 # MP5 Visual Themes (VISU) — MVP
 
+**Version:** MP5 Audio v0.10.5-alpha
+
 Optional **VISU** chunk metadata lets an MP5 file suggest player chrome colors and mood **without affecting audio decode or playback**.
 
 ## Principles
@@ -38,6 +40,8 @@ Invalid hex values are **dropped** on decode/encode. Theme names and labels pass
 When **Apply VISU file themes** is enabled (Settings, default on):
 
 1. Decode VISU from the current track’s optional map.
+
+**v0.10.5:** Files with VISU metadata but **no hex colors** (theme name, mood, `playerStyle` only) use a **style preset palette** (`cinematic`, `neon`, etc.) so Now Playing and badges visibly change. Metadata panel notes when colors are preset-derived vs embedded. `pnpm inspect:mp5` reports `VISU colors: embedded hex` vs `metadata only`.
 2. Apply CSS variables on the Now Playing column (`--mp5-visu-accent`, etc.).
 3. Soft gradient on the cover card when `backgroundColor` / `gradientStops` are present.
 4. Accent-styled codec/theme badges.

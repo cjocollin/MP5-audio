@@ -85,7 +85,18 @@ function printMp5Report(r) {
     r.hooksCount ? "· hook" : "",
     r.highlightsCount ? `· ${r.highlightsCount} highlights` : "",
   );
-  console.log("VISU theme:       ", r.hasVisualTheme ? "yes" : "no");
+  console.log(
+    "VISU theme:       ",
+    r.hasVisualTheme ? "yes" : "no",
+    r.visuThemeName ? `· ${r.visuThemeName}` : "",
+  );
+  if (r.hasVisualTheme) {
+    console.log(
+      "VISU colors:      ",
+      r.visuHasCustomColors ? "embedded hex" : "metadata only (player uses style preset)",
+      r.visuSource ? `· source ${r.visuSource}` : "",
+    );
+  }
   console.log(
     "Credits/Rights/ID:",
     [r.hasCredits && "CRDT", r.hasRights && "LICN", r.hasIdentifiers && "IDEN"]

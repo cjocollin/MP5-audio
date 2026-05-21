@@ -40,4 +40,23 @@ describe("visual theme player helpers", () => {
     expect(parseHexColor("expression(alert(1))")).toBeUndefined();
     expect(parseHexColor("#12")).toBeUndefined();
   });
+
+  it("derives visible colors from cinematic VISU without hex fields (Pity Party style)", () => {
+    const theme = resolvePlayerTheme({
+      themeName: "It's My Party",
+      moodLabel: "pastel-carnival-dark-pop",
+      visualIntensity: "high",
+      playerStyle: "cinematic",
+      source: "user",
+    });
+    expect(theme).not.toBeNull();
+    expect(theme?.colorsDerived).toBe(true);
+    expect(theme?.accent).toMatch(/^#[0-9a-f]{6}$/);
+    expect(theme?.cardStyle.background ?? theme?.cardStyle.borderColor).toBeTruthy();
+    expect(theme?.vars["--mp5-visu-accent"]).toBeTruthy();
+  });
+
+  it("theme disabled means no vars from null visu", () => {
+    expect(resolvePlayerTheme(null)).toBeNull();
+  });
 });

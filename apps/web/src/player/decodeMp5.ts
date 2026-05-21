@@ -1,4 +1,4 @@
-import { CodecId, parseMp5 } from "@mp5/container";
+import { CodecId, parseMp5, type Mp5File } from "@mp5/container";
 import { getCodec } from "../wasm/codec";
 import { mp5lBitstreamVersion, mp5lVersionLabel } from "../lib/codecDisplay";
 
@@ -70,8 +70,11 @@ function mp5lDecodePath(frameData: Uint8Array): DecodePath {
   return `MP5-L WASM decode (${mp5lVersionLabel(ver)})` as DecodePath;
 }
 
-export async function decodeMp5ToPcm(buffer: ArrayBuffer): Promise<DecodeResult> {
-  const parsed = parseMp5(buffer);
+export async function decodeMp5ToPcm(
+  buffer: ArrayBuffer,
+  preParsed?: Mp5File,
+): Promise<DecodeResult> {
+  const parsed = preParsed ?? parseMp5(buffer);
   if (!parsed.head) throw new Error("Missing HEAD chunk");
   const frameData = parsed.audioFrames[0]?.data;
   if (!frameData) throw new Error("No audio frames");

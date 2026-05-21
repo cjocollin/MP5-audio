@@ -1,5 +1,21 @@
 # MP5 Alpha release notes
 
+## v0.10.5-alpha — Large-file playback + STDF CRC + VISU hotfix (May 2026)
+
+**Version:** MP5 Audio **v0.10.5-alpha**
+
+### Fixed
+
+- **STDF false CRC mismatch** on worker stem solo/prepare (missing `payloadCrc32` on worker wire; buffer detach risk).
+- **VISU visible themes** when file has metadata but no hex colors (style presets + stronger Now Playing chrome).
+- **Large file ingest:** yielding `parseMp5Async` (≥ 48 MiB), staged status labels, cached `rawBuffer`, skip re-parse on playback, HASH/FING deferred until after decode.
+
+### Unchanged
+
+- Codec policy, 64 MiB cap, lazy/selected stems, worker stem decode path.
+
+---
+
 ## v0.10.4-alpha — Worker-based stem decoding hotfix (May 2026)
 
 **Version:** MP5 Audio **v0.10.4-alpha**

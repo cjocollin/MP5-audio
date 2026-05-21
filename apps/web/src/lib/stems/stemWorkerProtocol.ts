@@ -15,6 +15,8 @@ export interface StdfFragmentWire {
   stemId: string;
   partIndex: number;
   partCount: number;
+  payloadLength: number;
+  payloadCrc32: number;
   payload: Uint8Array;
 }
 

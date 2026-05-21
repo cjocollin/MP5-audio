@@ -4,7 +4,12 @@ import { enrichTracksSidecarIntegrity } from "../fingerprint/sidecar";
 import { enrichResolvedAlbum, resolveAlbumTracks } from "./resolveAlbum";
 import { isAlbumPackageFileName } from "./createAlbumPackage";
 import type { PlaylistTrack } from "../../store/playerStore";
-import { ingestMp5Files, isMp5FileName, type IngestResult } from "../../player/playlistUtils";
+import {
+  ingestMp5Files,
+  isMp5FileName,
+  type IngestProgressCallback,
+  type IngestResult,
+} from "../../player/playlistUtils";
 import { USER_ERRORS } from "../userFacingErrors";
 
 export interface AlbumIngestResult {
@@ -33,9 +38,10 @@ export function partitionDroppedFiles(files: File[]): {
 export async function ingestAlbumPackageFiles(
   files: File[],
   existingTracks: PlaylistTrack[] = [],
+  onMp5Progress?: IngestProgressCallback,
 ): Promise<AlbumIngestResult> {
   const { mp5, manifests } = partitionDroppedFiles(files);
-  const mp5Result = await ingestMp5Files(mp5);
+  const mp5Result = await ingestMp5Files(mp5, onMp5Progress);
 
   if (!manifests.length) {
     return { album: null, mp5: mp5Result };

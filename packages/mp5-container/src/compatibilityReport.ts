@@ -3,7 +3,7 @@ import type { Mp5File } from "./types.js";
 import { validateParsedFile } from "./validator.js";
 import { decodeLyrc } from "./lyrc.js";
 import { decodeSect, decodeHook, decodeHilt } from "./sects.js";
-import { decodeVisu } from "./visu.js";
+import { decodeVisu, hasVisuContent, parseHexColor } from "./visu.js";
 import {
   decodeStemManifest,
   validateStemFromParsed,
@@ -68,6 +68,9 @@ export interface Mp5CompatibilityReport {
   hooksCount: number;
   highlightsCount: number;
   hasVisualTheme: boolean;
+  visuThemeName?: string;
+  visuHasCustomColors: boolean;
+  visuSource?: string;
   hasCredits: boolean;
   hasRights: boolean;
   hasIdentifiers: boolean;
@@ -353,7 +356,16 @@ export function assessMp5Compatibility(
     sectionsCount: sect?.sections.length ?? 0,
     hooksCount: hook ? 1 : 0,
     highlightsCount: hilt?.highlights.length ?? 0,
-    hasVisualTheme: !!visu?.themeName,
+    hasVisualTheme: !!visu && hasVisuContent(visu),
+    visuThemeName: visu?.themeName,
+    visuHasCustomColors: !!(
+      visu &&
+      (parseHexColor(visu.primaryColor) ||
+        parseHexColor(visu.accentColor) ||
+        parseHexColor(visu.backgroundColor) ||
+        visu.gradientStops?.some((s) => parseHexColor(s)))
+    ),
+    visuSource: visu?.source,
     hasCredits,
     hasRights,
     hasIdentifiers,

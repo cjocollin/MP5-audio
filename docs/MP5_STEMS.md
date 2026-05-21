@@ -1,6 +1,6 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
-**Version:** MP5 Audio v0.10.4-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+**Version:** MP5 Audio v0.10.5-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
 
 Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** / **STDF** and behave as today.
 
@@ -86,6 +86,10 @@ Multiple **STDF** chunks may appear in one file (one fragment per chunk). **STEM
 7. Export merges **STEM** + **STDA** (small sets) or **STEM** + multiple **STDF** fragments (large sets) — auto-selected when combined stem data would exceed the 64 MiB per-chunk limit. Fragment size ~12 MiB. MP5-L v3 for stems when WASM is ready.
 
 Stems should ideally come from the **same session/export** as the full mix; normalization is a helper for rate/duration mismatches only.
+
+## Player playback (v0.10.5-alpha)
+
+**v0.10.5 fix:** STDF worker jobs now include `payloadCrc32` / `payloadLength` on every fragment wire message, and worker payloads always **copy** bytes before `postMessage` transfer so parsed file fragments are not detached. This fixes false “CRC mismatch on part 1/2” after solo/prepare on real STDF files (e.g. Pity Party).
 
 ## Player playback (v0.10.4-alpha)
 

@@ -129,6 +129,12 @@ export {
 } from "./compatibilityReport.js";
 export * from "./containerParser.js";
 export {
+  parseMp5Async,
+  LARGE_MP5_PARSE_BYTES,
+  type Mp5ParseProgress,
+  type Mp5ParseStage,
+} from "./parseMp5Async.js";
+export {
   writeMp5,
   encodeAudiPayload,
   type WriteMp5Options,

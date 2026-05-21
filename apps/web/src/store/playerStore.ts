@@ -19,6 +19,8 @@ export interface PlaylistTrack {
   id: string;
   name: string;
   file?: File;
+  /** Cached file bytes — avoids re-reading on playback when set at ingest. */
+  rawBuffer?: ArrayBuffer;
   parsed?: Mp5File;
   parseError?: string;
   durationSec?: number;

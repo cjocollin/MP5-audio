@@ -162,6 +162,13 @@ export function MetadataDetailsPanel({ parsed, integrity }: Props) {
             {chunks.visu.themeName && (
               <p className="text-gray-200 font-medium">{chunks.visu.themeName}</p>
             )}
+            {!chunks.visu.primaryColor &&
+              !chunks.visu.accentColor &&
+              !chunks.visu.backgroundColor && (
+                <p className="text-[10px] text-gray-500" data-testid="visu-no-custom-colors">
+                  No custom colors in file — player uses style preset when file themes are on.
+                </p>
+              )}
             <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
               {chunks.visu.moodLabel && (
                 <>
