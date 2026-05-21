@@ -4,7 +4,11 @@ An experimental smart audio format, converter, and player.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.**
+**Version:** MP5 Audio **v0.9.0-alpha**
+
+MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only.
+
+**Compatibility toolkit:** [`docs/MP5_CHUNK_REGISTRY.md`](docs/MP5_CHUNK_REGISTRY.md) · [`docs/MP5_COMPATIBILITY_POLICY.md`](docs/MP5_COMPATIBILITY_POLICY.md) · `pnpm inspect:mp5 <file>` · `pnpm validate:mp5 <file>`
 
 ---
 

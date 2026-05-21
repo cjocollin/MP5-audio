@@ -1,8 +1,9 @@
 # MP5 Real-World Compatibility Report (Alpha)
 
-**Date:** May 2026 · **Milestone:** Real-World Compatibility Pass  
-**Automated gate:** `pnpm compatibility:check`  
-**Policy unchanged:** MP5-L v3 default · MP5-C lab-only · MP5-H hybrid/large/not default · PCM reference/debug
+**Date:** May 2026 · **Version:** MP5 Audio v0.9.0-alpha  
+**Milestones:** Real-World Compatibility Pass · Spec Freeze / Compatibility Toolkit  
+**Automated gates:** `pnpm compatibility:check` · `pnpm fixtures:validate` · `pnpm validate:mp5`  
+**Policy:** [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · MP5-L v3 default · MP5-C lab-only · MP5-H hybrid/large/not default · PCM reference/debug
 
 This report documents how MP5 Alpha behaves with common source formats, metadata edge cases, and player import scenarios. **No copyrighted music is committed to the repository.** Automated tests use synthetic tones in `test-fixtures/compatibility/`.
 

@@ -1,6 +1,6 @@
 # MP5 Metadata Specification (MVP + manual overrides)
 
-
+**Version:** MP5 Audio v0.9.0-alpha · [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md)
 
 MP5 is a **general-purpose smart audio / music format** — not a recovery-only or wellness-only container. Metadata is optional: **files play without any metadata chunks**. Players and apps must ignore unknown chunks and never block playback because of metadata.
 

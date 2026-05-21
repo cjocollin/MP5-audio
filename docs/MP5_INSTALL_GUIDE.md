@@ -1,5 +1,7 @@
 # MP5 Install & Share Guide (Alpha)
 
+**Version:** MP5 Audio v0.9.0-alpha
+
 **Primary target:** installable **web app / PWA** in a modern browser.  
 **Desktop / mobile:** packaging scaffolds only — not guaranteed production apps yet.
 

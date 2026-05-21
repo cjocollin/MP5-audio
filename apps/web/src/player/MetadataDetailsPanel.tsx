@@ -21,6 +21,7 @@ import {
 } from "../lib/creditsRights/CreditsRightsDisplay";
 import { IntegrityDetailsPanel } from "../lib/fingerprint/IntegrityDetailsPanel";
 import type { IntegrityCheckResult } from "@mp5/container";
+import { assessMp5Compatibility } from "@mp5/container";
 
 interface Props {
   parsed?: Mp5File;
@@ -334,13 +335,47 @@ export function MetadataDetailsPanel({ parsed, integrity }: Props) {
       </div>
 
       {parsed.head && (
-        <div className="rounded-xl bg-surface-elevated p-4 text-sm space-y-1">
+        <div
+          className="rounded-xl bg-surface-elevated p-4 text-sm space-y-1"
+          data-testid="format-compatibility-panel"
+        >
           <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Format</p>
           <p className="text-xs text-gray-300">{codecLabel(parsed.head.codecId)}</p>
           <p className="text-xs text-gray-500">
             {parsed.head.sampleRate} Hz · {parsed.head.channels} ch · {parsed.head.bitsPerSample}-bit
             {parsed.head.codecId === CodecId.MP5L ? " · bit-exact" : ""}
           </p>
+          {(() => {
+            const compat = assessMp5Compatibility(parsed);
+            const optionalCount = compat.optionalKnown.length + compat.optionalUnknown.length;
+            return (
+              <div className="mt-2 pt-2 border-t border-white/5 space-y-0.5" data-testid="compatibility-summary">
+                <p className="text-xs text-gray-400">
+                  Compatibility:{" "}
+                  <span
+                    className={
+                      compat.compatibilityLevel === "error"
+                        ? "text-red-300/90"
+                        : compat.compatibilityLevel === "warning"
+                          ? "text-amber-200/90"
+                          : "text-emerald-300/80"
+                    }
+                  >
+                    {compat.compatibilityLevel}
+                  </span>
+                  {" · "}
+                  {compat.requiredPresent.length}/{compat.requiredPresent.length + compat.requiredMissing.length} required
+                  {optionalCount > 0 ? ` · ${optionalCount} optional` : ""}
+                  {compat.optionalUnknown.length > 0
+                    ? ` · ${compat.optionalUnknown.length} unknown`
+                    : ""}
+                </p>
+                {compat.integrityStatus !== "missing" && (
+                  <p className="text-[10px] text-gray-600">Integrity: {compat.integrityStatus}</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
 

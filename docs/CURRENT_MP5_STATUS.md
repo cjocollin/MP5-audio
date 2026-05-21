@@ -1,6 +1,8 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Date:** May 2026 · **Status:** **Demo-ready** (validated) · **Metadata MVP** (general-purpose framing)
+**Version:** MP5 Audio **v0.9.0-alpha** · **Date:** May 2026 · **Status:** **Spec-freeze / compatibility toolkit** (validated)
+
+**Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
@@ -32,7 +34,8 @@
 
 - **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default (recommended)
 - **Batch converter (MVP):** **Batch** tab — multi-file import, queue with per-file status, **MP5-L v3 only**, progress summary, retry failed, download individual/all (no ZIP), optional auto-save to local library with FING duplicate detection; browser-local (no upload)
-- **Batch stem import + normalization (v0.8.2-alpha):** import multiple stems at once, filename type guessing, batch summary, bulk normalize/remove; **Normalize stems to match full mix** — resample, pad/trim, optional pad full mix — [`MP5_STEMS.md`](MP5_STEMS.md)
+- **Spec freeze / compatibility toolkit (v0.9.0-alpha):** canonical chunk registry, compatibility policy, feature matrix; `inspect:mp5` / `validate:mp5` CLIs; player Format compatibility summary; golden fixture validation profiles
+- **Batch stem import + normalization (v0.8.2-alpha):** import multiple stems at once, filename type guessing, batch summary, bulk normalize/remove; **Normalize stems to match full mix** — [`MP5_STEMS.md`](MP5_STEMS.md)
 - **Performance / reliability (v0.8.0-alpha):** Settings **Diagnostics** panel; guardrails for large sources, batch queues, library quota, stem RAM; improved cancel/cleanup for single + batch conversion; decode cache stats/clear on queue/library clear; object URL revoke on downloads; FFmpeg load failure messaging
 - **Metadata export (MVP):** track info, cover, unsynced/synced lyrics, optional **content guidance** (grouped: content notices, sensitive themes, listener comfort) — **never auto-generated**
 - **Content guidance source:** manual tags export as **user-provided** (`warningSource: user`)
@@ -129,9 +132,25 @@ pnpm install
 pnpm wasm:build
 pnpm demo                 # setup checks + dev server
 pnpm alpha:check          # full demo-ready gate (recommended before handoff)
+pnpm inspect:mp5 <file>   # compatibility report (.mp5 or .mp5p)
+pnpm validate:mp5 <file>  # exit code validation (--profile playable|rich|strict)
+pnpm validate:mp5p <manifest.mp5p> --dir <folder> --profile package
+pnpm fixtures:validate    # golden demo fixtures
 pnpm build                # production web dist (PWA)
 pnpm pwa:check            # manifest + icons
 node scripts/validate-metadata-demo.mjs  # metadata chunk roundtrip validation
 pnpm alpha:origami-smoke  # optional; needs ORIGAMI FLAC on Desktop
 pnpm alpha:origami-parity
 ```
+
+## Remaining blockers before Beta
+
+| Area | Blocker |
+|------|---------|
+| MP5-C | Audible hiss — not suitable as default or distribution codec |
+| MP5-L compression | Does not meet ≤0.80× PCM stretch goal on reference material |
+| Strict validation | Full HASH byte verification in CLI not yet exhaustive |
+| Album `.mp5p` | Sidecar resolution and cover file refs incomplete in player MVP |
+| Moonshot / registry chunks | Many FourCCs reserved without decoders |
+| Cross-player ecosystem | Third-party MP5 players do not exist |
+| Legal / rights | No enforcement layer — by design; informational metadata only |

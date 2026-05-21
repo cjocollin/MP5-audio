@@ -1,5 +1,7 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
+**Version:** MP5 Audio v0.9.0-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+
 Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** and behave as today.
 
 ## Policy

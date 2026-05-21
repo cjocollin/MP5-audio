@@ -1,7 +1,7 @@
 {
   "name": "mp5",
   "private": true,
-  "version": "0.8.2-alpha",
+  "version": "0.9.0-alpha",
   "description": "MP5 experimental audio format ecosystem",
   "scripts": {
     "build": "pnpm -r run build",
@@ -39,6 +39,8 @@
     "alpha:origami-smoke": "cargo run --release -p mp5-codec --features bench_tools --bin alpha_origami_smoke && node scripts/alpha-origami-smoke-validate.mjs",
     "alpha:origami-parity": "cargo run --release -p mp5-codec --features bench_tools --bin alpha_origami_parity",
     "inspect:mp5": "node scripts/inspect-mp5.mjs",
+    "validate:mp5": "node scripts/validate-mp5.mjs",
+    "validate:mp5p": "node scripts/validate-mp5.mjs",
     "lint": "pnpm -r run lint"
   },
   "devDependencies": {

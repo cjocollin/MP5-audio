@@ -1,5 +1,7 @@
 # MP5 Alpha Demo Guide
 
+**Version:** MP5 Audio v0.9.0-alpha · Inspect: `pnpm inspect:mp5 <file>`
+
 Use this guide to show MP5 to someone in about five minutes. No copyrighted music is required — use the bundled synthetic fixtures or your own FLAC/WAV.
 
 **Live demo:** https://mp5-audio.vercel.app — landing page explains MP5-L vs lab modes before visitors open tabs.

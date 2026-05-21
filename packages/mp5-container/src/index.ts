@@ -117,6 +117,16 @@ export {
   type AlbmValidationError,
 } from "./albm.js";
 export * from "./validator.js";
+export {
+  assessMp5Compatibility,
+  assessMp5pCompatibility,
+  mp5CodecVersionLabel,
+  type ValidationProfile,
+  type CompatibilityLevel,
+  type CompatibilityIssue,
+  type Mp5CompatibilityReport,
+  type Mp5pCompatibilityReport,
+} from "./compatibilityReport.js";
 export * from "./containerParser.js";
 export {
   writeMp5,
