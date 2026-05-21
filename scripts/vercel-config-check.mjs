@@ -37,8 +37,15 @@ if (existsSync(buildScript)) {
   if (src.includes("rustup.rs")) ok("vercel-build installs Rust on fresh clone");
   if (src.includes("wasm-pack")) ok("vercel-build installs wasm-pack");
   if (src.includes('["--filter", "@mp5/web", "build"]')) ok("vercel-build outputs web dist");
+  if (src.includes("pnpm wasm:build") && src.includes("set -euo pipefail")) {
+    ok("vercel-build runs wasm:build in same bash as rustup (PATH-safe)");
+  } else fail("vercel-build should install Rust and run pnpm wasm:build in one bash -c");
   if (!/C:\\\\Users/i.test(src)) ok("vercel-build has no Windows user paths");
 } else fail("scripts/vercel-build.mjs missing");
+
+const wasmBg = join(root, "apps/web/src/wasm/pkg/mp5_codec_bg.wasm");
+if (existsSync(wasmBg)) ok("WASM release artifact present in repo");
+else fail("Commit apps/web/src/wasm/pkg/mp5_codec_bg.wasm for reliable Vercel builds");
 
 const setup = readFileSync(join(root, "docs/MP5_VERCEL_SETUP.md"), "utf8");
 if (setup.includes("mp5-audio")) ok("MP5_VERCEL_SETUP.md references mp5-audio");

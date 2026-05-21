@@ -35,6 +35,10 @@ describe("deployment readiness", () => {
     expect(vercel.buildCommand).toMatch(/vercel-build|wasm:build/);
   });
 
+  it("commits WASM pkg so Vercel skips Rust compile", () => {
+    expect(existsSync(join(root, "apps/web/src/wasm/pkg/mp5_codec_bg.wasm"))).toBe(true);
+  });
+
   it("has netlify.toml publish path", () => {
     const netlify = readFileSync(join(root, "netlify.toml"), "utf8");
     expect(netlify).toContain("apps/web/dist");

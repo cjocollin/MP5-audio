@@ -1,0 +1,16 @@
+{
+  "name": "mp5-codec",
+  "type": "module",
+  "description": "MP5 experimental audio codecs",
+  "version": "0.1.0",
+  "files": [
+    "mp5_codec_bg.wasm",
+    "mp5_codec.js",
+    "mp5_codec.d.ts"
+  ],
+  "main": "mp5_codec.js",
+  "types": "mp5_codec.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

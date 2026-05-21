@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Vercel build: use committed WASM pkg when present; otherwise install wasm-pack (Linux CI).
+ * Vercel build: use committed WASM pkg when present; otherwise install Rust + wasm-pack (Linux CI).
  */
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -10,6 +11,20 @@ import { spawnSync } from "node:child_process";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const wasmBg = join(root, "apps/web/src/wasm/pkg/mp5_codec_bg.wasm");
 const demoFixture = join(root, "test-fixtures/demo_mp5l_v3_tone.mp5");
+const cargoBin = join(homedir(), ".cargo", "bin");
+
+/** Keep ~/.cargo/bin on PATH across separate spawnSync calls (install vs wasm:build). */
+function buildEnv() {
+  const pathKey = process.platform === "win32" ? "Path" : "PATH";
+  const sep = process.platform === "win32" ? ";" : ":";
+  const base = process.env[pathKey] ?? "";
+  if (!existsSync(cargoBin)) return process.env;
+  const prefix = `${cargoBin}${sep}`;
+  if (base.startsWith(prefix) || base.includes(`${sep}${cargoBin}${sep}`)) {
+    return process.env;
+  }
+  return { ...process.env, [pathKey]: `${prefix}${base}` };
+}
 
 function run(label, command, args) {
   console.log(`\n> ${label}\n`);
@@ -17,20 +32,21 @@ function run(label, command, args) {
     cwd: root,
     stdio: "inherit",
     shell: true,
-    env: process.env,
+    env: buildEnv(),
   });
   if (r.status !== 0) {
-    console.error(`\nFailed: ${label}\n`);
+    console.error(`\nFailed: ${label} (exit ${r.status ?? 1})\n`);
     process.exit(r.status ?? 1);
   }
 }
 
 if (!existsSync(wasmBg)) {
-  console.log("WASM pkg missing — installing Rust + wasm-pack on Vercel builder…\n");
-  run("rust + wasm-pack", "bash", [
+  console.log("WASM pkg missing — installing Rust + wasm-pack, then pnpm wasm:build…\n");
+  // Single bash session: cargo env does not persist across separate spawnSync calls.
+  run("wasm toolchain + build", "bash", [
     "-c",
     [
-      "set -e",
+      "set -euo pipefail",
       'if ! command -v rustc >/dev/null 2>&1; then',
       "  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y -q",
       "fi",
@@ -38,10 +54,12 @@ if (!existsSync(wasmBg)) {
       'if ! command -v wasm-pack >/dev/null 2>&1; then',
       "  curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh",
       "fi",
+      "command -v wasm-pack",
       "rustup target add wasm32-unknown-unknown",
+      "pnpm wasm:build",
+      'test -f "apps/web/src/wasm/pkg/mp5_codec_bg.wasm"',
     ].join("\n"),
   ]);
-  run("wasm:build", "pnpm", ["wasm:build"]);
 } else {
   console.log("(WASM pkg present — skipping wasm:build)\n");
 }

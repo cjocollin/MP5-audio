@@ -1,0 +1,8 @@
+# Ignore stray files; release wasm-pack output below is committed for Vercel/Git CI.
+*
+!.gitignore
+!mp5_codec.js
+!mp5_codec.d.ts
+!mp5_codec_bg.wasm
+!mp5_codec_bg.wasm.d.ts
+!package.json

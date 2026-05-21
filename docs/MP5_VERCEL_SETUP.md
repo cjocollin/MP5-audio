@@ -64,14 +64,14 @@ Use this checklist to create the **canonical** public demo on Vercel. Do **not**
 
 On Vercel Linux builders the script:
 
-1. Installs **Rust + wasm32 target + wasm-pack** if `apps/web/src/wasm/pkg/mp5_codec_bg.wasm` is missing (WASM is not committed).
-2. Runs `pnpm wasm:build`
+1. Uses committed **`apps/web/src/wasm/pkg/*`** when present (recommended — skips Rust on the builder).
+2. Otherwise installs **Rust + wasm32 + wasm-pack** and runs **`pnpm wasm:build` in the same bash session** (cargo is not on PATH across separate shell steps).
 3. Builds `@mp5/container`, generates demo fixture + icons if needed
 4. Runs `pnpm --filter @mp5/web build` → **`apps/web/dist`**
 
 No `C:\Users\...` paths. No local machine paths. No env vars.
 
-**Optional faster CI:** commit `apps/web/src/wasm/pkg/*` (release artifacts only) so step 1–2 skip — not required for Alpha.
+**Required for reliable Vercel deploys:** commit `apps/web/src/wasm/pkg/*` (release wasm-pack output). Without it, the builder compiles Rust (~minutes) and may hit timeouts or `wasm-pack: command not found` if install steps run in separate shells.
 
 ---
 
