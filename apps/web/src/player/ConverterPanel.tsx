@@ -39,7 +39,7 @@ import {
 import {
   analyzeStemAlignment,
   ensureStemSourceSnapshot,
-  normalizeAllStemsToMix,
+  normalizeStemsToMixSequentially,
   padMixToDuration,
   pcmDurationSec,
   type StemAlignmentStrategy,
@@ -226,6 +226,9 @@ export function ConverterPanel() {
   async function handleAddStems(files: File[]) {
     if (!pending || busy || !files.length) return;
 
+    setStemImportGuardrails([]);
+    setError("");
+
     const partition = partitionStemFiles(
       files,
       stems.map((s) => s.fileName),
@@ -325,21 +328,32 @@ export function ConverterPanel() {
     }
   }
 
-  function handleNormalizeStems(strategy: StemAlignmentStrategy, allowLargeTrim: boolean) {
-    if (!pending || strategy !== "trim-pad-stems") return;
+  async function handleNormalizeStems(strategy: StemAlignmentStrategy, allowLargeTrim: boolean) {
+    if (!pending || strategy !== "trim-pad-stems" || busy) return;
     const mixPcm = pending.pcm;
-    const normalized = normalizeAllStemsToMix(mixPcm, stems, allowLargeTrim);
-    const stillMisaligned = analyzeStemAlignment(mixPcm, normalized, mixDurationSec);
-    if (stillMisaligned.needsNormalization) {
-      setError(USER_ERRORS.stemAlignBlocked);
-      return;
-    }
-    const aligned = normalized.map((s) => ensureStemSourceSnapshot(s));
-    setStems(aligned);
-    if (pending) {
+    setBusy(true);
+    setError("");
+    try {
+      const normalized = await normalizeStemsToMixSequentially(
+        mixPcm,
+        stems,
+        allowLargeTrim,
+        ({ index, total, stem, working }) => {
+          setStatus(
+            `Normalizing stem ${index + 1}/${total}: ${stem.name || stem.fileName}…`,
+          );
+          setStems([...working]);
+        },
+      );
+      const stillMisaligned = analyzeStemAlignment(mixPcm, normalized, mixDurationSec);
+      if (stillMisaligned.needsNormalization) {
+        setError(USER_ERRORS.stemAlignBlocked);
+        return;
+      }
+      setStems(normalized);
       setStemBatchSummary((prev) =>
         buildBatchStemImportSummary({
-          imported: prev?.imported ?? aligned.length,
+          imported: prev?.imported ?? normalized.length,
           skipped: prev?.skipped ?? 0,
           failed: prev?.failed ?? [],
           partition: {
@@ -353,24 +367,46 @@ export function ConverterPanel() {
             channels: pending.pcm.channels,
             durationSec: mixDurationSec,
           },
-          stems: aligned,
+          stems: normalized,
         }),
       );
+      setStatus("Stems normalized to match full mix — review alignment status, then export.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setStatus("");
+    } finally {
+      setBusy(false);
     }
-    setError("");
-    setStatus("Stems normalized to match full mix — review alignment status, then export.");
   }
 
-  function handlePadMixToStems(targetDurationSec: number) {
-    if (!pending) return;
-    const padded = padMixToDuration(pending.pcm, targetDurationSec);
-    setPending({ ...pending, pcm: { ...pending.pcm, ...padded } });
-    const normalized = normalizeAllStemsToMix(padded, stems, true);
-    setStems(normalized.map((s) => ensureStemSourceSnapshot(s)));
+  async function handlePadMixToStems(targetDurationSec: number) {
+    if (!pending || busy) return;
+    setBusy(true);
     setError("");
-    setStatus(
-      `Full mix padded to ${targetDurationSec.toFixed(1)}s and stems aligned — review before export.`,
-    );
+    try {
+      const padded = padMixToDuration(pending.pcm, targetDurationSec);
+      setPending({ ...pending, pcm: { ...pending.pcm, ...padded } });
+      const normalized = await normalizeStemsToMixSequentially(
+        padded,
+        stems,
+        true,
+        ({ index, total, stem, working }) => {
+          setStatus(
+            `Normalizing stem ${index + 1}/${total}: ${stem.name || stem.fileName}…`,
+          );
+          setStems([...working]);
+        },
+      );
+      setStems(normalized);
+      setStatus(
+        `Full mix padded to ${targetDurationSec.toFixed(1)}s and stems aligned — review before export.`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setStatus("");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleExport() {
@@ -625,8 +661,12 @@ export function ConverterPanel() {
             onSetAllVolumesFull={() =>
               setStems((prev) => prev.map((s) => ({ ...s, defaultVolume: 1 })))
             }
-            onNormalizeStems={handleNormalizeStems}
-            onPadMixToStems={handlePadMixToStems}
+            onNormalizeStems={(strategy, allowLargeTrim) => {
+              void handleNormalizeStems(strategy, allowLargeTrim);
+            }}
+            onPadMixToStems={(sec) => {
+              void handlePadMixToStems(sec);
+            }}
           />
           <button
             type="button"

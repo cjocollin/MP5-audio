@@ -5,9 +5,10 @@ export const STEM_MIX_LIMITS = {
   maxStemCount: 32,
   maxDurationSec: 600,
   warnDurationSec: 180,
-  maxTotalDecodedBytes: 120 * 1024 * 1024,
-  warnTotalDecodedBytes: 48 * 1024 * 1024,
-  maxSingleStemDecodedBytes: 50 * 1024 * 1024,
+  maxTotalDecodedBytes: 256 * 1024 * 1024,
+  warnTotalDecodedBytes: 96 * 1024 * 1024,
+  /** ~6 min stereo 16-bit @ 44.1 kHz */
+  maxSingleStemDecodedBytes: 96 * 1024 * 1024,
 } as const;
 
 export function estimateStemDecodedBytes(stem: StemDescriptor): number {

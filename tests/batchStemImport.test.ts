@@ -3,9 +3,11 @@ import {
   partitionStemFiles,
   buildBatchStemImportSummary,
   assessBatchStemImport,
+  estimateStemFileDecodedBytes,
   isSupportedStemFile,
   createPendingStemFromPcm,
 } from "../apps/web/src/converter/batchStemImport";
+import { STEM_MIX_LIMITS } from "../apps/web/src/lib/stems/stemLimits";
 import { guessStemTypeFromFilename } from "../apps/web/src/converter/stemTypeGuess";
 import {
   normalizeAllStemsToMix,
@@ -151,6 +153,42 @@ describe("batch import guardrails", () => {
     const files = Array.from({ length: 40 }, (_, i) => fakeFile(`s${i}.wav`));
     const msgs = assessBatchStemImport(0, files, 0);
     expect(msgs.some((m) => m.level === "block")).toBe(true);
+  });
+
+  it("allows typical multi-stem WAV batch without blocking", () => {
+    const files = [
+      fakeFile("drums.wav", 28 * 1024 * 1024),
+      fakeFile("bass.wav", 28 * 1024 * 1024),
+      fakeFile("vocals.wav", 28 * 1024 * 1024),
+      fakeFile("guitar.wav", 28 * 1024 * 1024),
+    ];
+    const msgs = assessBatchStemImport(0, files, 0);
+    expect(msgs.some((m) => m.level === "block")).toBe(false);
+    expect(msgs.some((m) => m.level === "warn")).toBe(true);
+  });
+
+  it("allows ten ~35 MB WAV stems with warnings only (no hard block)", () => {
+    const files = Array.from({ length: 10 }, (_, i) =>
+      fakeFile(`stem-${i}.wav`, 36 * 1024 * 1024),
+    );
+    const msgs = assessBatchStemImport(0, files, 0);
+    expect(msgs.some((m) => m.level === "block")).toBe(false);
+    expect(msgs.some((m) => m.message.includes("memory limits"))).toBe(false);
+    expect(msgs.some((m) => m.level === "warn")).toBe(true);
+  });
+
+  it("estimateStemFileDecodedBytes uses file size for WAV", () => {
+    const f = fakeFile("stem.wav", 12_000_000);
+    expect(estimateStemFileDecodedBytes(f)).toBe(12_000_000);
+  });
+
+  it("warns when total decoded estimate is high but does not block import", () => {
+    const files = Array.from({ length: 5 }, (_, i) =>
+      fakeFile(`long-${i}.wav`, 55 * 1024 * 1024),
+    );
+    const msgs = assessBatchStemImport(0, files, 0);
+    expect(msgs.some((m) => m.level === "block")).toBe(false);
+    expect(msgs.some((m) => m.message.includes("you can still import"))).toBe(true);
   });
 });
 

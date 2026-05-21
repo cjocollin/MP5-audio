@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   analyzeStemAlignment,
   alignStemDuration,
+  normalizeAllStemsToMix,
   normalizeStemToMix,
+  normalizeStemsToMixSequentially,
   padMixToDuration,
   resampleInterleavedPcm,
   STEM_SMALL_MISMATCH_SEC,
@@ -145,6 +147,29 @@ describe("normalize to full mix", () => {
     );
     expect(canExport).toBe(true);
     expect(issues.some((i) => i.level === "error")).toBe(false);
+  });
+});
+
+describe("sequential normalization", () => {
+  it("matches batch results for multiple stems", async () => {
+    const mix = {
+      samples: new Int16Array(44100 * 2 * 10),
+      sampleRate: 44100,
+      channels: 2,
+    };
+    const stems = [
+      makeStem({ rate: 48000, channels: 2, durationSec: 10, name: "A" }),
+      {
+        ...makeStem({ rate: 48000, channels: 2, durationSec: 9.8, name: "B" }),
+        id: "s2",
+      },
+    ];
+    const batch = normalizeAllStemsToMix(mix, stems, true);
+    const sequential = await normalizeStemsToMixSequentially(mix, stems, true);
+    expect(sequential.map((s) => s.sampleRate)).toEqual(batch.map((s) => s.sampleRate));
+    expect(sequential.map((s) => s.samples.length)).toEqual(
+      batch.map((s) => s.samples.length),
+    );
   });
 });
 

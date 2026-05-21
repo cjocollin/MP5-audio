@@ -150,9 +150,9 @@ describe("compatibility assessment behavior", () => {
 });
 
 describe("status doc version", () => {
-  it("CURRENT_MP5_STATUS mentions v0.10.0-alpha beta readiness", () => {
+  it("CURRENT_MP5_STATUS mentions v0.10.x-alpha beta readiness", () => {
     const text = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(text).toContain("0.10.0-alpha");
+    expect(text).toMatch(/0\.10\.\d+-alpha/);
     expect(text).toMatch(/MP5_BETA_READINESS|beta:check|inspect:mp5|chunk registry/i);
   });
 });

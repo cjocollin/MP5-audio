@@ -290,6 +290,47 @@ export function normalizeAllStemsToMix(
   return stems.map((s) => normalizeStemToMix(s, mix, { allowLargeTrim }));
 }
 
+/** Let the browser paint and GC between heavy stem normalizations. */
+export function yieldToMain(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
+}
+
+export interface NormalizeStemsProgress {
+  index: number;
+  total: number;
+  stem: PendingStemPcm;
+  /** Stems normalized so far (same array reference updated each step). */
+  working: PendingStemPcm[];
+}
+
+/** Normalize one stem at a time to avoid RAM spikes with large batches. */
+export async function normalizeStemsToMixSequentially(
+  mix: MixPcmLike,
+  stems: PendingStemPcm[],
+  allowLargeTrim: boolean,
+  onProgress?: (progress: NormalizeStemsProgress) => void,
+): Promise<PendingStemPcm[]> {
+  const working = stems.map((s) => ensureStemSourceSnapshot(s));
+  for (let i = 0; i < working.length; i++) {
+    const stem = working[i]!;
+    onProgress?.({ index: i, total: working.length, stem, working });
+    await yieldToMain();
+    working[i] = ensureStemSourceSnapshot(
+      normalizeStemToMix(stem, mix, { allowLargeTrim }),
+    );
+    onProgress?.({
+      index: i,
+      total: working.length,
+      stem: working[i]!,
+      working,
+    });
+    await yieldToMain();
+  }
+  return working;
+}
+
 export function padMixToDuration(mix: MixPcmLike, targetDurationSec: number): MixPcmLike {
   const currentSec = pcmDurationSec(mix.samples, mix.channels, mix.sampleRate);
   if (targetDurationSec <= currentSec + STEM_POST_ALIGN_TOLERANCE_SEC) return mix;

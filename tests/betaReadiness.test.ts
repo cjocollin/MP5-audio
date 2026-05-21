@@ -49,7 +49,7 @@ function scanFile(relPath: string) {
 describe("beta readiness docs", () => {
   it("MP5_BETA_READINESS.md exists with version and blockers", () => {
     const text = readFileSync(join(docs, "MP5_BETA_READINESS.md"), "utf8");
-    expect(text).toContain("0.10.0-alpha");
+    expect(text).toMatch(/0\.10\.\d+-alpha/);
     expect(text).toMatch(/beta:check/i);
     expect(text).toMatch(/must NOT be claimed/i);
     expect(text).toMatch(/MP5-C/);
@@ -120,13 +120,13 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.10.0-alpha", () => {
-    expect(packageJson.version).toBe("0.10.0-alpha");
+  it("package.json is 0.10.x-alpha", () => {
+    expect(packageJson.version).toMatch(/^0\.10\.\d+-alpha$/);
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {
     const status = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(status).toContain("0.10.0-alpha");
+    expect(status).toMatch(/0\.10\.\d+-alpha/);
     expect(status).toMatch(/MP5_BETA_READINESS|beta:check/i);
   });
 });

@@ -17,8 +17,8 @@ export const PERF_THRESHOLDS = {
   blockLibraryUsageRatio: 0.98,
 
   /** Re-export stem limits for tests. */
-  stemWarnTotalBytes: 48 * 1024 * 1024,
-  stemBlockTotalBytes: 120 * 1024 * 1024,
+  stemWarnTotalBytes: 96 * 1024 * 1024,
+  stemBlockTotalBytes: 256 * 1024 * 1024,
 } as const;
 
 /** ~176400 bytes/s for 44.1 kHz stereo s16le (conservative for compressed sources). */

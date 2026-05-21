@@ -9,6 +9,10 @@ import {
 } from "./stemNormalize";
 import { STEM_MIX_LIMITS } from "../lib/stems/stemLimits";
 import type { GuardrailMessage } from "../lib/performance/guardrails";
+import {
+  estimateSourceDurationSec,
+  PERF_THRESHOLDS,
+} from "../lib/performance/thresholds";
 
 /** Extensions decoded via the same path as converter sources (WAV native, rest FFmpeg). */
 export const STEM_IMPORT_EXTENSIONS = [
@@ -135,6 +139,18 @@ export function createPendingStemFromPcm(
   };
 }
 
+/** PCM bytes estimate before decode (conservative for compressed sources). */
+export function estimateStemFileDecodedBytes(file: File): number {
+  const ext = stemFileExtension(file.name);
+  if (ext === ".wav") {
+    return file.size;
+  }
+  const pcmFromDuration = Math.round(
+    estimateSourceDurationSec(file.size) * 44_100 * 2 * 2,
+  );
+  return Math.max(file.size * 6, pcmFromDuration);
+}
+
 export function estimatePendingStemDecodedBytes(stems: PendingStemPcm[]): number {
   let total = 0;
   for (const s of stems) {
@@ -171,32 +187,42 @@ export function assessBatchStemImport(
     });
   }
 
-  let importBytes = 0;
+  /** Pre-import: one PCM copy per new file (originals may add more after decode — warn, do not block). */
+  let importDecodedEst = 0;
+  let importFileBytes = 0;
   for (const f of filesToImport) {
-    importBytes += f.size;
-    if (f.size > STEM_MIX_LIMITS.maxSingleStemDecodedBytes) {
+    importFileBytes += f.size;
+    const decodedEst = estimateStemFileDecodedBytes(f);
+    importDecodedEst += decodedEst;
+
+    if (f.size > PERF_THRESHOLDS.blockSourceFileBytes) {
       out.push({
         level: "block",
-        message: `"${f.name}" is too large to decode as a stem in the browser.`,
+        message: `"${f.name}" is too large to import as a stem in the browser.`,
+      });
+    } else if (decodedEst > STEM_MIX_LIMITS.maxSingleStemDecodedBytes) {
+      out.push({
+        level: "block",
+        message: `"${f.name}" may decode too large for a stem on this device. Try a shorter clip or lower sample rate.`,
       });
     }
   }
 
-  const estimatedDecoded = existingDecodedBytes + importBytes * 2;
+  const estimatedDecoded = existingDecodedBytes + importDecodedEst;
+  const estimatedMb = Math.round(estimatedDecoded / (1024 * 1024));
   if (estimatedDecoded > STEM_MIX_LIMITS.maxTotalDecodedBytes) {
     out.push({
-      level: "block",
-      message:
-        "These stems may exceed browser memory limits when decoded. Import fewer or shorter stems.",
+      level: "warn",
+      message: `Estimated ~${estimatedMb} MB decoded audio in RAM after import. Large sessions may be slow or unstable on low-memory devices — you can still import.`,
     });
   } else if (estimatedDecoded > STEM_MIX_LIMITS.warnTotalDecodedBytes) {
     out.push({
       level: "warn",
-      message: `Estimated ~${Math.round(estimatedDecoded / (1024 * 1024))} MB PCM in RAM after import (including originals until export).`,
+      message: `Estimated ~${estimatedMb} MB decoded audio in RAM after import.`,
     });
   }
 
-  const totalFileMb = (importBytes + 0) / (1024 * 1024);
+  const totalFileMb = importFileBytes / (1024 * 1024);
   if (totalFileMb > 80) {
     out.push({
       level: "warn",

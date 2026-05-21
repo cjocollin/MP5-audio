@@ -138,13 +138,13 @@ export function StemImportSection({
         }`}
         data-testid="stem-drop-zone"
       >
-        <label className="flex flex-wrap items-center gap-2">
-          <span className="sr-only">Import stem files</span>
+        <div className="flex flex-wrap items-center gap-2">
           <input
+            id="stem-file-input"
             type="file"
             multiple
             accept="audio/*,.wav,.flac,.mp3,.m4a,.aac,.ogg,.opus"
-            className="hidden"
+            className="sr-only"
             disabled={busy}
             data-testid="stem-file-input"
             onChange={(e) => {
@@ -152,20 +152,16 @@ export function StemImportSection({
               e.target.value = "";
             }}
           />
-          <span
-            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-gray-200 hover:bg-white/10 cursor-pointer"
-            onClick={() =>
-              (
-                document.querySelector(
-                  '[data-testid="stem-file-input"]',
-                ) as HTMLInputElement | null
-              )?.click()
-            }
+          <label
+            htmlFor="stem-file-input"
+            className={`px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-gray-200 hover:bg-white/10 ${
+              busy ? "opacity-40 pointer-events-none" : "cursor-pointer"
+            }`}
           >
             Import stems
-          </span>
+          </label>
           <span className="text-xs text-gray-500">or drop multiple files here</span>
-        </label>
+        </div>
       </div>
 
       {batchSummary && (

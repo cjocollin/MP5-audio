@@ -27,7 +27,7 @@ export function GuardrailNotice({ messages, testId = "guardrail-notice" }: Props
       ))}
       {blocked && (
         <li className="text-[10px] text-gray-500">
-          You can still try a smaller file or use Single file mode for one track at a time.
+          Fix the issue above, or try a smaller clip / fewer files.
         </li>
       )}
     </ul>
