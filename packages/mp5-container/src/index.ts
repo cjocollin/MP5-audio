@@ -198,6 +198,7 @@ export {
   decodeStemFrameEntries,
   resolveStemStorageMode,
   summarizeStemStorage,
+  validateStemChunksFromIndex,
   formatStemExportSizeLog,
   setStdfFragmentPayloadTargetForTests,
   resetStdfFragmentPayloadTarget,
@@ -210,6 +211,12 @@ export {
   type StemOptionalChunksResult,
   type StemExportSizeReport,
 } from "./stems.js";
+export {
+  auditStdfStemIndex,
+  auditStdfStemFromChunks,
+  type StemAvailabilityEntry,
+  type StemAvailabilityStatus,
+} from "./stemAvailability.js";
 export {
   encodeStdfFragment,
   decodeStdfFragment,

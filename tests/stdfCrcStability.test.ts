@@ -89,7 +89,7 @@ describe("STDF CRC stability (worker wire)", () => {
     expect(bad.errors.some((e) => e.includes("CRC mismatch"))).toBe(true);
   });
 
-  it("buildStemDecodeJob wire passes CRC after copy", () => {
+  it("buildStemDecodeJob wire passes CRC after copy", async () => {
     const stemId = "92268650-a210-4902-945a-e3e767b9ca3b";
     const frame = new Uint8Array(9000);
     for (let i = 0; i < frame.length; i++) frame[i] = (i * 7) & 0xff;
@@ -97,7 +97,7 @@ describe("STDF CRC stability (worker wire)", () => {
     const file = fakeParsedStemFile(stemId, frags, frame.length);
     const stem = file.stems[0]!;
 
-    const { job } = buildStemDecodeJob(file, stem, 0, "job-1");
+    const { job } = await buildStemDecodeJob(file, stem, 0, "job-1");
     expect(job.stdfFragments?.length).toBe(frags.length);
     for (const w of job.stdfFragments!) {
       expect(w.payloadCrc32).toBe(crc32(w.payload));
@@ -118,7 +118,7 @@ describe("STDF CRC stability (worker wire)", () => {
     }
   });
 
-  it("two stems: job build for one does not corrupt the other", () => {
+  it("two stems: job build for one does not corrupt the other", async () => {
     const frameA = new Uint8Array(6000);
     const frameB = new Uint8Array(7000);
     const fragsA = splitStemFrameIntoFragments("stem-a", frameA, 3000);
@@ -134,8 +134,8 @@ describe("STDF CRC stability (worker wire)", () => {
         ["stem-b", fragsB],
       ]),
     };
-    buildStemDecodeJob(file, file.stems[0]!, 0, "a");
-    buildStemDecodeJob(file, file.stems[1]!, 1, "b");
+    await buildStemDecodeJob(file, file.stems[0]!, 0, "a");
+    await buildStemDecodeJob(file, file.stems[1]!, 1, "b");
     for (const stem of file.stems) {
       const { errors } = reconstructStemFrameFromFragments(
         stem.stemId,

@@ -1,4 +1,9 @@
-import { decodeStdaEntries, type StemDescriptor } from "@mp5/container";
+import {
+  decodeStdaEntries,
+  loadStdfFragmentsForStem,
+  type StemDescriptor,
+  type StdfFragmentRecord,
+} from "@mp5/container";
 import type { ParsedStemFile } from "./parseStems";
 import type { StemDecodeJobRequest, StdfFragmentWire } from "./stemWorkerProtocol";
 
@@ -7,11 +12,10 @@ function ownedBytes(src: Uint8Array): Uint8Array {
   return src.slice();
 }
 
-function wireFragments(file: ParsedStemFile, stemId: string): {
+function wireFragmentRecords(frags: StdfFragmentRecord[]): {
   fragments: StdfFragmentWire[];
   transfer: Transferable[];
 } {
-  const frags = file.stdfGrouped.get(stemId) ?? [];
   const fragments: StdfFragmentWire[] = [];
   const transfer: Transferable[] = [];
   for (const f of frags) {
@@ -30,18 +34,28 @@ function wireFragments(file: ParsedStemFile, stemId: string): {
   return { fragments, transfer };
 }
 
+async function resolveStdfFragments(
+  file: ParsedStemFile,
+  stemId: string,
+): Promise<StdfFragmentRecord[]> {
+  if (file.lazyFile?.lazy) {
+    return loadStdfFragmentsForStem(file.lazyFile.lazy, stemId);
+  }
+  return file.stdfGrouped.get(stemId) ?? [];
+}
+
 function extractStdaFrame(stda: Uint8Array, index: number): Uint8Array {
   const entries = decodeStdaEntries(stda);
   return entries[index] ?? new Uint8Array(0);
 }
 
 /** Build a worker job for one stem; returns transferable buffers (no full-file copy). */
-export function buildStemDecodeJob(
+export async function buildStemDecodeJob(
   file: ParsedStemFile,
   stem: StemDescriptor,
   stemIndex: number,
   jobId: string,
-): { job: StemDecodeJobRequest; transfer: Transferable[] } {
+): Promise<{ job: StemDecodeJobRequest; transfer: Transferable[] }> {
   const transfer: Transferable[] = [];
   const base: StemDecodeJobRequest = {
     jobId,
@@ -55,7 +69,8 @@ export function buildStemDecodeJob(
   };
 
   if (file.storageMode === "stdf-v1") {
-    const { fragments, transfer: t } = wireFragments(file, stem.stemId);
+    const frags = await resolveStdfFragments(file, stem.stemId);
+    const { fragments, transfer: t } = wireFragmentRecords(frags);
     transfer.push(...t);
     return { job: { ...base, stdfFragments: fragments }, transfer };
   }

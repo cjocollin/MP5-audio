@@ -72,8 +72,8 @@ import {
 } from "./playerSession";
 import type { Mp5File } from "@mp5/container";
 import type { PlaylistTrack } from "../store/playerStore";
-import { parseVisuFromFile } from "../lib/visualTheme/parseVisuFromFile";
-import { resolvePlayerTheme, themeRootStyle } from "../lib/visualTheme/applyVisualTheme";
+import { themeRootStyle } from "../lib/visualTheme/applyVisualTheme";
+import { resolveThemeForFile } from "../lib/visualTheme/themeApplication";
 
 export function Mp5Player() {
   const store = usePlayerStore();
@@ -705,10 +705,10 @@ export function Mp5Player() {
   const canPrev = selectCanGoPrev(store);
   const canNext = selectCanGoNext(store);
 
-  const playerTheme = useMemo(() => {
-    if (!useFileThemes || !parsed) return null;
-    return resolvePlayerTheme(parseVisuFromFile(parsed));
-  }, [useFileThemes, parsed]);
+  const { theme: playerTheme, status: themeStatus } = useMemo(
+    () => resolveThemeForFile(parsed, useFileThemes),
+    [useFileThemes, parsed],
+  );
 
   return (
     <div className="space-y-6" data-testid="mp5-player">
@@ -811,7 +811,9 @@ export function Mp5Player() {
         </div>
 
         <div
-          className="space-y-4 rounded-2xl p-4 -m-4 border border-transparent"
+          className={`space-y-4 rounded-2xl p-4 -m-4 border ${
+            playerTheme ? "mp5-player-themed" : "border-transparent"
+          }`}
           style={themeRootStyle(playerTheme)}
           data-testid="player-theme-root"
           data-theme-active={playerTheme ? "true" : "false"}
@@ -832,6 +834,8 @@ export function Mp5Player() {
             sectionMarkers={waveformSectionMarkers}
             highlightMarkers={waveformHighlightMarkers}
             activeLoopRange={waveformLoopRange}
+            playedFill={playerTheme?.waveformPlayedFill}
+            unplayedFill={playerTheme?.waveformUnplayedFill}
             onSeek={(r) => seek(r * duration)}
           />
           <PlayerControls
@@ -889,7 +893,13 @@ export function Mp5Player() {
         karaokePrepareRequest={karaokePrepareRequest}
         onKaraokePrepareDone={() => setKaraokePrepareRequest(null)}
       />
-      <MetadataDetailsPanel parsed={parsed} integrity={integrity} />
+      <MetadataDetailsPanel
+        parsed={parsed}
+        integrity={integrity}
+        useFileThemes={useFileThemes}
+        themeStatus={themeStatus}
+        playerTheme={playerTheme}
+      />
     </div>
   );
 }

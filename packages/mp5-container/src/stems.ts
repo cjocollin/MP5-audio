@@ -1,7 +1,9 @@
 import { crc32 } from "./checksum.js";
 import { CodecId } from "./constants.js";
 import { decodeJsonChunk, encodeJsonChunk, sanitizeJsonString } from "./chunkJson.js";
-import type { Mp5File } from "./types.js";
+import type { Mp5File, StdfFragmentIndex } from "./types.js";
+import { auditStdfStemIndex } from "./stemAvailability.js";
+import { groupStdfFragmentIndex } from "./lazyMp5Load.js";
 import {
   STEM_FRAGMENT_FOURCC,
   buildStemExportSizeReport,
@@ -471,8 +473,82 @@ export function validateStemChunks(
   return { valid: errors.length === 0, errors, warnings, storageMode: mode };
 }
 
+/** Index-only STDF validation (lazy ingest — no eager fragment payloads). */
+export function validateStemChunksFromIndex(
+  manifest: StemManifest | null | undefined,
+  stda: Uint8Array | undefined,
+  stdfIndex: readonly StdfFragmentIndex[],
+): ReturnType<typeof validateStemChunks> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  if (!manifest) {
+    errors.push("Missing STEM manifest.");
+    return { valid: false, errors, warnings };
+  }
+  const mode = resolveStemStorageMode(manifest, !!stda?.length, stdfIndex.length);
+  if (mode === "stda-v1" && !stda?.length) {
+    errors.push("Missing STDA stem data chunk.");
+    return { valid: false, errors, warnings, storageMode: mode };
+  }
+  if (mode === "stdf-v1" && !stdfIndex.length) {
+    errors.push("Missing STDF stem data fragments.");
+    return { valid: false, errors, warnings, storageMode: mode };
+  }
+  if (!manifest.fullMixInAudi) {
+    errors.push("fullMixInAudi must be true — AUDI is the default playable mix.");
+  }
+  if (manifest.stems.length > 32) {
+    errors.push("Too many stems in manifest (max 32).");
+  }
+
+  const audit = auditStdfStemIndex(manifest, stdfIndex);
+  const seenStemIds = new Set<string>();
+  for (const entry of audit) {
+    seenStemIds.add(entry.stemId);
+    if (!entry.stemName.trim()) {
+      errors.push(`Stem ${entry.stemId} is missing a name.`);
+    }
+    const stem = manifest.stems.find((s) => s.stemId === entry.stemId);
+    if (!stem) continue;
+    if (stem.codecId === CodecId.MP5C) {
+      errors.push(`Stem "${entry.stemName}" uses MP5-C — not recommended for stems.`);
+    }
+    if (entry.status === "missing_fragments") {
+      errors.push(`Stem "${entry.stemName}" has no indexed STDF fragments.`);
+    } else if (entry.status === "partial_fragments") {
+      errors.push(
+        `Stem "${entry.stemName}" has incomplete STDF parts (expected ${entry.expectedFragmentCount}, indexed ${entry.indexedFragmentCount}).`,
+      );
+    }
+    if (entry.indexedFragmentCount > 0 && entry.expectedDataLength > 0) {
+      const sumInner = entry.indexedInnerPayloadBytes;
+      if (sumInner !== entry.expectedDataLength) {
+        warnings.push(
+          `Stem "${entry.stemName}" indexed payload bytes ${sumInner} vs manifest dataLength ${entry.expectedDataLength} (verify after load).`,
+        );
+      }
+    }
+  }
+
+  const grouped = groupStdfFragmentIndex(stdfIndex);
+  for (const [stemId, frags] of grouped) {
+    if (!manifest.stems.some((s) => s.stemId === stemId)) {
+      warnings.push(`STDF fragment(s) for unknown stemId ${stemId} (${frags.length} chunk(s)).`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors, warnings, storageMode: mode };
+}
+
 export function validateStemFromParsed(file: Mp5File): ReturnType<typeof validateStemChunks> {
   const manifest = decodeStemManifest(file.optional.get("STEM"));
+  if (file.lazy?.stdfFragmentIndex.length) {
+    return validateStemChunksFromIndex(
+      manifest,
+      file.optional.get(STEM_DATA_FOURCC),
+      file.lazy.stdfFragmentIndex,
+    );
+  }
   return validateStemChunks(
     manifest,
     file.optional.get(STEM_DATA_FOURCC),
@@ -491,27 +567,48 @@ export function summarizeStemStorage(file: Mp5File): {
   if (!manifest?.stems.length) {
     return { stemCount: 0, storageMode: "none", fragmentCount: 0, totalStemBytes: 0, largestFragmentBytes: 0 };
   }
+  const stdfIndexLen = file.lazy?.stdfFragmentIndex.length ?? file.stdfFragments.length;
   const mode = resolveStemStorageMode(
     manifest,
     file.optional.has(STEM_DATA_FOURCC),
-    file.stdfFragments.length,
-  );
-  const { entries } = decodeStemFrameEntries(
-    manifest,
-    file.optional.get(STEM_DATA_FOURCC),
-    file.stdfFragments,
+    stdfIndexLen,
   );
   let largest = 0;
-  for (const f of file.stdfFragments) {
-    largest = Math.max(largest, f.length);
+  let fragmentCount = file.stdfFragments.length;
+  let totalStemBytes = 0;
+
+  if (file.lazy?.stdfFragmentIndex.length) {
+    fragmentCount = file.lazy.stdfFragmentIndex.length;
+    for (const idx of file.lazy.stdfFragmentIndex) {
+      largest = Math.max(largest, idx.payloadLength);
+      totalStemBytes += idx.innerPayloadLength;
+    }
+  } else {
+    const { entries } = decodeStemFrameEntries(
+      manifest,
+      file.optional.get(STEM_DATA_FOURCC),
+      file.stdfFragments,
+    );
+    totalStemBytes = entries.reduce((s, e) => s + e.length, 0);
+    for (const f of file.stdfFragments) {
+      largest = Math.max(largest, f.length);
+    }
   }
+
   const stda = file.optional.get(STEM_DATA_FOURCC);
   if (stda?.length) largest = Math.max(largest, stda.length);
+  if (!totalStemBytes) {
+    totalStemBytes = manifest.stems.reduce(
+      (s, d) => s + Math.max(0, d.dataLength || d.byteLength || 0),
+      0,
+    );
+  }
+
   return {
     stemCount: manifest.stems.length,
     storageMode: mode,
-    fragmentCount: file.stdfFragments.length,
-    totalStemBytes: entries.reduce((s, e) => s + e.length, 0),
+    fragmentCount,
+    totalStemBytes,
     largestFragmentBytes: largest,
   };
 }

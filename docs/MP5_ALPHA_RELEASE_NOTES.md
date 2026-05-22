@@ -1,5 +1,27 @@
 # MP5 Alpha release notes
 
+## v0.10.7-alpha — Lazy STDF stem lookup hotfix (May 2026)
+
+**Version:** MP5 Audio **v0.10.7-alpha**
+
+### Fixed
+
+- **“No stem audio data for …”** on large lazy-ingest files (e.g. multi-stem STDF): worker stem jobs now load STDF fragments by **stemId** from the lazy index instead of empty eager `stdfGrouped`.
+- **Lazy stem validation:** `validateStemFromParsed` / `summarizeStemStorage` use `stdfFragmentIndex` when payloads are not eager-loaded.
+- **Inspect stem audit:** `pnpm inspect:mp5` lists per-stem fragment counts and availability for STDF files.
+
+### Added
+
+- Stems panel per-stem status: **Available**, **Missing fragments**, **Partial fragments**, **Loaded**.
+- **Visible VISU on active player:** cover accent ring + gradient scrim, player column wash, waveform accent, metadata theme status line; preset colors when VISU has no hex (Pity Party–style files).
+- **Compact public landing:** short hero + primary actions; **Player / Converter** tabs directly below; detailed marketing in collapsible **Learn more about MP5** (default collapsed; remembers preference).
+
+### Unchanged
+
+- Lazy blob ingest (≥48 MiB), 64 MiB chunk cap, codec policy, STDF v1 format, on-demand fragment loading.
+
+---
+
 ## v0.10.6-alpha — Large-file lazy ingest (May 2026)
 
 **Version:** MP5 Audio **v0.10.6-alpha**

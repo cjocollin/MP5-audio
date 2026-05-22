@@ -259,7 +259,7 @@ export class StemWorkerClient {
     this.taskPhase = "loading_fragments";
     wrapProgress("loading_fragments", 10);
 
-    const { job, transfer } = buildStemDecodeJob(file, stem, stemIndex, jobId);
+    const { job, transfer } = await buildStemDecodeJob(file, stem, stemIndex, jobId);
 
     return new Promise<DecodedStemPcm>((resolve, reject) => {
       const onAbort = () => {

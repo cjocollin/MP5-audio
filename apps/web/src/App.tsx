@@ -28,14 +28,14 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      <div className="mb-6">
+    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+      <div className="mb-3">
         <WasmSetupBanner />
       </div>
 
       <PublicLanding />
 
-      <nav className="flex gap-2 mb-8 flex-wrap" aria-label="Main">
+      <nav className="flex gap-2 mb-5 flex-wrap sticky top-0 z-10 py-2 -mx-1 px-1 bg-surface/95 backdrop-blur-sm border-b border-white/[0.04]" aria-label="Main" data-testid="app-main-nav">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -49,7 +49,7 @@ export default function App() {
         ))}
       </nav>
 
-      <main className="space-y-6">
+      <main className="space-y-5">
         {activeTab === "player" && <Mp5Player />}
         {activeTab === "converter" && <ConverterPanel />}
         {activeTab === "library" && <LocalLibraryPanel />}

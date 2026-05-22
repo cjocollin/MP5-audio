@@ -22,6 +22,9 @@ interface Props {
   sectionMarkers?: WaveformSectionMarker[];
   highlightMarkers?: WaveformHighlightMarker[];
   activeLoopRange?: WaveformLoopRange | null;
+  /** VISU accent for played bars when file theme is active. */
+  playedFill?: string;
+  unplayedFill?: string;
 }
 
 export function WaveformView({
@@ -32,6 +35,8 @@ export function WaveformView({
   sectionMarkers = [],
   highlightMarkers = [],
   activeLoopRange = null,
+  playedFill,
+  unplayedFill,
 }: Props) {
   if (!peaks.length) {
     return <div className="h-16 rounded-xl bg-surface-elevated animate-pulse" />;
@@ -74,7 +79,7 @@ export function WaveformView({
             y={16 - h / 2}
             width={1}
             height={h}
-            fill={played ? "#8b5cf6" : "#4b5563"}
+            fill={played ? (playedFill ?? "#8b5cf6") : (unplayedFill ?? "#4b5563")}
           />
         );
       })}

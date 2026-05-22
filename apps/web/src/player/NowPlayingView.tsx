@@ -43,22 +43,40 @@ export function NowPlayingView({
   const vibeTags = info?.vibeTags ?? [];
 
   const cardClass = playerTheme
-    ? "aspect-square max-w-md mx-auto w-full rounded-2xl shadow-xl overflow-hidden flex items-center justify-center border"
+    ? "relative aspect-square max-w-md mx-auto w-full rounded-2xl overflow-hidden flex items-center justify-center border"
     : "aspect-square max-w-md mx-auto w-full rounded-2xl bg-surface-elevated shadow-xl overflow-hidden flex items-center justify-center";
 
   return (
     <div
-      className="space-y-4 rounded-2xl p-4 -m-4"
+      className="space-y-4"
       data-testid="now-playing"
       data-theme-active={playerTheme ? "true" : "false"}
     >
       <div
         className={cardClass}
-        style={playerTheme?.cardStyle}
+        style={{
+          ...(playerTheme?.cardStyle ?? {}),
+          ...(playerTheme?.coverFrameStyle ?? {}),
+        }}
         data-testid="now-playing-theme-card"
       >
         {coverUrl ? (
-          <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" data-testid="now-playing-cover" />
+          <>
+            <img
+              src={coverUrl}
+              alt="Cover"
+              className="absolute inset-0 w-full h-full object-cover"
+              data-testid="now-playing-cover"
+            />
+            {playerTheme && (
+              <div
+                className="absolute inset-0 z-[1]"
+                style={playerTheme.coverOverlayStyle}
+                data-testid="now-playing-cover-overlay"
+                aria-hidden
+              />
+            )}
+          </>
         ) : (
           <span className="text-7xl opacity-30" data-testid="now-playing-cover-placeholder">
             ♪
@@ -67,7 +85,11 @@ export function NowPlayingView({
       </div>
 
       <div className="space-y-2 text-center md:text-left">
-        <h1 className="text-2xl md:text-3xl font-bold truncate" data-testid="now-playing-title">
+        <h1
+          className="text-2xl md:text-3xl font-bold truncate"
+          style={playerTheme?.titleStyle}
+          data-testid="now-playing-title"
+        >
           {info?.title ?? "No track selected"}
         </h1>
         <p className="text-gray-400 text-lg truncate" data-testid="now-playing-artist">

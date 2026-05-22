@@ -1,8 +1,26 @@
 # MP5 Visual Themes (VISU) — MVP
 
-**Version:** MP5 Audio v0.10.6-alpha
+**Version:** MP5 Audio v0.10.7-alpha
 
 Optional **VISU** chunk metadata lets an MP5 file suggest player chrome colors and mood **without affecting audio decode or playback**.
+
+## Alpha scope (what VISU affects)
+
+When **Apply VISU file themes** is on, only the **active player column** is themed — not the whole app chrome.
+
+| Area | Themed? | Notes |
+|------|---------|--------|
+| Now Playing shell | Yes | Border, background wash, soft glow |
+| Cover / art card | Yes | Gradient frame, accent ring, scrim overlay on cover art |
+| Codec + theme badges | Yes | Accent border/background |
+| Track title | Yes | Readable text + subtle accent glow |
+| Metadata VISU panel | Yes | Swatches show **resolved** colors; theme status line |
+| Waveform (optional) | Yes | Played bars use VISU accent when simple |
+| Player column background | Yes | Tinted gradient behind controls |
+| Converter / Library / Settings tabs | No | Default app theme |
+| Global nav / tab bar | No | Unchanged |
+
+Files with VISU metadata but **no hex colors** (e.g. Pity Party) use a **playerStyle preset** (`cinematic`, `neon`, …) so the player is visibly different from default purple — not metadata-only invisible styling.
 
 ## Principles
 
@@ -41,11 +59,14 @@ When **Apply VISU file themes** is enabled (Settings, default on):
 
 1. Decode VISU from the current track’s optional map.
 
-**v0.10.5:** Files with VISU metadata but **no hex colors** (theme name, mood, `playerStyle` only) use a **style preset palette** (`cinematic`, `neon`, etc.) so Now Playing and badges visibly change. Metadata panel notes when colors are preset-derived vs embedded. `pnpm inspect:mp5` reports `VISU colors: embedded hex` vs `metadata only`.
-2. Apply CSS variables on the Now Playing column (`--mp5-visu-accent`, etc.).
-3. Soft gradient on the cover card when `backgroundColor` / `gradientStops` are present.
-4. Accent-styled codec/theme badges.
-5. Metadata panel shows theme name, mood, style, source, and color swatches.
+**v0.10.7:** Stronger player-only theming — cover art gets a visible accent ring and gradient scrim so themes show even with full-bleed artwork; player column border/wash; waveform accent; metadata status line (`File theme applied` / `Theme source`).
+
+**v0.10.5:** Files with VISU metadata but **no hex colors** use **style preset palettes** (`cinematic`, `neon`, etc.). `pnpm inspect:mp5` reports `VISU colors: embedded hex` vs `metadata only`.
+
+1. Apply CSS variables on the active player column (`--mp5-visu-accent`, etc.).
+2. Now Playing shell + cover card gradients, border, and overlay.
+3. Accent-styled codec/theme badges and theme name badge.
+4. Metadata panel: theme fields, **resolved** color swatches, and theme status line.
 
 When disabled, or when VISU is missing, the app uses the normal dark/light theme only.
 

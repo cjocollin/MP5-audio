@@ -63,7 +63,7 @@ function loadFrame(job: StemDecodeJobRequest): {
   }
   return {
     frameData: new Uint8Array(0),
-    errors: [`No stem audio data for "${job.stemName}".`],
+    errors: [`Stem audio data is missing for ${job.stemName}.`],
     warnings: [],
   };
 }

@@ -22,17 +22,28 @@ import {
 import { IntegrityDetailsPanel } from "../lib/fingerprint/IntegrityDetailsPanel";
 import type { IntegrityCheckResult } from "@mp5/container";
 import { assessMp5Compatibility } from "@mp5/container";
+import type { ResolvedPlayerTheme } from "../lib/visualTheme/applyVisualTheme";
+import type { ThemeApplicationStatus } from "../lib/visualTheme/themeApplication";
 
 interface Props {
   parsed?: Mp5File;
   integrity?: IntegrityCheckResult | null;
+  useFileThemes?: boolean;
+  themeStatus?: ThemeApplicationStatus;
+  playerTheme?: ResolvedPlayerTheme | null;
 }
 
 function EmptyNote({ children }: { children: ReactNode }) {
   return <p className="text-xs text-gray-500 italic">{children}</p>;
 }
 
-export function MetadataDetailsPanel({ parsed, integrity }: Props) {
+export function MetadataDetailsPanel({
+  parsed,
+  integrity,
+  useFileThemes = true,
+  themeStatus,
+  playerTheme,
+}: Props) {
   if (!parsed) {
     return (
       <div className="rounded-xl bg-surface-elevated p-4 text-sm" data-testid="metadata-details-panel">
@@ -162,11 +173,17 @@ export function MetadataDetailsPanel({ parsed, integrity }: Props) {
             {chunks.visu.themeName && (
               <p className="text-gray-200 font-medium">{chunks.visu.themeName}</p>
             )}
+            {themeStatus && (
+              <p className="text-[10px] text-gray-400 font-mono" data-testid="visu-theme-status">
+                {themeStatus.label}
+              </p>
+            )}
             {!chunks.visu.primaryColor &&
               !chunks.visu.accentColor &&
               !chunks.visu.backgroundColor && (
                 <p className="text-[10px] text-gray-500" data-testid="visu-no-custom-colors">
-                  No custom colors in file — player uses style preset when file themes are on.
+                  No custom hex colors in file — player uses{" "}
+                  {useFileThemes ? "style preset" : "default app theme"} when themes are on.
                 </p>
               )}
             <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
@@ -197,12 +214,19 @@ export function MetadataDetailsPanel({ parsed, integrity }: Props) {
             </dl>
             <div className="flex flex-wrap gap-2 pt-1" data-testid="visu-color-swatches">
               {(
-                [
-                  ["Primary", chunks.visu.primaryColor],
-                  ["Accent", chunks.visu.accentColor],
-                  ["Background", chunks.visu.backgroundColor],
-                  ["Secondary", chunks.visu.secondaryColor],
-                ] as const
+                playerTheme && useFileThemes
+                  ? ([
+                      ["Primary", playerTheme.primary],
+                      ["Accent", playerTheme.accent],
+                      ["Background", playerTheme.background],
+                      ["Secondary", playerTheme.secondary],
+                    ] as const)
+                  : ([
+                      ["Primary", chunks.visu.primaryColor],
+                      ["Accent", chunks.visu.accentColor],
+                      ["Background", chunks.visu.backgroundColor],
+                      ["Secondary", chunks.visu.secondaryColor],
+                    ] as const)
               )
                 .filter(([, c]) => c)
                 .map(([label, color]) => (
@@ -213,6 +237,7 @@ export function MetadataDetailsPanel({ parsed, integrity }: Props) {
                       aria-hidden
                     />
                     {label}
+                    {playerTheme && useFileThemes && themeStatus?.colorsDerived ? " (resolved)" : ""}
                   </span>
                 ))}
             </div>

@@ -66,7 +66,7 @@ export async function loadStemFrameData(
 
   return {
     frameData: new Uint8Array(0),
-    errors: [`No stem audio data for "${stem.stemName}".`],
+    errors: [`Stem audio data is missing for ${stem.stemName}.`],
     warnings: [],
   };
 }

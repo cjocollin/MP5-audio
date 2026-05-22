@@ -34,6 +34,11 @@ body {
   .mp5-tab-inactive {
     @apply bg-surface-elevated/80 text-gray-400 hover:text-white;
   }
+
+  /** Active player column when VISU file theme is applied (vars set inline). */
+  .mp5-player-themed {
+    @apply transition-[border-color,box-shadow] duration-300;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

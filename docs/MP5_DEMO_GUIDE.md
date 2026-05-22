@@ -4,7 +4,7 @@
 
 Use this guide to show MP5 to someone in about five minutes. No copyrighted music is required — use the bundled synthetic fixtures or your own FLAC/WAV.
 
-**Live demo:** https://mp5-audio.vercel.app — landing page explains MP5-L vs lab modes before visitors open tabs.
+**Live demo:** https://mp5-audio.vercel.app — compact app-first header; expand **Learn more about MP5** for codec cards, screenshots, and honesty notes.
 
 ## Codec policy
 
@@ -52,7 +52,7 @@ pnpm wasm:build
 pnpm dev
 ```
 
-Open **http://localhost:5173** — you should see the **public landing** (hero, codec cards, screenshots), and **Player** / **Converter** tabs.
+Open **http://localhost:5173** — you should see a **compact landing** (title, tagline, badges, primary actions), then **Player** / **Converter** / **Library** tabs without scrolling. Use **Learn more about MP5** for the full marketing sections.
 
 ## Screenshots
 

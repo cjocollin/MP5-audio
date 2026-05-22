@@ -20,6 +20,8 @@ const {
   assessMp5Compatibility,
   assessMp5pCompatibility,
   verifyMp5FileIntegrity,
+  decodeStemManifest,
+  auditStdfStemFromChunks,
 } = container;
 
 function parseArgs(argv) {
@@ -79,6 +81,16 @@ function printMp5Report(r) {
       "Stem data:        ",
       `~${Math.round(r.stemDataTotalBytes / (1024 * 1024))} MB total · largest chunk ${Math.round(r.largestStemChunkBytes / (1024 * 1024))} MB`,
     );
+  }
+  if (r.stemAudit?.length) {
+    console.log("Stem audit:       ", `${r.stemAudit.length} stem(s)`);
+    for (const s of r.stemAudit) {
+      const parts =
+        s.partIndexes.length > 0 ? `parts [${s.partIndexes.join(",")}]` : "no parts";
+      console.log(
+        `  ${s.stemName.padEnd(18)} ${s.status.padEnd(18)} frags ${s.indexedFragmentCount}/${s.expectedFragmentCount} · ${parts} · ~${Math.round(s.indexedInnerPayloadBytes / 1024)} KB`,
+      );
+    }
   }
   console.log(
     "Sections/HOOK/HILT:",
@@ -220,6 +232,10 @@ async function main() {
       fileSize: statSync(path).size,
       integrity,
     });
+    const stemManifest = decodeStemManifest(parsed.optional.get("STEM"));
+    if (stemManifest?.stems.length && parsed.stdfFragments?.length) {
+      report.stemAudit = auditStdfStemFromChunks(stemManifest, parsed.stdfFragments);
+    }
     printMp5Report(report);
     if (report.compatibilityLevel === "error") exitCode = 1;
   }

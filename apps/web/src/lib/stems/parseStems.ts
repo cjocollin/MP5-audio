@@ -1,10 +1,13 @@
 import {
+  auditStdfStemFromChunks,
+  auditStdfStemIndex,
   decodeStemManifest,
   groupStdfFragmentIndex,
   groupStdfFragments,
   resolveStemStorageMode,
   STEM_DATA_FOURCC,
   type Mp5File,
+  type StemAvailabilityEntry,
   type StemDescriptor,
   type StemManifest,
   type StemStorageMode,
@@ -25,6 +28,8 @@ export interface ParsedStemFile {
   /** Lazy-indexed STDF (payloads loaded on demand). */
   stdfIndexGrouped?: Map<string, StdfFragmentIndex[]>;
   lazyFile?: Mp5File;
+  /** Per-stem STDF index availability (lazy stdf-v1). */
+  stemAvailability?: StemAvailabilityEntry[];
   totalEmbeddedBytes: number;
 }
 
@@ -62,6 +67,12 @@ export function parseStemsFromFile(parsed: Mp5File): ParsedStemFile | null {
       stdfGrouped,
       stdfIndexGrouped,
       lazyFile: parsed.lazy ? parsed : undefined,
+      stemAvailability:
+        storageMode === "stdf-v1" && parsed.lazy
+          ? auditStdfStemIndex(manifest, parsed.lazy.stdfFragmentIndex)
+          : storageMode === "stdf-v1" && stdfFragments.length
+            ? auditStdfStemFromChunks(manifest, stdfFragments)
+            : undefined,
       totalEmbeddedBytes,
     };
   } catch {

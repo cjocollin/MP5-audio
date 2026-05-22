@@ -1,21 +1,26 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePlayerStore } from "../store/playerStore";
 import { AppVersionBadge } from "./AppVersionBadge";
 import { DemoFixtureActions } from "./DemoFixtureActions";
+import { fetchDemoMp5lFixture } from "../lib/demoFixture";
+import { dismissOnboarding } from "../lib/firstRun";
 import { importMp5ToPlayer } from "../player/playerImport";
+import {
+  loadLandingAboutExpanded,
+  saveLandingAboutExpanded,
+} from "../lib/landingAboutPrefs";
 import {
   HONESTY_NO_BEAT_CLAIM,
   LANDING_BADGES,
   LANDING_HEADLINE,
   LANDING_SUBHEADLINE,
   LANDING_SCREENSHOTS,
-  LANDING_SUPPORTING,
 } from "../lib/publicLandingCopy";
 import { MP5_DEMO_URL, MP5_GITHUB_URL } from "../lib/publicLinks";
 
 function SectionTitle({ id, children }: { id?: string; children: ReactNode }) {
   return (
-    <h2 id={id} className="text-lg sm:text-xl font-semibold text-white">
+    <h2 id={id} className="text-base sm:text-lg font-semibold text-white">
       {children}
     </h2>
   );
@@ -23,7 +28,7 @@ function SectionTitle({ id, children }: { id?: string; children: ReactNode }) {
 
 function Badge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+    <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
       {children}
     </span>
   );
@@ -47,9 +52,9 @@ function CodecCard({
         ? "border-violet-500/25"
         : "border-accent/25";
   return (
-    <article className={`mp5-card p-4 space-y-2 ${border}`} data-testid={testId}>
-      <h3 className="font-semibold text-white">{title}</h3>
-      <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
+    <article className={`mp5-card p-3 space-y-1.5 ${border}`} data-testid={testId}>
+      <h3 className="text-sm font-semibold text-white">{title}</h3>
+      <ul className="text-[11px] text-gray-400 space-y-0.5 list-disc list-inside">
         {items.map((item) => (
           <li key={item}>{item}</li>
         ))}
@@ -58,86 +63,11 @@ function CodecCard({
   );
 }
 
-export function PublicLanding() {
+function LandingAboutDetails() {
   const setActiveTab = usePlayerStore((s) => s.setActiveTab);
 
   return (
-    <div className="space-y-10 mb-10" data-testid="public-landing">
-      {/* Hero */}
-      <header className="space-y-4" data-testid="landing-hero">
-        <div className="flex flex-wrap gap-2" data-testid="landing-badges">
-          {LANDING_BADGES.map((b) => (
-            <Badge key={b}>{b}</Badge>
-          ))}
-        </div>
-        <h1
-          className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent"
-          data-testid="landing-headline"
-        >
-          {LANDING_HEADLINE}
-        </h1>
-        <p className="text-lg sm:text-xl text-gray-200 font-medium" data-testid="landing-subheadline">
-          {LANDING_SUBHEADLINE}
-        </p>
-        <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-3xl">
-          {LANDING_SUPPORTING}
-        </p>
-        <AppVersionBadge />
-        <p className="text-xs text-gray-500">
-          Live demo:{" "}
-          <a
-            href={MP5_DEMO_URL}
-            className="text-accent hover:underline"
-            data-testid="landing-demo-url"
-          >
-            {MP5_DEMO_URL}
-          </a>
-        </p>
-      </header>
-
-      {/* Primary actions */}
-      <div
-        className="flex flex-wrap gap-2 sm:gap-3"
-        data-testid="landing-primary-actions"
-      >
-        <button
-          type="button"
-          className="mp5-btn-primary text-sm"
-          data-testid="landing-try-demo"
-          onClick={() => {
-            setActiveTab("player");
-            document.getElementById("landing-demo-actions")?.scrollIntoView({ behavior: "smooth" });
-          }}
-        >
-          Try the MP5-L demo
-        </button>
-        <button
-          type="button"
-          className="mp5-btn-secondary text-sm"
-          data-testid="landing-open-converter"
-          onClick={() => setActiveTab("converter")}
-        >
-          Convert audio
-        </button>
-        <button
-          type="button"
-          className="mp5-btn-secondary text-sm"
-          data-testid="landing-open-player"
-          onClick={() => setActiveTab("player")}
-        >
-          Open player
-        </button>
-        <a
-          href={MP5_GITHUB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mp5-btn-secondary text-sm inline-flex items-center"
-          data-testid="landing-github-link"
-        >
-          View GitHub
-        </a>
-      </div>
-
+    <div className="space-y-6 pt-2" data-testid="landing-about-details">
       <div id="landing-demo-actions">
         <DemoFixtureActions
           compact
@@ -149,8 +79,7 @@ export function PublicLanding() {
         />
       </div>
 
-      {/* What is MP5 */}
-      <section className="mp5-card p-5 sm:p-6 space-y-3" data-testid="landing-what-is">
+      <section className="mp5-card p-4 space-y-2" data-testid="landing-what-is">
         <SectionTitle>What is MP5?</SectionTitle>
         <p className="text-sm text-gray-400 leading-relaxed">
           MP5 is a new experimental audio format. It is designed to store not only audio, but also
@@ -164,20 +93,14 @@ export function PublicLanding() {
         </p>
       </section>
 
-      {/* Alpha modes */}
-      <section className="space-y-4" data-testid="landing-alpha-modes">
+      <section className="space-y-3" data-testid="landing-alpha-modes">
         <SectionTitle>Current Alpha modes</SectionTitle>
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-3 gap-2">
           <CodecCard
             testId="landing-codec-mp5l"
             title="MP5-L"
             accent="default"
-            items={[
-              "Recommended default",
-              "Lossless",
-              "Bit-exact",
-              "Clean listening mode",
-            ]}
+            items={["Recommended default", "Lossless", "Bit-exact", "Clean listening mode"]}
           />
           <CodecCard
             testId="landing-codec-mp5c"
@@ -207,15 +130,14 @@ export function PublicLanding() {
         </p>
       </section>
 
-      {/* What makes MP5 different */}
-      <section className="mp5-card p-5 sm:p-6 space-y-4" data-testid="landing-differentiators">
+      <section className="mp5-card p-4 space-y-3" data-testid="landing-differentiators">
         <SectionTitle>What makes MP5 different?</SectionTitle>
-        <div className="grid sm:grid-cols-3 gap-4 text-sm">
+        <div className="grid sm:grid-cols-3 gap-3 text-sm">
           <div>
-            <h3 className="text-xs uppercase tracking-wider text-green-400/90 font-medium mb-2">
+            <h3 className="text-xs uppercase tracking-wider text-green-400/90 font-medium mb-1">
               Works now
             </h3>
-            <ul className="text-gray-400 space-y-1 text-xs list-disc list-inside">
+            <ul className="text-gray-400 space-y-0.5 text-[11px] list-disc list-inside">
               <li>Smart metadata (title, artist, album)</li>
               <li>Cover art</li>
               <li>Lyrics</li>
@@ -226,20 +148,20 @@ export function PublicLanding() {
             </ul>
           </div>
           <div>
-            <h3 className="text-xs uppercase tracking-wider text-amber-400/90 font-medium mb-2">
+            <h3 className="text-xs uppercase tracking-wider text-amber-400/90 font-medium mb-1">
               Experimental
             </h3>
-            <ul className="text-gray-400 space-y-1 text-xs list-disc list-inside">
+            <ul className="text-gray-400 space-y-0.5 text-[11px] list-disc list-inside">
               <li>MP5-C lab codec (may hiss)</li>
               <li>MP5-H hybrid (large)</li>
               <li>Specialized app metadata profiles</li>
             </ul>
           </div>
           <div>
-            <h3 className="text-xs uppercase tracking-wider text-violet-400/90 font-medium mb-2">
+            <h3 className="text-xs uppercase tracking-wider text-violet-400/90 font-medium mb-1">
               Future roadmap
             </h3>
-            <ul className="text-gray-400 space-y-1 text-xs list-disc list-inside">
+            <ul className="text-gray-400 space-y-0.5 text-[11px] list-disc list-inside">
               <li>Stems / interactive audio research</li>
               <li>Better compression tuning</li>
               <li>Library persistence</li>
@@ -249,26 +171,28 @@ export function PublicLanding() {
         </div>
       </section>
 
-      {/* Screenshots */}
-      <section className="space-y-4" data-testid="landing-screenshots">
+      <section className="space-y-2" data-testid="landing-screenshots">
         <SectionTitle>See the Alpha demo</SectionTitle>
-        <p className="text-sm text-gray-500">
+        <p className="text-xs text-gray-500">
           Synthetic demo audio only — no copyrighted album art in repo screenshots.
         </p>
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div
+          className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth"
+          data-testid="landing-screenshot-scroll"
+        >
           {LANDING_SCREENSHOTS.map((shot) => (
             <figure
               key={shot.src}
-              className="mp5-card overflow-hidden"
+              className="mp5-card overflow-hidden shrink-0 w-[min(72vw,220px)] snap-start"
               data-testid={`landing-screenshot-${shot.label.toLowerCase()}`}
             >
               <img
                 src={shot.src}
                 alt={shot.alt}
                 loading="lazy"
-                className="w-full h-auto border-b border-white/[0.06]"
+                className="w-full h-28 sm:h-32 object-cover object-top border-b border-white/[0.06]"
               />
-              <figcaption className="px-3 py-2 text-xs font-medium text-gray-400">
+              <figcaption className="px-2 py-1.5 text-[10px] font-medium text-gray-400">
                 {shot.label}
               </figcaption>
             </figure>
@@ -276,10 +200,9 @@ export function PublicLanding() {
         </div>
       </section>
 
-      {/* Try it */}
-      <section className="mp5-card p-5 sm:p-6 space-y-3" data-testid="landing-try-flow">
+      <section className="mp5-card p-4 space-y-2" data-testid="landing-try-flow">
         <SectionTitle>Try it — simple demo flow</SectionTitle>
-        <ol className="text-sm text-gray-400 space-y-2 list-decimal list-inside leading-relaxed">
+        <ol className="text-sm text-gray-400 space-y-1.5 list-decimal list-inside leading-relaxed">
           <li>
             <strong className="text-gray-300 font-normal">Load the MP5-L demo</strong> — synthetic
             tone, no copyrighted music
@@ -307,13 +230,12 @@ export function PublicLanding() {
         </ol>
       </section>
 
-      {/* Honesty */}
       <section
-        className="rounded-2xl border border-white/[0.06] bg-black/20 p-5 sm:p-6 space-y-3"
+        className="rounded-xl border border-white/[0.06] bg-black/20 p-4 space-y-2"
         data-testid="landing-honesty"
       >
         <SectionTitle>Honest Alpha limitations</SectionTitle>
-        <ul className="text-sm text-gray-400 space-y-2 list-disc list-inside leading-relaxed">
+        <ul className="text-sm text-gray-400 space-y-1.5 list-disc list-inside leading-relaxed">
           <li>MP5 is experimental Alpha software — not a finished product codec.</li>
           <li>
             <strong className="text-gray-300 font-normal">MP5-L v3</strong> is the recommended
@@ -335,10 +257,9 @@ export function PublicLanding() {
         </p>
       </section>
 
-      {/* Roadmap */}
-      <section className="space-y-3" data-testid="landing-roadmap">
+      <section className="space-y-2" data-testid="landing-roadmap">
         <SectionTitle>Alpha roadmap</SectionTitle>
-        <ul className="text-xs text-gray-500 flex flex-wrap gap-2">
+        <ul className="text-xs text-gray-500 flex flex-wrap gap-1.5">
           {[
             "Metadata polish",
             "Better MP5-L compression",
@@ -350,13 +271,129 @@ export function PublicLanding() {
           ].map((item) => (
             <li
               key={item}
-              className="rounded-lg border border-white/[0.06] bg-surface-elevated/60 px-2.5 py-1"
+              className="rounded-md border border-white/[0.06] bg-surface-elevated/60 px-2 py-0.5"
             >
               {item}
             </li>
           ))}
         </ul>
       </section>
+
+      <p className="text-xs text-gray-500">
+        Live demo:{" "}
+        <a
+          href={MP5_DEMO_URL}
+          className="text-accent hover:underline"
+          data-testid="landing-demo-url"
+        >
+          {MP5_DEMO_URL}
+        </a>
+      </p>
+    </div>
+  );
+}
+
+export function PublicLanding() {
+  const setActiveTab = usePlayerStore((s) => s.setActiveTab);
+  const trackCount = usePlayerStore((s) => s.tracks.length);
+  const [aboutExpanded, setAboutExpanded] = useState(() => loadLandingAboutExpanded());
+
+  useEffect(() => {
+    saveLandingAboutExpanded(aboutExpanded);
+  }, [aboutExpanded]);
+
+  useEffect(() => {
+    if (trackCount > 0) {
+      setAboutExpanded(false);
+    }
+  }, [trackCount]);
+
+  return (
+    <div className="space-y-3 mb-4" data-testid="public-landing">
+      <header className="space-y-2.5" data-testid="landing-hero-compact">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1
+            className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent"
+            data-testid="landing-headline"
+          >
+            {LANDING_HEADLINE}
+          </h1>
+          <AppVersionBadge />
+        </div>
+        <p className="text-sm sm:text-base text-gray-300 font-medium max-w-2xl" data-testid="landing-subheadline">
+          {LANDING_SUBHEADLINE}
+        </p>
+        <div className="flex flex-wrap gap-1.5" data-testid="landing-badges">
+          {LANDING_BADGES.map((b) => (
+            <Badge key={b}>{b}</Badge>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2 pt-0.5" data-testid="landing-primary-actions">
+          <button
+            type="button"
+            className="mp5-btn-primary text-sm"
+            data-testid="landing-try-demo"
+            onClick={async () => {
+              setActiveTab("player");
+              setAboutExpanded(false);
+              const file = await fetchDemoMp5lFixture();
+              if (file) {
+                dismissOnboarding();
+                await importMp5ToPlayer([file], { playFirst: true });
+              } else {
+                setAboutExpanded(true);
+                document.getElementById("landing-demo-actions")?.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
+          >
+            Try the MP5-L demo
+          </button>
+          <button
+            type="button"
+            className="mp5-btn-secondary text-sm"
+            data-testid="landing-open-converter"
+            onClick={() => setActiveTab("converter")}
+          >
+            Convert audio
+          </button>
+          <button
+            type="button"
+            className="mp5-btn-secondary text-sm"
+            data-testid="landing-open-player"
+            onClick={() => setActiveTab("player")}
+          >
+            Open player
+          </button>
+          <a
+            href={MP5_GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mp5-btn-secondary text-sm inline-flex items-center"
+            data-testid="landing-github-link"
+          >
+            View GitHub
+          </a>
+        </div>
+      </header>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="text-xs text-accent hover:text-accent/80 border border-accent/25 rounded-lg px-2.5 py-1.5 bg-accent/5"
+          data-testid="landing-about-toggle"
+          aria-expanded={aboutExpanded}
+          onClick={() => setAboutExpanded((v) => !v)}
+        >
+          {aboutExpanded ? "Hide About MP5" : "Learn more about MP5"}
+        </button>
+        {!aboutExpanded && (
+          <span className="text-[10px] text-gray-500" data-testid="landing-about-collapsed-hint">
+            Codec modes, screenshots, and Alpha notes are here.
+          </span>
+        )}
+      </div>
+
+      {aboutExpanded && <LandingAboutDetails />}
     </div>
   );
 }

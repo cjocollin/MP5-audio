@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.10.6-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.10.7-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -34,6 +34,7 @@
 
 - **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default (recommended)
 - **Batch converter (MVP):** **Batch** tab — multi-file import, queue with per-file status, **MP5-L v3 only**, progress summary, retry failed, download individual/all (no ZIP), optional auto-save to local library with FING duplicate detection; browser-local (no upload)
+- **Lazy STDF stem lookup + VISU player hotfix (v0.10.7-alpha):** worker stem jobs load STDF fragments by **stemId** from lazy index; per-stem availability in Stems panel; **visible VISU** on active player (cover ring/scrim, column wash, preset colors when file has no hex — e.g. Pity Party `cinematic`); metadata theme status line
 - **Large-file lazy ingest (v0.10.6-alpha):** blob chunk index for files ≥48 MiB — no full-file `ArrayBuffer` + no eager STDF copy; AUDI loaded for playback only; stems on demand; integrity pending → idle verify; Settings diagnostics show ingest mode/timing
 - **Large-file + VISU hotfix (v0.10.5-alpha):** STDF worker CRC wire fix; VISU style presets; informational whole-file hash (`audio_verified`)
 - **Worker stem decode (v0.10.4-alpha):** Web Worker for STDF reconstruct + MP5-L decode; per-stem transferable payloads; progress phases + cancel; main-thread fallback; worker diagnostics in Stems panel — full mix never blocked
@@ -51,7 +52,7 @@
 - **Export preview:** detected vs edited vs embedded; empty fields skipped
 - **Converter polish:** numbered flow steps, export progress labels, post-export summary, safe filenames (`Artist - Title.mp5`), **Open in Player** / **Add to playlist**
 - **Compatibility pass:** synthetic WAV/MP5 fixtures, `pnpm compatibility:check`, [`MP5_COMPATIBILITY_REPORT.md`](MP5_COMPATIBILITY_REPORT.md), supported-sources UI
-- **Public landing:** hero, codec cards, screenshot gallery (Player / Converter / Metadata), demo flow, honesty — [`MP5_PUBLIC_DEMO_COPY.md`](MP5_PUBLIC_DEMO_COPY.md)
+- **Public landing (v0.10.7):** compact app-first hero + tabs immediately below; long sections (codec cards, screenshots, honesty) behind **Learn more about MP5** (collapsed by default, localStorage preference) — [`MP5_PUBLIC_DEMO_COPY.md`](MP5_PUBLIC_DEMO_COPY.md)
 - **README screenshots:** [`docs/screenshots/`](screenshots/README.md) — linked from GitHub and copied to `/screenshots/` on deploy
 - **Visual polish:** in-app demo fixture loader (`/fixtures/demo_mp5l_v3_tone.mp5`), codec helper, empty states, responsive layout, focus rings
 - **Two-step convert:** load file → review/edit → **Export MP5** button

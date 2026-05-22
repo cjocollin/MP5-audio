@@ -1,6 +1,6 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
-**Version:** MP5 Audio v0.10.6-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+**Version:** MP5 Audio v0.10.7-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
 
 Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** / **STDF** and behave as today.
 
@@ -87,9 +87,11 @@ Multiple **STDF** chunks may appear in one file (one fragment per chunk). **STEM
 
 Stems should ideally come from the **same session/export** as the full mix; normalization is a helper for rate/duration mismatches only.
 
-## Player playback (v0.10.6-alpha)
+## Player playback (v0.10.7-alpha)
 
-**Lazy ingest (≥48 MiB):** the player **indexes** STDF fragments (header-only during scan) and loads stem fragment bytes **only** when solo/prepare/karaoke requests that stem. Full mix uses **AUDI** loaded on demand (not all 24 STDF payloads at open).
+**Lazy STDF stem lookup:** large files still use lazy chunk indexing (≥48 MiB). Stems are matched by stable **`stemId`** (not display name). When you solo or prepare a stem, only that stem’s STDF fragments are read via `Blob.slice`, reconstructed, CRC-checked, and decoded (worker or main-thread fallback). The Stems panel shows per-stem data status: **Available**, **Missing fragments**, **Partial fragments**, or **Loaded** after decode. **“Stem audio data is missing for …”** means the file truly has no fragments for that stem — not normal “not loaded yet” state.
+
+**v0.10.6:** lazy ingest — index STDF headers at open; load fragment bytes on demand.
 
 **v0.10.5:** STDF worker CRC wire + informational whole-file hash; VISU style presets.
 

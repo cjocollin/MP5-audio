@@ -12,10 +12,11 @@ test.describe("MP5 hosted demo", () => {
     await page.goto("/");
     await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
     await expect(page.getByTestId("app-version")).toContainText("MP5 Alpha");
-    await expect(page.getByTestId("app-version")).toContainText("v0.10.6-alpha");
+    await expect(page.getByTestId("app-version")).toContainText("v0.10.7-alpha");
   });
 
   test("app shell and honest tagline", async ({ page }) => {
+    await page.getByTestId("landing-about-toggle").click();
     await expect(page.getByTestId("landing-honesty-claim")).toContainText(
       "does not claim to beat MP3",
     );
@@ -23,7 +24,7 @@ test.describe("MP5 hosted demo", () => {
   });
 
   test("loads demo fixture and shows MP5-L v3 format panel", async ({ page }) => {
-    await page.getByTestId("landing-load-demo-play").click({ timeout: 15_000 });
+    await page.getByTestId("landing-try-demo").click({ timeout: 15_000 });
     await expect
       .poll(async () => page.getByTestId("seek-slider").getAttribute("max"), {
         timeout: 30_000,

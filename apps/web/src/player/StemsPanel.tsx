@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mp5File } from "@mp5/container";
-import { stemTypeLabel, type StemDescriptor } from "@mp5/container";
+import { stemTypeLabel, type StemAvailabilityStatus, type StemDescriptor } from "@mp5/container";
 import { codecLabel } from "../lib/codecDisplay";
 import {
   stemDownloadHelp,
@@ -49,6 +49,24 @@ interface Props {
   loading?: boolean;
   karaokePrepareRequest?: KaraokePrepareRequest | null;
   onKaraokePrepareDone?: () => void;
+}
+
+function availabilityLabel(
+  indexed: StemAvailabilityStatus | undefined,
+  decodedLoaded: boolean,
+): string {
+  if (decodedLoaded) return "Loaded";
+  if (!indexed) return "—";
+  switch (indexed) {
+    case "available":
+      return "Available";
+    case "missing_fragments":
+      return "Missing fragments";
+    case "partial_fragments":
+      return "Partial fragments";
+    default:
+      return indexed;
+  }
 }
 
 function stemDurationSec(desc: { durationSamples: number; sampleRate: number; channels: number }): number {
@@ -382,7 +400,9 @@ export function StemsPanel({
         <p>
           Storage: {parsedStems.storageMode}
           {parsedStems.storageMode === "stdf-v1"
-            ? ` · ${parsedStems.stdfGrouped.size} stem fragment group(s)`
+            ? ` · ${parsedStems.stdfIndexGrouped?.size ?? parsedStems.stdfGrouped.size} stem fragment group(s)${
+                parsedStems.lazyFile ? " · lazy index" : ""
+              }`
             : ""}
         </p>
         <p>Embedded stem data: ~{Math.round(parsedStems.totalEmbeddedBytes / (1024 * 1024))} MB</p>
@@ -477,6 +497,8 @@ export function StemsPanel({
         {parsedStems.stems.map((stem, index) => {
           const ui = uiState.find((u) => u.id === stem.stemId);
           const loaded = cacheRef.current.has(stem.stemId);
+          const avail = parsedStems.stemAvailability?.find((a) => a.stemId === stem.stemId);
+          const availLabel = availabilityLabel(avail?.status, loaded);
           return (
             <li
               key={stem.stemId}
@@ -500,6 +522,21 @@ export function StemsPanel({
                       loaded
                     </span>
                   )}
+                  <span
+                    className={`text-[10px] ${
+                      avail?.status === "missing_fragments" || avail?.status === "partial_fragments"
+                        ? "text-amber-300/90"
+                        : loaded
+                          ? "text-accent/80"
+                          : "text-gray-500"
+                    }`}
+                    data-testid="stems-item-availability"
+                  >
+                    {availLabel}
+                    {avail && avail.indexedFragmentCount > 0 && !loaded
+                      ? ` · ${avail.indexedFragmentCount} frags`
+                      : ""}
+                  </span>
                 </label>
                 <span className="text-[10px] text-gray-500">
                   {stemTypeLabel(stem.stemType)} · {codecLabel(stem.codecId)} ·{" "}

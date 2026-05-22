@@ -37,7 +37,7 @@ test.describe("MP5 player playback", () => {
   test("loads demo fixture from fixtures URL when available", async ({ page }) => {
     const demoPath = path.join(process.cwd(), "test-fixtures", "demo_mp5l_v3_tone.mp5");
     test.skip(!fs.existsSync(demoPath), "run pnpm fixtures:generate first");
-    await page.getByTestId("landing-load-demo-play").click();
+    await page.getByTestId("landing-try-demo").click();
     await expect
       .poll(async () => page.getByTestId("playlist-item").count(), { timeout: 15_000 })
       .toBeGreaterThan(0);

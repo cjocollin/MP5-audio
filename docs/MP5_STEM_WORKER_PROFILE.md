@@ -1,7 +1,13 @@
 # MP5 stem worker profile (v0.10.4-alpha hotfix)
 
 **Milestone:** Worker-Based Stem Decoding Hotfix  
-**Version:** MP5 Audio v0.10.6-alpha
+**Version:** MP5 Audio v0.10.7-alpha
+
+## v0.10.7 lazy STDF stem lookup
+
+**Root cause:** `buildStemDecodeJob` read only `stdfGrouped`, which stays empty for lazy ingest. Worker received no `stdfFragments` → “Stem audio data is missing for …” (display name). Lazy **index** and main-thread `loadStemFrameData` were already correct.
+
+**Fix:** `buildStemDecodeJob` is async and calls `loadStdfFragmentsForStem(lazy, stemId)` before posting to the worker.
 
 ## v0.10.6 lazy ingest
 

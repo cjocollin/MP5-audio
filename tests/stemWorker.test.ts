@@ -33,7 +33,7 @@ function pcmStem(id: string, bytes: number) {
 }
 
 describe("stem worker protocol", () => {
-  it("buildStemDecodeJob transfers only one stem payload", () => {
+  it("buildStemDecodeJob transfers only one stem payload", async () => {
     const stems = [pcmStem("a", 2000), pcmStem("b", 3000)];
     const { optional, extraChunks } = buildStemOptionalChunks(stems);
     const mp5 = writeMp5({
@@ -51,7 +51,7 @@ describe("stem worker protocol", () => {
       extraChunks,
     });
     const file = parseStemsFromFile(parseMp5(mp5))!;
-    const { job, transfer } = buildStemDecodeJob(file, file.stems[0]!, 0, "j1");
+    const { job, transfer } = await buildStemDecodeJob(file, file.stems[0]!, 0, "j1");
     expect(job.stemId).toBe("a");
     expect(job.stdaPayload?.length).toBe(2000);
     expect(transfer.length).toBe(1);

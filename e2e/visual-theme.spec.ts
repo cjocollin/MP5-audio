@@ -14,6 +14,8 @@ test.describe("visual theme (VISU)", () => {
     await expect(page.getByTestId("now-playing-theme-badge")).toContainText("Calm demo");
     await expect(page.getByTestId("metadata-visual-theme-panel")).toContainText("Calm demo");
     await expect(page.getByTestId("visu-color-swatches")).toBeVisible();
+    await expect(page.getByTestId("visu-theme-status")).toContainText("File theme applied: yes");
+    await expect(page.getByTestId("player-theme-root")).toHaveCSS("border-color", /./);
   });
 
   test("disabling file themes hides VISU styling", async ({ page }) => {
