@@ -1,6 +1,6 @@
 # MP5 Visual Themes (VISU) — MVP
 
-**Version:** MP5 Audio v0.10.5-alpha
+**Version:** MP5 Audio v0.10.6-alpha
 
 Optional **VISU** chunk metadata lets an MP5 file suggest player chrome colors and mood **without affecting audio decode or playback**.
 

@@ -1,6 +1,7 @@
-import { CodecId, parseMp5, type Mp5File } from "@mp5/container";
+import { CodecId, loadAudiFrames, parseMp5, type Mp5File } from "@mp5/container";
 import { getCodec } from "../wasm/codec";
 import { mp5lBitstreamVersion, mp5lVersionLabel } from "../lib/codecDisplay";
+import { updateIngestDiagnostics } from "../lib/ingest/ingestDiagnostics";
 
 function decodeWasm(
   fn: () => Int16Array,
@@ -45,7 +46,7 @@ export type DecodeResult = {
   samples: Int16Array;
   sampleRate: number;
   channels: number;
-  parsed: ReturnType<typeof parseMp5>;
+  parsed: Mp5File;
   decodePath: DecodePath;
   mp5h?: Mp5hDecodeInfo;
   mp5l?: Mp5lDecodeInfo;
@@ -70,14 +71,29 @@ function mp5lDecodePath(frameData: Uint8Array): DecodePath {
   return `MP5-L WASM decode (${mp5lVersionLabel(ver)})` as DecodePath;
 }
 
+/**
+ * Decode full mix to PCM. Uses pre-parsed file; lazy-indexed files load AUDI on demand.
+ */
 export async function decodeMp5ToPcm(
-  buffer: ArrayBuffer,
+  buffer: ArrayBuffer | undefined,
   preParsed?: Mp5File,
 ): Promise<DecodeResult> {
-  const parsed = preParsed ?? parseMp5(buffer);
+  const parsed = preParsed ?? (buffer ? parseMp5(buffer) : undefined);
+  if (!parsed) throw new Error("Missing MP5 file data");
   if (!parsed.head) throw new Error("Missing HEAD chunk");
-  const frameData = parsed.audioFrames[0]?.data;
+
+  const audioFrames = await loadAudiFrames(parsed);
+  const frameData = audioFrames[0]?.data;
   if (!frameData) throw new Error("No audio frames");
+
+  if (parsed.lazy) {
+    updateIngestDiagnostics({
+      audiLoaded: true,
+      loadedBinaryMb:
+        parsed.lazy.loadedPayloadBytes / (1024 * 1024) +
+        frameData.byteLength / (1024 * 1024),
+    });
+  }
 
   const codec = await getCodec();
   const ch = parsed.head.channels;

@@ -19,9 +19,11 @@ export interface PlaylistTrack {
   id: string;
   name: string;
   file?: File;
-  /** Cached file bytes — avoids re-reading on playback when set at ingest. */
+  /** Cached file bytes — eager ingest only (large files use lazy index + File ref). */
   rawBuffer?: ArrayBuffer;
   parsed?: Mp5File;
+  /** True when opened via blob chunk index (no full rawBuffer). */
+  lazyIngest?: boolean;
   parseError?: string;
   durationSec?: number;
   objectUrl?: string;

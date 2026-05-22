@@ -27,10 +27,13 @@ import { LibraryPanel } from "./LibraryPanel";
 import { ingestMp5Files, type IngestResult } from "./playlistUtils";
 import {
   ingestStageLabel,
+  indexStageDetail,
+  mapIndexProgressToIngestStage,
   mapParseProgressToIngestStage,
   parseStageDetail,
   type IngestLoadStage,
 } from "../lib/ingest/ingestStages";
+import { updateIngestDiagnostics } from "../lib/ingest/ingestDiagnostics";
 import { ingestAlbumPackageFiles } from "../lib/album/ingestAlbumPackage";
 import {
   enrichResolvedAlbum,
@@ -45,9 +48,14 @@ import { CreateAlbumPackagePanel } from "../components/CreateAlbumPackagePanel";
 import { listLibraryRecords } from "../lib/localLibrary/api";
 import { savePlaylistTrackToLibrary } from "../lib/localLibrary/libraryActions";
 import { findLibraryDuplicate } from "../lib/fingerprint/duplicates";
-import { decodeFing, fingIdentityKey } from "@mp5/container";
+import {
+  decodeFing,
+  fingIdentityKey,
+  getFingFromParsed,
+  getHashFromParsed,
+  type IntegrityCheckResult,
+} from "@mp5/container";
 import { verifyMp5Integrity } from "../lib/fingerprint/verify";
-import type { IntegrityCheckResult } from "@mp5/container";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
 import { USER_ERRORS } from "../lib/userFacingErrors";
 import { DropImportSummary } from "../components/DropImportSummary";
@@ -240,18 +248,16 @@ export function Mp5Player() {
       }
 
       const cached = decodeCache.get(trackId);
-      const scheduleIntegrity = (
-        pr: Mp5File,
-        buf: ArrayBuffer,
-        samples: Int16Array,
-      ) => {
+      const scheduleIntegrity = (pr: Mp5File, samples: Int16Array) => {
         const run = async () => {
           setIngestStage("checking_integrity");
           setIngestStageDetail(ingestStageLabel("checking_integrity"));
           try {
-            setIntegrity(
-              await verifyMp5Integrity(pr, new Uint8Array(buf), { pcmSamples: samples }),
-            );
+            const result = await verifyMp5Integrity(pr, undefined, {
+              pcmSamples: samples,
+            });
+            setIntegrity(result);
+            updateIngestDiagnostics({ integrityStatus: result.status });
           } catch {
             setIntegrity(null);
           }
@@ -279,12 +285,15 @@ export function Mp5Player() {
           setCurrentTime(0);
           setIngestStage("ready");
           setIngestStageDetail("");
-          const buf = rawBuffer ?? (await file.arrayBuffer());
-          scheduleIntegrity(cached.parsed, buf, cached.samples);
+          scheduleIntegrity(cached.parsed, cached.samples);
         } else {
-          const buf = rawBuffer ?? (await file.arrayBuffer());
+          const mixStart = performance.now();
+          const buf = playlistTrack.lazyIngest ? undefined : rawBuffer ?? (await file.arrayBuffer());
           const { samples, sampleRate, channels, parsed: pr, decodePath: path, mp5h } =
             await decodeMp5ToPcm(buf, ingestParsed);
+          updateIngestDiagnostics({
+            readyMixMs: Math.round(performance.now() - mixStart),
+          });
           const dur = samples.length / channels / sampleRate;
           decodeCache.set(trackId, {
             samples,
@@ -303,7 +312,7 @@ export function Mp5Player() {
           setCurrentTime(0);
           setIngestStage("ready");
           setIngestStageDetail("");
-          scheduleIntegrity(pr, buf, samples);
+          scheduleIntegrity(pr, samples);
         }
 
         const neighborIds = [
@@ -466,6 +475,19 @@ export function Mp5Player() {
     }
     if (track.parsed) {
       setParsed(track.parsed);
+      const hasFp =
+        !!getFingFromParsed(track.parsed) || !!getHashFromParsed(track.parsed);
+      if (hasFp) {
+        setIntegrity({
+          status: "pending",
+          hasFingerprint: true,
+          hasHashChunk: !!getHashFromParsed(track.parsed),
+          message: "Integrity check pending — will verify after audio decode.",
+          chunkChecks: [],
+        });
+      } else {
+        setIntegrity(null);
+      }
     }
     if (track.file) void loadFile(track);
   }, [track?.id, track?.file, track?.parseError, track?.rawBuffer, track?.parsed, loadFile, setCurrentTime, setDuration, setPlaying, handleTrackEnded, setCurrentIndex]);
@@ -478,10 +500,16 @@ export function Mp5Player() {
     setIngestStage("loading_mp5");
     setIngestStageDetail(ingestStageLabel("loading_mp5"));
     const ingest = await ingestAlbumPackageFiles(fileList, tracks, (name, progress) => {
-      const stage = mapParseProgressToIngestStage(progress);
+      const isIndex = "chunksScanned" in progress;
+      const stage = isIndex
+        ? mapIndexProgressToIngestStage(progress)
+        : mapParseProgressToIngestStage(progress);
+      const detail = isIndex
+        ? indexStageDetail(progress)
+        : parseStageDetail(progress);
       setIngestStage(stage);
       setIngestStageDetail(
-        ingestStageLabel(stage, parseStageDetail(progress) ?? `Loading ${name}…`),
+        ingestStageLabel(stage, detail ?? `Loading ${name}…`),
       );
     });
     setIngestStage("ready");

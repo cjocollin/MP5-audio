@@ -1,5 +1,22 @@
 # MP5 Alpha release notes
 
+## v0.10.6-alpha — Large-file lazy ingest (May 2026)
+
+**Version:** MP5 Audio **v0.10.6-alpha**
+
+### Added
+
+- **Lazy blob chunk index** for files ≥48 MiB — scan via `File.slice`, no full-file `arrayBuffer()` in playlist state.
+- **On-demand payloads:** AUDI for full mix; STDF fragments per selected stem only.
+- **Staged ingest UI:** Scanning chunks → Preparing full mix → Loading optional metadata → Integrity pending.
+- **Diagnostics:** ingest mode, chunk/STDF counts, loaded MB, timing (Settings → Diagnostics).
+
+### Unchanged
+
+- Codec policy, 64 MiB chunk cap, STDF v1 wire format, STDA v1, worker stem decode, `audio_verified` integrity rules.
+
+---
+
 ## v0.10.5-alpha — Large-file playback + STDF CRC + VISU hotfix (May 2026)
 
 **Version:** MP5 Audio **v0.10.5-alpha**

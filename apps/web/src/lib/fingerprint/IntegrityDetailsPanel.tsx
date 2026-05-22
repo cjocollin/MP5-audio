@@ -4,6 +4,8 @@ import { USER_ERRORS } from "../userFacingErrors";
 
 const STATUS_LABEL: Record<string, string> = {
   verified: "Verified",
+  audio_verified: "Audio verified",
+  pending: "Integrity pending",
   mismatch: "Mismatch",
   missing: "No fingerprint",
   unsupported: "Partial / unsupported",
@@ -12,6 +14,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_CLASS: Record<string, string> = {
   verified: "text-green-400/90",
+  audio_verified: "text-green-400/90",
+  pending: "text-gray-400",
   mismatch: "text-amber-300/90",
   missing: "text-gray-500",
   unsupported: "text-gray-400",
@@ -26,15 +30,23 @@ function HashRow({
   label,
   expected,
   ok,
+  informational,
 }: {
   label: string;
   expected?: string;
   ok: boolean | null | undefined;
+  informational?: boolean;
 }) {
   if (!expected) return null;
   const preview = shortHashPreview(expected);
   const status =
-    ok === true ? "match" : ok === false ? "mismatch" : "not checked";
+    informational && ok === false
+      ? "informational"
+      : ok === true
+        ? "match"
+        : ok === false
+          ? "mismatch"
+          : "not checked";
   return (
     <div className="flex justify-between gap-2 text-xs">
       <span className="text-gray-500">{label}</span>
@@ -44,9 +56,11 @@ function HashRow({
           className={
             status === "match"
               ? "text-green-400/80"
-              : status === "mismatch"
-                ? "text-amber-300/80"
-                : "text-gray-600"
+              : status === "informational"
+                ? "text-gray-500"
+                : status === "mismatch"
+                  ? "text-amber-300/80"
+                  : "text-gray-600"
           }
         >
           ({status})
@@ -108,8 +122,16 @@ export function IntegrityDetailsPanel({ integrity }: Props) {
             label="File"
             expected={integrity.fileHash?.expected ?? integrity.fileHash?.actual}
             ok={integrity.fileHash?.ok}
+            informational={
+              integrity.fileHashInformational || integrity.fileHash?.informational
+            }
           />
         </div>
+      )}
+      {integrity?.status === "pending" && (
+        <p className="text-xs text-gray-500" data-testid="integrity-pending-note">
+          Verification runs after audio decode — not a corruption warning.
+        </p>
       )}
       {integrity?.status === "mismatch" && (
         <p

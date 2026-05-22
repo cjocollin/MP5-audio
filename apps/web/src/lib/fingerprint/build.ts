@@ -45,6 +45,7 @@ export async function buildFingerprintChunks(
     metaHash = await sha256Hex(encodeMeta(parsed.meta));
   }
 
+  /** Hash of container bytes before FING/HASH are embedded (informational; final file bytes differ). */
   const fileHash = await sha256Hex(fileBytes);
 
   const durationMs =

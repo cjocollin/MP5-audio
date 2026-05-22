@@ -1,7 +1,17 @@
 # MP5 stem worker profile (v0.10.4-alpha hotfix)
 
 **Milestone:** Worker-Based Stem Decoding Hotfix  
-**Version:** MP5 Audio v0.10.5-alpha
+**Version:** MP5 Audio v0.10.6-alpha
+
+## v0.10.6 lazy ingest
+
+| Phase | Behavior |
+|-------|----------|
+| Drop (≥48 MiB) | `indexMp5FromBlob` — header scan + small optional chunks only |
+| STDF | Indexed by stemId/partIndex; **no** 229 MB copy into `stdfFragments[]` |
+| Full mix | `loadAudiFrames` reads AUDI once when decode starts |
+| Integrity | `pending` until idle verify (AUDI/PCM; no full-file read) |
+| Worker | Unchanged — selected fragment bytes only |
 
 ## v0.10.5 STDF CRC hotfix
 
@@ -21,7 +31,7 @@ Code-path review plus prior Node/browser measurements on a large real-world file
 
 | Area | v0.10.3 | v0.10.4 |
 |------|---------|---------|
-| Initial `parseMp5` on file drop | **High** — full read + integrity | **Yielding** `parseMp5Async` for files ≥ 48 MiB; staged status UI; integrity deferred until after decode |
+| Initial open (≥48 MiB) | **High** — full read + copy all chunks | **Lazy index** — slice scan; STDF not loaded; AUDI on play |
 | STDF `groupStdfFragments` | Low | Low (main) |
 | HASH / integrity | Part of parse | Part of parse |
 | Stem manifest parse | Low | Low |

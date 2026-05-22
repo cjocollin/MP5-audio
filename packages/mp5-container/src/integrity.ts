@@ -4,16 +4,25 @@ import { decodeHash, type HashPayload, type ChunkHashEntry } from "./hash.js";
 
 export type IntegrityCheckStatus =
   | "verified"
+  | "audio_verified"
   | "mismatch"
   | "missing"
   | "unsupported"
-  | "partial";
+  | "partial"
+  | "pending";
 
 export interface IntegrityCheckResult {
   status: IntegrityCheckStatus;
   hasFingerprint: boolean;
   hasHashChunk: boolean;
-  fileHash?: { expected?: string; actual?: string; ok: boolean | null };
+  /** Whole-file hash mismatch is expected when FING/HASH were embedded after hashing. */
+  fileHashInformational?: boolean;
+  fileHash?: {
+    expected?: string;
+    actual?: string;
+    ok: boolean | null;
+    informational?: boolean;
+  };
   pcmHash?: { expected?: string; actual?: string; ok: boolean | null };
   audiHash?: { expected?: string; actual?: string; ok: boolean | null };
   metaHash?: { expected?: string; actual?: string; ok: boolean | null };
@@ -60,6 +69,119 @@ export function summarizeIntegrity(
   return "partial";
 }
 
+/** True when only whole-file hash fails but audio (and non-HASH chunks) verify. */
+export function isInformationalFileHashMismatch(params: {
+  fileHashOk: boolean | null;
+  pcmHashOk: boolean | null;
+  audiHashOk: boolean | null;
+  chunkChecks: IntegrityCheckResult["chunkChecks"];
+}): boolean {
+  if (params.fileHashOk !== false) return false;
+  if (params.audiHashOk !== true) return false;
+  if (params.pcmHashOk === false) return false;
+  const chunkFail = params.chunkChecks.some(
+    (c) => c.ok === false && c.fourcc !== "HASH" && c.fourcc !== "FING",
+  );
+  return !chunkFail;
+}
+
+export function resolveIntegrityStatus(params: {
+  fileHashOk: boolean | null;
+  pcmHashOk: boolean | null;
+  audiHashOk: boolean | null;
+  metaHashOk: boolean | null;
+  chunkChecks: IntegrityCheckResult["chunkChecks"];
+  hasAnyExpected: boolean;
+}): {
+  status: IntegrityCheckStatus;
+  message: string;
+  fileHashInformational: boolean;
+} {
+  if (!params.hasAnyExpected) {
+    return {
+      status: "missing",
+      message: "No fingerprint or integrity metadata.",
+      fileHashInformational: false,
+    };
+  }
+
+  const audioMismatch = params.pcmHashOk === false || params.audiHashOk === false;
+  const chunkMismatch = params.chunkChecks.some((c) => c.ok === false);
+  const fileHashInformational = isInformationalFileHashMismatch(params);
+
+  if (audioMismatch) {
+    return {
+      status: "mismatch",
+      message:
+        "Audio payload hash mismatch — decoded PCM or AUDI does not match embedded fingerprint.",
+      fileHashInformational: false,
+    };
+  }
+
+  if (chunkMismatch) {
+    return {
+      status: "mismatch",
+      message: "One or more chunk integrity hashes do not match.",
+      fileHashInformational: false,
+    };
+  }
+
+  const audioVerified =
+    params.audiHashOk === true && params.pcmHashOk !== false && !chunkMismatch;
+
+  if (audioVerified && fileHashInformational) {
+    return {
+      status: "audio_verified",
+      message:
+        "Audio verified (PCM and AUDI match). Whole-file hash is informational only — it was computed before FING/HASH were embedded, so the final file bytes differ. Not DRM or legal proof.",
+      fileHashInformational: true,
+    };
+  }
+
+  const strictChecks = [
+    { ok: params.fileHashOk },
+    { ok: params.pcmHashOk },
+    { ok: params.audiHashOk },
+    { ok: params.metaHashOk },
+    ...params.chunkChecks.map((c) => ({ ok: c.ok })),
+  ];
+  const status = summarizeIntegrity(strictChecks, params.hasAnyExpected);
+
+  if (status === "verified") {
+    return {
+      status: "verified",
+      message: "Integrity checks passed (local technical verification only).",
+      fileHashInformational: false,
+    };
+  }
+  if (status === "mismatch") {
+    return {
+      status: "mismatch",
+      message: "One or more integrity hashes do not match.",
+      fileHashInformational: false,
+    };
+  }
+  if (status === "unsupported") {
+    return {
+      status: "unsupported",
+      message: "Fingerprint present but could not verify all fields without re-decoding audio.",
+      fileHashInformational: false,
+    };
+  }
+  if (audioVerified) {
+    return {
+      status: "audio_verified",
+      message: "Audio verified. Some optional integrity fields were not checked.",
+      fileHashInformational: false,
+    };
+  }
+  return {
+    status: "partial",
+    message: "Some integrity checks passed; others were not verified.",
+    fileHashInformational: false,
+  };
+}
+
 export function buildIntegrityResult(params: {
   fing: FingPayload | null;
   hash: HashPayload | null;
@@ -72,13 +194,6 @@ export function buildIntegrityResult(params: {
   const { fing, hash } = params;
   const hasFingerprint = !!fing;
   const hasHashChunk = !!hash;
-  const checks = [
-    { ok: params.fileHashOk },
-    { ok: params.pcmHashOk },
-    { ok: params.audiHashOk },
-    { ok: params.metaHashOk },
-    ...params.chunkChecks.map((c) => ({ ok: c.ok })),
-  ];
   const hasAnyExpected = !!(
     fing?.fileHash ||
     fing?.pcmHash ||
@@ -87,21 +202,19 @@ export function buildIntegrityResult(params: {
     hash?.fileSha256 ||
     hash?.chunks?.length
   );
-  const status = summarizeIntegrity(checks, hasAnyExpected);
-  let message = "No fingerprint or integrity metadata.";
-  if (status === "verified") {
-    message = "Integrity checks passed (local technical verification only).";
-  } else if (status === "mismatch") {
-    message = "One or more integrity hashes do not match — file may be modified or corrupted.";
-  } else if (status === "partial") {
-    message = "Some integrity checks passed; others were not verified.";
-  } else if (status === "unsupported") {
-    message = "Fingerprint present but could not verify all fields without re-decoding audio.";
-  }
+  const resolved = resolveIntegrityStatus({
+    fileHashOk: params.fileHashOk,
+    pcmHashOk: params.pcmHashOk,
+    audiHashOk: params.audiHashOk,
+    metaHashOk: params.metaHashOk,
+    chunkChecks: params.chunkChecks,
+    hasAnyExpected,
+  });
   return {
-    status,
+    status: resolved.status,
     hasFingerprint,
     hasHashChunk,
+    fileHashInformational: resolved.fileHashInformational,
     fileHash: fing?.fileHash
       ? {
           expected: fing.fileHash,
@@ -122,7 +235,7 @@ export function buildIntegrityResult(params: {
       : undefined,
     chunkChecks: params.chunkChecks,
     duplicateIdentityKey: fing ? undefined : undefined,
-    message,
+    message: resolved.message,
   };
 }
 

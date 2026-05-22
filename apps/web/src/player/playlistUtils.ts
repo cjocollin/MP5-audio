@@ -3,14 +3,27 @@ import {
   decodeMood,
   decodeVibe,
   getMetaValue,
+  getLazyIngestThresholdBytes,
+  indexMp5FromBlob,
   parseMp5,
   parseMp5Async,
   LARGE_MP5_PARSE_BYTES,
   type Mp5File,
+  type Mp5IndexProgress,
   type Mp5ParseProgress,
 } from "@mp5/container";
 import type { PlaylistTrack } from "../store/playerStore";
 import { USER_ERRORS, formatPlaylistParseError } from "../lib/userFacingErrors";
+import {
+  resetIngestDiagnostics,
+  updateIngestDiagnostics,
+} from "../lib/ingest/ingestDiagnostics";
+import {
+  indexStageDetail,
+  mapIndexProgressToIngestStage,
+  mapParseProgressToIngestStage,
+  parseStageDetail,
+} from "../lib/ingest/ingestStages";
 
 export interface TrackDisplayInfo {
   title: string;
@@ -116,7 +129,10 @@ export interface IngestResult {
   unreadableCount: number;
 }
 
-export type IngestProgressCallback = (fileName: string, progress: Mp5ParseProgress) => void;
+export type IngestProgressCallback = (
+  fileName: string,
+  progress: Mp5ParseProgress | Mp5IndexProgress,
+) => void;
 
 export async function ingestMp5Files(
   files: File[],
@@ -124,6 +140,7 @@ export async function ingestMp5Files(
 ): Promise<IngestResult> {
   const tracks: PlaylistTrack[] = [];
   const dropErrors: IngestResult["dropErrors"] = [];
+  const lazyThreshold = getLazyIngestThresholdBytes();
 
   for (const file of files) {
     if (!isMp5FileName(file.name)) {
@@ -136,21 +153,65 @@ export async function ingestMp5Files(
     }
 
     try {
-      const buf = await file.arrayBuffer();
-      const large = buf.byteLength >= LARGE_MP5_PARSE_BYTES;
-      const parsed = large
-        ? await parseMp5Async(buf, {
-            yieldEveryChunks: 2,
-            onProgress: (p) => onProgress?.(file.name, p),
-          })
-        : parseMp5(buf);
+      const useLazy = file.size >= lazyThreshold;
+      resetIngestDiagnostics();
+      updateIngestDiagnostics({
+        ingestMode: useLazy ? "lazy-indexed" : "eager",
+        fileSizeBytes: file.size,
+        integrityStatus: "pending",
+      });
+
+      const scanStart = performance.now();
+      let parsed: Mp5File;
+
+      if (useLazy) {
+        parsed = await indexMp5FromBlob(file, {
+          yieldEveryChunks: 2,
+          onProgress: (p) => onProgress?.(file.name, p),
+        });
+        const scanMs = Math.round(performance.now() - scanStart);
+        updateIngestDiagnostics({
+          chunkCount: parsed.lazy?.chunkIndex.length ?? 0,
+          stdfIndexed: parsed.lazy?.stdfFragmentIndex.length ?? 0,
+          loadedBinaryMb: (parsed.lazy?.loadedPayloadBytes ?? 0) / (1024 * 1024),
+          audiLoaded: parsed.audioFrames.length > 0,
+          scanMs,
+        });
+      } else {
+        const buf = await file.arrayBuffer();
+        const large = buf.byteLength >= LARGE_MP5_PARSE_BYTES;
+        parsed = large
+          ? await parseMp5Async(buf, {
+              yieldEveryChunks: 2,
+              onProgress: (p) => onProgress?.(file.name, p),
+            })
+          : parseMp5(buf);
+        updateIngestDiagnostics({
+          chunkCount: parsed.stdfFragments.length + parsed.audioFrames.length,
+          stdfIndexed: parsed.stdfFragments.length,
+          loadedBinaryMb: buf.byteLength / (1024 * 1024),
+          audiLoaded: parsed.audioFrames.length > 0,
+          scanMs: Math.round(performance.now() - scanStart),
+        });
+        tracks.push({
+          id: crypto.randomUUID(),
+          name: file.name,
+          file,
+          rawBuffer: buf,
+          parsed,
+          durationSec: trackDurationSec(parsed) ?? undefined,
+          lazyIngest: false,
+        });
+        continue;
+      }
+
       tracks.push({
         id: crypto.randomUUID(),
         name: file.name,
         file,
-        rawBuffer: buf,
         parsed,
         durationSec: trackDurationSec(parsed) ?? undefined,
+        lazyIngest: true,
       });
     } catch {
       tracks.push({
@@ -174,6 +235,8 @@ export async function ingestMp5Files(
   return { tracks, dropErrors, addedCount, skippedCount, unreadableCount };
 }
 
+export { mapIndexProgressToIngestStage, indexStageDetail, mapParseProgressToIngestStage, parseStageDetail };
+
 export function formatDuration(sec: number | null | undefined): string {
   if (sec == null || !Number.isFinite(sec) || sec <= 0) return "—";
   const m = Math.floor(sec / 60);
@@ -181,7 +244,6 @@ export function formatDuration(sec: number | null | undefined): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-/** Clock display for playback position (shows 0:00 at start). */
 export function formatPlaybackTime(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return "0:00";
   if (sec > 0 && sec < 1) return `${sec.toFixed(2)}s`;

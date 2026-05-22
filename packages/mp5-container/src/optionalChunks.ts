@@ -92,6 +92,8 @@ export {
   compareSha256,
   summarizeIntegrity,
   buildIntegrityResult,
+  resolveIntegrityStatus,
+  isInformationalFileHashMismatch,
   expectedChunkHashes,
   mergeChunkCheck,
   type IntegrityCheckStatus,

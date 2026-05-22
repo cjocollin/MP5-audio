@@ -6,6 +6,8 @@ import { sanitizeJsonString } from "./chunkJson.js";
 /** Segmented stem data fragment chunk (v1). */
 export const STEM_FRAGMENT_FOURCC = "STDF";
 export const STDF_VERSION = 1;
+/** Max bytes read from each STDF chunk during lazy index (header only). */
+export const STDF_HEADER_PREFIX_MAX = 128;
 
 /** Keep single STDA under ~48 MiB (64 MiB chunk cap minus margin). */
 export const STDA_SAFE_MAX_BYTES = 48 * 1024 * 1024;
@@ -89,7 +91,8 @@ export function encodeStdfFragment(record: Omit<StdfFragmentRecord, "version">):
   return out;
 }
 
-export function decodeStdfFragment(data: Uint8Array): StdfFragmentRecord | null {
+/** Parse STDF header fields without copying the inner payload. */
+export function decodeStdfFragmentHeader(data: Uint8Array): StdfFragmentHeader | null {
   if (!data || data.length < 14) return null;
   const v = new DataView(data.buffer, data.byteOffset, data.byteLength);
   const version = v.getUint8(0);
@@ -105,9 +108,7 @@ export function decodeStdfFragment(data: Uint8Array): StdfFragmentRecord | null 
   const payloadLength = v.getUint32(o, true);
   o += 4;
   const payloadCrc32 = v.getUint32(o, true);
-  o += 4;
-  if (payloadLength > data.length - o || payloadLength > MAX_CHUNK_PAYLOAD) return null;
-  const payload = data.slice(o, o + payloadLength);
+  if (payloadLength > MAX_CHUNK_PAYLOAD) return null;
   return {
     version,
     stemId,
@@ -115,8 +116,18 @@ export function decodeStdfFragment(data: Uint8Array): StdfFragmentRecord | null 
     partCount,
     payloadLength,
     payloadCrc32,
-    payload,
   };
+}
+
+export function decodeStdfFragment(data: Uint8Array): StdfFragmentRecord | null {
+  if (!data || data.length < 14) return null;
+  const header = decodeStdfFragmentHeader(data);
+  if (!header) return null;
+  const stemIdLen = data[1]!;
+  const o = 2 + stemIdLen + 12;
+  if (header.payloadLength > data.length - o) return null;
+  const payload = data.slice(o, o + header.payloadLength);
+  return { ...header, payload };
 }
 
 export function splitStemFrameIntoFragments(

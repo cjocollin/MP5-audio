@@ -19,6 +19,7 @@ const {
   parseMp5,
   assessMp5Compatibility,
   assessMp5pCompatibility,
+  verifyMp5FileIntegrity,
 } = container;
 
 function parseArgs(argv) {
@@ -104,6 +105,30 @@ function printMp5Report(r) {
       .join(", ") || "none",
   );
   console.log("Integrity:        ", r.integrityStatus);
+  if (r.integrityMessage) {
+    console.log("Integrity note:   ", r.integrityMessage);
+  }
+  const d = r.integrityDetail;
+  if (d) {
+    const row = (label, h) => {
+      if (!h?.expected && h?.ok == null) return;
+      const tag =
+        h.ok === true
+          ? "match"
+          : h.informational || (label === "File" && d.fileHashInformational)
+            ? "informational (pre-embed hash)"
+            : h.ok === false
+              ? "mismatch"
+              : "not checked";
+      console.log(`  ${label.padEnd(6)}`, tag);
+    };
+    row("PCM", d.pcmHash);
+    row("AUDI", d.audiHash);
+    row("File", d.fileHash);
+    console.log(
+      "  Note: In-file whole-file SHA-256 is informational unless stored externally; PCM/AUDI are primary audio checks. Not DRM or legal proof.",
+    );
+  }
   console.log("");
   console.log("Validation profiles:");
   for (const [k, v] of Object.entries(r.profiles)) {
@@ -156,7 +181,7 @@ function printMp5pReport(r) {
   console.log("");
 }
 
-function main() {
+async function main() {
   const { files, sidecarDir } = parseArgs(process.argv);
   if (!files.length) {
     console.error("Usage: pnpm inspect:mp5 <file.mp5|.mp5p> [--dir <sidecar-folder>]");
@@ -189,9 +214,11 @@ function main() {
     }
 
     const parsed = parseMp5(buf);
+    const integrity = await verifyMp5FileIntegrity(parsed, buf);
     const report = assessMp5Compatibility(parsed, {
       path,
       fileSize: statSync(path).size,
+      integrity,
     });
     printMp5Report(report);
     if (report.compatibilityLevel === "error") exitCode = 1;

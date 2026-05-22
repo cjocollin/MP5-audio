@@ -1,5 +1,6 @@
 import {
   decodeStemManifest,
+  groupStdfFragmentIndex,
   groupStdfFragments,
   resolveStemStorageMode,
   STEM_DATA_FOURCC,
@@ -7,6 +8,7 @@ import {
   type StemDescriptor,
   type StemManifest,
   type StemStorageMode,
+  type StdfFragmentIndex,
   type StdfFragmentRecord,
 } from "@mp5/container";
 
@@ -20,6 +22,9 @@ export interface ParsedStemFile {
   errors: string[];
   stda?: Uint8Array;
   stdfGrouped: Map<string, StdfFragmentRecord[]>;
+  /** Lazy-indexed STDF (payloads loaded on demand). */
+  stdfIndexGrouped?: Map<string, StdfFragmentIndex[]>;
+  lazyFile?: Mp5File;
   totalEmbeddedBytes: number;
 }
 
@@ -32,10 +37,16 @@ export function parseStemsFromFile(parsed: Mp5File): ParsedStemFile | null {
     const storageMode = resolveStemStorageMode(
       manifest,
       !!stda?.length,
-      stdfFragments.length,
+      parsed.lazy?.stdfFragmentIndex.length ?? stdfFragments.length,
     );
     const stdfGrouped =
-      storageMode === "stdf-v1" ? groupStdfFragments(stdfFragments) : new Map();
+      storageMode === "stdf-v1" && !parsed.lazy
+        ? groupStdfFragments(stdfFragments)
+        : new Map<string, StdfFragmentRecord[]>();
+    const stdfIndexGrouped =
+      storageMode === "stdf-v1" && parsed.lazy
+        ? groupStdfFragmentIndex(parsed.lazy.stdfFragmentIndex)
+        : undefined;
     const totalEmbeddedBytes = manifest.stems.reduce(
       (s, d) => s + Math.max(0, d.dataLength || d.byteLength || 0),
       0,
@@ -49,6 +60,8 @@ export function parseStemsFromFile(parsed: Mp5File): ParsedStemFile | null {
       errors: [],
       stda: stda?.length ? stda : undefined,
       stdfGrouped,
+      stdfIndexGrouped,
+      lazyFile: parsed.lazy ? parsed : undefined,
       totalEmbeddedBytes,
     };
   } catch {

@@ -1,6 +1,6 @@
 # MP5 known issues and limitations (Alpha)
 
-**Version:** MP5 Audio v0.10.5-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
+**Version:** MP5 Audio v0.10.6-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
 
 This page lists honest limitations for testers, demo hosts, and future Beta planning. See also [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) and [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md).
 
@@ -57,7 +57,7 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 |-------|--------|
 | **No AI separation** | Users supply stems manually; no vocal remover or auto-alignment. |
 | **Large stem prepare time** | STDF files with 200+ MB embedded stems require progressive decode (Web Worker when available); solo/selected only — not instant all-stem mix. |
-| **Large file open** | Dropping a 250+ MB `.mp5` still parses the full container on the main thread before playback; stem worker does not move initial ingest. |
+| **Large file open** | Files ≥48 MiB use **lazy chunk indexing** (no full-file buffer in playlist state). Initial scan is much faster, but **AUDI decode** and **first play** still take time; browser memory limits apply. |
 | **Worker fallback** | Some browsers or blocked workers fall back to main-thread stem decode with a warning; full mix still works. |
 | **RAM cap** | Preparing many large stems at once may be blocked (~384 MB selected decode cap); full mix always works. |
 | **Normalization helper** | Resample/pad/trim only — not sample-accurate DAW sync. |
@@ -80,11 +80,11 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 
 | Issue | Detail |
 |-------|--------|
-| **Alpha compatibility** | Unknown optional chunks are ignored; strict HASH verification in CLI is partial. |
+| **Alpha compatibility** | Unknown optional chunks are ignored; CLI `inspect:mp5` / `validate:mp5 --profile strict` run full AUDI/PCM/chunk verify when FING/HASH present. |
 | **No third-party players** | MP5 is not supported in mainstream music apps. |
 | **Corrupt files** | Truncated or invalid containers fail parse — use `pnpm inspect:mp5`. |
 | **Rights metadata** | CRDT/LICN/IDEN are **informational only** — no DRM, no legal enforcement. |
-| **Fingerprints** | FING/HASH help detect duplicates — not proof of ownership or authenticity. |
+| **Fingerprints** | FING/HASH help detect duplicates — not proof of ownership or authenticity. In-file `fileSha256` is computed before FING/HASH are embedded, so whole-file hash in the player often shows **informational** while PCM/AUDI still verify — not corruption. |
 
 ---
 

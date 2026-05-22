@@ -16,7 +16,12 @@ const container = await import(
   pathToFileURL(join(root, "packages/mp5-container/dist/index.js")).href
 );
 
-const { parseMp5, assessMp5Compatibility, assessMp5pCompatibility } = container;
+const {
+  parseMp5,
+  assessMp5Compatibility,
+  assessMp5pCompatibility,
+  verifyMp5FileIntegrity,
+} = container;
 
 function parseArgs(argv) {
   let profile = "playable";
@@ -36,7 +41,7 @@ function parseArgs(argv) {
   return { files, profile, sidecarDir };
 }
 
-function main() {
+async function main() {
   const { files, profile, sidecarDir } = parseArgs(process.argv);
   if (!files.length) {
     console.error(
@@ -79,9 +84,11 @@ function main() {
 
     const buf = readFileSync(path);
     const parsed = parseMp5(buf);
+    const integrity = await verifyMp5FileIntegrity(parsed, buf);
     const report = assessMp5Compatibility(parsed, {
       path,
       fileSize: statSync(path).size,
+      integrity,
     });
     const ok = report.profiles[profile];
     console.log(

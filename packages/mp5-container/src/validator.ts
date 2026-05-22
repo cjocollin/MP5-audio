@@ -39,8 +39,8 @@ export function validateParsedFile(file: Mp5File, chunkCount: number): void {
   if (!file.head) {
     throw new Mp5ValidationError("Missing HEAD chunk");
   }
-  if (file.audioFrames.length === 0) {
-    throw new Mp5ValidationError("Missing AUDI frames");
+  if (file.audioFrames.length === 0 && !file.lazy?.audi) {
+    throw new Mp5ValidationError("Missing AUDI chunk");
   }
   if (file.seek.length > 0) {
     validateSeekTable(file.seek);

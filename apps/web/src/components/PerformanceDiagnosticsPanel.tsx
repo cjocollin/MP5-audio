@@ -5,6 +5,7 @@ import { getCodecLoadState } from "../wasm/codec";
 import { getFfmpegLoadState } from "../converter/ffmpegLoader";
 import { getLibraryStorageInfo, listLibraryRecords } from "../lib/localLibrary/api";
 import { formatMemoryEstimate } from "../lib/performance/memoryEstimates";
+import { getIngestDiagnostics } from "../lib/ingest/ingestDiagnostics";
 import { activeConversionLabel, useConversionStore } from "../store/conversionStore";
 import { usePlayerStore } from "../store/playerStore";
 
@@ -38,6 +39,7 @@ export function PerformanceDiagnosticsPanel() {
     return () => clearInterval(id);
   }, [open]);
 
+  const ingest = getIngestDiagnostics();
   const cacheStats = decodeCache.getStats(currentTrack?.id);
   const wasmState = getCodecLoadState();
   const ffmpegState = getFfmpegLoadState();
@@ -70,6 +72,23 @@ export function PerformanceDiagnosticsPanel() {
           {currentTrack?.file?.size != null
             ? formatBytes(currentTrack.file.size)
             : currentTrack?.name ?? "—"}
+        </p>
+        <p>
+          <span className="text-gray-600">Ingest mode:</span> {ingest.ingestMode}
+        </p>
+        <p>
+          <span className="text-gray-600">Chunks indexed:</span> {ingest.chunkCount} · STDF indexed{" "}
+          {ingest.stdfIndexed} · STDF loaded {ingest.stdfLoaded}
+        </p>
+        <p>
+          <span className="text-gray-600">Loaded binary (est.):</span>{" "}
+          {ingest.loadedBinaryMb.toFixed(2)} MB · AUDI loaded:{" "}
+          {ingest.audiLoaded ? "yes" : "no"}
+        </p>
+        <p>
+          <span className="text-gray-600">Integrity:</span> {ingest.integrityStatus}
+          {ingest.scanMs != null ? ` · scan ${ingest.scanMs}ms` : ""}
+          {ingest.readyMixMs != null ? ` · mix ready ${ingest.readyMixMs}ms` : ""}
         </p>
         <p>
           <span className="text-gray-600">Current decode RAM (est.):</span>{" "}

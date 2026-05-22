@@ -42,8 +42,47 @@ export interface ParsedChunk {
   invalid?: boolean;
 }
 
+/** Indexed STDF fragment (payload not loaded until requested). */
+export interface StdfFragmentIndex {
+  /** Index in lazy.stdfFragmentIndex (same as array index). */
+  index: number;
+  payloadOffset: number;
+  payloadLength: number;
+  flags: number;
+  storedCrc: number;
+  version: number;
+  stemId: string;
+  partIndex: number;
+  partCount: number;
+  innerPayloadLength: number;
+  payloadCrc32: number;
+}
+
+export interface Mp5ChunkIndexEntry {
+  fourcc: string;
+  chunkOffset: number;
+  payloadOffset: number;
+  payloadLength: number;
+  flags: number;
+  storedCrc: number;
+  repeatIndex: number;
+}
+
+export interface Mp5LazyHandle {
+  ingestMode: "lazy-indexed";
+  fileSize: number;
+  chunkIndex: Mp5ChunkIndexEntry[];
+  stdfFragmentIndex: StdfFragmentIndex[];
+  audi?: { payloadOffset: number; payloadLength: number };
+  /** Bytes copied from blob via slice (diagnostics). */
+  loadedPayloadBytes: number;
+  readPayload: (offset: number, length: number) => Promise<Uint8Array>;
+}
+
 export interface Mp5File {
   header: FileHeader;
+  /** Present when file was indexed without eager payload copies. */
+  lazy?: Mp5LazyHandle;
   head?: HeadPayload;
   meta: MetaField[];
   /** Raw COVR payload bytes */

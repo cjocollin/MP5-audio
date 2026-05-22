@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.10.5-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.10.6-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -34,7 +34,8 @@
 
 - **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default (recommended)
 - **Batch converter (MVP):** **Batch** tab — multi-file import, queue with per-file status, **MP5-L v3 only**, progress summary, retry failed, download individual/all (no ZIP), optional auto-save to local library with FING duplicate detection; browser-local (no upload)
-- **Large-file + VISU hotfix (v0.10.5-alpha):** STDF worker CRC wire fix; yielding large-file parse + staged ingest status; deferred HASH check; VISU style presets when file has no hex colors; inspect VISU color summary
+- **Large-file lazy ingest (v0.10.6-alpha):** blob chunk index for files ≥48 MiB — no full-file `ArrayBuffer` + no eager STDF copy; AUDI loaded for playback only; stems on demand; integrity pending → idle verify; Settings diagnostics show ingest mode/timing
+- **Large-file + VISU hotfix (v0.10.5-alpha):** STDF worker CRC wire fix; VISU style presets; informational whole-file hash (`audio_verified`)
 - **Worker stem decode (v0.10.4-alpha):** Web Worker for STDF reconstruct + MP5-L decode; per-stem transferable payloads; progress phases + cancel; main-thread fallback; worker diagnostics in Stems panel — full mix never blocked
 - **Large stem playback (v0.10.3-alpha):** lazy/selected stem decode, solo, progressive prepare + cancel, instrumental karaoke path, playback-clock synced lyrics — full mix never blocked
 - **Large embedded stems (v0.10.2-alpha):** **STDF** segmented stem fragments when **STDA** would exceed 64 MiB; **STDA v1** unchanged for small sets; `pnpm inspect:mp5` reports storage mode and fragment stats
@@ -64,7 +65,7 @@
 - **Visual themes (VISU MVP):** optional per-file colors/mood; player accent + soft gradient; Settings toggle to disable file themes — [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md)
 - **Album package (MVP):** experimental `.mp5p` manifest + sidecar `.mp5` tracks; import explainer, found/missing lists, add sidecars, reorder on create, saved albums in Library (localStorage), validation — [`MP5_ALBUM_PACKAGE.md`](MP5_ALBUM_PACKAGE.md)
 - **Credits / rights / identifiers (MVP):** optional **CRDT**, **LICN**, **IDEN** chunks; converter collapsed sections; player informational display (no enforcement) — [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md)
-- **Fingerprint / integrity (MVP):** optional **FING** + **HASH**; MP5-L export embeds hashes; player verification panel; library duplicate detection; album sidecar `fileSha256` — [`MP5_FINGERPRINT_INTEGRITY.md`](MP5_FINGERPRINT_INTEGRITY.md)
+- **Fingerprint / integrity (MVP):** optional **FING** + **HASH**; MP5-L export embeds hashes; player shows **audio verified** when PCM/AUDI match (in-file whole-file hash is informational/pre-embed); strict CLI passes on `audio_verified`; library duplicate detection; album sidecar `fileSha256` — [`MP5_FINGERPRINT_INTEGRITY.md`](MP5_FINGERPRINT_INTEGRITY.md)
 - **Format panel:** Codec, encoder version, bit-exact (MP5-L), decode path, hybrid/CORR for MP5-H
 - **Demo fixtures:** synthetic tones in `test-fixtures/` (no copyrighted audio)
 

@@ -85,6 +85,8 @@ export {
   getHashFromParsed,
   compareSha256,
   buildIntegrityResult,
+  resolveIntegrityStatus,
+  isInformationalFileHashMismatch,
   mergeChunkCheck,
   isSha256Hex,
   normalizeSha256Hex,
@@ -117,6 +119,8 @@ export {
   type AlbmValidationError,
 } from "./albm.js";
 export * from "./validator.js";
+export { verifyMp5FileIntegrity, type VerifyIntegrityOptions } from "./verifyIntegrity.js";
+export { sha256HexDigest } from "./sha256Digest.js";
 export {
   assessMp5Compatibility,
   assessMp5pCompatibility,
@@ -134,6 +138,30 @@ export {
   type Mp5ParseProgress,
   type Mp5ParseStage,
 } from "./parseMp5Async.js";
+export {
+  indexMp5FromBlob,
+  indexMp5FromByteSource,
+  LAZY_INGEST_BYTES,
+  EAGER_OPTIONAL_PAYLOAD_MAX,
+  getLazyIngestThresholdBytes,
+  setLazyIngestThresholdForTests,
+  resetLazyIngestThresholdForTests,
+  type Mp5IndexProgress,
+  type Mp5IndexStage,
+} from "./indexMp5Lazy.js";
+export { byteSourceFromArrayBuffer, byteSourceFromBlob, type Mp5ByteSource } from "./byteSource.js";
+export {
+  isLazyMp5,
+  loadAudiFrames,
+  loadAudiPayload,
+  loadStdfFragmentBytes,
+  loadStdfFragmentRecord,
+  loadStdfFragmentsForStem,
+  groupStdfFragmentIndex,
+  loadOptionalChunk,
+  lazyChunkEntry,
+} from "./lazyMp5Load.js";
+export type { Mp5ChunkIndexEntry, Mp5LazyHandle, StdfFragmentIndex } from "./types.js";
 export {
   writeMp5,
   encodeAudiPayload,

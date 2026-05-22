@@ -31,7 +31,7 @@ function readFourCC(view: DataView, offset: number): string {
   );
 }
 
-function parseHead(payload: Uint8Array): HeadPayload {
+export function parseHead(payload: Uint8Array): HeadPayload {
   if (payload.length < HEAD_PAYLOAD_SIZE) {
     throw new Mp5ParseError("HEAD payload too short");
   }
@@ -47,7 +47,7 @@ function parseHead(payload: Uint8Array): HeadPayload {
   };
 }
 
-function parseAudiFrames(payload: Uint8Array): AudioFrame[] {
+export function parseAudiFrames(payload: Uint8Array): AudioFrame[] {
   const frames: AudioFrame[] = [];
   const v = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   let o = 0;
@@ -65,7 +65,7 @@ function parseAudiFrames(payload: Uint8Array): AudioFrame[] {
   return frames;
 }
 
-function parseSeek(payload: Uint8Array): SeekEntry[] {
+export function parseSeek(payload: Uint8Array): SeekEntry[] {
   const entries: SeekEntry[] = [];
   const v = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   let o = 0;
@@ -79,7 +79,7 @@ function parseSeek(payload: Uint8Array): SeekEntry[] {
   return entries;
 }
 
-function parseWave(payload: Uint8Array): number[] {
+export function parseWave(payload: Uint8Array): number[] {
   const v = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   if (payload.length < 4) return [];
   const count = v.getUint32(0, true);

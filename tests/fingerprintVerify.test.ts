@@ -56,6 +56,47 @@ describe("verifyMp5Integrity", () => {
     expect(result.pcmHash?.ok).toBe(true);
   });
 
+  it("pre-embed file hash mismatch with matching AUDI is audio_verified", async () => {
+    const audioFrames = [{ frameIndex: 0, blockType: 0, flags: 0, data: new Uint8Array([9, 8, 7]) }];
+    const audiPayload = encodeAudiPayload(audioFrames);
+    const audiHash = sha256Hex(audiPayload);
+    const base = writeMp5({
+      head: {
+        codecId: CodecId.PCM,
+        channels: 1,
+        bitsPerSample: 16,
+        presetId: 0,
+        sampleRate: 44100,
+        totalSamples: 4n,
+        encoderVersion: 1,
+      },
+      audioFrames,
+      seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+    });
+    const fileHashPre = sha256Hex(base);
+    const mp5 = writeMp5({
+      head: {
+        codecId: CodecId.PCM,
+        channels: 1,
+        bitsPerSample: 16,
+        presetId: 0,
+        sampleRate: 44100,
+        totalSamples: 4n,
+        encoderVersion: 1,
+      },
+      audioFrames,
+      seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+      optional: new Map([
+        ["FING", encodeFing({ audiHash, fileHash: fileHashPre, source: "encoder" })],
+      ]),
+    });
+    const parsed = parseMp5(mp5);
+    const result = await verifyMp5Integrity(parsed, mp5);
+    expect(result.status).toBe("audio_verified");
+    expect(result.fileHash?.ok).toBe(false);
+    expect(result.fileHashInformational).toBe(true);
+  });
+
   it("reports mismatch when audi hash differs", async () => {
     const audioFrames = [{ frameIndex: 0, blockType: 0, flags: 0, data: new Uint8Array([1]) }];
     const mp5 = writeMp5({

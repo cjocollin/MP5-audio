@@ -1,6 +1,6 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
-**Version:** MP5 Audio v0.10.5-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+**Version:** MP5 Audio v0.10.6-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
 
 Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** / **STDF** and behave as today.
 
@@ -87,9 +87,11 @@ Multiple **STDF** chunks may appear in one file (one fragment per chunk). **STEM
 
 Stems should ideally come from the **same session/export** as the full mix; normalization is a helper for rate/duration mismatches only.
 
-## Player playback (v0.10.5-alpha)
+## Player playback (v0.10.6-alpha)
 
-**v0.10.5 fix:** STDF worker jobs now include `payloadCrc32` / `payloadLength` on every fragment wire message, and worker payloads always **copy** bytes before `postMessage` transfer so parsed file fragments are not detached. This fixes false “CRC mismatch on part 1/2” after solo/prepare on real STDF files (e.g. Pity Party).
+**Lazy ingest (≥48 MiB):** the player **indexes** STDF fragments (header-only during scan) and loads stem fragment bytes **only** when solo/prepare/karaoke requests that stem. Full mix uses **AUDI** loaded on demand (not all 24 STDF payloads at open).
+
+**v0.10.5:** STDF worker CRC wire + informational whole-file hash; VISU style presets.
 
 ## Player playback (v0.10.4-alpha)
 
@@ -110,8 +112,9 @@ Large embedded stem sets (**STDF**) must not freeze the browser:
 
 | Phase | Thread | Notes |
 |-------|--------|-------|
-| File drop / `parseMp5` | Main | Full container read + HASH still on main thread (~1 s for 270 MB in Node; browser can be slower). |
-| STDF fragment grouping | Main | Cheap map build at stem panel parse. |
+| File drop / lazy index | Main | Chunk header scan via `File.slice` (no full `arrayBuffer()` for ≥48 MiB). |
+| AUDI load + decode | Main | One AUDI payload read when starting full mix (unavoidable for playback). |
+| STDF fragment grouping | Main | Index-only at open; bytes loaded per selected stem (worker). |
 | Stem reconstruct + MP5-L decode | **Worker** (or main fallback) | Per selected/solo/karaoke stem only. |
 | Waveform / song map | Main | Can add cost on open; unrelated to stem worker. |
 | Lyrics active line | Main | Clock-based ~15 fps; should stay smooth during worker prep. |

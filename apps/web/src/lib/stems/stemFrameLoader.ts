@@ -1,10 +1,12 @@
 import {
   decodeStdaEntries,
+  loadStdfFragmentsForStem,
   reconstructStemFrameFromFragments,
   STDA_VERSION,
   type StemDescriptor,
   type StdfFragmentRecord,
 } from "@mp5/container";
+import { recordStdfFragmentLoaded } from "../ingest/ingestDiagnostics";
 import type { ParsedStemFile } from "./parseStems";
 
 export function yieldToMain(): Promise<void> {
@@ -13,7 +15,6 @@ export function yieldToMain(): Promise<void> {
   });
 }
 
-/** Extract one stem frame from STDA without building all entries (uses manifest order). */
 function extractStdaFrameByIndex(stda: Uint8Array, index: number): Uint8Array {
   const entries = decodeStdaEntries(stda);
   return entries[index] ?? new Uint8Array(0);
@@ -32,7 +33,15 @@ export async function loadStemFrameData(
   await yieldToMain();
 
   if (file.storageMode === "stdf-v1") {
-    const frags = file.stdfGrouped.get(stem.stemId) ?? [];
+    let frags: StdfFragmentRecord[];
+    if (file.lazyFile?.lazy && file.stdfIndexGrouped) {
+      frags = await loadStdfFragmentsForStem(file.lazyFile.lazy, stem.stemId);
+      for (const f of frags) {
+        recordStdfFragmentLoaded();
+      }
+    } else {
+      frags = file.stdfGrouped.get(stem.stemId) ?? [];
+    }
     const { frameData, errors, warnings } = reconstructStemFrameFromFragments(
       stem.stemId,
       frags,

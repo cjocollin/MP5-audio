@@ -12,7 +12,12 @@ import {
   STEM_FRAGMENT_FOURCC,
 } from "./stems.js";
 import { decodeCrdt, decodeLicn, decodeIden } from "./creditsRights.js";
-import { getFingFromParsed, getHashFromParsed, buildIntegrityResult } from "./integrity.js";
+import {
+  getFingFromParsed,
+  getHashFromParsed,
+  buildIntegrityResult,
+  type IntegrityCheckResult,
+} from "./integrity.js";
 import { AI_FOURCC_SET } from "./aiChunks.js";
 import {
   OPTIONAL_FOURCC_SET,
@@ -75,6 +80,8 @@ export interface Mp5CompatibilityReport {
   hasRights: boolean;
   hasIdentifiers: boolean;
   integrityStatus: string;
+  integrityMessage?: string;
+  integrityDetail?: IntegrityCheckResult;
   warnings: string[];
   errors: string[];
   issues: CompatibilityIssue[];
@@ -148,7 +155,7 @@ export function mp5CodecVersionLabel(codecId: number, audi?: Uint8Array): string
 
 export function assessMp5Compatibility(
   file: Mp5File,
-  opts?: { fileSize?: number; path?: string },
+  opts?: { fileSize?: number; path?: string; integrity?: IntegrityCheckResult },
 ): Mp5CompatibilityReport {
   const issues: CompatibilityIssue[] = [];
   const warnings: string[] = [];
@@ -255,15 +262,17 @@ export function assessMp5Compatibility(
 
   const fing = getFingFromParsed(file);
   const hash = getHashFromParsed(file);
-  const integrity = buildIntegrityResult({
-    fing,
-    hash,
-    fileHashOk: null,
-    pcmHashOk: null,
-    audiHashOk: null,
-    metaHashOk: null,
-    chunkChecks: [],
-  });
+  const integrity =
+    opts?.integrity ??
+    buildIntegrityResult({
+      fing,
+      hash,
+      fileHashOk: null,
+      pcmHashOk: null,
+      audiHashOk: null,
+      metaHashOk: null,
+      chunkChecks: [],
+    });
 
   if (optionalUnknown.length) {
     issues.push({
@@ -284,15 +293,26 @@ export function assessMp5Compatibility(
     (!stemManifest || (stemCheck?.valid ?? false));
 
   if (hash || fing) {
-    if (integrity.status === "verified") strict = rich;
+    const integrityOk =
+      integrity.status === "verified" || integrity.status === "audio_verified";
+    if (integrityOk) strict = rich;
     else if (integrity.status === "mismatch") {
       issues.push({
         level: "warning",
         code: "integrity_mismatch",
-        message: "HASH/FING present but verification incomplete in this tool — re-export or verify in player.",
+        message: integrity.message || "Integrity hash mismatch — audio or chunk verification failed.",
       });
-      warnings.push("Integrity mismatch or partial");
+      warnings.push("Integrity mismatch");
       strict = false;
+    } else if (integrity.status === "unsupported" || integrity.status === "partial") {
+      issues.push({
+        level: "info",
+        code: "integrity_partial",
+        message:
+          integrity.message ||
+          "Fingerprint present but not all fields verified in this tool — use player with decoded PCM for full check.",
+      });
+      strict = rich && integrity.status === "partial";
     } else {
       strict = rich;
     }
@@ -370,6 +390,8 @@ export function assessMp5Compatibility(
     hasRights,
     hasIdentifiers,
     integrityStatus: integrity.status,
+    integrityMessage: integrity.message,
+    integrityDetail: opts?.integrity ? integrity : undefined,
     warnings,
     errors,
     issues,
