@@ -1,6 +1,6 @@
 # MP5 known issues and limitations (Alpha)
 
-**Version:** MP5 Audio v0.10.7-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
+**Version:** MP5 Audio v0.11.0-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
 
 This page lists honest limitations for testers, demo hosts, and future Beta planning. See also [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) and [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md).
 
@@ -60,6 +60,8 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 | **Large file open** | Files ≥48 MiB use **lazy chunk indexing** (no full-file buffer in playlist state). Initial scan is much faster, but **AUDI decode** and **first play** still take time; browser memory limits apply. |
 | **Worker fallback** | Some browsers or blocked workers fall back to main-thread stem decode with a warning; full mix still works. |
 | **RAM cap** | Preparing many large stems at once may be blocked (~384 MB selected decode cap); full mix always works. |
+| **Stem mix alignment** | If live stem insert cannot align to the current transport clock, the UI may ask you to restart stem mix — silent failure is avoided. |
+| **Transport overlap (fixed v0.10.9)** | Earlier builds could play full mix and stem mix together after live stem load; v0.10.9 enforces one authority and per-stem source registry. |
 | **Normalization helper** | Resample/pad/trim only — not sample-accurate DAW sync. |
 | **Third-party players** | Most players will ignore STEM/STDA/STDF and play AUDI only. |
 

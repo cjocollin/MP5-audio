@@ -16,6 +16,20 @@ export const STDA_SAFE_MAX_BYTES = 48 * 1024 * 1024;
 export const STDF_DEFAULT_FRAGMENT_PAYLOAD = 12 * 1024 * 1024;
 
 let fragmentPayloadTarget = STDF_DEFAULT_FRAGMENT_PAYLOAD;
+let stdaSafeMaxBytesOverride: number | null = null;
+
+function effectiveStdaSafeMaxBytes(): number {
+  return stdaSafeMaxBytesOverride ?? STDA_SAFE_MAX_BYTES;
+}
+
+/** Test hook — lower STDA safe limit to force STDF v1 storage in regression fixtures. */
+export function setStdaSafeMaxBytesForTests(bytes: number): void {
+  stdaSafeMaxBytesOverride = Math.max(1024, bytes);
+}
+
+export function resetStdaSafeMaxBytesForTests(): void {
+  stdaSafeMaxBytesOverride = null;
+}
 
 /** Test hook — lower fragment size to force segmentation without huge allocations. */
 export function setStdfFragmentPayloadTargetForTests(bytes: number): void {
@@ -259,7 +273,8 @@ export function buildStemExportSizeReport(
 ): StemExportSizeReport {
   const totalStemFrameBytes = stemFrameData.reduce((s, d) => s + d.length, 0);
   const largestStemBytes = stemFrameData.reduce((m, d) => Math.max(m, d.length), 0);
-  const exceeds = stdaPayloadBytes > STDA_SAFE_MAX_BYTES;
+  const limit = effectiveStdaSafeMaxBytes();
+  const exceeds = stdaPayloadBytes > limit;
   return {
     stemCount: stemFrameData.length,
     totalStemFrameBytes,
@@ -276,7 +291,7 @@ export function buildStemExportSizeReport(
 export function formatStemExportSizeLog(report: StemExportSizeReport): string {
   const lines = [
     `[MP5 stem export] stems=${report.stemCount} totalStemBytes=${report.totalStemFrameBytes} largestStemBytes=${report.largestStemBytes}`,
-    `[MP5 stem export] STDA payload would be ${report.stdaPayloadBytes} bytes (limit ${STDA_SAFE_MAX_BYTES}) metadataEst=${report.metadataEstimateBytes}`,
+    `[MP5 stem export] STDA payload would be ${report.stdaPayloadBytes} bytes (limit ${effectiveStdaSafeMaxBytes()}) metadataEst=${report.metadataEstimateBytes}`,
     `[MP5 stem export] storage=${report.chosenStorage}${report.fragmentCount ? ` fragments=${report.fragmentCount} largestFragment=${report.largestFragmentBytes}` : ""}`,
   ];
   return lines.join("\n");

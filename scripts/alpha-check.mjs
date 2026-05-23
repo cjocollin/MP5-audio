@@ -36,6 +36,7 @@ run("Unit tests (vitest)", "pnpm", ["test"]);
 run("Rust codec tests", "cargo", ["test", "-p", "mp5-codec", "--release"]);
 run("Golden fixture validation", "node", ["scripts/validate-golden-fixtures.mjs"]);
 run("Stem fixture validation", "node", ["scripts/validate-stem-fixture.mjs"]);
+run("Playback regression gate", "pnpm", ["playback:check"]);
 run("E2E (Playwright)", "pnpm", ["test:e2e"]);
 
 console.log("\n=== MP5 Alpha check: all passed ===\n");

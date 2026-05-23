@@ -202,6 +202,8 @@ export {
   formatStemExportSizeLog,
   setStdfFragmentPayloadTargetForTests,
   resetStdfFragmentPayloadTarget,
+  setStdaSafeMaxBytesForTests,
+  resetStdaSafeMaxBytesForTests,
   stemTypeLabel,
   type StemType,
   type StemDescriptor,

@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  clockModeForTransport,
+  type PlaybackClockDiagnostics,
+} from "../lib/playback/activePlaybackClock";
 import { usePlayerStore, selectCanGoNext, selectCanGoPrev } from "../store/playerStore";
 import { decodeMp5ToPcm } from "./decodeMp5";
 import { decodeCache } from "./decodeCache";
@@ -22,9 +26,40 @@ import { findFirstSectionByType } from "../lib/sections/sectionPlayback";
 import type { HighlightMoment, SongSection } from "@mp5/container";
 import { useMp5AudioEngine } from "./useMp5AudioEngine";
 import { useStemMixerEngine, type StemPcmTrack } from "./useStemMixerEngine";
+import {
+  derivePlayState,
+  ingestStageToReadiness,
+  type PlaybackStateSnapshot,
+} from "../lib/playback/playbackState";
+import { assessKaraokeAvailability } from "../lib/lyrics/karaokeMode";
+import { parseLyrcFromFile } from "../lib/lyrics/parseLyrics";
+import { decodeStemManifest } from "@mp5/container";
+import {
+  resolvePlaybackRequest,
+  type PlaybackRequestReason,
+} from "../lib/playback/requestPlayback";
+import {
+  recordLastPlaybackRequest,
+  recordLastStemOperation,
+  recordLastWaveformSeek,
+  tracePlayback,
+} from "../lib/playback/playbackTrace";
+import {
+  buildPlaybackRegressionSnapshot,
+  setLatestPlaybackRegressionSnapshot,
+  type PlaybackRegressionSnapshot,
+} from "../lib/playback/playbackRegressionSnapshot";
+import { APP_VERSION } from "../generated/appVersion";
+import { authorityForMode, createTransportSnapshot } from "../lib/playback/playbackTransport";
+import type { StemTransportMode } from "../lib/stems/stemMixState";
+import type { StemMixSeamlessOp } from "../lib/playback/stemMixOps";
+import {
+  warnIfPlayheadResetAfterPatch,
+} from "../lib/playback/stemMixerAssert";
 import { NowPlayingView } from "./NowPlayingView";
 import { LibraryPanel } from "./LibraryPanel";
-import { ingestMp5Files, type IngestResult } from "./playlistUtils";
+import { ingestMp5Files, trackDurationSec, type IngestResult } from "./playlistUtils";
+import { useActivePlaybackClock } from "./useActivePlaybackClock";
 import {
   ingestStageLabel,
   indexStageDetail,
@@ -118,6 +153,14 @@ export function Mp5Player() {
   const [librarySaveNote, setLibrarySaveNote] = useState("");
   const [stemMixActive, setStemMixActive] = useState(false);
   const [stemTracks, setStemTracks] = useState<StemPcmTrack[] | null>(null);
+  const [transportMode, setTransportMode] = useState<StemTransportMode>("full_mix");
+  const [transportDiagLine, setTransportDiagLine] = useState("");
+  const [clockDiagLine, setClockDiagLine] = useState("");
+  const [stemInsertDeferredId, setStemInsertDeferredId] = useState<string | null>(null);
+  const [activeStemSourceIds, setActiveStemSourceIds] = useState<string[]>([]);
+  const stemLoadOffsetRef = useRef(0);
+  const stemGraphGenRef = useRef(0);
+  const transportIdRef = useRef(0);
   const [karaokeMode, setKaraokeMode] = useState(false);
   const [karaokePrepareRequest, setKaraokePrepareRequest] = useState<{
     stemIds: string[];
@@ -141,12 +184,21 @@ export function Mp5Player() {
   }, [consumePendingAlbumPackage]);
 
   const playWhenReadyRef = useRef(false);
+  const playWhenReadyKaraokeRef = useRef(false);
   const autoAdvanceRef = useRef(false);
   const seekRef = useRef<(t: number) => void>(() => {});
+  const [karaokeStemPrepFailed, setKaraokeStemPrepFailed] = useState(false);
 
   const useStemPlayback = stemMixActive && (stemTracks?.length ?? 0) > 0;
 
-  const { loadPcm, seek: seekMain, getPlaybackTime: getMainPlaybackTime } = useMp5AudioEngine({
+  const {
+    loadPcm,
+    seek: seekMain,
+    stopSource: stopMainSource,
+    getPlaybackTime: getMainPlaybackTime,
+    isSourceActive: isMainSourceActive,
+    hasPcm: hasMainPcm,
+  } = useMp5AudioEngine({
     volume,
     isPlaying: isPlaying && !useStemPlayback,
     duration,
@@ -169,7 +221,19 @@ export function Mp5Player() {
     },
   });
 
-  const { loadTracks, seek: seekStems, getPlaybackTime: getStemPlaybackTime } = useStemMixerEngine({
+  const {
+    loadInitialTracksForMix,
+    insertStemAtCurrentOffset,
+    removeStemOnly,
+    patchStemAudible,
+    seekStemMix,
+    stopStemMix,
+    setGraphGeneration,
+    getPlaybackTime: getStemPlaybackTime,
+    getDiagnostics: getStemDiagnostics,
+    hasActiveSources: hasStemActiveSources,
+    isGraphBusy: isStemGraphBusy,
+  } = useStemMixerEngine({
     volume,
     isPlaying: isPlaying && useStemPlayback,
     duration,
@@ -188,13 +252,210 @@ export function Mp5Player() {
         setCurrentIndex(result.index);
       }
     },
+    onOverlapDetected: (detail) => {
+      tracePlayback("transport", "overlap detected", { detail });
+      console.error("[MP5 transport overlap]", detail);
+      stopMainSource();
+      stopStemMix();
+    },
+    onStemMixNaturalEnd: () => {
+      tracePlayback("stem_mix", "natural end — stop UI");
+      setPlaying(false);
+      const result = handleTrackEnded();
+      if (result.type === "repeat_one") {
+        seekRef.current(0);
+        setPlaying(true);
+      } else if (result.type === "goto") {
+        autoAdvanceRef.current = true;
+        playWhenReadyRef.current = true;
+        setCurrentIndex(result.index);
+      }
+    },
   });
 
-  useEffect(() => {
-    if (useStemPlayback && stemTracks?.length) {
-      void loadTracks(stemTracks);
+  const invalidateStemGraph = useCallback(() => {
+    stemGraphGenRef.current += 1;
+    setGraphGeneration(stemGraphGenRef.current);
+    return stemGraphGenRef.current;
+  }, [setGraphGeneration]);
+
+  const refreshTransportDiagnostics = useCallback(() => {
+    const stemDiag = getStemDiagnostics();
+    const snap = createTransportSnapshot({
+      mode: transportMode,
+      authority: authorityForMode(transportMode),
+      transportId: transportIdRef.current,
+      stemGraphGeneration: stemDiag.stemGraphGeneration,
+      stemSourceCount: stemDiag.activeSourceCount,
+      activeStemIds: stemDiag.activeStemIds,
+      fullMixSourceActive: isMainSourceActive(),
+      stemMixSourcesActive: stemDiag.stemMixSourcesActive,
+    });
+    setActiveStemSourceIds(stemDiag.activeStemIds);
+    setTransportDiagLine(
+      `Transport ${snap.mode} · id ${snap.transportId} · graph gen ${snap.stemGraphGeneration} · sources ${snap.stemSourceCount}${snap.activeStemIds.length ? ` [${snap.activeStemIds.join(", ")}]` : ""} · full ${snap.fullMixSourceActive ? "on" : "off"} · stem ${snap.stemMixSourcesActive ? "on" : "off"}${snap.overlapDetected ? " · OVERLAP" : ""}`,
+    );
+    if (snap.overlapDetected) {
+      console.error("[MP5 transport] full_mix and stem_mix both active — stopping both");
+      stopMainSource();
+      stopStemMix();
+      invalidateStemGraph();
     }
-  }, [useStemPlayback, stemTracks, loadTracks]);
+  }, [
+    getStemDiagnostics,
+    invalidateStemGraph,
+    isMainSourceActive,
+    stopMainSource,
+    stopStemMix,
+    transportMode,
+  ]);
+
+  useEffect(() => {
+    if (useStemPlayback) {
+      stopMainSource();
+    } else {
+      stopStemMix();
+      invalidateStemGraph();
+    }
+    refreshTransportDiagnostics();
+  }, [
+    useStemPlayback,
+    stopMainSource,
+    stopStemMix,
+    invalidateStemGraph,
+    refreshTransportDiagnostics,
+  ]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = window.setInterval(refreshTransportDiagnostics, 500);
+    return () => window.clearInterval(id);
+  }, [isPlaying, refreshTransportDiagnostics]);
+
+  const handleStemMixEnable = useCallback(
+    (tracks: StemPcmTrack[], mode: import("./StemsPanel").StemMixMode, offsetSec: number) => {
+      stopMainSource();
+      transportIdRef.current += 1;
+      const gen = invalidateStemGraph();
+      stemLoadOffsetRef.current = offsetSec;
+      setTransportMode(mode);
+      setStemTracks(tracks);
+      setStemMixActive(true);
+      const resume =
+        isPlaying || playWhenReadyKaraokeRef.current || playWhenReadyRef.current;
+      playWhenReadyKaraokeRef.current = false;
+      void loadInitialTracksForMix(tracks, {
+        offset: offsetSec,
+        resume,
+        generation: gen,
+      }).then(() => refreshTransportDiagnostics());
+    },
+    [
+      invalidateStemGraph,
+      isPlaying,
+      loadInitialTracksForMix,
+      refreshTransportDiagnostics,
+      stopMainSource,
+    ],
+  );
+
+  const handleReturnToFullMix = useCallback(
+    (offsetSec: number) => {
+      stopStemMix();
+      invalidateStemGraph();
+      transportIdRef.current += 1;
+      setTransportMode("full_mix");
+      setStemTracks(null);
+      setStemMixActive(false);
+      if (isPlaying) void seekMain(offsetSec);
+      refreshTransportDiagnostics();
+    },
+    [invalidateStemGraph, isPlaying, refreshTransportDiagnostics, seekMain, stopStemMix],
+  );
+
+  const handleRestartStemMix = useCallback(() => {
+    if (!stemTracks?.length || !stemMixActive) return;
+    const gen = invalidateStemGraph();
+    const offset = getStemPlaybackTime();
+    void loadInitialTracksForMix(stemTracks, {
+      offset,
+      resume: isPlaying,
+      generation: gen,
+    }).then(() => refreshTransportDiagnostics());
+  }, [
+    stemMixActive,
+    stemTracks,
+    invalidateStemGraph,
+    getStemPlaybackTime,
+    isPlaying,
+    loadInitialTracksForMix,
+    refreshTransportDiagnostics,
+  ]);
+
+  const handleStemMixSeamlessOp = useCallback(
+    (op: StemMixSeamlessOp) => {
+      if (!stemMixActive) return;
+      recordLastStemOperation(
+        op.type === "insert"
+          ? `insert:${op.track.id}`
+          : op.type === "remove"
+            ? `remove:${op.stemId}`
+            : `audible:${op.track.id}:${op.track.muted ? "mute" : "unmute"}`,
+      );
+      const gen = stemGraphGenRef.current;
+      const before = getStemPlaybackTime();
+      const run = async () => {
+        switch (op.type) {
+          case "insert": {
+            const ok = await insertStemAtCurrentOffset(op.track, gen);
+            if (!ok) setStemInsertDeferredId(op.track.id);
+            setStemTracks((prev) => {
+              if (!prev) return [op.track];
+              if (prev.some((t) => t.id === op.track.id)) {
+                return prev.map((t) => (t.id === op.track.id ? op.track : t));
+              }
+              return [...prev, op.track];
+            });
+            break;
+          }
+          case "remove":
+            await removeStemOnly(op.stemId, gen);
+            setStemTracks((prev) => prev?.filter((t) => t.id !== op.stemId) ?? null);
+            break;
+          case "audible":
+            await patchStemAudible(op.track, gen);
+            setStemTracks((prev) => {
+              if (!prev) return [op.track];
+              if (prev.some((t) => t.id === op.track.id)) {
+                return prev.map((t) => (t.id === op.track.id ? op.track : t));
+              }
+              return [...prev, op.track];
+            });
+            break;
+        }
+        const after = getStemPlaybackTime();
+        const caller =
+          op.type === "insert"
+            ? "checkbox"
+            : op.type === "remove"
+              ? "checkbox"
+              : op.track.muted
+                ? "mute"
+                : "unmute";
+        warnIfPlayheadResetAfterPatch(caller, before, after);
+        refreshTransportDiagnostics();
+      };
+      void run();
+    },
+    [
+      stemMixActive,
+      getStemPlaybackTime,
+      insertStemAtCurrentOffset,
+      removeStemOnly,
+      patchStemAudible,
+      refreshTransportDiagnostics,
+    ],
+  );
 
   useEffect(() => {
     if (!parsed?.optional.has("STEM")) {
@@ -203,14 +464,357 @@ export function Mp5Player() {
     }
   }, [parsed]);
 
-  const seek = useStemPlayback ? seekStems : seekMain;
+  const karaokeAvailability = useMemo(() => {
+    const lyrc = parseLyrcFromFile(parsed);
+    const stems = decodeStemManifest(parsed?.optional.get("STEM"))?.stems;
+    return assessKaraokeAvailability(lyrc?.synced, stems);
+  }, [parsed]);
+
+  const karaokePreparing = karaokePrepareRequest !== null;
+  const karaokeReady = karaokeMode && useStemPlayback;
+  const karaokeFallback =
+    karaokeMode &&
+    !karaokePreparing &&
+    !useStemPlayback &&
+    (karaokeStemPrepFailed || !karaokeAvailability.audioAvailable);
+
+  const requestPlayback = useCallback(
+    (opts: {
+      reason: PlaybackRequestReason;
+      offsetSec?: number;
+      autoPlay?: boolean;
+    }) => {
+      const offsetSec = opts.offsetSec ?? currentTime;
+      const autoPlay =
+        opts.autoPlay ??
+        (opts.reason === "play_button" || opts.reason === "resume_after_prepare");
+
+      const ctx = {
+        reason: opts.reason,
+        offsetSec,
+        autoPlay,
+        karaokeMode,
+        karaokePreparing,
+        karaokeAudioUnavailable: !karaokeAvailability.audioAvailable,
+        useStemPlayback,
+        hasMainPcm: hasMainPcm(),
+        stemTracksReady: (stemTracks?.length ?? 0) > 0,
+        hasActiveStemSources: hasStemActiveSources(),
+        isPlaying,
+      };
+      const action = resolvePlaybackRequest(ctx);
+      tracePlayback("request_playback", opts.reason, {
+        action: action.action,
+        transportMode,
+        karaokeMode,
+        karaokePreparing,
+        karaokeReady,
+        karaokeFallback,
+        useStemPlayback,
+        offsetSec,
+        autoPlay,
+        isPlaying,
+        pcmDecoded: hasMainPcm(),
+      });
+
+      switch (action.action) {
+        case "noop":
+          return;
+        case "set_playing_preparing_karaoke":
+          playWhenReadyKaraokeRef.current = true;
+          playWhenReadyRef.current = true;
+          setPlaying(true);
+          tracePlayback("karaoke", "preparing — play deferred");
+          return;
+        case "set_playing_preparing_full_mix":
+          playWhenReadyRef.current = true;
+          setPlaying(true);
+          return;
+        case "start_stem_mix":
+          setPlaying(true);
+          if (stemTracks?.length && !isStemGraphBusy()) {
+            void loadInitialTracksForMix(stemTracks, {
+              offset: action.offsetSec,
+              resume: true,
+              generation: stemGraphGenRef.current,
+            }).then(() => refreshTransportDiagnostics());
+          }
+          return;
+        case "seek_stem_mix":
+          if (action.start) setPlaying(true);
+          seekStemMix(action.offsetSec, stemGraphGenRef.current, { start: action.start });
+          return;
+        case "karaoke_fallback_full_mix":
+          tracePlayback("karaoke", "fallback full mix + synced lyrics");
+          stopStemMix();
+          setPlaying(true);
+          seekMain(action.offsetSec, { start: true });
+          return;
+        case "start_full_mix":
+          setPlaying(true);
+          seekMain(action.offsetSec, { start: true });
+          return;
+        case "seek_full_mix":
+          if (action.start) setPlaying(true);
+          seekMain(action.offsetSec, { start: action.start });
+          return;
+      }
+    },
+    [
+      currentTime,
+      karaokeMode,
+      karaokePreparing,
+      karaokeReady,
+      karaokeFallback,
+      karaokeAvailability.audioAvailable,
+      useStemPlayback,
+      hasMainPcm,
+      stemTracks,
+      hasStemActiveSources,
+      isPlaying,
+      transportMode,
+      setPlaying,
+      loadInitialTracksForMix,
+      seekStemMix,
+      seekMain,
+      stopStemMix,
+      isStemGraphBusy,
+      refreshTransportDiagnostics,
+    ],
+  );
+
+  const seek = useCallback(
+    (seconds: number) => {
+      requestPlayback({
+        reason: "seek_slider",
+        offsetSec: seconds,
+        autoPlay: isPlaying,
+      });
+    },
+    [requestPlayback, isPlaying],
+  );
   seekRef.current = seek;
 
-  const getPlaybackTime = useCallback(() => {
-    return useStemPlayback ? getStemPlaybackTime() : getMainPlaybackTime();
-  }, [useStemPlayback, getStemPlaybackTime, getMainPlaybackTime]);
-
   const track = tracks[currentIndex];
+
+  const getPlaybackTime = useCallback(() => {
+    if (useStemPlayback) {
+      return hasStemActiveSources() || isPlaying
+        ? getStemPlaybackTime()
+        : currentTime;
+    }
+    return isMainSourceActive() || isPlaying
+      ? getMainPlaybackTime()
+      : currentTime;
+  }, [
+    useStemPlayback,
+    getStemPlaybackTime,
+    getMainPlaybackTime,
+    hasStemActiveSources,
+    isMainSourceActive,
+    isPlaying,
+    currentTime,
+  ]);
+
+  const hasActivePlaybackSource = useCallback(() => {
+    if (useStemPlayback) return hasStemActiveSources();
+    return isMainSourceActive();
+  }, [useStemPlayback, hasStemActiveSources, isMainSourceActive]);
+
+  const playbackSnapshot = useMemo((): PlaybackStateSnapshot => {
+    const pcmDecoded = hasMainPcm();
+    const readiness = ingestStageToReadiness(ingestStage, pcmDecoded, !!loadError);
+    return {
+      transportMode: useStemPlayback ? transportMode : stemMixActive ? "full_mix" : "idle",
+      readiness,
+      playState: derivePlayState(isPlaying, readiness, loading),
+      activeClockSource: useStemPlayback
+        ? hasStemActiveSources()
+          ? "stem_mix"
+          : "none"
+        : isMainSourceActive()
+          ? "full_mix"
+          : "none",
+      activeTrackId: track?.id ?? null,
+      currentTimeSec: currentTime,
+      durationSec: duration,
+      activeSourceCount: useStemPlayback
+        ? getStemDiagnostics().activeSourceCount
+        : isMainSourceActive()
+          ? 1
+          : 0,
+      activeStemIds: getStemDiagnostics().activeStemIds,
+      pcmDecoded,
+      isPlaying,
+      karaokeMode,
+      karaokePreparing,
+      karaokeReady,
+      karaokeFallback,
+    };
+  }, [
+    hasMainPcm,
+    ingestStage,
+    loadError,
+    useStemPlayback,
+    transportMode,
+    stemMixActive,
+    isPlaying,
+    loading,
+    hasStemActiveSources,
+    isMainSourceActive,
+    track?.id,
+    currentTime,
+    duration,
+    getStemDiagnostics,
+    karaokeMode,
+    karaokePreparing,
+    karaokeReady,
+    karaokeFallback,
+  ]);
+
+  useEffect(() => {
+    const stemDiag = getStemDiagnostics();
+    const transportSnap = createTransportSnapshot({
+      mode: transportMode,
+      authority: authorityForMode(transportMode),
+      transportId: transportIdRef.current,
+      stemGraphGeneration: stemDiag.stemGraphGeneration,
+      stemSourceCount: stemDiag.activeSourceCount,
+      activeStemIds: stemDiag.activeStemIds,
+      fullMixSourceActive: isMainSourceActive(),
+      stemMixSourcesActive: stemDiag.stemMixSourcesActive,
+    });
+    const reg = buildPlaybackRegressionSnapshot(playbackSnapshot, {
+      appVersion: APP_VERSION,
+      fullMixSourceActive: transportSnap.fullMixSourceActive,
+      stemMixSourcesActive: transportSnap.stemMixSourcesActive,
+      overlapDetected: transportSnap.overlapDetected,
+      transportDiagnosticsLine: transportDiagLine,
+    });
+    setLatestPlaybackRegressionSnapshot(reg);
+    const w = window as Window & {
+      __mp5PlaybackRegression?: () => PlaybackRegressionSnapshot | null;
+    };
+    w.__mp5PlaybackRegression = () => reg;
+  }, [
+    playbackSnapshot,
+    transportMode,
+    transportDiagLine,
+    getStemDiagnostics,
+    isMainSourceActive,
+  ]);
+
+  useEffect(() => {
+    if (!useStemPlayback || !stemTracks?.length || !isPlaying) return;
+    if (hasStemActiveSources() || isStemGraphBusy()) return;
+    if (!playWhenReadyKaraokeRef.current && !playWhenReadyRef.current) return;
+    playWhenReadyKaraokeRef.current = false;
+    tracePlayback("request_playback", "resume_after_prepare", {
+      stemTracks: stemTracks.length,
+    });
+    void loadInitialTracksForMix(stemTracks, {
+      offset: currentTime,
+      resume: true,
+      generation: stemGraphGenRef.current,
+    }).then(() => refreshTransportDiagnostics());
+  }, [
+    useStemPlayback,
+    stemTracks,
+    isPlaying,
+    hasStemActiveSources,
+    currentTime,
+    loadInitialTracksForMix,
+    refreshTransportDiagnostics,
+  ]);
+
+  const handlePlayPause = useCallback(() => {
+    if (isPlaying) {
+      tracePlayback("play_click", "pause");
+      setPlaying(false);
+      return;
+    }
+    tracePlayback("play_click", "play", {
+      trackId: track?.id,
+      karaokeMode,
+      useStemPlayback,
+      transportMode,
+    });
+    if (!track?.file && !track?.parsed) return;
+    requestPlayback({ reason: "play_button", autoPlay: true });
+  }, [
+    isPlaying,
+    track?.file,
+    track?.parsed,
+    track?.id,
+    karaokeMode,
+    useStemPlayback,
+    transportMode,
+    requestPlayback,
+    setPlaying,
+  ]);
+
+  const handleWaveformSeek = useCallback(
+    (ratio: number) => {
+      recordLastWaveformSeek(`ratio=${ratio.toFixed(3)}`);
+      tracePlayback("waveform_click", "seek", { ratio, duration });
+      requestPlayback({
+        reason: "waveform_seek",
+        offsetSec: ratio * duration,
+        autoPlay: true,
+      });
+    },
+    [duration, requestPlayback],
+  );
+
+  const activeClockMode = clockModeForTransport(
+    transportMode,
+    !!activePlaybackRange && activePlaybackRange.mode === "preview",
+  );
+
+  useActivePlaybackClock(
+    isPlaying,
+    duration,
+    getPlaybackTime,
+    setCurrentTime,
+    activeClockMode,
+    hasActivePlaybackSource,
+  );
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = window.setInterval(() => {
+      const raw = getPlaybackTime();
+      const diag: PlaybackClockDiagnostics = {
+        activeClockMode,
+        rawClockTime: raw,
+        displayedCurrentTime: currentTime,
+        duration,
+        activeTransportMode: transportMode,
+      };
+      setClockDiagLine(
+        `Clock ${diag.activeClockMode} · raw ${diag.rawClockTime.toFixed(2)}s · UI ${diag.displayedCurrentTime.toFixed(2)}s · dur ${diag.duration.toFixed(2)}s · transport ${diag.activeTransportMode}`,
+      );
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [
+    isPlaying,
+    getPlaybackTime,
+    activeClockMode,
+    currentTime,
+    duration,
+    transportMode,
+    karaokeReady,
+    karaokePreparing,
+    karaokeFallback,
+  ]);
+
+  useEffect(() => {
+    const headDur = trackDurationSec(parsed);
+    if (headDur != null && headDur > 0) {
+      setDuration(duration > 0 ? Math.max(duration, headDur) : headDur);
+    }
+  }, [parsed, duration, setDuration]);
+
   const songStructure = useMemo(() => parseStructureFromFile(parsed), [parsed]);
 
   useEffect(() => {
@@ -365,6 +969,7 @@ export function Mp5Player() {
   useEffect(() => {
     setKaraokeMode(false);
     setKaraokePrepareRequest(null);
+    setKaraokeStemPrepFailed(false);
     setActivePlaybackRange(null);
   }, [track?.id]);
 
@@ -446,6 +1051,7 @@ export function Mp5Player() {
       setMp5hInfo(undefined);
       setKaraokeMode(false);
       setKaraokePrepareRequest(null);
+      setKaraokeStemPrepFailed(false);
       setActivePlaybackRange(null);
       setDuration(0);
       setCurrentTime(0);
@@ -836,11 +1442,21 @@ export function Mp5Player() {
             activeLoopRange={waveformLoopRange}
             playedFill={playerTheme?.waveformPlayedFill}
             unplayedFill={playerTheme?.waveformUnplayedFill}
-            onSeek={(r) => seek(r * duration)}
+            onSeek={handleWaveformSeek}
           />
           <PlayerControls
             isPlaying={isPlaying}
-            onPlayPause={() => setPlaying(!isPlaying)}
+            onPlayPause={handlePlayPause}
+            playbackStatus={playbackSnapshot.playState}
+            playbackStatusDetail={
+              playbackSnapshot.playState === "preparing"
+                ? karaokePreparing
+                  ? "Preparing karaoke…"
+                  : ingestStageDetail || "Preparing audio…"
+                : karaokeFallback
+                  ? "Karaoke audio unavailable — playing full mix with synced lyrics"
+                  : loadError || undefined
+            }
             onPrev={playPrevious}
             onNext={playNext}
             canPrev={canPrev}
@@ -880,18 +1496,37 @@ export function Mp5Player() {
         isPlaying={isPlaying}
         onSeek={seek}
         karaokeMode={karaokeMode}
-        onKaraokeModeChange={setKaraokeMode}
-        onKaraokePrepare={(req) => setKaraokePrepareRequest(req)}
+        onKaraokeModeChange={(on) => {
+          tracePlayback("karaoke", on ? "mode on" : "mode off");
+          if (!on) setKaraokeStemPrepFailed(false);
+          setKaraokeMode(on);
+        }}
+        onKaraokePrepare={(req) => {
+          setKaraokeStemPrepFailed(false);
+          setKaraokePrepareRequest(req);
+        }}
       />
       <StemsPanel
         parsed={parsed}
         stemMixActive={stemMixActive}
         onStemMixActiveChange={setStemMixActive}
-        onStemTracksReady={setStemTracks}
+        onStemMixEnable={handleStemMixEnable}
+        onStemMixSeamlessOp={handleStemMixSeamlessOp}
+        onRestartStemMix={handleRestartStemMix}
+        onReturnToFullMix={handleReturnToFullMix}
+        getPlaybackTime={getPlaybackTime}
+        getStemGraphGeneration={() => stemGraphGenRef.current}
+        activeStemSourceIds={activeStemSourceIds}
+        transportDiagnostics={transportDiagLine}
+        clockDiagnostics={clockDiagLine}
+        stemInsertDeferredId={stemInsertDeferredId}
+        onClearStemInsertDeferred={() => setStemInsertDeferredId(null)}
+        onMixModeChange={setTransportMode}
         isPlaying={isPlaying}
         loading={loading}
         karaokePrepareRequest={karaokePrepareRequest}
         onKaraokePrepareDone={() => setKaraokePrepareRequest(null)}
+        onKaraokePrepareFailed={() => setKaraokeStemPrepFailed(true)}
       />
       <MetadataDetailsPanel
         parsed={parsed}

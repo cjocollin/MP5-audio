@@ -67,6 +67,7 @@ describe("beta readiness docs", () => {
   it("beta-check script exists in package.json", () => {
     expect(packageJson.scripts["beta:check"]).toContain("beta-check.mjs");
     expect(packageJson.scripts["fixtures:validate"]).toBeTruthy();
+    expect(packageJson.scripts["playback:check"]).toContain("playback-check.mjs");
   });
 });
 
@@ -120,13 +121,13 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.10.x-alpha", () => {
-    expect(packageJson.version).toMatch(/^0\.10\.\d+-alpha$/);
+  it("package.json is 0.11.x-alpha", () => {
+    expect(packageJson.version).toMatch(/^0\.11\.\d+-alpha$/);
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {
     const status = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(status).toMatch(/0\.10\.\d+-alpha/);
+    expect(status).toMatch(/0\.11\.\d+-alpha/);
     expect(status).toMatch(/MP5_BETA_READINESS|beta:check/i);
   });
 });

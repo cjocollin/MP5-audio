@@ -7,12 +7,14 @@ import {
   indexMp5FromBlob,
   parseMp5,
   parseMp5Async,
-  LARGE_MP5_PARSE_BYTES,
   type Mp5File,
   type Mp5IndexProgress,
   type Mp5ParseProgress,
 } from "@mp5/container";
 import type { PlaylistTrack } from "../store/playerStore";
+
+/** Yield during eager parse so medium STDF fixtures do not freeze the UI thread. */
+const EAGER_PARSE_ASYNC_BYTES = 12 * 1024 * 1024;
 import { USER_ERRORS, formatPlaylistParseError } from "../lib/userFacingErrors";
 import {
   resetIngestDiagnostics,
@@ -179,8 +181,8 @@ export async function ingestMp5Files(
         });
       } else {
         const buf = await file.arrayBuffer();
-        const large = buf.byteLength >= LARGE_MP5_PARSE_BYTES;
-        parsed = large
+        const useAsyncParse = buf.byteLength >= EAGER_PARSE_ASYNC_BYTES;
+        parsed = useAsyncParse
           ? await parseMp5Async(buf, {
               yieldEveryChunks: 2,
               onProgress: (p) => onProgress?.(file.name, p),

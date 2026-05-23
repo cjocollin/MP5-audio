@@ -1,12 +1,12 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.10.7-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.11.0-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Share / run:** `pnpm demo` · **Checklist:** [`docs/MP5_ALPHA_RELEASE_CHECKLIST.md`](MP5_ALPHA_RELEASE_CHECKLIST.md) · **Verify:** `pnpm alpha:check` · **Pre-Beta gate:** [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) · `pnpm beta:check`
+**Share / run:** `pnpm demo` · **Playback gate:** [`MP5_PLAYBACK_REGRESSION_CHECKLIST.md`](MP5_PLAYBACK_REGRESSION_CHECKLIST.md) · `pnpm playback:check` · **Verify:** `pnpm alpha:check` · **Pre-Beta:** `pnpm beta:check`
 
 ## Codec policy
 
@@ -34,6 +34,13 @@
 
 - **Converter:** FLAC/WAV/MP3/etc. → `.mp5` with **MP5-L v3** default (recommended)
 - **Batch converter (MVP):** **Batch** tab — multi-file import, queue with per-file status, **MP5-L v3 only**, progress summary, retry failed, download individual/all (no ZIP), optional auto-save to local library with FING duplicate detection; browser-local (no upload)
+- **Playback regression harness (v0.11.0-alpha):** synthetic `demo_pity_party_class.mp5`; `pnpm playback:check`; behavioral Playwright specs; playback trace export; manual Pity Party remains user-local copyright stress test
+- **Karaoke Play / clock hotfix (v0.10.12-alpha):** canonical `requestPlayback` for Play, waveform, and seek; Play after Karaoke Mode starts stem mix (no waveform workaround); progress clock follows active transport in karaoke/stem/full mix; lyrics scroll fix preserved
+- **Real playback state audit (v0.10.12-alpha):** single transport/clock authority; first Play enters preparing then starts when PCM ready; unloaded-stem unmute never disposes active graph; UI clock gated on live sources; lyrics panel scroll is container-local only; optional playback trace in Diagnostics
+- **Stem mixer clock / unmute / scroll (v0.10.11-alpha):** superseded by v0.10.12 transport audit for manual Pity Party scenarios
+- **Stem mixer seamless toggle (v0.10.10-alpha):** checkbox/mute/volume use per-stem insert/remove/gain patch only — no hidden `loadTracks`; explicit **Restart stem mix** button
+- **Stem transport exclusivity (v0.10.9-alpha):** one playback authority (full_mix vs stem_mix/solo/karaoke); per-stem source registry; graph generation tokens for stale async loads; overlap detection in Stems diagnostics
+- **Stem mixer toggle / live stem add (v0.10.8-alpha):** checkbox = **selected** only (does not stop full mix); **Enable stem mix** switches transport; mute/gain patches without restart; live stem insert at current playhead; state badges (Selected/Loaded/Active/Muted/Preparing)
 - **Lazy STDF stem lookup + VISU player hotfix (v0.10.7-alpha):** worker stem jobs load STDF fragments by **stemId** from lazy index; per-stem availability in Stems panel; **visible VISU** on active player (cover ring/scrim, column wash, preset colors when file has no hex — e.g. Pity Party `cinematic`); metadata theme status line
 - **Large-file lazy ingest (v0.10.6-alpha):** blob chunk index for files ≥48 MiB — no full-file `ArrayBuffer` + no eager STDF copy; AUDI loaded for playback only; stems on demand; integrity pending → idle verify; Settings diagnostics show ingest mode/timing
 - **Large-file + VISU hotfix (v0.10.5-alpha):** STDF worker CRC wire fix; VISU style presets; informational whole-file hash (`audio_verified`)

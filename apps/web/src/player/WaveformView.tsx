@@ -47,6 +47,7 @@ export function WaveformView({
   return (
     <svg
       className="w-full h-16 rounded-xl bg-surface-elevated cursor-pointer"
+      data-testid="waveform"
       viewBox={`0 0 ${w} 32`}
       preserveAspectRatio="none"
       onClick={(e) => {

@@ -14,7 +14,7 @@ export default defineConfig({
   webServer: {
     command: "pnpm --filter @mp5/web dev --host 127.0.0.1",
     url: "http://127.0.0.1:5173",
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });

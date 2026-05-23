@@ -15,6 +15,7 @@ import {
 } from "../lib/sections/sectionPlayback";
 import { loopHookRange, loopSectionRange } from "../lib/sections/playbackRange";
 import { hasSongSections, parseStructureFromFile } from "../lib/sections/parseSections";
+import { scrollChildIntoContainer } from "../lib/ui/scrollWithinContainer";
 import { HighlightsPanel } from "./HighlightsPanel";
 
 interface Props {
@@ -53,12 +54,17 @@ export function SongMapPanel({
     [sections, currentTime],
   );
   const activeRef = useRef<HTMLLIElement | null>(null);
+  const listScrollRef = useRef<HTMLUListElement | null>(null);
+  const lastScrolledIdxRef = useRef(-1);
   const [showMap, setShowMap] = useState(true);
+  const [autoScrollMap, setAutoScrollMap] = useState(true);
 
   useEffect(() => {
-    if (!showMap || activeIdx < 0) return;
-    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [activeIdx, showMap]);
+    if (!showMap || !autoScrollMap || activeIdx < 0 || !listScrollRef.current) return;
+    if (activeIdx === lastScrolledIdxRef.current) return;
+    lastScrolledIdxRef.current = activeIdx;
+    scrollChildIntoContainer(listScrollRef.current, activeRef.current, { behavior: "smooth" });
+  }, [activeIdx, showMap, autoScrollMap]);
 
   const chorus = findFirstSectionByType(sections, "chorus");
   const introSkip = skipIntroTarget(sections);
@@ -85,15 +91,26 @@ export function SongMapPanel({
             <span className="text-xs text-gray-500 font-normal">({sections.length})</span>
           )}
         </p>
-        <label className="flex items-center gap-2 text-xs text-gray-400">
-          <input
-            type="checkbox"
-            checked={showMap}
-            onChange={(e) => setShowMap(e.target.checked)}
-            data-testid="song-map-show-toggle"
-          />
-          Show map
-        </label>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showMap}
+              onChange={(e) => setShowMap(e.target.checked)}
+              data-testid="song-map-show-toggle"
+            />
+            Show map
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={autoScrollMap}
+              onChange={(e) => setAutoScrollMap(e.target.checked)}
+              data-testid="song-map-autoscroll-toggle"
+            />
+            Auto-scroll map
+          </label>
+        </div>
       </div>
 
       <div
@@ -221,6 +238,7 @@ export function SongMapPanel({
 
           {showMap && (
             <ul
+              ref={listScrollRef}
               className="max-h-40 overflow-y-auto space-y-1 rounded-lg border border-white/5 bg-surface/30 p-2"
               data-testid="song-map-list"
             >

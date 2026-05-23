@@ -1,6 +1,6 @@
 # MP5 Stems (optional STEM chunk — MVP)
 
-**Version:** MP5 Audio v0.10.7-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
+**Version:** MP5 Audio v0.11.0-alpha · Chunk registry: [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md)
 
 Stems are **optional**. Every `.mp5` file must remain playable from the **AUDI** (full mix) chunk alone. Players that do not implement stems ignore **STEM** / **STDA** / **STDF** and behave as today.
 
@@ -86,6 +86,49 @@ Multiple **STDF** chunks may appear in one file (one fragment per chunk). **STEM
 7. Export merges **STEM** + **STDA** (small sets) or **STEM** + multiple **STDF** fragments (large sets) — auto-selected when combined stem data would exceed the 64 MiB per-chunk limit. Fragment size ~12 MiB. MP5-L v3 for stems when WASM is ready.
 
 Stems should ideally come from the **same session/export** as the full mix; normalization is a helper for rate/duration mismatches only.
+
+## Playback regression (v0.11.0-alpha)
+
+- Checklist: [`MP5_PLAYBACK_REGRESSION_CHECKLIST.md`](MP5_PLAYBACK_REGRESSION_CHECKLIST.md)
+- CI fixture: `demo_pity_party_class.mp5` (`pnpm fixtures:pity-party-class`)
+- Gate: `pnpm playback:check` (included in `pnpm alpha:check`)
+- **Pity Party** (user-local, ~260 MiB, copyrighted) is **not** in the repo — run the checklist manually after automated gates pass.
+
+## Player playback (v0.10.12-alpha)
+
+**Playback state audit:** one canonical snapshot (`transportMode`, `readiness`, `playState`, `activeClockSource`). First **Play** while AUDI is still decoding sets **Preparing audio…** and auto-starts when PCM is ready (no silent no-op). Optional **Playback trace** in Settings → Diagnostics (`localStorage mp5_playback_trace=1`).
+
+**Unloaded stem unmute:** never calls `stopStemMix` / `disposeAllSources` from prepare failure or the removed auto-restart effect. Stem engines do not push `currentTime`/`isPlaying` from per-stem `onended`; natural end is handled at the player layer.
+
+**Canonical playback clock:** UI seek bar ticks only when the active transport has live `AudioBufferSourceNode`s. `getPlaybackTime` does not advance from stale offsets when sources are idle.
+
+**Panel-local auto-scroll:** lyrics use `scrollChildIntoContainer` inside `lyrics-synced-view` (respects **Auto-scroll lyrics** toggle). No `scrollIntoView` on the document during playback.
+
+## Player playback (v0.10.11-alpha)
+
+Superseded by v0.10.12 for manual lazy-STDF files (e.g. Pity Party): first Play, seek sprint, page scroll, and unloaded-stem unmute still failed in real use.
+
+## Player playback (v0.10.10-alpha)
+
+**Seamless selection and mute:** while stem mix is playing, checking/unchecking stems and mute/unmute/volume only patch the active graph (insert one stem, remove one stem, or change gain). Playback does not restart. Use **Restart stem mix** when you need a full graph rebuild.
+
+## Player playback (v0.10.9-alpha)
+
+**Single transport authority:** MP5 allows exactly one active playback path at a time — `full_mix` (AUDI) or `stem_mix` / `solo_stem` / `karaoke`. Switching modes stops the previous graph before starting the new one. Overlap (full mix + stem mix simultaneously) is detected and corrected.
+
+**Live stem insert:** when a stem finishes loading during active stem mix, it is scheduled at the current playhead via a per-stem source registry — other stems keep playing; the song does not restart.
+
+**Generation tokens:** async stem decode carries a graph generation ID; stale loads after mode switch or cancel are discarded and never start audio.
+
+## Player playback (v0.10.8-alpha)
+
+**Stem selection vs stem mix:** checking a stem means **selected for stem mix** — it does **not** stop full mix playback. Use **Enable stem mix** (or Solo / Prepare selected / Karaoke) to switch transport to stem sources. While full mix plays, selected stems may decode in the background.
+
+**Mute / unmute:** when a stem is loaded and active in stem mix, mute only sets gain to zero — playback continues. Unmuting an unloaded selected stem starts preparation without stopping the full mix.
+
+**Live stem add:** when a selected stem finishes loading during stem mix playback, it is scheduled at the current playhead offset (no full-song restart; lyrics stay on the playback clock).
+
+**State badges:** Selected · Loaded · Active · Muted · Preparing · Available — checkbox is not “loaded” or “audible”.
 
 ## Player playback (v0.10.7-alpha)
 

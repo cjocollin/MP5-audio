@@ -2,9 +2,13 @@ import type { RepeatMode } from "../store/playerStore";
 import { repeatModeLabel } from "./queueNavigation";
 import { formatDuration, formatPlaybackTime } from "./playlistUtils";
 
+export type PlayerPlaybackStatus = "stopped" | "playing" | "paused" | "preparing";
+
 interface Props {
   isPlaying: boolean;
   onPlayPause: () => void;
+  playbackStatus?: PlayerPlaybackStatus;
+  playbackStatusDetail?: string;
   onPrev: () => void;
   onNext: () => void;
   canPrev?: boolean;
@@ -23,6 +27,8 @@ interface Props {
 export function PlayerControls({
   isPlaying,
   onPlayPause,
+  playbackStatus,
+  playbackStatusDetail,
   onPrev,
   onNext,
   canPrev = true,
@@ -38,11 +44,29 @@ export function PlayerControls({
   onVolume,
 }: Props) {
   const ready = duration > 0;
+  const statusLabel = isPlaying
+    ? playbackStatus === "preparing"
+      ? playbackStatusDetail || "Preparing audio…"
+      : "Playing"
+    : playbackStatus === "preparing"
+      ? playbackStatusDetail || "Preparing audio…"
+      : playbackStatus === "paused" && ready
+        ? "Ready to play"
+        : playbackStatusDetail;
   return (
     <div className="space-y-3">
       {!ready && (
         <p className="text-xs text-gray-500 text-center" data-testid="player-not-ready">
           Load an .mp5 file to enable playback
+        </p>
+      )}
+      {statusLabel && (
+        <p
+          className="text-xs text-center text-gray-400"
+          data-testid="player-playback-status"
+          data-playback-status={playbackStatus ?? "stopped"}
+        >
+          {statusLabel}
         </p>
       )}
       <input

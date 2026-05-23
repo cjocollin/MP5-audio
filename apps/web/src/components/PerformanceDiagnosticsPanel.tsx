@@ -1,4 +1,11 @@
 import { useEffect, useState } from "react";
+import { exportPlaybackTraceReport } from "../lib/playback/playbackRegressionSnapshot";
+import {
+  clearPlaybackTrace,
+  getPlaybackTraceBuffer,
+  isPlaybackTraceEnabled,
+  setPlaybackTraceEnabled,
+} from "../lib/playback/playbackTrace";
 import { formatBytes } from "../converter/exportSummary";
 import { decodeCache, DECODE_CACHE_MAX_ENTRIES } from "../player/decodeCache";
 import { getCodecLoadState } from "../wasm/codec";
@@ -14,6 +21,8 @@ export function PerformanceDiagnosticsPanel() {
   const [libraryBytes, setLibraryBytes] = useState(0);
   const [libraryQuota, setLibraryQuota] = useState<number | null>(null);
   const [libraryCount, setLibraryCount] = useState(0);
+  const [traceOn, setTraceOn] = useState(isPlaybackTraceEnabled);
+  const [, setTraceTick] = useState(0);
   const conversion = useConversionStore();
   const tracks = usePlayerStore((s) => s.tracks);
   const currentIndex = usePlayerStore((s) => s.currentIndex);
@@ -35,9 +44,12 @@ export function PerformanceDiagnosticsPanel() {
       }
     };
     void refresh();
-    const id = setInterval(() => void refresh(), 3000);
+    const id = setInterval(() => {
+      void refresh();
+      if (traceOn) setTraceTick((n) => n + 1);
+    }, 3000);
     return () => clearInterval(id);
-  }, [open]);
+  }, [open, traceOn]);
 
   const ingest = getIngestDiagnostics();
   const cacheStats = decodeCache.getStats(currentTrack?.id);
@@ -106,6 +118,64 @@ export function PerformanceDiagnosticsPanel() {
         <p className="text-[10px] text-gray-600 font-sans leading-relaxed pt-1">
           Estimates are approximate. Stem mix RAM is shown in the Stems panel when enabled.
         </p>
+        <div className="border-t border-white/5 pt-2 space-y-2">
+          <label className="flex items-center gap-2 text-gray-400 font-sans">
+            <input
+              type="checkbox"
+              checked={traceOn}
+              onChange={(e) => {
+                setPlaybackTraceEnabled(e.target.checked);
+                setTraceOn(e.target.checked);
+              }}
+              data-testid="playback-trace-toggle"
+            />
+            Playback trace (console + buffer)
+          </label>
+          {traceOn && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="text-[10px] text-gray-500 hover:text-gray-300 font-sans"
+                  onClick={async () => {
+                    const text = exportPlaybackTraceReport();
+                    try {
+                      await navigator.clipboard.writeText(text);
+                    } catch {
+                      /* fallback below */
+                    }
+                  }}
+                  data-testid="playback-trace-copy"
+                >
+                  Copy playback trace
+                </button>
+                <button
+                  type="button"
+                  className="text-[10px] text-gray-500 hover:text-gray-300 font-sans"
+                  onClick={() => {
+                    clearPlaybackTrace();
+                    setTraceTick((n) => n + 1);
+                  }}
+                  data-testid="playback-trace-clear"
+                >
+                  Clear trace
+                </button>
+              </div>
+              <pre
+                className="max-h-40 overflow-auto text-[10px] text-gray-500 whitespace-pre-wrap"
+                data-testid="playback-trace-log"
+              >
+                {getPlaybackTraceBuffer()
+                  .slice(-24)
+                  .map(
+                    (e) =>
+                      `${Math.round(e.t)}ms ${e.kind}: ${e.reason}${e.detail ? ` ${JSON.stringify(e.detail)}` : ""}`,
+                  )
+                  .join("\n") || "(no events yet)"}
+              </pre>
+            </>
+          )}
+        </div>
       </div>
     </details>
   );

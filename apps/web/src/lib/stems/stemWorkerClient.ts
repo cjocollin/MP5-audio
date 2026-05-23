@@ -11,7 +11,14 @@ import type {
 } from "./stemWorkerProtocol";
 
 export const STEM_WORKER_FALLBACK_WARNING =
-  "Background stem decoding is unavailable. Large stems may feel slower.";
+  "Stem decoding is running on the main thread (background worker unavailable). Large stems may take longer during prep.";
+
+/** User-visible note with optional technical detail from diagnostics. */
+export function stemWorkerFallbackMessage(lastError?: string): string {
+  const detail = lastError?.trim();
+  if (!detail) return STEM_WORKER_FALLBACK_WARNING;
+  return `${STEM_WORKER_FALLBACK_WARNING} (${detail})`;
+}
 
 let jobCounter = 0;
 

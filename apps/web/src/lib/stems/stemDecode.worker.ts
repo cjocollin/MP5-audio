@@ -3,6 +3,7 @@ import {
   reconstructStemFrameFromFragments,
   type StdfFragmentRecord,
 } from "@mp5/container";
+import wasmUrl from "../../wasm/pkg/mp5_codec_bg.wasm?url";
 import init, { decode_mp5l } from "../../wasm/pkg/mp5_codec.js";
 import { decodeStemFrameCore } from "./stemDecodeCore";
 import type {
@@ -24,13 +25,14 @@ function post(msg: StemWorkerOutMessage, transfer?: Transferable[]) {
 async function ensureCodec(): Promise<boolean> {
   if (codecReady) return true;
   if (!codecInit) {
-    codecInit = (async () => {
-      await init();
-      codecReady = true;
-    })().catch(() => {
-      codecInit = null;
-      throw new Error("WASM codec failed to load in stem worker");
-    });
+    codecInit = init({ module_or_path: wasmUrl })
+      .then(() => {
+        codecReady = true;
+      })
+      .catch(() => {
+        codecInit = null;
+        throw new Error("WASM codec failed to load in stem worker");
+      });
   }
   try {
     await codecInit;

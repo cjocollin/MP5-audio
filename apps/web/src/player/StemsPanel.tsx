@@ -18,10 +18,17 @@ import { prepareStemsSequential, type StemPrepareProgress } from "../lib/stems/s
 import { loadStemFrameData } from "../lib/stems/stemFrameLoader";
 import {
   getStemWorkerClient,
-  STEM_WORKER_FALLBACK_WARNING,
+  stemWorkerFallbackMessage,
 } from "../lib/stems/stemWorkerClient";
+import {
+  badgeLabel,
+  stemRowBadges,
+  stemsForActiveMix,
+  type StemTransportMode,
+} from "../lib/stems/stemMixState";
 import { downloadBlob } from "../lib/performance/downloadBlob";
 import { formatDuration } from "./playlistUtils";
+import type { StemMixSeamlessOp } from "../lib/playback/stemMixOps";
 import type { StemPcmTrack } from "./useStemMixerEngine";
 
 export interface StemUiState {
@@ -30,9 +37,11 @@ export interface StemUiState {
   muted: boolean;
   solo: boolean;
   selected: boolean;
+  preparing: boolean;
+  pendingAudible?: boolean;
 }
 
-export type StemMixMode = "full_mix" | "selected" | "solo" | "karaoke";
+export type StemMixMode = StemTransportMode;
 
 interface KaraokePrepareRequest {
   stemIds: string[];
@@ -43,12 +52,23 @@ interface Props {
   parsed?: Mp5File;
   stemMixActive: boolean;
   onStemMixActiveChange: (active: boolean) => void;
-  onStemTracksReady: (tracks: StemPcmTrack[] | null) => void;
+  onStemMixEnable: (tracks: StemPcmTrack[], mode: StemMixMode, offsetSec: number) => void;
+  onStemMixSeamlessOp: (op: StemMixSeamlessOp) => void;
+  onRestartStemMix: () => void;
+  onReturnToFullMix: (offsetSec: number) => void;
   onMixModeChange?: (mode: StemMixMode) => void;
+  getPlaybackTime?: () => number;
+  getStemGraphGeneration?: () => number;
+  activeStemSourceIds?: string[];
+  transportDiagnostics?: string;
+  clockDiagnostics?: string;
+  stemInsertDeferredId?: string | null;
+  onClearStemInsertDeferred?: () => void;
   isPlaying: boolean;
   loading?: boolean;
   karaokePrepareRequest?: KaraokePrepareRequest | null;
   onKaraokePrepareDone?: () => void;
+  onKaraokePrepareFailed?: () => void;
 }
 
 function availabilityLabel(
@@ -74,13 +94,16 @@ function stemDurationSec(desc: { durationSamples: number; sampleRate: number; ch
   return desc.durationSamples / desc.sampleRate / desc.channels;
 }
 
-function uiToPcmTracks(
+function uiToPcmTracksForMix(
   file: NonNullable<ReturnType<typeof parseStemsFromFile>>,
   uiState: StemUiState[],
   cache: StemDecodeCache,
+  mode: StemTransportMode,
 ): StemPcmTrack[] {
+  const activeIds = new Set(stemsForActiveMix(file.stems, uiState, cache, mode));
   const tracks: StemPcmTrack[] = [];
   for (const stem of file.stems) {
+    if (!activeIds.has(stem.stemId)) continue;
     const decoded = cache.get(stem.stemId);
     if (!decoded) continue;
     const ui = uiState.find((u) => u.id === stem.stemId);
@@ -97,16 +120,46 @@ function uiToPcmTracks(
   return tracks;
 }
 
+function pcmTrackForStem(
+  file: NonNullable<ReturnType<typeof parseStemsFromFile>>,
+  ui: StemUiState,
+  cache: StemDecodeCache,
+): StemPcmTrack | null {
+  const stem = file.stems.find((s) => s.stemId === ui.id);
+  const decoded = cache.get(ui.id);
+  if (!stem || !decoded) return null;
+  return {
+    id: stem.stemId,
+    samples: decoded.samples,
+    rate: decoded.sampleRate,
+    ch: decoded.channels,
+    gain: ui.gain,
+    muted: ui.muted,
+    solo: ui.solo,
+  };
+}
+
 export function StemsPanel({
   parsed,
   stemMixActive,
   onStemMixActiveChange,
-  onStemTracksReady,
+  onStemMixEnable,
+  onStemMixSeamlessOp,
+  onRestartStemMix,
+  onReturnToFullMix,
   onMixModeChange,
+  getPlaybackTime,
+  getStemGraphGeneration,
+  activeStemSourceIds,
+  transportDiagnostics,
+  clockDiagnostics,
+  stemInsertDeferredId,
+  onClearStemInsertDeferred,
   isPlaying,
   loading,
   karaokePrepareRequest,
   onKaraokePrepareDone,
+  onKaraokePrepareFailed,
 }: Props) {
   const parsedStems = useMemo(() => (parsed ? parseStemsFromFile(parsed) : null), [parsed]);
   const fileTier = useMemo(
@@ -119,6 +172,7 @@ export function StemsPanel({
 
   const cacheRef = useRef(new StemDecodeCache());
   const abortRef = useRef<AbortController | null>(null);
+  const bgPrepareByStemRef = useRef<Map<string, AbortController>>(new Map());
 
   const [uiState, setUiState] = useState<StemUiState[]>([]);
   const [mixMode, setMixMode] = useState<StemMixMode>("full_mix");
@@ -133,11 +187,17 @@ export function StemsPanel({
   const [downloadBusy, setDownloadBusy] = useState<string | null>(null);
   const [soloStemId, setSoloStemId] = useState<string | null>(null);
   const [workerDiag, setWorkerDiag] = useState(() => getStemWorkerClient().diagnostics);
+  const [cacheTick, setCacheTick] = useState(0);
+  const bumpCacheUi = useCallback(() => setCacheTick((n) => n + 1), []);
+
+  const playbackOffset = useCallback(
+    () => (getPlaybackTime ? getPlaybackTime() : 0),
+    [getPlaybackTime],
+  );
 
   useEffect(() => {
     if (!parsedStems) {
       setUiState([]);
-      onStemTracksReady(null);
       onStemMixActiveChange(false);
       cacheRef.current.unloadAll();
       return;
@@ -149,43 +209,60 @@ export function StemsPanel({
         muted: false,
         solo: false,
         selected: false,
+        preparing: false,
       })),
     );
     setStatusError("");
     setSoloStemId(null);
     setMixMode("full_mix");
     onMixModeChange?.("full_mix");
-  }, [parsedStems, onStemTracksReady, onStemMixActiveChange, onMixModeChange]);
+  }, [parsedStems, onStemMixActiveChange, onMixModeChange]);
+
+  useEffect(() => {
+    if (!stemInsertDeferredId) return;
+    const stem = parsedStems?.stems.find((s) => s.stemId === stemInsertDeferredId);
+    setStatusNote(
+      stem
+        ? `"${stem.stemName}" is ready — use Restart stem mix to apply at the current playhead.`
+        : "Stem prepared — restart stem mix to apply.",
+    );
+    onClearStemInsertDeferred?.();
+  }, [stemInsertDeferredId, parsedStems, onClearStemInsertDeferred]);
 
   const cancelPrepare = useCallback(() => {
     abortRef.current?.abort();
+    for (const ac of bgPrepareByStemRef.current.values()) ac.abort();
+    bgPrepareByStemRef.current.clear();
     getStemWorkerClient().cancelActive();
     abortRef.current = null;
     setPrepareProgress((p) => ({ ...p, phase: "cancelled" }));
+    setUiState((prev) => prev.map((u) => ({ ...u, preparing: false })));
     setStatusNote("Stem preparation cancelled.");
     setWorkerDiag(getStemWorkerClient().diagnostics);
   }, []);
 
-  const syncTracksToMixer = useCallback(
-    (mode: StemMixMode) => {
-      if (!parsedStems || !stemMixActive) {
-        onStemTracksReady(null);
-        return;
-      }
-      const tracks = uiToPcmTracks(parsedStems, uiState, cacheRef.current);
-      onStemTracksReady(tracks.length ? tracks : null);
-      onMixModeChange?.(mode);
+  const seamlessOpForStem = useCallback(
+    (ui: StemUiState): StemMixSeamlessOp | null => {
+      if (!parsedStems) return null;
+      const track = pcmTrackForStem(parsedStems, ui, cacheRef.current);
+      if (!track) return null;
+      return { type: "audible", track };
     },
-    [parsedStems, stemMixActive, uiState, onStemTracksReady, onMixModeChange],
+    [parsedStems],
   );
 
   const runPrepare = useCallback(
-    async (stemsToLoad: StemDescriptor[], mode: StemMixMode, uiOverride?: StemUiState[]) => {
+    async (
+      stemsToLoad: StemDescriptor[],
+      mode: StemMixMode,
+      uiOverride?: StemUiState[],
+      enableMix = true,
+    ) => {
       if (!parsedStems) return;
       const safety = assessSelectedStemsPrepare(stemsToLoad);
       if (!safety.ok) {
         setStatusError(safety.block ?? "Cannot prepare stems.");
-        onStemMixActiveChange(false);
+        if (enableMix) onStemMixActiveChange(false);
         return;
       }
       setStatusError("");
@@ -216,14 +293,31 @@ export function StemsPanel({
         const diag = getStemWorkerClient().diagnostics;
         setWorkerDiag(diag);
         if (diag.fallbackMode && !safety.warning) {
-          setStatusNote(STEM_WORKER_FALLBACK_WARNING);
+          setStatusNote(stemWorkerFallbackMessage(diag.lastError));
         }
-        if (uiOverride) setUiState(uiOverride);
+        const nextUi = (uiOverride ?? uiState).map((u) => ({ ...u, preparing: false }));
+        setUiState(nextUi);
+        bumpCacheUi();
+
+        if (!enableMix) {
+          setStatusNote(
+            `Prepared ${stemsToLoad.length} stem(s) · ~${Math.round(cacheRef.current.stats().decodedRamBytes / (1024 * 1024))} MB in RAM`,
+          );
+          return;
+        }
+
         setMixMode(mode);
-        onStemMixActiveChange(true);
-        syncTracksToMixer(mode);
+        onMixModeChange?.(mode);
+
+        const tracks = uiToPcmTracksForMix(parsedStems, nextUi, cacheRef.current, mode);
+        if (!tracks.length) {
+          setStatusError("Prepared stems could not be added to the mix.");
+          return;
+        }
+        const offset = playbackOffset();
+        onStemMixEnable(tracks, mode, offset);
         setStatusNote(
-          `Prepared ${stemsToLoad.length} stem(s) · ~${Math.round(cacheRef.current.stats().decodedRamBytes / (1024 * 1024))} MB in RAM`,
+          `Stem mix active (${mode}) · ~${Math.round(cacheRef.current.stats().decodedRamBytes / (1024 * 1024))} MB in RAM`,
         );
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return;
@@ -232,13 +326,80 @@ export function StemsPanel({
             ? e.message
             : "Stem preparation failed. Full mix playback is still available.",
         );
+        if (mode === "karaoke") {
+          onKaraokePrepareFailed?.();
+          onMixModeChange?.("full_mix");
+          setMixMode("full_mix");
+        }
         onStemMixActiveChange(false);
-        onStemTracksReady(null);
       } finally {
         abortRef.current = null;
       }
     },
-    [parsedStems, onStemMixActiveChange, onStemTracksReady, syncTracksToMixer],
+    [
+      parsedStems,
+      uiState,
+      onStemMixActiveChange,
+      onStemMixEnable,
+      onMixModeChange,
+      onKaraokePrepareFailed,
+      playbackOffset,
+      bumpCacheUi,
+    ],
+  );
+
+  const prepareStemBackground = useCallback(
+    async (stemId: string) => {
+      if (!parsedStems || cacheRef.current.has(stemId)) return;
+      const capturedGen = getStemGraphGeneration?.() ?? 0;
+      const stem = parsedStems.stems.find((s) => s.stemId === stemId);
+      if (!stem) return;
+      const idx = parsedStems.stems.indexOf(stem);
+      setUiState((prev) =>
+        prev.map((u) => (u.id === stemId ? { ...u, preparing: true } : u)),
+      );
+      bgPrepareByStemRef.current.get(stemId)?.abort();
+      const ac = new AbortController();
+      bgPrepareByStemRef.current.set(stemId, ac);
+      try {
+        await cacheRef.current.decodeStem(parsedStems, stem, Math.max(0, idx), ac.signal);
+        setUiState((prev) => {
+          const next = prev.map((u) =>
+            u.id === stemId ? { ...u, preparing: false, pendingAudible: false } : u,
+          );
+          const genNow = getStemGraphGeneration?.() ?? 0;
+          const row = next.find((u) => u.id === stemId);
+          const wantsAudible =
+            row && !row.muted && (row.selected || row.solo || row.pendingAudible);
+          if (
+            stemMixActive &&
+            mixMode !== "full_mix" &&
+            capturedGen === genNow &&
+            wantsAudible
+          ) {
+            const track = pcmTrackForStem(parsedStems, row, cacheRef.current);
+            if (track) onStemMixSeamlessOp({ type: "insert", track });
+          }
+          bumpCacheUi();
+          return next;
+        });
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+        setUiState((prev) =>
+          prev.map((u) =>
+            u.id === stemId ? { ...u, preparing: false, pendingAudible: false } : u,
+          ),
+        );
+        setStatusError(
+          e instanceof Error ? e.message : "Could not prepare stem in the background.",
+        );
+      } finally {
+        if (bgPrepareByStemRef.current.get(stemId) === ac) {
+          bgPrepareByStemRef.current.delete(stemId);
+        }
+      }
+    },
+    [parsedStems, stemMixActive, mixMode, onStemMixSeamlessOp, bumpCacheUi, getStemGraphGeneration],
   );
 
   useEffect(() => {
@@ -252,6 +413,7 @@ export function StemsPanel({
         muted: p?.muted ?? false,
         solo: p?.solo ?? false,
         selected: stemIds.includes(s.stemId),
+        preparing: false,
       };
     });
     const toLoad = parsedStems.stems.filter((s) => stemIds.includes(s.stemId));
@@ -264,22 +426,33 @@ export function StemsPanel({
     void runPrepare(toLoad, "karaoke", nextUi).finally(() => onKaraokePrepareDone?.());
   }, [karaokePrepareRequest, parsedStems, runPrepare, onKaraokePrepareDone, onMixModeChange]);
 
-  useEffect(() => {
-    if (stemMixActive) syncTracksToMixer(mixMode);
-    else onStemTracksReady(null);
-  }, [uiState, stemMixActive, mixMode, syncTracksToMixer, onStemTracksReady]);
-
-  const handlePrepareSelected = () => {
+  const handlePrepareSelected = (enableMix = false) => {
     if (!parsedStems) return;
     const selected = parsedStems.stems.filter((s) => uiState.find((u) => u.id === s.stemId)?.selected);
-    void runPrepare(selected, "selected");
+    void runPrepare(selected, "stem_mix", undefined, enableMix);
+  };
+
+  const handleEnableStemMix = () => {
+    if (!parsedStems) return;
+    const selected = parsedStems.stems.filter((s) => uiState.find((u) => u.id === s.stemId)?.selected);
+    const allLoaded = selected.every((s) => cacheRef.current.has(s.stemId));
+    if (allLoaded && selected.length) {
+      const tracks = uiToPcmTracksForMix(parsedStems, uiState, cacheRef.current, "stem_mix");
+      if (tracks.length) {
+        onStemMixEnable(tracks, "stem_mix", playbackOffset());
+        setMixMode("stem_mix");
+        onMixModeChange?.("stem_mix");
+        setStatusNote("Stem mix active (stem_mix).");
+      }
+      return;
+    }
+    void runPrepare(selected, "stem_mix", undefined, true);
   };
 
   const handleSoloStem = async (stemId: string) => {
     if (!parsedStems) return;
     const stem = parsedStems.stems.find((s) => s.stemId === stemId);
     if (!stem) return;
-    const idx = parsedStems.stems.indexOf(stem);
     setSoloStemId(stemId);
     const nextUi = parsedStems.stems.map((s) => ({
       id: s.stemId,
@@ -287,13 +460,24 @@ export function StemsPanel({
       muted: s.stemId !== stemId,
       solo: s.stemId === stemId,
       selected: s.stemId === stemId,
+      preparing: false,
     }));
-    await runPrepare([stem], "solo", nextUi);
+    if (cacheRef.current.has(stemId)) {
+      const tracks = uiToPcmTracksForMix(parsedStems, nextUi, cacheRef.current, "solo_stem");
+      if (tracks.length) {
+        setUiState(nextUi);
+        setMixMode("solo_stem");
+        onMixModeChange?.("solo_stem");
+        onStemMixEnable(tracks, "solo_stem", playbackOffset());
+      }
+      return;
+    }
+    await runPrepare([stem], "solo_stem", nextUi, true);
   };
 
   const handleStopMix = () => {
     cancelPrepare();
-    onStemMixActiveChange(false);
+    onReturnToFullMix(playbackOffset());
     setMixMode("full_mix");
     onMixModeChange?.("full_mix");
     setSoloStemId(null);
@@ -302,20 +486,100 @@ export function StemsPanel({
 
   const handleUnloadAll = () => {
     cacheRef.current.unloadAll();
-    onStemMixActiveChange(false);
+    onReturnToFullMix(playbackOffset());
     setMixMode("full_mix");
     onMixModeChange?.("full_mix");
     setStatusNote("Unloaded all decoded stems from memory.");
-    onStemTracksReady(null);
   };
 
   const unloadStem = (stemId: string) => {
+    if (stemMixActive && mixMode !== "full_mix") {
+      onStemMixSeamlessOp({ type: "remove", stemId });
+    }
     cacheRef.current.unload(stemId);
-    syncTracksToMixer(mixMode);
   };
 
-  const updateUi = (id: string, patch: Partial<StemUiState>) => {
-    setUiState((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
+  const handleSelectChange = (stemId: string, selected: boolean) => {
+    setUiState((prev) => {
+      const nextUi = prev.map((u) =>
+        u.id === stemId ? { ...u, selected, preparing: selected && !cacheRef.current.has(stemId) } : u,
+      );
+      const row = nextUi.find((u) => u.id === stemId);
+      if (!row) return nextUi;
+
+      if (!stemMixActive || mixMode === "full_mix") {
+        return nextUi;
+      }
+
+      if (selected) {
+        if (cacheRef.current.has(stemId)) {
+          const track = pcmTrackForStem(parsedStems!, row, cacheRef.current);
+          if (track) onStemMixSeamlessOp({ type: "insert", track });
+        } else {
+          void prepareStemBackground(stemId);
+        }
+      } else {
+        onStemMixSeamlessOp({ type: "remove", stemId });
+      }
+      return nextUi;
+    });
+  };
+
+  const handleMuteToggle = (stemId: string) => {
+    setUiState((prev) => {
+      const ui = prev.find((u) => u.id === stemId);
+      if (!ui) return prev;
+      const nextMuted = !ui.muted;
+      const nextUi = prev.map((u) =>
+        u.id === stemId
+          ? {
+              ...u,
+              muted: nextMuted,
+              pendingAudible: nextMuted ? false : u.pendingAudible,
+            }
+          : u,
+      );
+      const row = nextUi.find((u) => u.id === stemId)!;
+
+      if (stemMixActive && mixMode !== "full_mix") {
+        if (cacheRef.current.has(stemId)) {
+          const op = seamlessOpForStem(row);
+          if (op) onStemMixSeamlessOp(op);
+        } else if (!nextMuted) {
+          void prepareStemBackground(stemId);
+          return nextUi.map((u) =>
+            u.id === stemId ? { ...u, preparing: true, pendingAudible: true } : u,
+          );
+        }
+        return nextUi;
+      }
+
+      if (!nextMuted && !cacheRef.current.has(stemId)) {
+        void prepareStemBackground(stemId);
+        return nextUi.map((u) =>
+          u.id === stemId ? { ...u, preparing: true, pendingAudible: false } : u,
+        );
+      }
+      return nextUi;
+    });
+  };
+
+  const handleGainChange = (stemId: string, gain: number) => {
+    setUiState((prev) => {
+      const nextUi = prev.map((u) => (u.id === stemId ? { ...u, gain } : u));
+      const row = nextUi.find((u) => u.id === stemId);
+      if (stemMixActive && mixMode !== "full_mix" && row && cacheRef.current.has(stemId)) {
+        const op = seamlessOpForStem(row);
+        if (op) onStemMixSeamlessOp(op);
+      }
+      return nextUi;
+    });
+  };
+
+  const handleRestartStemMixClick = () => {
+    if (!stemMixActive) return;
+    onRestartStemMix();
+    setStatusNote("Restarting stem mix at current playhead…");
   };
 
   const downloadStem = async (
@@ -341,6 +605,7 @@ export function StemsPanel({
 
   if (!parsedStems?.stems.length) return null;
 
+  void cacheTick;
   const cacheStats = cacheRef.current.stats();
   const selectedCount = uiState.filter((u) => u.selected).length;
   const selectedEstimate = estimateStemsDecodedBytes(
@@ -362,6 +627,14 @@ export function StemsPanel({
             ? "ready"
             : "preparing";
 
+  const activeStemIds = new Set(
+    stemMixActive && mixMode !== "full_mix"
+      ? activeStemSourceIds?.length
+        ? activeStemSourceIds
+        : stemsForActiveMix(parsedStems.stems, uiState, cacheRef.current, mixMode)
+      : [],
+  );
+
   return (
     <section className="rounded-xl bg-surface-elevated p-4 space-y-3" data-testid="stems-panel">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -380,6 +653,9 @@ export function StemsPanel({
         <p>
           <strong className="text-gray-400 font-normal">Full mix</strong> in AUDI is always ready — play
           normally below. Stems are optional; load only what you need.
+        </p>
+        <p data-testid="stems-selection-help">
+          Selecting a stem prepares it for stem mix. It will not interrupt full mix playback.
         </p>
         {fileTier?.large && (
           <p data-testid="stems-large-adaptive-notice">
@@ -420,11 +696,19 @@ export function StemsPanel({
           {workerDiag.fallbackMode ? " · fallback" : ""}
           {workerDiag.lastError ? ` · err ${workerDiag.lastError}` : ""}
         </p>
+        {transportDiagnostics && (
+          <p data-testid="stems-transport-diagnostics">{transportDiagnostics}</p>
+        )}
+        {clockDiagnostics && (
+          <p data-testid="stems-clock-diagnostics" className="text-[10px] text-gray-600 font-mono">
+            {clockDiagnostics}
+          </p>
+        )}
       </div>
 
       {workerDiag.fallbackMode && (
         <p className="text-xs text-amber-200/70" data-testid="stems-worker-fallback-warning">
-          {STEM_WORKER_FALLBACK_WARNING}
+          {stemWorkerFallbackMessage(workerDiag.lastError)}
         </p>
       )}
 
@@ -467,11 +751,29 @@ export function StemsPanel({
         <button
           type="button"
           className="text-xs px-3 py-1.5 rounded-lg border border-accent/40 text-accent hover:bg-accent/10 disabled:opacity-40"
-          onClick={handlePrepareSelected}
+          onClick={() => handlePrepareSelected(false)}
           disabled={loading || preparing || selectedCount === 0}
           data-testid="stems-prepare-selected"
         >
           Prepare selected ({selectedCount})
+        </button>
+        <button
+          type="button"
+          className="text-xs px-3 py-1.5 rounded-lg border border-accent/30 text-accent hover:bg-accent/10 disabled:opacity-40"
+          onClick={handleEnableStemMix}
+          disabled={loading || preparing || selectedCount === 0 || stemMixActive}
+          data-testid="stems-enable-mix"
+        >
+          Enable stem mix
+        </button>
+        <button
+          type="button"
+          className="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-gray-200 disabled:opacity-40"
+          onClick={handleRestartStemMixClick}
+          disabled={!stemMixActive || preparing}
+          data-testid="stems-restart-mix"
+        >
+          Restart stem mix
         </button>
         <button
           type="button"
@@ -497,8 +799,17 @@ export function StemsPanel({
         {parsedStems.stems.map((stem, index) => {
           const ui = uiState.find((u) => u.id === stem.stemId);
           const loaded = cacheRef.current.has(stem.stemId);
+          const active = activeStemIds.has(stem.stemId);
           const avail = parsedStems.stemAvailability?.find((a) => a.stemId === stem.stemId);
           const availLabel = availabilityLabel(avail?.status, loaded);
+          const badges = ui
+            ? stemRowBadges(ui, {
+                loaded,
+                active,
+                availability: avail,
+                stemMixActive: stemMixActive && mixMode !== "full_mix",
+              })
+            : (["available"] as const);
           return (
             <li
               key={stem.stemId}
@@ -508,27 +819,42 @@ export function StemsPanel({
               data-stem-loaded={loaded ? "true" : "false"}
             >
               <div className="flex flex-wrap justify-between gap-1">
-                <label className="flex items-center gap-2 text-sm text-gray-200">
+                <label className="flex items-center gap-2 text-sm text-gray-200 flex-wrap">
                   <input
                     type="checkbox"
                     checked={ui?.selected ?? false}
-                    onChange={(e) => updateUi(stem.stemId, { selected: e.target.checked })}
-                    disabled={preparing}
+                    onChange={(e) => handleSelectChange(stem.stemId, e.target.checked)}
+                    disabled={preparing && ui?.preparing}
                     data-testid="stems-item-select"
+                    aria-label={`Select ${stem.stemName} for stem mix`}
                   />
                   <span data-testid="stems-item-name">{stem.stemName}</span>
-                  {loaded && (
-                    <span className="text-[10px] text-accent/80" data-testid="stems-item-loaded">
-                      loaded
-                    </span>
-                  )}
+                  <span className="flex flex-wrap gap-1" data-testid="stems-item-badges">
+                    {badges.map((b) => (
+                      <span
+                        key={b}
+                        className={`text-[10px] px-1 rounded border ${
+                          b === "active"
+                            ? "border-accent/40 text-accent/90"
+                            : b === "preparing"
+                              ? "border-amber-500/30 text-amber-200/80"
+                              : b === "muted"
+                              ? "border-red-500/30 text-red-300/80"
+                              : b === "pending_audible"
+                                ? "border-cyan-500/30 text-cyan-200/80"
+                                : "border-white/10 text-gray-500"
+                        }`}
+                        data-testid={b === "loaded" ? "stems-item-loaded" : `stems-badge-${b}`}
+                      >
+                        {badgeLabel(b)}
+                      </span>
+                    ))}
+                  </span>
                   <span
                     className={`text-[10px] ${
                       avail?.status === "missing_fragments" || avail?.status === "partial_fragments"
                         ? "text-amber-300/90"
-                        : loaded
-                          ? "text-accent/80"
-                          : "text-gray-500"
+                        : "text-gray-500"
                     }`}
                     data-testid="stems-item-availability"
                   >
@@ -571,8 +897,8 @@ export function StemsPanel({
                     min={0}
                     max={100}
                     value={Math.round((ui?.gain ?? 1) * 100)}
-                    onChange={(e) => updateUi(stem.stemId, { gain: Number(e.target.value) / 100 })}
-                    disabled={!stemMixActive}
+                    onChange={(e) => handleGainChange(stem.stemId, Number(e.target.value) / 100)}
+                    disabled={!loaded}
                     data-testid="stems-item-volume"
                   />
                 </label>
@@ -581,11 +907,10 @@ export function StemsPanel({
                   className={`px-2 py-0.5 rounded text-xs border ${
                     ui?.muted ? "border-red-500/40 text-red-300" : "border-white/10 text-gray-400"
                   }`}
-                  onClick={() => updateUi(stem.stemId, { muted: !ui?.muted })}
-                  disabled={!stemMixActive}
+                  onClick={() => handleMuteToggle(stem.stemId)}
                   data-testid="stems-item-mute"
                 >
-                  Mute
+                  {ui?.muted ? "Unmute" : "Mute"}
                 </button>
                 <button
                   type="button"
@@ -593,6 +918,7 @@ export function StemsPanel({
                   onClick={() => void downloadStem(stem, index)}
                   disabled={downloadBusy === stem.stemId || preparing}
                   data-testid="stems-item-download"
+                  title={stemDownloadHelp(stem.codecId)}
                 >
                   Download
                 </button>
@@ -602,7 +928,7 @@ export function StemsPanel({
         })}
       </ul>
 
-      {stemMixActive && isPlaying && (
+      {stemMixActive && (
         <p className="text-[10px] text-accent/80" data-testid="stems-mix-active-note">
           Stem mix active ({mixMode}) — full mix output paused. Use “Use full mix” to return to AUDI.
           {soloStemId ? ` Solo: ${soloStemId}` : ""}

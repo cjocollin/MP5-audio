@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { tracePlayback } from "../lib/playback/playbackTrace";
 import { computePlaybackTime } from "./playbackTime";
 
 interface PcmData {
@@ -14,6 +15,7 @@ interface Options {
   setCurrentTime: (t: number) => void;
   setPlaying: (p: boolean) => void;
   onTrackEnded?: () => void;
+  onPcmReady?: () => void;
 }
 
 function pcmToAudioBuffer(ctx: AudioContext, pcm: PcmData): AudioBuffer {
@@ -40,9 +42,12 @@ export function useMp5AudioEngine({
   setCurrentTime,
   setPlaying,
   onTrackEnded,
+  onPcmReady,
 }: Options) {
   const onTrackEndedRef = useRef(onTrackEnded);
   onTrackEndedRef.current = onTrackEnded;
+  const onPcmReadyRef = useRef(onPcmReady);
+  onPcmReadyRef.current = onPcmReady;
   const ctxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const bufferRef = useRef<AudioBuffer | null>(null);
@@ -69,7 +74,9 @@ export function useMp5AudioEngine({
     }
     if (ctxRef.current.state === "suspended") {
       await ctxRef.current.resume();
+      tracePlayback("audio_context", "resumed", { state: ctxRef.current.state });
     }
+    tracePlayback("audio_context", "ensure", { state: ctxRef.current.state });
     return ctxRef.current;
   }, [rebuildBuffer]);
 
@@ -89,11 +96,15 @@ export function useMp5AudioEngine({
       /* already stopped */
     }
     srcRef.current = null;
+    tracePlayback("main_source", "stop");
   }, [duration]);
 
   const startAt = useCallback(
     async (offset: number) => {
-      if (!pcmRef.current) return;
+      if (!pcmRef.current) {
+        tracePlayback("main_source", "start skipped — no PCM");
+        return;
+      }
       stopSource();
       const ctx = await ensureContext();
       if (!bufferRef.current) {
@@ -122,9 +133,13 @@ export function useMp5AudioEngine({
       };
       src.start(0, offset);
       srcRef.current = src;
+      tracePlayback("main_source", "start", { offset, bufferSec: bufferRef.current.duration });
     },
     [duration, ensureContext, rebuildBuffer, setCurrentTime, setPlaying, stopSource],
   );
+
+  const isPlayingRef = useRef(isPlaying);
+  isPlayingRef.current = isPlaying;
 
   const loadPcm = useCallback(
     async (pcm: PcmData) => {
@@ -133,16 +148,25 @@ export function useMp5AudioEngine({
       const ctx = await ensureContext();
       bufferRef.current = pcmToAudioBuffer(ctx, pcm);
       offsetRef.current = 0;
+      tracePlayback("main_source", "pcm loaded", {
+        frames: pcm.samples.length / pcm.ch,
+        rate: pcm.rate,
+        bufferSec: bufferRef.current.duration,
+      });
+      onPcmReadyRef.current?.();
+      if (isPlayingRef.current) {
+        await startAt(offsetRef.current);
+      }
     },
-    [ensureContext, stopSource],
+    [ensureContext, startAt, stopSource],
   );
 
   const seek = useCallback(
-    (seconds: number) => {
+    (seconds: number, opts?: { start?: boolean }) => {
       const clamped = Math.max(0, Math.min(seconds, duration || 0));
       offsetRef.current = clamped;
       setCurrentTime(clamped);
-      if (srcRef.current || isPlaying) {
+      if (srcRef.current || isPlaying || opts?.start) {
         void startAt(clamped);
       }
     },
@@ -170,26 +194,6 @@ export function useMp5AudioEngine({
   }, [isPlaying]);
 
   useEffect(() => {
-    if (!isPlaying) return;
-    let raf = 0;
-    const tick = () => {
-      const ctx = ctxRef.current;
-      if (ctx && srcRef.current && isContextUsable(ctx)) {
-        const t = computePlaybackTime(
-          offsetRef.current,
-          ctx.currentTime,
-          startedAtRef.current,
-          duration,
-        );
-        setCurrentTime(t);
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [isPlaying, duration, setCurrentTime]);
-
-  useEffect(() => {
     return () => {
       stopSourceRef.current();
       if (isContextUsable(ctxRef.current)) {
@@ -214,5 +218,9 @@ export function useMp5AudioEngine({
     return offsetRef.current;
   }, [duration]);
 
-  return { loadPcm, seek, stopSource, getPlaybackTime };
+  const isSourceActive = useCallback(() => srcRef.current !== null, []);
+
+  const hasPcm = useCallback(() => pcmRef.current !== null, []);
+
+  return { loadPcm, seek, stopSource, getPlaybackTime, isSourceActive, hasPcm };
 }

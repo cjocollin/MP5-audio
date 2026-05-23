@@ -9,6 +9,8 @@ import {
   seekTimeSecForLine,
 } from "../lib/lyrics/lyricPlayback";
 import { parseLyrcFromFile } from "../lib/lyrics/parseLyrics";
+import { traceScrollIntoView } from "../lib/playback/playbackTrace";
+import { scrollChildIntoContainer } from "../lib/ui/scrollWithinContainer";
 import { usePlaybackClock } from "./usePlaybackClock";
 
 interface Props {
@@ -54,8 +56,10 @@ export function LyricsPanel({
   const lyricTime = usePlaybackClock(getPlaybackTime, isPlaying, currentTime);
 
   const [showLyrics, setShowLyrics] = useState(true);
+  const [autoScrollLyrics, setAutoScrollLyrics] = useState(true);
   const activeLineRef = useRef<HTMLButtonElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lastScrolledIdxRef = useRef(-1);
 
   const synced = lyrc?.synced;
   const useSynced = hasSyncedLyrics(synced);
@@ -64,9 +68,15 @@ export function LyricsPanel({
   const hasAnyLyrics = !!(lyrc?.unsynced?.trim() || useSynced);
 
   useEffect(() => {
-    if (!showLyrics || activeIdx < 0 || !scrollRef.current) return;
-    activeLineRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [activeIdx, showLyrics]);
+    if (!showLyrics || !autoScrollLyrics || activeIdx < 0 || activeIdx === lastScrolledIdxRef.current) {
+      return;
+    }
+    lastScrolledIdxRef.current = activeIdx;
+    const container = scrollRef.current;
+    const child = activeLineRef.current;
+    traceScrollIntoView(child, "lyrics active line", !!container);
+    scrollChildIntoContainer(container, child, { block: "nearest", behavior: "smooth" });
+  }, [activeIdx, showLyrics, autoScrollLyrics]);
 
   const toggleKaraoke = useCallback(() => {
     if (!karaoke.hasSyncedLyrics) return;
@@ -90,15 +100,26 @@ export function LyricsPanel({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-gray-300">Lyrics</p>
-        <label className="flex items-center gap-2 text-xs text-gray-400">
-          <input
-            type="checkbox"
-            checked={showLyrics}
-            onChange={(e) => setShowLyrics(e.target.checked)}
-            data-testid="lyrics-show-toggle"
-          />
-          Show lyrics
-        </label>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-400">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showLyrics}
+              onChange={(e) => setShowLyrics(e.target.checked)}
+              data-testid="lyrics-show-toggle"
+            />
+            Show lyrics
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={autoScrollLyrics}
+              onChange={(e) => setAutoScrollLyrics(e.target.checked)}
+              data-testid="lyrics-autoscroll-toggle"
+            />
+            Auto-scroll lyrics
+          </label>
+        </div>
       </div>
 
       <div

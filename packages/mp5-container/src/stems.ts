@@ -30,6 +30,8 @@ export {
   groupStdfFragments,
   setStdfFragmentPayloadTargetForTests,
   resetStdfFragmentPayloadTarget,
+  setStdaSafeMaxBytesForTests,
+  resetStdaSafeMaxBytesForTests,
   type StemExportSizeReport,
 } from "./stemStdf.js";
 

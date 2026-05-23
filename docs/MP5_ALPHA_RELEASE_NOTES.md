@@ -1,5 +1,98 @@
 # MP5 Alpha release notes
 
+## v0.11.0-alpha — Real playback regression harness MVP (May 2026)
+
+**Version:** MP5 Audio **v0.11.0-alpha**
+
+### Added
+
+- **Playback regression checklist:** [`MP5_PLAYBACK_REGRESSION_CHECKLIST.md`](MP5_PLAYBACK_REGRESSION_CHECKLIST.md) — manual gates + Pity Party local stress guidance.
+- **Synthetic Pity Party class fixture:** `test-fixtures/demo_pity_party_class.mp5` — 10 STDF stems, no instrumental, LYRC/SECT/VISU, ~22 s; `pnpm fixtures:pity-party-class`.
+- **Playback trace export:** regression snapshot fields + **Copy playback trace** in Diagnostics.
+- **Focused gate:** `pnpm playback:check` — timing unit tests, transport/karaoke tests, `e2e/playback-regression.spec.ts`, fixture validation.
+- **E2E behavioral coverage:** play time advance, waveform seek, karaoke play without waveform, stem toggles, late Lead Vocal join, scroll stability.
+
+### Unchanged policy
+
+- No AI generation, codec, DRM, format chunk, or STDA/STDF format changes in this milestone.
+
+## v0.10.12-alpha — Real playback state audit + transport fix (May 2026)
+
+**Version:** MP5 Audio **v0.10.12-alpha**
+
+- First **Play** on lazy-ingest files: preparing state + PCM-ready auto-start; `loadFile` no longer clears `isPlaying` when user already requested play.
+- Removed stem mixer auto `startAllAt` on empty sources (was disposing the graph mid-session).
+- UI clock gated on active Web Audio sources; stem `onended` no longer sets seek to duration while other stems play.
+- Lyrics panel: container-local scroll only (fixes page jumping to lyrics/song map).
+- Playback trace buffer + Diagnostics toggle.
+- Karaoke mode: main **Play** uses the same `requestPlayback` path as waveform seek; stem mix starts without clicking the waveform; progress clock follows the active transport in karaoke mode.
+- **Late-loaded stem sync:** `capturePlayhead` re-anchors `startedAtRef` (idempotent snapshot); repeated captures after blocking `pcmToAudioBuffer` no longer double-count elapsed time (fixes karaoke lead vocal starting far ahead of the mix).
+- Batch stem starts share one Web Audio `when`; seamless ops serialized; overlap detection stops both engines; late join uses single-stem insert (not full-graph restart).
+
+## v0.10.11-alpha — Stem mixer clock / unmute / scroll (May 2026)
+
+**Version:** MP5 Audio **v0.10.11-alpha**
+
+- Unmuting an unloaded stem during stem mix no longer stops playback; per-stem background decode and insert-at-playhead when ready.
+- Single canonical playback clock for seek bar (full mix vs stem mix); stem source end re-sync fixes progress racing to the end.
+- Lyrics and song map auto-scroll inside their panels only; optional toggles; no page jump on active line/section change.
+
+## v0.10.10-alpha — Stem mixer seamless toggle (May 2026)
+
+**Version:** MP5 Audio **v0.10.10-alpha**
+
+### Fixed
+
+- **Restart on checkbox/mute during stem mix:** uncheck called `onStemTracksSync` → full `loadTracks()` rebuild; mute path stopped/restarted sources.
+- Removed `useEffect` on `stemTracks` that reloaded the graph on every state change.
+
+### Added
+
+- Seamless ops: `insert` / `remove` / `audible` only — no `loadTracks` from UI toggles.
+- Engine API: `loadInitialTracksForMix`, `insertStemAtCurrentOffset`, `removeStemOnly`, `patchStemAudible` (mute = gain 0, source keeps running).
+- Explicit **Restart stem mix** button.
+- Playhead regression warnings in dev; e2e playhead preservation test.
+
+---
+
+## v0.10.9-alpha — Stem transport exclusivity / no overlap (May 2026)
+
+**Version:** MP5 Audio **v0.10.9-alpha**
+
+### Fixed
+
+- **Double playback / overlap:** live stem load called `onStemTrackAdd` then `onStemTracksSync`, which triggered a full `loadTracks()` restart while sources were already playing.
+- **Full mix + stem mix together:** explicit transport authority — starting stem mix stops full mix; returning to full mix stops all stem sources.
+- **Duplicate stem sources:** per-stem `AudioBufferSourceNode` registry; no second source for the same `stemId`.
+- **Stale async inserts:** graph generation token invalidates decode completions after mode switch or cancel.
+
+### Added
+
+- Transport diagnostics line in Stems panel (mode, transport id, graph generation, active source count).
+- Unmute on loaded stem during stem mix starts a single source at current playhead when none exists (gain-only otherwise).
+
+---
+
+## v0.10.8-alpha — Stem mixer toggle / live stem add (May 2026)
+
+**Version:** MP5 Audio **v0.10.8-alpha**
+
+### Fixed
+
+- **Stem checkbox / mute stopped playback:** UI changes no longer call `loadTracks()` → `stopAll()` + offset reset on every toggle.
+- **Selection vs mix:** checkbox only marks **Selected**; full mix keeps playing until **Enable stem mix**, **Solo**, **Prepare selected**, or **Karaoke**.
+- **Mute during stem mix:** gain-only `patchTracks()` when buffers are already loaded.
+- **Playhead:** switching to stem mix captures current time and starts stem sources at that offset.
+
+### Added
+
+- **Live stem insert:** `insertStemAtOffset()` schedules a newly loaded stem at the current playhead during active stem mix.
+- **State badges:** Selected · Loaded · Active · Muted · Preparing · Available.
+- **Enable stem mix** button (separate from **Prepare selected**).
+- Transport modes: `full_mix` | `stem_mix` | `solo_stem` | `karaoke`.
+
+---
+
 ## v0.10.7-alpha — Lazy STDF stem lookup hotfix (May 2026)
 
 **Version:** MP5 Audio **v0.10.7-alpha**

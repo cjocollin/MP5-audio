@@ -130,6 +130,6 @@ describe("stem worker client fallback", () => {
     const decoded = await client.decodeStem(file, file.stems[0]!, 0);
     expect(decoded.samples.length).toBeGreaterThan(0);
     expect(client.diagnostics.fallbackMode).toBe(true);
-    expect(STEM_WORKER_FALLBACK_WARNING).toContain("Background stem decoding");
+    expect(STEM_WORKER_FALLBACK_WARNING).toContain("main thread");
   });
 });
