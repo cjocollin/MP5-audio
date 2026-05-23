@@ -24,8 +24,7 @@ test.describe("album package (.mp5p)", () => {
 
     await expect(page.getByTestId("album-package-panel")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("album-package-title")).toContainText("MP5 Demo Album");
-    await expect(page.getByTestId("album-import-explainer")).toContainText("JSON package");
-    await expect(page.getByTestId("album-import-explainer")).toContainText("not an embedded archive");
+    await expect(page.getByTestId("album-import-explainer")).toContainText("Manifest album package");
     await expect(page.getByTestId("album-resolved-count")).toContainText("2 found");
     await expect(page.getByTestId("album-found-files")).toBeVisible();
     await expect(page.getByTestId("album-track-row")).toHaveCount(2);
@@ -47,7 +46,8 @@ test.describe("album package (.mp5p)", () => {
   test("create album manifest from playlist", async ({ page }) => {
     await page.getByTestId("player-file-input").setInputFiles([toneFixture, stemsFixture]);
     await expect(page.getByTestId("create-album-package-panel")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("create-album-archive-warning")).toBeVisible();
+    await expect(page.getByTestId("create-album-export-mode")).toBeVisible();
+    await expect(page.getByTestId("create-album-mode-manifest")).toBeVisible();
     await expect(page.getByTestId("create-album-track-order")).toBeVisible();
     await expect(page.getByTestId("create-album-export")).toBeEnabled();
   });

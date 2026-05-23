@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.11.0-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.12.0-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -71,7 +71,8 @@
 - **Now playing:** large cover, title/artist/album, codec and content guidance badges, mood/vibe chips
 - **Metadata panel:** track info, cover, lyrics, content guidance, mood/vibe, **VISU visual theme** swatches, **credits / rights / identifiers**, **integrity & fingerprint**, waveform stats, format — with calm empty states
 - **Visual themes (VISU MVP):** optional per-file colors/mood; player accent + soft gradient; Settings toggle to disable file themes — [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md)
-- **Album package (MVP):** experimental `.mp5p` manifest + sidecar `.mp5` tracks; import explainer, found/missing lists, add sidecars, reorder on create, saved albums in Library (localStorage), validation — [`MP5_ALBUM_PACKAGE.md`](MP5_ALBUM_PACKAGE.md)
+- **Embedded album package prototype (v0.12.0-alpha):** binary `.mp5p` with `MP5P` magic, fragmented embedded `.mp5` tracks, lazy ingest/play, create UI (manifest vs embedded), inspect/validate CLI — [`MP5_EMBEDDED_PACKAGE.md`](MP5_EMBEDDED_PACKAGE.md)
+- **Album package (MVP):** experimental `.mp5p` manifest + sidecar `.mp5` tracks (unchanged); import explainer, found/missing lists, add sidecars, reorder on create, saved albums in Library — [`MP5_ALBUM_PACKAGE.md`](MP5_ALBUM_PACKAGE.md)
 - **Credits / rights / identifiers (MVP):** optional **CRDT**, **LICN**, **IDEN** chunks; converter collapsed sections; player informational display (no enforcement) — [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md)
 - **Fingerprint / integrity (MVP):** optional **FING** + **HASH**; MP5-L export embeds hashes; player shows **audio verified** when PCM/AUDI match (in-file whole-file hash is informational/pre-embed); strict CLI passes on `audio_verified`; library duplicate detection; album sidecar `fileSha256` — [`MP5_FINGERPRINT_INTEGRITY.md`](MP5_FINGERPRINT_INTEGRITY.md)
 - **Format panel:** Codec, encoder version, bit-exact (MP5-L), decode path, hybrid/CORR for MP5-H

@@ -100,6 +100,7 @@ export {
 } from "./optionalChunks.js";
 export {
   ALBUM_MANIFEST_FORMAT,
+  EMBEDDED_ALBUM_MANIFEST_FORMAT,
   MAX_ALBUM_TRACKS,
   encodeAlbmPackage,
   decodeAlbm,
@@ -117,6 +118,7 @@ export {
   type AlbmCoverEmbedded,
   type AlbmCoverFileRef,
   type AlbmValidationError,
+  type AlbmPackageFormat,
 } from "./albm.js";
 export * from "./validator.js";
 export { verifyMp5FileIntegrity, type VerifyIntegrityOptions } from "./verifyIntegrity.js";
@@ -124,6 +126,8 @@ export { sha256HexDigest } from "./sha256Digest.js";
 export {
   assessMp5Compatibility,
   assessMp5pCompatibility,
+  assessMp5pFromBytes,
+  assessEmbeddedMp5pCompatibility,
   mp5CodecVersionLabel,
   type ValidationProfile,
   type CompatibilityLevel,
@@ -227,3 +231,40 @@ export {
   groupStdfFragments,
   type StdfFragmentRecord,
 } from "./stemStdf.js";
+export {
+  EMBEDDED_PACKAGE_MAGIC,
+  EMBEDDED_PACKAGE_MAGIC_STR,
+  EMBEDDED_PACKAGE_VERSION,
+  EMBEDDED_FRAGMENT_VERSION,
+  EMBEDDED_DEFAULT_FRAGMENT_PAYLOAD,
+  EMBEDDED_MAX_FRAGMENT_PAYLOAD,
+  EMBEDDED_FILE_HEADER_SIZE,
+  detectMp5pPackageKind,
+  isEmbeddedMp5pBytes,
+  validateEmbeddedAlbmManifest,
+  parseEmbeddedAlbmManifestJson,
+  encodeEmbeddedFragment,
+  decodeEmbeddedFragment,
+  decodeEmbeddedFragmentHeader,
+  splitTrackBytesIntoFragments,
+  reconstructTrackBytesFromFragments,
+  indexEmbeddedAlbumPackage,
+  loadEmbeddedTrackBytes,
+  writeEmbeddedAlbumPackage,
+  verifyEmbeddedPackageIntegrity,
+  verifyEmbeddedPackageIntegrityAsync,
+  auditEmbeddedAlbumPackage,
+  setEmbeddedFragmentPayloadTargetForTests,
+  resetEmbeddedFragmentPayloadTarget,
+  getEmbeddedFragmentPayloadTarget,
+  type Mp5pPackageKind,
+  type EmbeddedFragmentRef,
+  type EmbeddedTrackDirectoryEntry,
+  type EmbeddedAlbumPackageIndex,
+  type EmbeddedFragmentHeader,
+  type EmbeddedFragmentRecord,
+  type EmbeddedTrackInput,
+  type WriteEmbeddedAlbumOptions,
+  type EmbeddedIntegrityIssue,
+  type EmbeddedPackageIntegrityReport,
+} from "./embeddedPackage.js";

@@ -3,10 +3,18 @@ import {
   type AlbmAuditWarning,
   type AlbmPackageManifest,
   type AlbmTrackRef,
+  type EmbeddedAlbumPackageIndex,
 } from "@mp5/container";
 import type { PlaylistTrack } from "../../store/playerStore";
 import { trackDisplayInfo } from "../../player/playlistUtils";
 import type { SidecarIntegrityStatus } from "../fingerprint/sidecar";
+
+export type AlbumPackageKind = "manifest" | "embedded";
+
+export interface EmbeddedAlbumSource {
+  file: File;
+  index: EmbeddedAlbumPackageIndex;
+}
 
 export interface ResolvedAlbumTrack {
   ref: AlbmTrackRef;
@@ -18,11 +26,17 @@ export interface ResolvedAlbumTrack {
   playlistTrack: PlaylistTrack | null;
   missing: boolean;
   sidecarStatus?: SidecarIntegrityStatus;
+  embedded?: boolean;
+  embeddedByteLength?: number;
+  embeddedFragmentCount?: number;
 }
 
 export interface ResolvedAlbumPackage {
   manifest: AlbmPackageManifest;
   manifestName?: string;
+  packageKind: AlbumPackageKind;
+  embeddedSource?: EmbeddedAlbumSource;
+  packageFileSize?: number;
   tracks: ResolvedAlbumTrack[];
   missingCount: number;
   resolvedCount: number;
@@ -92,6 +106,7 @@ export function resolveAlbumTracks(
 
   return {
     manifest,
+    packageKind: "manifest",
     tracks,
     missingCount,
     resolvedCount: tracks.length - missingCount,
@@ -117,4 +132,54 @@ export function resolvedTracksInOrder(album: ResolvedAlbumPackage): PlaylistTrac
   return album.tracks
     .filter((t) => t.playlistTrack)
     .map((t) => t.playlistTrack!);
+}
+
+/** Resolve embedded album package from lazy index (tracks not loaded until play/select). */
+export function resolveEmbeddedAlbumPackage(
+  index: EmbeddedAlbumPackageIndex,
+  opts?: { manifestName?: string; file?: File },
+): ResolvedAlbumPackage {
+  const manifest = index.manifest;
+  const albumArtist = manifest.album.albumArtist ?? manifest.album.artist ?? "";
+  const tracks: ResolvedAlbumTrack[] = manifest.tracks.map((ref) => {
+    const dir = index.tracks.find((t) => t.trackId === ref.trackId);
+    const base = dir?.logicalFile ?? albumTrackBasename(ref.file);
+    const displayTitle = ref.title ?? base.replace(/\.mp5$/i, "");
+    const displayArtist = ref.artist ?? albumArtist;
+    return {
+      ref,
+      trackNumber: ref.trackNumber,
+      discNumber: ref.discNumber ?? 1,
+      displayTitle,
+      displayArtist,
+      durationMs: ref.durationMs ?? null,
+      playlistTrack: null,
+      missing: false,
+      embedded: true,
+      embeddedByteLength: dir?.totalByteLength,
+      embeddedFragmentCount: dir?.fragments.length,
+    };
+  });
+  let totalDurationMs = 0;
+  let hasDuration = false;
+  for (const t of tracks) {
+    if (t.durationMs != null && t.durationMs > 0) {
+      totalDurationMs += t.durationMs;
+      hasDuration = true;
+    }
+  }
+  return {
+    manifest,
+    manifestName: opts?.manifestName,
+    packageKind: "embedded",
+    embeddedSource: opts?.file ? { file: opts.file, index } : undefined,
+    packageFileSize: index.fileSize,
+    tracks,
+    missingCount: 0,
+    resolvedCount: tracks.length,
+    foundFiles: tracks.map((t) => t.ref.file),
+    missingFiles: [],
+    totalDurationMs: hasDuration ? totalDurationMs : null,
+    warnings: [],
+  };
 }

@@ -1,13 +1,18 @@
 import {
   ALBUM_MANIFEST_FORMAT,
+  EMBEDDED_ALBUM_MANIFEST_FORMAT,
   manifestToJson,
+  writeEmbeddedAlbumPackage,
   type AlbmPackageManifest,
   type AlbmTrackRef,
+  type EmbeddedTrackInput,
 } from "@mp5/container";
 import type { PlaylistTrack } from "../../store/playerStore";
 import { trackDisplayInfo } from "../../player/playlistUtils";
 import { sha256HexFromArrayBuffer } from "../fingerprint/sha256";
 import { downloadBlob } from "../performance/downloadBlob";
+
+export type AlbumPackageExportMode = "manifest" | "embedded";
 
 export interface CreateAlbumInput {
   albumTitle: string;
@@ -56,7 +61,7 @@ export async function buildAlbumTrackRefs(
 export async function createAlbumManifestFromTracks(
   tracks: PlaylistTrack[],
   input: CreateAlbumInput,
-  opts?: { includeFileHashes?: boolean },
+  opts?: { includeFileHashes?: boolean; embedded?: boolean },
 ): Promise<AlbmPackageManifest | null> {
   const playable = tracks.filter((t) => !t.parseError && t.file);
   if (playable.length < 1) return null;
@@ -64,7 +69,7 @@ export async function createAlbumManifestFromTracks(
   const albumTracks = await buildAlbumTrackRefs(playable, opts?.includeFileHashes ?? true);
 
   return {
-    format: ALBUM_MANIFEST_FORMAT,
+    format: opts?.embedded ? EMBEDDED_ALBUM_MANIFEST_FORMAT : ALBUM_MANIFEST_FORMAT,
     version: 1,
     album: {
       title: input.albumTitle.trim() || "Untitled album",
@@ -94,6 +99,31 @@ export function downloadAlbumManifest(manifest: AlbmPackageManifest, filename: s
   const json = manifestToJson(manifest, true);
   downloadBlob(
     new Blob([json], { type: "application/json" }),
+    filename.endsWith(".mp5p") ? filename : `${filename}.mp5p`,
+  );
+}
+
+export async function downloadEmbeddedAlbumPackage(
+  manifest: AlbmPackageManifest,
+  tracks: PlaylistTrack[],
+  filename: string,
+): Promise<void> {
+  const playable = tracks.filter((t) => !t.parseError && t.file);
+  const embeddedTracks: EmbeddedTrackInput[] = [];
+  for (const t of playable) {
+    const ref = manifest.tracks.find((r) => r.trackId === t.id);
+    if (!ref || !t.file) continue;
+    const buf = await t.file.arrayBuffer();
+    embeddedTracks.push({
+      trackId: ref.trackId,
+      logicalFile: t.name,
+      bytes: new Uint8Array(buf),
+      sha256: ref.fileSha256,
+    });
+  }
+  const bytes = writeEmbeddedAlbumPackage({ manifest, tracks: embeddedTracks });
+  downloadBlob(
+    new Blob([bytes.slice().buffer], { type: "application/octet-stream" }),
     filename.endsWith(".mp5p") ? filename : `${filename}.mp5p`,
   );
 }

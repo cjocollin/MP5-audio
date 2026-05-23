@@ -5,7 +5,9 @@ import {
   createAlbumManifestFromTracks,
   defaultAlbumPackageFilename,
   downloadAlbumManifest,
+  downloadEmbeddedAlbumPackage,
   suggestAlbumMetaFromTracks,
+  type AlbumPackageExportMode,
 } from "../lib/album/createAlbumPackage";
 
 interface Props {
@@ -20,6 +22,8 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
   const [albumArtist, setAlbumArtist] = useState("");
   const [year, setYear] = useState("");
   const [genre, setGenre] = useState("");
+  const [exportMode, setExportMode] = useState<AlbumPackageExportMode>("manifest");
+  const [exportBusy, setExportBusy] = useState(false);
 
   useEffect(() => {
     setOrdered(playable);
@@ -40,7 +44,7 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
         className="rounded-lg border border-white/5 bg-surface/40 px-3 py-2 text-xs text-gray-500"
         data-testid="create-album-hint"
       >
-        Add at least two playable .mp5 tracks to create an album package manifest.
+        Add at least two playable .mp5 tracks to create an album package.
       </div>
     );
   }
@@ -58,18 +62,28 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
   }
 
   async function handleExport() {
-    const manifest = await createAlbumManifestFromTracks(
-      ordered,
-      {
-        albumTitle: albumTitle || suggested.albumTitle,
-        albumArtist,
-        year,
-        genre,
-      },
-      { includeFileHashes: true },
-    );
-    if (!manifest) return;
-    downloadAlbumManifest(manifest, defaultAlbumPackageFilename(manifest));
+    setExportBusy(true);
+    try {
+      const manifest = await createAlbumManifestFromTracks(
+        ordered,
+        {
+          albumTitle: albumTitle || suggested.albumTitle,
+          albumArtist,
+          year,
+          genre,
+        },
+        { includeFileHashes: true, embedded: exportMode === "embedded" },
+      );
+      if (!manifest) return;
+      const filename = defaultAlbumPackageFilename(manifest);
+      if (exportMode === "embedded") {
+        await downloadEmbeddedAlbumPackage(manifest, ordered, filename);
+      } else {
+        downloadAlbumManifest(manifest, filename);
+      }
+    } finally {
+      setExportBusy(false);
+    }
   }
 
   return (
@@ -77,19 +91,52 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
       <div>
         <p className="text-sm font-medium text-gray-200">Create album package</p>
         <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-          Downloads a <span className="font-mono">.mp5p</span> JSON manifest — not a zip archive.
-          Sidecar <span className="font-mono">.mp5</span> files stay separate; keep them in the same
-          folder as the manifest when sharing.
+          Export a <span className="font-mono">.mp5p</span> album package from the current playlist
+          order. Tracks inside remain normal MP5 tracks.
         </p>
       </div>
 
-      <div
-        className="rounded-lg border border-amber-900/25 bg-amber-950/15 px-3 py-2 text-[10px] text-amber-100/80 leading-relaxed"
-        data-testid="create-album-archive-warning"
-      >
-        Embedded album archives (single .mp5p blob with audio inside) are not supported in this
-        MVP. Third-party players may ignore .mp5p manifests.
-      </div>
+      <fieldset className="space-y-2 text-xs" data-testid="create-album-export-mode">
+        <legend className="text-gray-500 font-medium mb-1">Package mode</legend>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="album-export-mode"
+            checked={exportMode === "manifest"}
+            onChange={() => setExportMode("manifest")}
+            data-testid="create-album-mode-manifest"
+          />
+          <span>
+            <strong className="text-gray-300">Manifest album package</strong> — small JSON manifest
+            that references sidecar <span className="font-mono">.mp5</span> files. Keep manifest and
+            tracks in the same folder when sharing.
+          </span>
+        </label>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="radio"
+            name="album-export-mode"
+            checked={exportMode === "embedded"}
+            onChange={() => setExportMode("embedded")}
+            data-testid="create-album-mode-embedded"
+          />
+          <span>
+            <strong className="text-gray-300">Embedded album package</strong> — self-contained{" "}
+            <span className="font-mono">.mp5p</span> with all tracks inside one file (experimental
+            Alpha). This can be much larger if tracks include stems.
+          </span>
+        </label>
+      </fieldset>
+
+      {exportMode === "embedded" && (
+        <div
+          className="rounded-lg border border-amber-900/25 bg-amber-950/15 px-3 py-2 text-[10px] text-amber-100/80 leading-relaxed"
+          data-testid="create-album-embedded-warning"
+        >
+          Embedded packages are experimental Alpha prototypes — not a final public spec. Third-party
+          players may ignore <span className="font-mono">.mp5p</span> entirely.
+        </div>
+      )}
 
       <div className="grid sm:grid-cols-2 gap-2">
         <label className="block text-xs">
@@ -131,7 +178,7 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
       </div>
 
       <div className="space-y-1">
-        <p className="text-xs text-gray-500 font-medium">Track order (playlist → manifest)</p>
+        <p className="text-xs text-gray-500 font-medium">Track order (playlist → package)</p>
         <ol className="space-y-1 max-h-40 overflow-y-auto" data-testid="create-album-track-order">
           {ordered.map((t, index) => {
             const info = trackDisplayInfo(t);
@@ -177,10 +224,15 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
       <button
         type="button"
         className="mp5-btn-secondary text-sm"
-        onClick={handleExport}
+        onClick={() => void handleExport()}
+        disabled={exportBusy}
         data-testid="create-album-export"
       >
-        Download .mp5p manifest
+        {exportBusy
+          ? "Exporting…"
+          : exportMode === "embedded"
+            ? "Download embedded .mp5p"
+            : "Download manifest .mp5p"}
       </button>
     </div>
   );

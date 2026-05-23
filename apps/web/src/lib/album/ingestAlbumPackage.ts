@@ -1,7 +1,18 @@
-import { auditAlbmPackageManifest, parseAlbmPackageJson } from "@mp5/container";
+import {
+  auditAlbmPackageManifest,
+  auditEmbeddedAlbumPackage,
+  indexEmbeddedAlbumPackage,
+  isEmbeddedMp5pBytes,
+  parseAlbmPackageJson,
+  verifyEmbeddedPackageIntegrity,
+} from "@mp5/container";
 import type { ResolvedAlbumPackage } from "./resolveAlbum";
 import { enrichTracksSidecarIntegrity } from "../fingerprint/sidecar";
-import { enrichResolvedAlbum, resolveAlbumTracks } from "./resolveAlbum";
+import {
+  enrichResolvedAlbum,
+  resolveAlbumTracks,
+  resolveEmbeddedAlbumPackage,
+} from "./resolveAlbum";
 import { isAlbumPackageFileName } from "./createAlbumPackage";
 import type { PlaylistTrack } from "../../store/playerStore";
 import {
@@ -35,6 +46,58 @@ export function partitionDroppedFiles(files: File[]): {
   return { mp5, manifests, other };
 }
 
+async function ingestEmbeddedManifestFile(
+  manifestFile: File,
+  existingTracks: PlaylistTrack[],
+  onMp5Progress?: IngestProgressCallback,
+): Promise<AlbumIngestResult> {
+  const buf = await manifestFile.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  if (!isEmbeddedMp5pBytes(bytes)) {
+    return {
+      album: null,
+      mp5: { tracks: [], dropErrors: [], addedCount: 0, skippedCount: 0, unreadableCount: 0 },
+      manifestError: USER_ERRORS.albumManifestInvalid,
+      manifestName: manifestFile.name,
+    };
+  }
+  let index;
+  try {
+    index = indexEmbeddedAlbumPackage(bytes);
+  } catch {
+    return {
+      album: null,
+      mp5: { tracks: [], dropErrors: [], addedCount: 0, skippedCount: 0, unreadableCount: 0 },
+      manifestError: USER_ERRORS.albumManifestInvalid,
+      manifestName: manifestFile.name,
+    };
+  }
+  const integrity = verifyEmbeddedPackageIntegrity(bytes);
+  const resolved = resolveEmbeddedAlbumPackage(index, {
+    manifestName: manifestFile.name,
+    file: manifestFile,
+  });
+  const warnings = [
+    ...auditAlbmPackageManifest(index.manifest),
+    ...auditEmbeddedAlbumPackage(index).map((message) => ({
+      path: "package",
+      message,
+    })),
+  ];
+  if (!integrity.valid) {
+    warnings.push({
+      path: "integrity",
+      message: `${integrity.issues.length} embedded fragment/integrity issue(s) — some tracks may fail to load`,
+    });
+  }
+  const album = enrichResolvedAlbum(resolved, { warnings });
+  return {
+    album,
+    mp5: { tracks: [], dropErrors: [], addedCount: 0, skippedCount: 0, unreadableCount: 0 },
+    manifestName: manifestFile.name,
+  };
+}
+
 export async function ingestAlbumPackageFiles(
   files: File[],
   existingTracks: PlaylistTrack[] = [],
@@ -48,6 +111,11 @@ export async function ingestAlbumPackageFiles(
   }
 
   const manifestFile = manifests[0]!;
+  const head = new Uint8Array(await manifestFile.slice(0, 4).arrayBuffer());
+  if (isEmbeddedMp5pBytes(head)) {
+    return ingestEmbeddedManifestFile(manifestFile, existingTracks, onMp5Progress);
+  }
+
   let text: string;
   try {
     text = await manifestFile.text();

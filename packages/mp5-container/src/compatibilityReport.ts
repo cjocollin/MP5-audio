@@ -30,6 +30,12 @@ import {
   validateAlbmPackageManifest,
   auditAlbmPackageManifest,
 } from "./albm.js";
+import {
+  auditEmbeddedAlbumPackage,
+  detectMp5pPackageKind,
+  indexEmbeddedAlbumPackage,
+  verifyEmbeddedPackageIntegrity,
+} from "./embeddedPackage.js";
 import { isSha256Hex } from "./sha256Hex.js";
 
 export type ValidationProfile = "basic" | "playable" | "rich" | "strict" | "package";
@@ -404,6 +410,7 @@ export function assessMp5Compatibility(
 export interface Mp5pCompatibilityReport {
   fileType: ".mp5p";
   path?: string;
+  packageKind: "manifest" | "embedded";
   manifestFormat: string;
   manifestVersion: number;
   albumTitle: string;
@@ -416,6 +423,18 @@ export interface Mp5pCompatibilityReport {
   validationErrors: string[];
   profiles: Record<ValidationProfile, boolean>;
   compatibilityLevel: CompatibilityLevel;
+  fileSize?: number;
+  packageVersion?: number;
+  totalEmbeddedBytes?: number;
+  totalFragmentCount?: number;
+  embeddedTrackSizes?: Array<{
+    trackId: string;
+    logicalFile: string;
+    bytes: number;
+    fragments: number;
+  }>;
+  integrityValid?: boolean;
+  integrityIssues?: string[];
 }
 
 export function assessMp5pCompatibility(
@@ -469,6 +488,7 @@ export function assessMp5pCompatibility(
   return {
     fileType: ".mp5p",
     path: opts?.path,
+    packageKind: "manifest",
     manifestFormat: manifest?.format ?? "(invalid)",
     manifestVersion: manifest?.version ?? 0,
     albumTitle: manifest?.album.title ?? "(unknown)",
@@ -482,4 +502,120 @@ export function assessMp5pCompatibility(
     profiles,
     compatibilityLevel,
   };
+}
+
+export function assessEmbeddedMp5pCompatibility(
+  data: Uint8Array,
+  opts?: { path?: string },
+): Mp5pCompatibilityReport {
+  const validationErrors: string[] = [];
+  let index;
+  try {
+    index = indexEmbeddedAlbumPackage(data);
+  } catch (e) {
+    validationErrors.push(e instanceof Error ? e.message : String(e));
+    return {
+      fileType: ".mp5p",
+      path: opts?.path,
+      packageKind: "embedded",
+      manifestFormat: "(invalid)",
+      manifestVersion: 0,
+      albumTitle: "(unknown)",
+      trackCount: 0,
+      sidecarPaths: [],
+      tracksWithHash: 0,
+      missingSidecars: [],
+      auditWarnings: [],
+      validationErrors,
+      profiles: {
+        basic: false,
+        playable: false,
+        rich: false,
+        strict: false,
+        package: false,
+      },
+      compatibilityLevel: "error",
+      fileSize: data.length,
+    };
+  }
+
+  const integrity = verifyEmbeddedPackageIntegrity(data);
+  const auditWarnings = auditEmbeddedAlbumPackage(index);
+  if (integrity.issues.length) {
+    for (const issue of integrity.issues) {
+      validationErrors.push(
+        issue.partIndex != null
+          ? `${issue.trackId} part ${issue.partIndex}: ${issue.message}`
+          : `${issue.trackId}: ${issue.message}`,
+      );
+    }
+  }
+
+  const packageOk = integrity.valid;
+  const basic = packageOk;
+  const playable = packageOk;
+  const rich = packageOk;
+  const strict =
+    packageOk &&
+    index.tracks.every((t) => !t.sha256 || isSha256Hex(t.sha256)) &&
+    index.manifest.tracks.every((t) => !t.fileSha256 || isSha256Hex(t.fileSha256));
+
+  const profiles: Record<ValidationProfile, boolean> = {
+    basic,
+    playable,
+    rich,
+    strict,
+    package: packageOk,
+  };
+
+  let compatibilityLevel: CompatibilityLevel = "error";
+  if (packageOk) {
+    if (strict) compatibilityLevel = "strict";
+    else if (rich) compatibilityLevel = "rich";
+    else compatibilityLevel = "playable";
+  } else if (index.manifest) {
+    compatibilityLevel = "warning";
+  }
+
+  return {
+    fileType: ".mp5p",
+    path: opts?.path,
+    packageKind: "embedded",
+    manifestFormat: index.manifest.format,
+    manifestVersion: index.manifest.version,
+    albumTitle: index.manifest.album.title,
+    albumArtist: index.manifest.album.albumArtist ?? index.manifest.album.artist,
+    trackCount: index.manifest.tracks.length,
+    sidecarPaths: [],
+    tracksWithHash: index.manifest.tracks.filter((t) => t.fileSha256).length,
+    missingSidecars: [],
+    auditWarnings,
+    validationErrors,
+    profiles,
+    compatibilityLevel,
+    fileSize: data.length,
+    packageVersion: index.packageVersion,
+    totalEmbeddedBytes: index.totalEmbeddedBytes,
+    totalFragmentCount: index.totalFragmentCount,
+    embeddedTrackSizes: index.tracks.map((t) => ({
+      trackId: t.trackId,
+      logicalFile: t.logicalFile,
+      bytes: t.totalByteLength,
+      fragments: t.fragments.length,
+    })),
+    integrityValid: integrity.valid,
+    integrityIssues: integrity.issues.map((i) => i.message),
+  };
+}
+
+export function assessMp5pFromBytes(
+  data: Uint8Array,
+  opts?: { path?: string; sidecarExists?: (relativePath: string) => boolean },
+): Mp5pCompatibilityReport {
+  const kind = detectMp5pPackageKind(data);
+  if (kind === "embedded-binary") {
+    return assessEmbeddedMp5pCompatibility(data, opts);
+  }
+  const text = new TextDecoder().decode(data);
+  return assessMp5pCompatibility(text, opts);
 }

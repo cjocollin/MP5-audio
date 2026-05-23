@@ -49,6 +49,7 @@ interface Props {
   onSelectTrack: (index: number) => void;
   onAddSidecarFiles?: (files: FileList) => void;
   onSaveAlbum?: () => void;
+  onExtractTrack?: (index: number) => void;
   saveBusy?: boolean;
 }
 
@@ -60,9 +61,12 @@ export function AlbumPackagePanel({
   onSelectTrack,
   onAddSidecarFiles,
   onSaveAlbum,
+  onExtractTrack,
   saveBusy,
 }: Props) {
-  const { manifest, tracks, missingCount, resolvedCount, manifestName } = album;
+  const { manifest, tracks, missingCount, resolvedCount, manifestName, packageKind, packageFileSize } =
+    album;
+  const isEmbedded = packageKind === "embedded";
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
   useEffect(() => {
     const url = albumCoverUrl(manifest);
@@ -88,9 +92,20 @@ export function AlbumPackagePanel({
         data-testid="album-import-explainer"
       >
         <p>
-          <strong className="text-violet-200 font-medium">.mp5p album manifest</strong> — a JSON
-          package that lists sidecar <span className="font-mono">.mp5</span> tracks. This is not an
-          embedded archive; keep the manifest and .mp5 files together in the same folder.
+          {isEmbedded ? (
+            <>
+              <strong className="text-violet-200 font-medium">Embedded album package</strong> — a
+              self-contained <span className="font-mono">.mp5p</span> with complete{" "}
+              <span className="font-mono">.mp5</span> tracks inside. Tracks load on demand when you
+              play or select them.
+            </>
+          ) : (
+            <>
+              <strong className="text-violet-200 font-medium">Manifest album package</strong> — a JSON
+              package that lists sidecar <span className="font-mono">.mp5</span> tracks. Keep the
+              manifest and .mp5 files together in the same folder.
+            </>
+          )}
         </p>
         {manifestName && (
           <p className="mt-1 text-gray-500 font-mono truncate" data-testid="album-manifest-name">
@@ -114,7 +129,7 @@ export function AlbumPackagePanel({
         </div>
         <div className="flex-1 min-w-0 text-center sm:text-left">
           <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
-            Album package
+            {isEmbedded ? "Embedded album package" : "Album package"}
           </p>
           <h2 className="text-xl font-bold text-white truncate" data-testid="album-package-title">
             {manifest.album.title}
@@ -130,12 +145,23 @@ export function AlbumPackagePanel({
             </p>
           )}
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2 max-w-sm">
+            <dt className="text-gray-600">Package type</dt>
+            <dd data-testid="album-package-type">{isEmbedded ? "Embedded" : "Manifest"}</dd>
+            {packageFileSize != null && (
+              <>
+                <dt className="text-gray-600">Package size</dt>
+                <dd data-testid="album-package-size">
+                  {(packageFileSize / (1024 * 1024)).toFixed(2)} MiB
+                </dd>
+              </>
+            )}
             <dt className="text-gray-600">Tracks</dt>
             <dd data-testid="album-track-count">{tracks.length}</dd>
             <dt className="text-gray-600">Available</dt>
             <dd data-testid="album-resolved-count">
-              {resolvedCount} found
-              {missingCount > 0 ? ` · ${missingCount} missing` : ""}
+              {isEmbedded
+                ? `${tracks.length} embedded`
+                : `${resolvedCount} found${missingCount > 0 ? ` · ${missingCount} missing` : ""}`}
             </dd>
             {album.totalDurationMs != null && (
               <>
@@ -181,7 +207,7 @@ export function AlbumPackagePanel({
         </div>
       )}
 
-      {album.foundFiles.length > 0 && (
+      {!isEmbedded && album.foundFiles.length > 0 && (
         <div className="text-xs" data-testid="album-found-files">
           <p className="text-gray-500 font-medium mb-1">Found sidecar tracks</p>
           <ul className="font-mono text-gray-400 space-y-0.5 max-h-20 overflow-y-auto">
@@ -194,7 +220,7 @@ export function AlbumPackagePanel({
         </div>
       )}
 
-      {missingCount > 0 && (
+      {!isEmbedded && missingCount > 0 && (
         <div className="space-y-2" data-testid="album-missing-section">
           <p className="text-xs text-amber-200/90" data-testid="album-missing-tracks-note">
             Missing {missingCount} sidecar .mp5 file{missingCount === 1 ? "" : "s"} — drop them below
@@ -255,7 +281,7 @@ export function AlbumPackagePanel({
           type="button"
           className="mp5-btn-primary text-sm"
           onClick={onPlayAlbum}
-          disabled={resolvedCount === 0}
+          disabled={isEmbedded ? tracks.length === 0 : resolvedCount === 0}
           data-testid="album-play-all"
         >
           Play album
@@ -264,7 +290,7 @@ export function AlbumPackagePanel({
           type="button"
           className="mp5-btn-secondary text-sm"
           onClick={onAddToQueue}
-          disabled={resolvedCount === 0}
+          disabled={isEmbedded ? tracks.length === 0 : resolvedCount === 0}
           data-testid="album-add-to-queue"
         >
           Add album to queue
@@ -317,11 +343,30 @@ export function AlbumPackagePanel({
               <span className="block text-xs text-gray-500 truncate">
                 {t.displayArtist}
                 <span className="font-mono text-gray-600"> · {albumTrackBasename(t.ref.file)}</span>
+                {t.embeddedByteLength != null && (
+                  <span className="text-gray-600" data-testid="album-track-embedded-size">
+                    {" "}
+                    · {(t.embeddedByteLength / (1024 * 1024)).toFixed(2)} MiB
+                    {t.embeddedFragmentCount != null && t.embeddedFragmentCount > 1
+                      ? ` · ${t.embeddedFragmentCount} frags`
+                      : ""}
+                  </span>
+                )}
               </span>
             </button>
             <span className="text-[10px] text-gray-600 font-mono shrink-0">
               {formatDuration(msToSec(t.durationMs))}
             </span>
+            {isEmbedded && onExtractTrack && (
+              <button
+                type="button"
+                className="text-[10px] text-violet-300 shrink-0 hover:underline"
+                onClick={() => onExtractTrack(index)}
+                data-testid="album-track-extract"
+              >
+                Extract .mp5
+              </button>
+            )}
             {t.missing && (
               <span className="text-[10px] text-amber-300 shrink-0" data-testid="album-track-missing">
                 Missing

@@ -20,6 +20,7 @@ const {
   parseMp5,
   assessMp5Compatibility,
   assessMp5pCompatibility,
+  assessMp5pFromBytes,
   verifyMp5FileIntegrity,
 } = container;
 
@@ -64,9 +65,9 @@ async function main() {
     }
     const name = basename(path).toLowerCase();
     if (name.endsWith(".mp5p")) {
-      const text = readFileSync(path, "utf8");
+      const buf = new Uint8Array(readFileSync(path));
       const baseDir = sidecarDir ?? dirname(path);
-      const report = assessMp5pCompatibility(text, {
+      const report = assessMp5pFromBytes(buf, {
         path,
         sidecarExists: (rel) => existsSync(join(baseDir, rel)),
       });

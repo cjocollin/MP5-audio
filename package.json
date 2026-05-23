@@ -1,7 +1,7 @@
 {
   "name": "mp5",
   "private": true,
-  "version": "0.11.0-alpha",
+  "version": "0.12.0-alpha",
   "description": "MP5 experimental audio format ecosystem",
   "scripts": {
     "build": "pnpm -r run build",
@@ -23,6 +23,7 @@
     "fixtures:generate": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-demo-fixtures.mjs && node scripts/generate-demo-album-package.mjs",
     "fixtures:validate": "node scripts/validate-golden-fixtures.mjs",
     "fixtures:pity-party-class": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-pity-party-class-fixture.mjs",
+    "fixtures:embedded-album": "pnpm --filter @mp5/container build && node scripts/generate-demo-embedded-album-package.mjs",
     "playback:check": "node scripts/playback-check.mjs",
     "beta:check": "node scripts/beta-check.mjs",
     "compatibility:fixtures": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-compatibility-fixtures.mjs",

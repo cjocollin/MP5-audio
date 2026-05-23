@@ -1,5 +1,23 @@
 # MP5 Alpha release notes
 
+## v0.12.0-alpha — Embedded album bundle prototype (May 2026)
+
+**Version:** MP5 Audio **v0.12.0-alpha**
+
+### Added
+
+- **Embedded `.mp5p` format:** `MP5P` magic, manifest `mp5-album-embedded-v1`, track directory, fragmented embedded `.mp5` payloads (12 MiB default / 16 MiB max per fragment, CRC32 + SHA-256).
+- **Lazy embedded ingest:** index on open; load track bytes on play/select; existing `.mp5` playback path unchanged.
+- **Create UI:** manifest vs embedded export modes; embedded size warning.
+- **Import UI:** package type, size, per-track embedded sizes, extract `.mp5`, play album/queue.
+- **Library MVP (Option A):** save embedded package blob to IndexedDB with size warning.
+- **CLI:** `pnpm inspect:mp5` / `pnpm validate:mp5p` report embedded packages; `pnpm fixtures:embedded-album`.
+- **Fixture:** `test-fixtures/demo_embedded_album_package.mp5p`.
+
+### Unchanged
+
+- JSON manifest `.mp5p` + sidecar support; single `.mp5` playback; no AI/codec/DRM/policy changes.
+
 ## v0.11.0-alpha — Real playback regression harness MVP (May 2026)
 
 **Version:** MP5 Audio **v0.11.0-alpha**

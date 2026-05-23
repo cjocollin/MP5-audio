@@ -15,6 +15,11 @@ import { normalizeSha256Hex } from "./sha256Hex.js";
 
 /** Standalone `.mp5p` manifest and optional ALBM chunk share this schema. */
 export const ALBUM_MANIFEST_FORMAT = "mp5-album-manifest-v1";
+/** Embedded binary `.mp5p` album package manifest (prototype Alpha). */
+export const EMBEDDED_ALBUM_MANIFEST_FORMAT = "mp5-album-embedded-v1";
+export type AlbmPackageFormat =
+  | typeof ALBUM_MANIFEST_FORMAT
+  | typeof EMBEDDED_ALBUM_MANIFEST_FORMAT;
 export const MAX_ALBUM_TRACKS = 256;
 export const MAX_ALBUM_CREDITS_LEN = 4096;
 
@@ -60,7 +65,7 @@ export interface AlbmTrackRef {
 }
 
 export interface AlbmPackageManifest {
-  format: typeof ALBUM_MANIFEST_FORMAT;
+  format: AlbmPackageFormat;
   version: number;
   album: AlbmAlbumMeta;
   tracks: AlbmTrackRef[];

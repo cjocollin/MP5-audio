@@ -19,6 +19,7 @@ const {
   parseMp5,
   assessMp5Compatibility,
   assessMp5pCompatibility,
+  assessMp5pFromBytes,
   verifyMp5FileIntegrity,
   decodeStemManifest,
   auditStdfStemFromChunks,
@@ -165,13 +166,33 @@ function printMp5Report(r) {
 
 function printMp5pReport(r) {
   console.log("");
-  console.log("File type:        .mp5p (album manifest)");
+  console.log("File type:        .mp5p (album package)");
+  console.log("Package kind:     ", r.packageKind ?? "manifest");
   console.log("Path:             ", r.path ?? "");
+  if (r.fileSize != null) console.log("File size:        ", r.fileSize, "bytes");
+  if (r.packageVersion != null) console.log("Package version:  ", r.packageVersion);
   console.log("Manifest format:  ", r.manifestFormat);
   console.log("Manifest version: ", r.manifestVersion);
   console.log("Album:            ", r.albumTitle, r.albumArtist ? `· ${r.albumArtist}` : "");
   console.log("Tracks:           ", r.trackCount);
-  console.log("Sidecars:         ", r.sidecarPaths.join(", ") || "(none)");
+  if (r.packageKind === "embedded") {
+    console.log("Embedded audio:   ", r.totalEmbeddedBytes ?? 0, "bytes");
+    console.log("Fragments:        ", r.totalFragmentCount ?? 0);
+    if (r.embeddedTrackSizes?.length) {
+      console.log("Embedded tracks:");
+      for (const t of r.embeddedTrackSizes) {
+        console.log(
+          `  ${t.trackId.padEnd(16)} ${t.logicalFile} · ${t.bytes} bytes · ${t.fragments} fragment(s)`,
+        );
+      }
+    }
+    console.log("Integrity:        ", r.integrityValid ? "OK" : "issues");
+    if (r.integrityIssues?.length) {
+      for (const i of r.integrityIssues) console.log("  •", i);
+    }
+  } else {
+    console.log("Sidecars:         ", r.sidecarPaths.join(", ") || "(none)");
+  }
   console.log("Tracks w/ hash:   ", r.tracksWithHash);
   if (r.missingSidecars.length) {
     console.log("Missing sidecars: ", r.missingSidecars.join(", "));
@@ -214,9 +235,8 @@ async function main() {
     console.log("Name:", basename(path));
 
     if (name.endsWith(".mp5p")) {
-      const text = buf.toString("utf8");
       const baseDir = sidecarDir ?? dirname(path);
-      const report = assessMp5pCompatibility(text, {
+      const report = assessMp5pFromBytes(buf, {
         path,
         sidecarExists: (rel) => existsSync(join(baseDir, rel)),
       });

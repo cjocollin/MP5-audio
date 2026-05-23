@@ -78,6 +78,12 @@ import {
 } from "../lib/album/resolveAlbum";
 import { auditAlbmPackageManifest } from "@mp5/container";
 import { saveAlbumPackage } from "../lib/localLibrary/albumLibrary";
+import { saveEmbeddedAlbumPackage } from "../lib/localLibrary/embeddedAlbumLibrary";
+import {
+  ensureEmbeddedTracksLoaded,
+  loadEmbeddedTrackAsPlaylistTrack,
+} from "../lib/album/embeddedAlbumLoader";
+import { downloadBlob } from "../lib/performance/downloadBlob";
 import { AlbumPackagePanel } from "../components/AlbumPackagePanel";
 import { CreateAlbumPackagePanel } from "../components/CreateAlbumPackagePanel";
 import { listLibraryRecords } from "../lib/localLibrary/api";
@@ -1133,7 +1139,7 @@ export function Mp5Player() {
     if (ingest.mp5.tracks.length) {
       const prevTracks = tracks;
       appendTracks(ingest.mp5.tracks);
-      if (ingest.album) {
+      if (ingest.album && ingest.album.packageKind === "manifest") {
         const combined = [...prevTracks, ...ingest.mp5.tracks];
         const resolved = resolveAlbumTracks(ingest.album.manifest, combined);
         setActiveAlbum(
@@ -1164,14 +1170,28 @@ export function Mp5Player() {
     }
   };
 
-  const handleSaveAlbumToLibrary = () => {
+  const handleSaveAlbumToLibrary = async () => {
     if (!activeAlbum) return;
     setAlbumSaveBusy(true);
     setAlbumSaveNote("");
     try {
       const name = activeAlbum.manifestName ?? `${activeAlbum.manifest.album.title}.mp5p`;
-      saveAlbumPackage(activeAlbum.manifest, name);
-      setAlbumSaveNote("Album manifest saved to this browser (Library → Saved albums).");
+      if (activeAlbum.packageKind === "embedded" && activeAlbum.embeddedSource?.file) {
+        const sizeMb = (activeAlbum.packageFileSize ?? 0) / (1024 * 1024);
+        if (sizeMb > 64 && !window.confirm(
+          `This embedded album package is about ${sizeMb.toFixed(0)} MiB. Saving will use browser storage. Continue?`,
+        )) {
+          setAlbumSaveNote("Save cancelled.");
+          return;
+        }
+        await saveEmbeddedAlbumPackage(activeAlbum.embeddedSource.file, activeAlbum.manifest);
+        setAlbumSaveNote(
+          "Embedded album package saved to this browser (Library → Saved albums). Clearing site data removes it.",
+        );
+      } else {
+        saveAlbumPackage(activeAlbum.manifest, name);
+        setAlbumSaveNote("Album manifest saved to this browser (Library → Saved albums).");
+      }
     } catch (e) {
       setAlbumSaveNote(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1179,9 +1199,22 @@ export function Mp5Player() {
     }
   };
 
-  const handlePlayAlbum = () => {
+  const loadEmbeddedAlbumForPlayback = async (
+    trackIds?: string[],
+  ): Promise<ResolvedAlbumPackage | null> => {
+    if (!activeAlbum || activeAlbum.packageKind !== "embedded") return activeAlbum;
+    const loaded = await ensureEmbeddedTracksLoaded(activeAlbum, trackIds);
+    setActiveAlbum(loaded);
+    return loaded;
+  };
+
+  const handlePlayAlbum = async () => {
     if (!activeAlbum) return;
-    const ordered = resolvedTracksInOrder(activeAlbum);
+    let album = activeAlbum;
+    if (album.packageKind === "embedded") {
+      album = (await loadEmbeddedAlbumForPlayback()) ?? album;
+    }
+    const ordered = resolvedTracksInOrder(album);
     if (!ordered.length) return;
     const first = ordered[0]!;
     const toAdd = ordered.filter((t) => !tracks.some((x) => x.id === t.id));
@@ -1193,26 +1226,60 @@ export function Mp5Player() {
     setCurrentIndex(idx);
   };
 
-  const handleAddAlbumToQueue = () => {
+  const handleAddAlbumToQueue = async () => {
     if (!activeAlbum) return;
-    const ordered = resolvedTracksInOrder(activeAlbum);
+    let album = activeAlbum;
+    if (album.packageKind === "embedded") {
+      album = (await loadEmbeddedAlbumForPlayback()) ?? album;
+    }
+    const ordered = resolvedTracksInOrder(album);
     const newIds = new Set(tracks.map((t) => t.id));
     const toAdd = ordered.filter((t) => !newIds.has(t.id));
     if (toAdd.length) appendTracks(toAdd);
   };
 
-  const handleAlbumTrackSelect = (rowIndex: number) => {
+  const handleAlbumTrackSelect = async (rowIndex: number) => {
     const row = activeAlbum?.tracks[rowIndex];
-    if (!row?.playlistTrack) return;
-    const idx = tracks.findIndex((t) => t.id === row.playlistTrack!.id);
+    if (!row) return;
+    let playlistTrack = row.playlistTrack;
+    if (!playlistTrack && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
+      const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);
+      playlistTrack = await loadEmbeddedTrackAsPlaylistTrack(
+        activeAlbum.embeddedSource.file,
+        activeAlbum.embeddedSource.index,
+        row.ref.trackId,
+        dir?.logicalFile ?? row.ref.file,
+      );
+      if (playlistTrack) {
+        const loaded = await ensureEmbeddedTracksLoaded(activeAlbum, [row.ref.trackId]);
+        setActiveAlbum(loaded);
+      }
+    }
+    if (!playlistTrack) return;
+    const idx = tracks.findIndex((t) => t.id === playlistTrack!.id);
     if (idx >= 0) {
       playWhenReadyRef.current = true;
       setCurrentIndex(idx);
       return;
     }
-    appendTracks([row.playlistTrack]);
+    appendTracks([playlistTrack]);
     setCurrentIndex(tracks.length);
     playWhenReadyRef.current = true;
+  };
+
+  const handleExtractEmbeddedTrack = async (rowIndex: number) => {
+    const row = activeAlbum?.tracks[rowIndex];
+    if (!activeAlbum?.embeddedSource || !row) return;
+    const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);
+    const filename = dir?.logicalFile ?? row.ref.file;
+    const fileTrack = await loadEmbeddedTrackAsPlaylistTrack(
+      activeAlbum.embeddedSource.file,
+      activeAlbum.embeddedSource.index,
+      row.ref.trackId,
+      filename,
+    );
+    if (!fileTrack?.file) return;
+    downloadBlob(fileTrack.file, filename);
   };
 
   const handlePlayIndex = (index: number) => {
@@ -1365,9 +1432,10 @@ export function Mp5Player() {
             setActiveAlbum(null);
             setAlbumSaveNote("");
           }}
-          onSelectTrack={handleAlbumTrackSelect}
+          onSelectTrack={(i) => void handleAlbumTrackSelect(i)}
           onAddSidecarFiles={(f) => void handleAddAlbumSidecars(f)}
-          onSaveAlbum={handleSaveAlbumToLibrary}
+          onSaveAlbum={() => void handleSaveAlbumToLibrary()}
+          onExtractTrack={(i) => void handleExtractEmbeddedTrack(i)}
           saveBusy={albumSaveBusy}
         />
       )}
