@@ -17,3 +17,9 @@ target/
 *.ogg
 .env
 .vercel
+
+# Generated acceptance / local test logs
+logs/
+acceptance-*.log
+*.log
+!logs/acceptance/README.md

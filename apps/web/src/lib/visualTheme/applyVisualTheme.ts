@@ -66,14 +66,15 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
     boxShadow: `0 0 0 1px ${hexWithAlpha(accent, 0.2)}, 0 16px 48px ${hexWithAlpha(accent, 0.28)}, inset 0 0 80px ${hexWithAlpha(background ?? accent, 0.15)}`,
   };
 
+  /** Now Playing shell only — subtle tint, no full-column wallpaper wash. */
   const shellStyle: CSSProperties = {
-    borderColor: hexWithAlpha(accent, 0.45),
+    borderColor: hexWithAlpha(accent, 0.4),
     borderWidth: 1,
     borderStyle: "solid",
     background: background
-      ? `linear-gradient(180deg, ${hexWithAlpha(background, 0.55)} 0%, ${hexWithAlpha(accent, 0.12)} 42%, transparent 72%)`
-      : `linear-gradient(180deg, ${hexWithAlpha(accent, 0.2)} 0%, transparent 55%)`,
-    boxShadow: `0 0 32px ${hexWithAlpha(accent, 0.18)}`,
+      ? `linear-gradient(180deg, ${hexWithAlpha(background, 0.28)} 0%, ${hexWithAlpha(accent, 0.06)} 48%, transparent 100%)`
+      : `linear-gradient(180deg, ${hexWithAlpha(accent, 0.12)} 0%, transparent 62%)`,
+    boxShadow: `inset 0 1px 0 ${hexWithAlpha(accent, 0.1)}`,
   };
 
   const coverFrameStyle: CSSProperties = {
@@ -133,6 +134,39 @@ export function themeRootStyle(theme: ResolvedPlayerTheme | null): CSSProperties
     ...(theme.vars as CSSProperties),
     ...theme.shellStyle,
   };
+}
+
+/** Cover card styles — when art is present, skip full gradient fill so the image stays contained. */
+export function resolveCoverCardStyle(
+  theme: ResolvedPlayerTheme | null | undefined,
+  hasCoverArt: boolean,
+): CSSProperties {
+  if (!theme) return {};
+  if (hasCoverArt) {
+    return {
+      borderColor: theme.cardStyle.borderColor,
+      borderWidth: theme.cardStyle.borderWidth,
+      borderStyle: theme.cardStyle.borderStyle,
+      ...theme.coverFrameStyle,
+    };
+  }
+  return { ...theme.cardStyle, ...theme.coverFrameStyle };
+}
+
+/** Alpha guard: VISU must never set document-level or url() backgrounds. */
+export function themeUsesGlobalBackgroundImage(theme: ResolvedPlayerTheme | null): boolean {
+  if (!theme) return false;
+  const check = (style: CSSProperties | undefined) => {
+    const bg = style?.background ?? style?.backgroundImage;
+    if (typeof bg !== "string") return false;
+    return /url\s*\(/i.test(bg);
+  };
+  return (
+    check(theme.shellStyle) ||
+    check(theme.cardStyle) ||
+    check(theme.coverOverlayStyle) ||
+    check(themeRootStyle(theme))
+  );
 }
 
 /** True when resolved accent is meaningfully different from default app purple. */

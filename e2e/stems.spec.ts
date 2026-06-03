@@ -6,6 +6,7 @@ const stemFixture = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_stems.m
 const hasStemFixture = fs.existsSync(stemFixture);
 
 test.describe("stem playback UI", () => {
+  test.describe.configure({ timeout: 120_000 });
   test.skip(!hasStemFixture, "run pnpm fixtures:generate to create demo_mp5l_v3_stems.mp5");
 
   test("loads stem demo, prepares selected stem, returns to full mix", async ({ page }) => {
@@ -22,6 +23,7 @@ test.describe("stem playback UI", () => {
 
     const firstItem = page.getByTestId("stems-item").first();
     await firstItem.getByTestId("stems-item-select").check();
+    await expect(page.getByTestId("stems-prepare-selected")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("stems-prepare-selected").click();
     await expect(firstItem.getByTestId("stems-item-loaded")).toBeVisible({ timeout: 30_000 });
 

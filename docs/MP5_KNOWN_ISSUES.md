@@ -100,6 +100,14 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 
 ---
 
+## QA / Playwright (Alpha gates)
+
+| Issue | Detail |
+|-------|--------|
+| **Parallel e2e flake** | Full `pnpm test:e2e` with many workers can starve WASM decode and stem workers; `play-pause` may stay disabled and `current-time` may not advance until load finishes. `CI=1` runs **one worker**; karaoke UI asserts transport via `player-playback-status` + a short post-play time delta (seek under stem load is covered in `playback-regression.spec.ts`). |
+
+---
+
 ## Reporting issues
 
 Use the GitHub repo for bugs and reproduction steps. Include `pnpm inspect:mp5 <file>` output when reporting file issues.

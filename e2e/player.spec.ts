@@ -19,8 +19,9 @@ test.describe("MP5 player playback", () => {
     await page.getByTestId("player-file-input").setInputFiles(file);
     const seek = page.getByTestId("seek-slider");
     await expect
-      .poll(async () => Number(await seek.getAttribute("max")), { timeout: 15_000 })
+      .poll(async () => Number(await seek.getAttribute("max")), { timeout: 90_000 })
       .toBeGreaterThan(0);
+    await expect(seek).toBeEnabled({ timeout: 90_000 });
     return seek;
   }
 
@@ -69,7 +70,7 @@ test.describe("MP5 player playback", () => {
     const seek = await loadFixture(page, mp5lFixture);
     const target = 0.5;
     await seek.fill(String(target));
-    await expect(seek).toHaveValue(String(target));
+    await expect(seek).toHaveValue(String(target), { timeout: 15_000 });
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause");
   });

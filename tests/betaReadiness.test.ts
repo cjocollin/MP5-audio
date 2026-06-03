@@ -121,8 +121,8 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.12.x-alpha", () => {
-    expect(packageJson.version).toMatch(/^0\.12\.\d+-alpha$/);
+  it("package.json is 0.13.x-alpha", () => {
+    expect(packageJson.version).toMatch(/^0\.13\.\d+-alpha$/);
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {

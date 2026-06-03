@@ -1,6 +1,6 @@
 import { decodeSourceToPcm } from "./decodeSourceToPcm";
 import { extractSourceMetadata } from "./extractSourceMetadata";
-import { manualEditsFromSource } from "./manualMetadata";
+import { manualEditsFromSource, type ManualMetadataEdits } from "./manualMetadata";
 import { runExportPipeline } from "./exportPipeline";
 import { decodeFailureHint } from "./supportedSources";
 import {
@@ -31,6 +31,8 @@ export async function runBatchItemConversion(
   opts: {
     signal: AbortSignal;
     onProgress: (patch: BatchItemProgress) => void;
+    /** When set (batch album mode), used instead of auto-detected metadata only. */
+    edits?: ManualMetadataEdits;
   },
 ): Promise<BatchItemResult> {
   const { file } = item;
@@ -58,10 +60,11 @@ export async function runBatchItemConversion(
     const extracted = await extractSourceMetadata(file).catch(() => ({
       meta: { title: file.name.replace(/\.[^.]+$/, "") },
     }));
-    const edits = manualEditsFromSource(extracted);
+    const edits = opts.edits ?? manualEditsFromSource(extracted);
     const detectedTitle = edits.meta.title;
     const detectedArtist = edits.meta.artist;
-    const outputFilename = batchOutputFilename(edits, file.name);
+    const outputFilename =
+      item.outputFilename ?? batchOutputFilename(edits, file.name);
 
     report({
       status: "encoding",

@@ -84,6 +84,8 @@ Also shown on the hosted landing at https://mp5-audio.vercel.app.
 
 **Batch (multiple files):** Converter → **Batch** → drop several WAV/FLAC/MP3/M4A/OGG files → **Start batch**. Each file exports **MP5-L v3** with detected tags, waveform/seek, and FING/HASH when possible. Say: **nothing uploads**; conversion is heavy; large batches are slow; closing the tab stops the queue. Use **Single file** to edit metadata before export. **Download all** saves separate `.mp5` files (no ZIP in this MVP).
 
+**Batch album export:** Enable **Batch album export** on the Batch tab → edit album title/artist and per-track metadata in the table → reorder or sort tracks → **Start batch** → export **manifest `.mp5p` + sidecar MP5s** or one **embedded `.mp5p`**. Warn that embedded packages with stems can be huge and browsers may block many downloads for manifest mode. **Open in Player** loads completed tracks into the playlist.
+
 **Performance / diagnostics:** Settings → open **Diagnostics (optional)** — playlist queue, decode cache (max 3 tracks), library bytes, WASM/FFmpeg status. Mention first-load codec download and that very large files or 12+ batch items show calm warnings (not hard blocks unless extreme).
 
 1. Open the **Converter** tab — the step strip shows: drop source → edit metadata → preview → export → download / open in player.

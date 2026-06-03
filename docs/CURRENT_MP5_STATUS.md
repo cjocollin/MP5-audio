@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.12.0-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.13.0-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -71,6 +71,10 @@
 - **Now playing:** large cover, title/artist/album, codec and content guidance badges, mood/vibe chips
 - **Metadata panel:** track info, cover, lyrics, content guidance, mood/vibe, **VISU visual theme** swatches, **credits / rights / identifiers**, **integrity & fingerprint**, waveform stats, format — with calm empty states
 - **Visual themes (VISU MVP):** optional per-file colors/mood; player accent + soft gradient; Settings toggle to disable file themes — [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md)
+**v0.13.0-alpha — Batch album builder / MP5P export MVP:** Converter **Batch album export** — metadata table, track order, manifest or embedded `.mp5p` from batch queue. See [`MP5_ALBUM_PACKAGE.md`](MP5_ALBUM_PACKAGE.md).
+
+**v0.12.1-alpha — VISU / cover mobile containment hotfix:** VISU tint and cover art are scoped to the Now Playing card only. See [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md).
+
 - **Embedded album package prototype (v0.12.0-alpha):** binary `.mp5p` with `MP5P` magic, fragmented embedded `.mp5` tracks, lazy ingest/play, create UI (manifest vs embedded), inspect/validate CLI — [`MP5_EMBEDDED_PACKAGE.md`](MP5_EMBEDDED_PACKAGE.md)
 - **Album package (MVP):** experimental `.mp5p` manifest + sidecar `.mp5` tracks (unchanged); import explainer, found/missing lists, add sidecars, reorder on create, saved albums in Library — [`MP5_ALBUM_PACKAGE.md`](MP5_ALBUM_PACKAGE.md)
 - **Credits / rights / identifiers (MVP):** optional **CRDT**, **LICN**, **IDEN** chunks; converter collapsed sections; player informational display (no enforcement) — [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md)

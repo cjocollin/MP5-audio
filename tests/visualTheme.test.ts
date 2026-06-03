@@ -4,6 +4,8 @@ import {
   resolvePlayerTheme,
   themeRootStyle,
   themeAccentDiffersFromDefault,
+  resolveCoverCardStyle,
+  themeUsesGlobalBackgroundImage,
 } from "../apps/web/src/lib/visualTheme/applyVisualTheme";
 import {
   DEFAULT_APP_ACCENT,
@@ -96,5 +98,20 @@ describe("visual theme player helpers", () => {
   it("theme disabled means no vars from null visu", () => {
     expect(resolvePlayerTheme(null)).toBeNull();
     expect(themeRootStyle(null)).toBeUndefined();
+  });
+
+  it("resolveCoverCardStyle omits gradient fill when cover art is present", () => {
+    const theme = resolvePlayerTheme(PITY_PARTY_VISU);
+    const withCover = resolveCoverCardStyle(theme, true);
+    const withoutCover = resolveCoverCardStyle(theme, false);
+    expect(withCover.background).toBeUndefined();
+    expect(withoutCover.background).toBeTruthy();
+    expect(withCover.borderColor).toBeTruthy();
+  });
+
+  it("VISU theme styles never use url() background images", () => {
+    const theme = resolvePlayerTheme(PITY_PARTY_VISU);
+    expect(themeUsesGlobalBackgroundImage(theme)).toBe(false);
+    expect(themeUsesGlobalBackgroundImage(null)).toBe(false);
   });
 });

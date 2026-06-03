@@ -1,10 +1,10 @@
 # MP5 Audio
 
-An experimental smart audio format, converter, and player.
+An experimental open-source audio format, container, codec, converter, and player project.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.12.0-alpha**
+**Version:** MP5 Audio **v0.13.0-alpha**
 
 MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only.
 
@@ -12,11 +12,39 @@ MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP
 
 **Beta readiness:** [`docs/MP5_BETA_READINESS.md`](docs/MP5_BETA_READINESS.md) · [`docs/MP5_KNOWN_ISSUES.md`](docs/MP5_KNOWN_ISSUES.md) · `pnpm beta:check`
 
+**Contributor docs:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md) · [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+
 ---
 
 ## What is MP5?
 
-**MP5** (`.mp5`) is a general-purpose experimental smart audio container — music, podcasts, libraries, and apps. It stores audio plus context: metadata, cover art, lyrics, waveform/seek data, optional content guidance, mood/vibe tags, and room for future interactive audio.
+**MP5** is an experimental open-source audio format, container, codec, converter, and player project. It explores metadata-rich audio packaging, browser playback, Rust/WASM codec work, validation tooling, and developer-facing specs.
+
+In plain terms: **MP5** (`.mp5`) is a smart audio container for music, podcasts, libraries, and apps. It stores audio plus context — metadata, cover art, lyrics, waveform/seek data, optional content guidance, mood/vibe tags, stems, album packages, and room for future interactive audio.
+
+## Current status
+
+| Area | Status |
+|------|--------|
+| **Overall** | **Alpha / experimental** — research-focused, not production-ready |
+| **MP5-L v3** | **Recommended** stable lossless path — bit-exact roundtrip |
+| **MP5-C** | **Experimental** — known hiss/artifact limitations; lab-only |
+| **MP5-H** | **Experimental** — hybrid + CORR; large files; not default |
+| **PCM** | Reference / debug fallback when WASM is unavailable |
+| **vs mainstream codecs** | **Not** a replacement for MP3, AAC, Opus, or FLAC yet |
+
+Built for open format exploration, validation tooling, transparent benchmarks, and developer-readable specs — not for untrusted production ingestion today. See [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md).
+
+## Why this project matters
+
+- **Open format experimentation** — container + codec research without lock-in claims
+- **Developer-readable specs** — chunk registry, compatibility policy, metadata docs
+- **Parser/writer validation** — `inspect:mp5`, `validate:mp5`, golden fixtures, corrupt-input tests
+- **Browser-based audio workflows** — convert, play, library, and batch tools in one reference app
+- **Rust/WASM media tooling** — native and WASM codec paths with shared test gates
+- **Rich metadata packaging** — lyrics, stems, sections, themes, album manifests (optional chunks)
+- **Safe parsing mindset** — honest limits, integrity chunks, no DRM theater
+- **Transparent benchmarks and limitations** — documented MP5-C hiss, MP5-H size, alpha gaps
 
 | Works now (Alpha) | Experimental | Future |
 |-----------------|--------------|--------|
@@ -57,6 +85,18 @@ pnpm install
 pnpm wasm:build    # required for MP5-L — see docs/WASM_SETUP.md
 pnpm demo          # http://localhost:5173
 ```
+
+**Build and test (contributors):**
+
+```bash
+pnpm lint          # TypeScript checks
+pnpm test          # Vitest unit/integration tests
+cargo test -p mp5-codec   # Rust codec tests
+pnpm build         # container + web production build
+pnpm alpha:check   # full Alpha gate (optional, slower)
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full setup, fixture rules, and PR expectations.
 
 **Try the hosted demo:** open https://mp5-audio.vercel.app → **Try the MP5-L demo** → play synthetic tone (no copyrighted music in repo).
 
@@ -105,15 +145,34 @@ Vercel project **`mp5-audio`** → https://mp5-audio.vercel.app
 
 ---
 
+## Safety and security
+
+MP5 parses binary container and audio data in the browser and CLI tools. The project is **alpha** — do not treat untrusted `.mp5` / `.mp5p` files as safe for production ingestion yet.
+
+Report crashes, hangs, memory exhaustion, or validation bypasses **privately** via [`SECURITY.md`](SECURITY.md) (GitHub Security Advisories).
+
+---
+
+## Contributing
+
+Contributions welcome — especially validation, docs, fixtures, and MP5-L stability. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before opening a PR.
+
+---
+
 ## Alpha roadmap
 
-- Metadata polish
-- Better MP5-L compression
-- MP5-C redesign
-- Stems / interactive audio research
-- Desktop / mobile packaging
-- Offline improvements
-- Library persistence
+Realistic near-term goals (not adoption or production promises):
+
+- Stabilize **MP5-L v3** encode/decode and compression research
+- Improve parser validation and corrupt-input coverage
+- Expand synthetic fixtures and CI gates
+- Document chunk specs and compatibility profiles
+- Continue **MP5-C** research with transparent hiss/limitation reporting
+- Revisit **MP5-H** defaults after MP5-C quality improves
+- Improve player, converter, batch, and album-package UX
+- Metadata polish, library persistence, offline/PWA polish
+
+Longer-term research: stems, interactive audio, desktop/mobile packaging — see [`docs/MP5_ROADMAP.md`](docs/MP5_ROADMAP.md).
 
 ---
 
@@ -142,6 +201,10 @@ Vercel project **`mp5-audio`** → https://mp5-audio.vercel.app
 
 ## Docs
 
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
+- [Release checklist](RELEASE_CHECKLIST.md)
 - [Public demo copy](docs/MP5_PUBLIC_DEMO_COPY.md)
 - [Demo guide](docs/MP5_DEMO_GUIDE.md)
 - [Current status](docs/CURRENT_MP5_STATUS.md)

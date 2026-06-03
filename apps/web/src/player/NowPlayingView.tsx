@@ -4,7 +4,10 @@ import { codecLabel } from "../lib/codecDisplay";
 import type { Mp5hDecodeInfo } from "./decodeMp5";
 import { hasContentNotice, trackDisplayInfo } from "./playlistUtils";
 import type { PlaylistTrack } from "../store/playerStore";
-import type { ResolvedPlayerTheme } from "../lib/visualTheme/applyVisualTheme";
+import {
+  resolveCoverCardStyle,
+  type ResolvedPlayerTheme,
+} from "../lib/visualTheme/applyVisualTheme";
 import { TrackMetadata } from "./TrackMetadata";
 
 interface Props {
@@ -42,9 +45,13 @@ export function NowPlayingView({
   const moodTags = info?.moodTags ?? [];
   const vibeTags = info?.vibeTags ?? [];
 
-  const cardClass = playerTheme
-    ? "relative aspect-square max-w-md mx-auto w-full rounded-2xl overflow-hidden flex items-center justify-center border"
-    : "aspect-square max-w-md mx-auto w-full rounded-2xl bg-surface-elevated shadow-xl overflow-hidden flex items-center justify-center";
+  const cardClass = [
+    "mp5-now-playing-cover-card aspect-square max-w-[11rem] sm:max-w-sm md:max-w-md mx-auto w-full rounded-2xl flex items-center justify-center",
+    coverUrl ? "relative" : "",
+    playerTheme ? "border" : "bg-surface-elevated shadow-xl",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
@@ -54,10 +61,7 @@ export function NowPlayingView({
     >
       <div
         className={cardClass}
-        style={{
-          ...(playerTheme?.cardStyle ?? {}),
-          ...(playerTheme?.coverFrameStyle ?? {}),
-        }}
+        style={resolveCoverCardStyle(playerTheme, Boolean(coverUrl))}
         data-testid="now-playing-theme-card"
       >
         {coverUrl ? (
@@ -65,7 +69,7 @@ export function NowPlayingView({
             <img
               src={coverUrl}
               alt="Cover"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 z-0 w-full h-full object-cover object-center max-w-full max-h-full"
               data-testid="now-playing-cover"
             />
             {playerTheme && (

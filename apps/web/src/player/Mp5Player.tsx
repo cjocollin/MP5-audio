@@ -1461,7 +1461,7 @@ export function Mp5Player() {
       )}
 
       <div className="grid lg:grid-cols-[minmax(280px,360px)_1fr] gap-6">
-        <div className="space-y-4">
+        <div className="space-y-4 order-2 lg:order-1">
         <LibraryPanel
           tracks={tracks}
           currentIndex={currentIndex}
@@ -1484,8 +1484,9 @@ export function Mp5Player() {
         <CreateAlbumPackagePanel tracks={tracks} />
         </div>
 
+      <div className="space-y-4 order-1 lg:order-2">
         <div
-          className={`space-y-4 rounded-2xl p-4 -m-4 border ${
+          className={`rounded-2xl p-3 sm:p-4 border overflow-hidden ${
             playerTheme ? "mp5-player-themed" : "border-transparent"
           }`}
           style={themeRootStyle(playerTheme)}
@@ -1501,7 +1502,8 @@ export function Mp5Player() {
             mp5h={mp5hInfo}
             playerTheme={playerTheme}
           />
-          <WaveformView
+        </div>
+        <WaveformView
             peaks={parsed?.waveform ?? []}
             progress={progress}
             durationSec={duration}

@@ -1,5 +1,23 @@
 # MP5 Alpha release notes
 
+## v0.13.0-alpha — Batch album builder / MP5P export MVP (May 2026)
+
+**Version:** MP5 Audio **v0.13.0-alpha**
+
+- **Batch album export** in Converter: metadata table, track reorder, album fields, cover inherit.
+- Export **individual MP5**, **manifest `.mp5p` + sidecars**, or **embedded `.mp5p`** from one batch session.
+- **Open in Player** handoff for completed tracks; honest warnings for size and multi-download limits.
+- Tests: `tests/batchAlbumBuilder.test.ts`, `e2e/batch-album-builder.spec.ts`.
+
+## v0.12.1-alpha — VISU mobile containment hotfix (May 2026)
+
+**Version:** MP5 Audio **v0.12.1-alpha**
+
+- **Fix:** Cover art and VISU tints no longer paint a full-page wallpaper on mobile — scoped to Now Playing only.
+- **Layout:** Player / Now Playing appears above the playlist on narrow viewports; cover card capped smaller on mobile.
+- **Settings:** Clarified that file themes apply to Now Playing only, not the global app shell.
+- **Tests:** `visual-theme-containment` e2e + unit guards for cover card / `url()` backgrounds.
+
 ## v0.12.0-alpha — Embedded album bundle prototype (May 2026)
 
 **Version:** MP5 Audio **v0.12.0-alpha**

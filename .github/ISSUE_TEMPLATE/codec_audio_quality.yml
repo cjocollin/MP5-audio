@@ -1,0 +1,100 @@
+name: Codec / audio quality
+description: Report hiss, artifacts, level issues, or codec roundtrip problems
+title: "[Codec]: "
+labels: ["codec", "audio-quality"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for **audio quality** and **codec behavior** — not crashes or security issues.
+        **MP5-C** is experimental and may hiss on music; note whether **MP5-L** or **PCM** sounds clean on the same source.
+
+  - type: dropdown
+    id: codec_mode
+    attributes:
+      label: Codec mode / preset
+      options:
+        - MP5-L v3
+        - MP5-C (lab)
+        - MP5-H (with CORR)
+        - MP5-H (without CORR)
+        - PCM reference
+        - Other / mixed
+    validations:
+      required: true
+
+  - type: input
+    id: source_format
+    attributes:
+      label: Source format (sample rate / channels)
+      placeholder: FLAC 48 kHz stereo, synthetic 440 Hz mono tone
+    validations:
+      required: true
+
+  - type: input
+    id: timestamp
+    attributes:
+      label: Timestamp where artifact occurs (if playback)
+      placeholder: 0:42 or N/A for encode-only
+    validations:
+      required: false
+
+  - type: dropdown
+    id: mp5l_clean
+    attributes:
+      label: Is MP5-L or PCM clean on the same source?
+      options:
+        - "Yes — MP5-L/PCM sounds clean"
+        - "No — also broken on MP5-L/PCM"
+        - "Not tested"
+        - "N/A — MP5-L only report"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mp5c_hiss
+    attributes:
+      label: MP5-C hiss or other artifact (if applicable)
+      options:
+        - Noticeable hiss / noise floor
+        - Crackle / distortion / pumping
+        - Level / clipping issue
+        - Not applicable (not MP5-C)
+        - Other (describe below)
+    validations:
+      required: false
+
+  - type: input
+    id: export_size
+    attributes:
+      label: Exported file size (if relevant)
+      placeholder: e.g. 4.2 MB vs 12 MB PCM baseline
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe what you hear or measure
+      description: Include environment (browser vs Rust CLI), and any benchmark command output
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Import source via Converter or cargo test ...
+        2. Encode with MP5-C preset X
+        3. Decode and compare null test / SNR
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: copyright
+    attributes:
+      label: Media
+      options:
+        - label: I am not attaching copyrighted audio to this issue (describe source type only)
+          required: true

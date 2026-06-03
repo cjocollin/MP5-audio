@@ -1,0 +1,42 @@
+name: Security report (read first)
+description: How to report security vulnerabilities privately — do not post details here
+title: "[Security]: DO NOT POST DETAILS — use private reporting"
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Do not post vulnerability details in this issue
+
+        MP5 parses binary media files. If you found a **crash, hang, memory exhaustion, or validation bypass** from malformed input, report it **privately**.
+
+        ### Report privately
+
+        1. Read [`SECURITY.md`](https://github.com/cjocollin/MP5-audio/blob/main/SECURITY.md)
+        2. Open a **GitHub Private Security Advisory**:  
+           https://github.com/cjocollin/MP5-audio/security/advisories/new
+        3. Include a minimal reproducer and environment details
+
+        ### What belongs in a security report
+
+        - Parser crashes from crafted `.mp5` / `.mp5p` files
+        - Hangs or decompression bombs
+        - Excessive memory use from small malicious inputs
+        - WASM boundary / buffer issues
+        - CRC or integrity check bypasses
+
+        ### What is not a security report
+
+        - MP5-C hiss on normal music (known limitation)
+        - General audio quality bugs → use **Codec / audio quality**
+        - Expected alpha UI bugs → use **Bug report**
+
+        **Close this issue template without submitting if you already filed a private advisory.**
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I understand I must not paste exploit details or malicious files in public issues
+          required: true

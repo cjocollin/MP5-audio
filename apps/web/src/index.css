@@ -38,6 +38,13 @@ body {
   /** Active player column when VISU file theme is applied (vars set inline). */
   .mp5-player-themed {
     @apply transition-[border-color,box-shadow] duration-300;
+    contain: layout paint;
+  }
+
+  /** Cover art card — keeps absolute cover img clipped to the card on all viewports. */
+  .mp5-now-playing-cover-card {
+    @apply relative overflow-hidden isolate;
+    contain: paint;
   }
 }
 

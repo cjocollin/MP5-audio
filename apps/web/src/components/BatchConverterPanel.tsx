@@ -27,6 +27,14 @@ import { downloadBlob } from "../lib/performance/downloadBlob";
 import { assessBatchQueue, type GuardrailMessage } from "../lib/performance/guardrails";
 import { GuardrailNotice } from "./GuardrailNotice";
 import { useConversionStore } from "../store/conversionStore";
+import { BatchAlbumBuilderSection } from "./BatchAlbumBuilderSection";
+import {
+  emptyAlbumMeta,
+  trackMetaToManualEdits,
+  type BatchAlbumLevelMeta,
+  type BatchTrackAlbumMeta,
+} from "../lib/album/batchAlbumMetadata";
+import { batchOutputFilenameForTrack } from "../lib/album/batchAlbumMetadata";
 
 function statusClass(status: BatchQueueItem["status"]): string {
   switch (status) {
@@ -60,6 +68,10 @@ export function BatchConverterPanel() {
   const [loadState, setLoadState] = useState(getCodecLoadState());
   const [batchError, setBatchError] = useState("");
   const [queueGuardrails, setQueueGuardrails] = useState<GuardrailMessage[]>([]);
+  const [batchAlbumMode, setBatchAlbumMode] = useState(false);
+  const [album, setAlbum] = useState<BatchAlbumLevelMeta>(() => emptyAlbumMeta());
+  const [trackMetas, setTrackMetas] = useState<Record<string, BatchTrackAlbumMeta>>({});
+  const [trackOrder, setTrackOrder] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const { bumpCancelGeneration, setBatchActivity } = useConversionStore();
   const pausedRef = useRef(false);
@@ -173,9 +185,25 @@ export function BatchConverterPanel() {
           patchItem(prev, id, { status: "decoding", errorMessage: undefined }),
         );
 
-        const itemSnapshot = { ...current, file };
+        const meta = trackMetas[id];
+        const itemSnapshot = {
+          ...current,
+          file,
+          ...(batchAlbumMode && meta
+            ? {
+                outputFilename: batchOutputFilenameForTrack(meta, album, file.name),
+                detectedTitle: meta.title,
+                detectedArtist: meta.artist,
+              }
+            : {}),
+        };
+        const edits =
+          batchAlbumMode && meta
+            ? trackMetaToManualEdits(meta, album)
+            : undefined;
         const result = await runBatchItemConversion(itemSnapshot, {
           signal: controller.signal,
+          edits,
           onProgress: (patch) => {
             setItems((prev) => patchItem(prev, id, patch));
           },
@@ -318,6 +346,34 @@ export function BatchConverterPanel() {
       )}
 
       <SupportedSourcesNote />
+
+      <label
+        className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer"
+        data-testid="batch-album-mode-toggle"
+      >
+        <input
+          type="checkbox"
+          checked={batchAlbumMode}
+          onChange={(e) => setBatchAlbumMode(e.target.checked)}
+          disabled={running}
+          className="rounded border-white/20"
+        />
+        Batch album export — metadata table and .mp5p packaging
+      </label>
+
+      {batchAlbumMode && (
+        <BatchAlbumBuilderSection
+          items={items}
+          setItems={setItems}
+          running={running}
+          album={album}
+          setAlbum={setAlbum}
+          trackMetas={trackMetas}
+          setTrackMetas={setTrackMetas}
+          trackOrder={trackOrder}
+          setTrackOrder={setTrackOrder}
+        />
+      )}
 
       <GuardrailNotice messages={queueGuardrails} testId="batch-queue-guardrails" />
 

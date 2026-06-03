@@ -71,7 +71,7 @@ export default function App() {
               </select>
             </label>
             <label className="flex items-center justify-between gap-4 text-sm" data-testid="use-file-themes-setting">
-              <span className="text-gray-400">Apply VISU file themes</span>
+              <span className="text-gray-400">Apply VISU file themes (Now Playing only)</span>
               <input
                 type="checkbox"
                 checked={useFileThemes}
@@ -81,8 +81,8 @@ export default function App() {
               />
             </label>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Optional content guidance, visual themes (VISU), and specialized app metadata never
-              affect playback.
+              Optional content guidance and visual themes (VISU) tint the active Now Playing card
+              only — not the global app shell, tabs, or other panels. They never affect playback.
             </p>
             <div
               className="text-xs text-gray-500 space-y-2 leading-relaxed border border-white/5 rounded-lg p-3"

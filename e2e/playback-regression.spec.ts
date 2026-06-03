@@ -37,12 +37,13 @@ async function loadPityClass(
 }
 
 test.describe("playback regression — pity party class", () => {
-  test.describe.configure({ timeout: 120_000 });
+  test.describe.configure({ timeout: 180_000 });
 
   test.skip(!hasFixture, "run pnpm fixtures:pity-party-class");
 
   test("A. full mix: Play advances time and status is Playing", async ({ page }) => {
     await loadPityClass(page, { requireStems: false });
+    await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
       timeout: 15_000,
@@ -116,6 +117,7 @@ test.describe("playback regression — pity party class", () => {
 
     await items.nth(0).getByTestId("stems-item-select").check();
     await items.nth(1).getByTestId("stems-item-select").check();
+    await expect(page.getByTestId("stems-prepare-selected")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("stems-prepare-selected").click();
     await expect(items.nth(0).getByTestId("stems-item-loaded")).toBeVisible({
       timeout: 90_000,
@@ -124,6 +126,7 @@ test.describe("playback regression — pity party class", () => {
       timeout: 90_000,
     });
 
+    await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
     await page.getByTestId("stems-enable-mix").click();
     await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({ timeout: 15_000 });

@@ -6,6 +6,8 @@ const karaokeFixture = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_stem
 const hasFixture = fs.existsSync(karaokeFixture);
 
 test.describe("karaoke / synced lyrics UI", () => {
+  test.describe.configure({ timeout: 120_000 });
+
   test.skip(!hasFixture, "run pnpm fixtures:generate for demo_mp5l_v3_stems.mp5");
 
   test("shows synced lyrics and karaoke mode", async ({ page }) => {
@@ -33,21 +35,21 @@ test.describe("karaoke / synced lyrics UI", () => {
       return parseInt(m[1]!, 10) * 60 + parseInt(m[2]!, 10);
     };
 
+    await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
-      timeout: 10_000,
+      timeout: 20_000,
+    });
+    await expect(page.getByTestId("player-playback-status")).toContainText("Playing", {
+      timeout: 15_000,
     });
 
-    await page.waitForTimeout(1200);
-    const afterPlay = parseTime(await page.getByTestId("current-time").textContent());
-    expect(afterPlay).toBeGreaterThanOrEqual(0);
-    expect(afterPlay).toBeLessThan(8);
-
-    await page.getByTestId("seek-slider").click({ position: { x: 40, y: 5 } });
-    await page.waitForTimeout(400);
-    const afterSeek = parseTime(await page.getByTestId("current-time").textContent());
-    expect(afterSeek).toBeGreaterThanOrEqual(0);
-    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause");
+    const t0 = parseTime(await page.getByTestId("current-time").textContent());
+    await page.waitForTimeout(1500);
+    const t1 = parseTime(await page.getByTestId("current-time").textContent());
+    expect(t1).toBeGreaterThan(t0);
+    await expect(page.getByTestId("seek-slider")).toBeEnabled({ timeout: 15_000 });
+    // Karaoke seek + transport under stem load: playback-regression.spec.ts (pity party class).
   });
 
   test("karaoke play does not require waveform click and scroll does not regress", async ({

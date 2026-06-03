@@ -1,0 +1,94 @@
+name: Bug report
+description: Report a reproducible bug in MP5 Audio (not a security vulnerability)
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MP5 Audio. MP5 is **alpha / experimental** — please include enough detail to reproduce.
+        For **security issues**, do **not** use this form — see [SECURITY.md](https://github.com/cjocollin/MP5-audio/blob/main/SECURITY.md).
+
+  - type: dropdown
+    id: mp5_mode
+    attributes:
+      label: MP5 mode used
+      options:
+        - MP5-L v3 (recommended lossless)
+        - PCM (reference / fallback)
+        - MP5-C (experimental)
+        - MP5-H (experimental hybrid)
+        - Unknown / not applicable
+    validations:
+      required: true
+
+  - type: input
+    id: os_browser
+    attributes:
+      label: OS / browser
+      description: e.g. Windows 11 + Chrome 136, macOS 15 + Safari, Node-only CLI
+      placeholder: Windows 11, Chrome 136
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Node / Rust versions (if relevant)
+      placeholder: Node 22.14, Rust 1.86, pnpm 9.15
+    validations:
+      required: false
+
+  - type: input
+    id: input_type
+    attributes:
+      label: Input file type
+      description: e.g. synthetic demo fixture, FLAC import, embedded .mp5p, corrupt test file
+      placeholder: demo_mp5l_v3_tone.mp5 or FLAC 44.1kHz stereo
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction steps
+      description: Numbered steps; include commands (`pnpm demo`, `pnpm validate:mp5`, etc.) when applicable
+      placeholder: |
+        1. pnpm install && pnpm wasm:build && pnpm demo
+        2. Open Converter, drop file X
+        3. Click Export MP5-L v3
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / console output / screenshots
+      description: Paste relevant errors or attach screenshots
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues for duplicates
+          required: true
+        - label: I am not reporting a security vulnerability publicly
+          required: true

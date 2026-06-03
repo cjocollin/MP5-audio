@@ -1,24 +1,24 @@
 # MP5 Visual Themes (VISU) — MVP
 
-**Version:** MP5 Audio v0.10.7-alpha
+**Version:** MP5 Audio v0.12.1-alpha
 
 Optional **VISU** chunk metadata lets an MP5 file suggest player chrome colors and mood **without affecting audio decode or playback**.
 
 ## Alpha scope (what VISU affects)
 
-When **Apply VISU file themes** is on, only the **active player column** is themed — not the whole app chrome.
+When **Apply VISU file themes** is on, only the **Now Playing** area is themed — not the whole app shell, tabs, or other panels.
 
 | Area | Themed? | Notes |
 |------|---------|--------|
-| Now Playing shell | Yes | Border, background wash, soft glow |
-| Cover / art card | Yes | Gradient frame, accent ring, scrim overlay on cover art |
+| Now Playing shell | Yes | Subtle border + tint wash on the Now Playing card wrapper only |
+| Cover / art card | Yes | Accent ring and scrim overlay; cover `<img>` clipped inside the card |
 | Codec + theme badges | Yes | Accent border/background |
 | Track title | Yes | Readable text + subtle accent glow |
 | Metadata VISU panel | Yes | Swatches show **resolved** colors; theme status line |
 | Waveform (optional) | Yes | Played bars use VISU accent when simple |
-| Player column background | Yes | Tinted gradient behind controls |
+| Waveform + transport controls | No | Default app surface (no VISU wallpaper) |
 | Converter / Library / Settings tabs | No | Default app theme |
-| Global nav / tab bar | No | Unchanged |
+| Global nav / tab bar | No | Unchanged — never overlaid by cover art |
 
 Files with VISU metadata but **no hex colors** (e.g. Pity Party) use a **playerStyle preset** (`cinematic`, `neon`, …) so the player is visibly different from default purple — not metadata-only invisible styling.
 

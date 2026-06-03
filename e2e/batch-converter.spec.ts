@@ -23,6 +23,12 @@ test.describe("Batch converter", () => {
     await expect(page.getByTestId("batch-queue-list").locator("li")).toHaveCount(1);
   });
 
+  test("batch album mode shows metadata builder", async ({ page }) => {
+    await page.getByTestId("batch-album-mode-toggle").locator("input").check();
+    await expect(page.getByTestId("batch-album-builder")).toBeVisible();
+    await expect(page.getByTestId("batch-album-export-target")).toBeVisible();
+  });
+
   test("single-file mode still available", async ({ page }) => {
     await page.getByTestId("converter-mode-single").click();
     await expect(page.getByTestId("converter-file-input")).toBeAttached();

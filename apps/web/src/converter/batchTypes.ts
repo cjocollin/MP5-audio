@@ -60,4 +60,5 @@ export const BATCH_LIMITATIONS = [
   "Metadata comes from source tags — edit one file at a time in Single mode for full control.",
   "No ZIP download — download files individually or use Download all (separate files).",
   "Stems, karaoke, sections, and advanced metadata are not applied in batch.",
+  "Use Batch album export to build manifest or embedded .mp5p packages from a completed queue.",
 ] as const;

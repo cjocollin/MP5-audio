@@ -1,0 +1,59 @@
+name: Feature request
+description: Suggest an improvement or new capability for MP5 Audio
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MP5 is **alpha / research-focused**. We prioritize validation, MP5-L stability, honest docs, and developer tooling over production feature promises.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do? Who benefits?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the idea at a high level — specs, UX, CLI, or codec impact
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Container / parser / validation
+        - MP5-L codec
+        - MP5-C codec (experimental)
+        - MP5-H codec (experimental)
+        - Web converter / player
+        - Metadata / chunks / album packages
+        - Docs / specs / tooling
+        - CI / tests / fixtures
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: I understand MP5 does not claim to replace MP3/AAC/Opus/FLAC today
+          required: true
+        - label: I am willing to help with a PR or test fixtures if needed
+          required: false

@@ -2,12 +2,24 @@
 
 Optional **album / release packaging** for MP5 without changing the core **single-track `.mp5`** format.
 
+## Batch album export (Converter)
+
+**Batch album export** (Converter → Batch) lets you import multiple source audio files, edit album/track metadata in a table, convert to MP5-L, then export:
+
+| Export | Result |
+|--------|--------|
+| Individual MP5 | One `.mp5` per track (existing batch download) |
+| Manifest `.mp5p` | JSON manifest + sidecar `.mp5` files (keep together) |
+| Embedded `.mp5p` | One self-contained package (can be very large) |
+
+No AI metadata, no per-file stem editing in batch, no DRM. Browser download limits apply.
+
 ## Design choice (MVP)
 
 | Approach | Status | Notes |
 |----------|--------|--------|
 | **A. Manifest package** (`.mp5p` JSON + sibling `.mp5` files) | **Implemented** | Safest MVP; easy to inspect and version |
-| **B. Embedded package** (one `.mp5p` blob with multiple tracks) | **Future** | More powerful; higher parser/writer risk |
+| **B. Embedded package** (one `.mp5p` blob with multiple tracks) | **Implemented (Alpha)** | See [MP5_EMBEDDED_PACKAGE.md](MP5_EMBEDDED_PACKAGE.md); also from **Batch album export** |
 
 **Single-track `.mp5` remains the normal format.** Players decode one AUDI stream per file. Album mode is an optional layer on top.
 

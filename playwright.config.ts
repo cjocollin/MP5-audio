@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "e2e",
   testIgnore: "**/hosted-demo.spec.ts",
+  // WASM decode + stem workers contend when many browser tabs run in parallel.
+  workers: process.env.CI ? 1 : undefined,
   timeout: 60_000,
   use: {
     ...devices["Desktop Chrome"],
