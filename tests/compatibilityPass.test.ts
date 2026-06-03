@@ -94,7 +94,7 @@ describe("compatibility: compressed source fixtures", () => {
       }
       expect(bytes.length).toBeGreaterThan(100);
       if (magic) {
-        expect(Array.from(bytes.slice(0, 4))).toEqual(magic);
+        expect(Array.from(bytes.slice(0, magic.length))).toEqual(magic);
       }
     });
   }
