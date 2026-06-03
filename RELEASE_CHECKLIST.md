@@ -7,7 +7,7 @@ Use this before tagging an alpha release or publishing GitHub release notes. For
 - [ ] Bump version in root `package.json`, `apps/web/package.json`, and `apps/web/src/generated/appVersion.ts` (via `scripts/sync-app-version.mjs` / release script)
 - [ ] Update [`CHANGELOG.md`](CHANGELOG.md) — move items from **Unreleased** to the new version section
 - [ ] Add or update entry in [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
-- [ ] Confirm [`README.md`](README.md) **Current status** and version line match the release
+- [ ] Confirm [`README.md`](README.md) **Current status**, badges, and version line match the release
 
 ## Build and test
 
@@ -16,7 +16,7 @@ Use this before tagging an alpha release or publishing GitHub release notes. For
 - [ ] `pnpm wasm:build`
 - [ ] `pnpm lint`
 - [ ] `pnpm test:unit` (or `pnpm test`)
-- [ ] `pnpm compatibility:check`
+- [ ] `pnpm test:compatibility` (or `pnpm compatibility:check`)
 - [ ] `cargo test -p mp5-codec --release`
 - [ ] `pnpm fixtures:validate`
 - [ ] `pnpm build`
@@ -45,7 +45,7 @@ Use this before tagging an alpha release or publishing GitHub release notes. For
 
 - [ ] All checklist items pass locally (and CI green on `main`)
 - [ ] Git tag created: `vX.Y.Z-alpha`
-- [ ] GitHub release drafted with honest alpha notes, link to `CHANGELOG.md`, and demo URL https://mp5-audio.vercel.app
+- [ ] GitHub release drafted using [`docs/GITHUB_RELEASE_v0.13.0-alpha.md`](docs/GITHUB_RELEASE_v0.13.0-alpha.md), link to `CHANGELOG.md`, demo URL https://mp5-audio.vercel.app
 - [ ] Deploy verification if hosting changed: `pnpm deploy:check`, `pnpm vercel:check`
 
 ## Post-release

@@ -3,10 +3,12 @@
   "private": true,
   "version": "0.13.0-alpha",
   "description": "MP5 experimental audio format ecosystem",
+  "license": "MIT",
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm test:unit",
     "test:unit": "vitest run --exclude tests/compatibilityPass.test.ts",
+    "test:compatibility": "pnpm compatibility:check",
     "test:compat": "vitest run tests/compatibilityPass.test.ts",
     "test:watch": "vitest --exclude tests/compatibilityPass.test.ts",
     "test:e2e": "playwright test",

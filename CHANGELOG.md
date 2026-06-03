@@ -6,25 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
-
-- Open-source contributor docs: `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, GitHub issue/PR templates, and GitHub Actions CI.
-- Root `RELEASE_CHECKLIST.md` and this `CHANGELOG.md`.
-
-### Changed
-
-- README polish for alpha status, quick start, security, and contributing links.
-- Root acceptance logs moved to `logs/acceptance/` (generated artifacts).
-- Split Vitest: `pnpm test` / `pnpm test:unit` (no generated fixtures) vs `pnpm compatibility:check` (fixture generation + `test:compat`).
+_No changes yet._
 
 ## [0.13.0-alpha] - 2026-05
 
-**Status:** Experimental alpha — MP5-L v3 recommended; MP5-C/MP5-H experimental.
+**Status:** Experimental alpha — MP5-L v3 recommended; MP5-C/MP5-H experimental. Not production-ready. MP5 does not claim to beat MP3, AAC, Opus, or FLAC.
 
 ### Added
 
 - Batch album export in Converter: metadata table, track reorder, manifest or embedded `.mp5p` from batch queue.
 - Tests: `tests/batchAlbumBuilder.test.ts`, `e2e/batch-album-builder.spec.ts`.
+- Open-source maintainer docs: `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, issue/PR templates, GitHub Actions CI.
+- Root `LICENSE` (MIT), `RELEASE_CHECKLIST.md`, `CHANGELOG.md`, and [`docs/GITHUB_RELEASE_v0.13.0-alpha.md`](docs/GITHUB_RELEASE_v0.13.0-alpha.md).
+
+### Changed
+
+- README polish: badges, table formatting, alpha status, security, and contributing links.
+- Root acceptance logs moved to `logs/acceptance/` (generated artifacts, gitignored).
+- Test split: `pnpm test` / `pnpm test:unit` (safe unit suite) vs `pnpm test:compatibility` (fixture generation + `compatibilityPass` tests).
+- E2E CI generates synthetic compatibility fixtures before Playwright runs.
 
 See [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md) for full alpha release history.
 

@@ -51,7 +51,7 @@ pnpm test
 pnpm test:unit
 
 # Compatibility pass (generates synthetic fixtures + runs compatibilityPass.test.ts)
-pnpm compatibility:check
+pnpm test:compatibility
 
 # Watch mode (unit tests only)
 pnpm test:watch
@@ -90,7 +90,7 @@ Hosted reference demo: https://mp5-audio.vercel.app
 | Validate against profiles | `pnpm validate:mp5 <file> [--profile rich\|playable]` |
 | Validate album package | `pnpm validate:mp5p <file.mp5p> --dir <folder>` |
 | Regenerate synthetic fixtures | `pnpm fixtures:generate` |
-| Compatibility fixtures + tests | `pnpm compatibility:check` |
+| Compatibility pass | `pnpm test:compatibility` or `pnpm compatibility:check` |
 | Rust MP5-C bench report | `pnpm bench:mp5c` |
 | Playback regression gate | `pnpm playback:check` |
 | Browser E2E (Playwright) | `pnpm e2e:fixtures` then `pnpm test:e2e` |

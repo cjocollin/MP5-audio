@@ -1,5 +1,11 @@
 # MP5 Audio
 
+[![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](docs/CURRENT_MP5_STATUS.md)
+[![Version](https://img.shields.io/badge/version-v0.13.0--alpha-lightgrey)](CHANGELOG.md#0130-alpha---2026-05)
+[![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
+
 An experimental open-source audio format, container, codec, converter, and player project.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
@@ -25,7 +31,7 @@ In plain terms: **MP5** (`.mp5`) is a smart audio container for music, podcasts,
 ## Current status
 
 | Area | Status |
-|------|--------|
+| ---- | ------ |
 | **Overall** | **Alpha / experimental** — research-focused, not production-ready |
 | **MP5-L v3** | **Recommended** stable lossless path — bit-exact roundtrip |
 | **MP5-C** | **Experimental** — known hiss/artifact limitations; lab-only |
@@ -46,19 +52,21 @@ Built for open format exploration, validation tooling, transparent benchmarks, a
 - **Safe parsing mindset** — honest limits, integrity chunks, no DRM theater
 - **Transparent benchmarks and limitations** — documented MP5-C hiss, MP5-H size, alpha gaps
 
-| Works now (Alpha) | Experimental | Future |
-|-----------------|--------------|--------|
-| MP5-L v3 convert & play | MP5-C (may hiss) | Stems / interactive audio |
-| Metadata, cover, lyrics | MP5-H (large) | Cloud sync / accounts |
-| **Local library** (device-only) | Specialized app profiles | Offline polish |
-| Content guidance (optional) | Specialized app profiles | Offline polish |
+### Feature matrix (Alpha)
+
+| Works now (Alpha) | Experimental | Future research |
+| --------------- | ------------ | --------------- |
+| MP5-L v3 convert and play | MP5-C (may hiss) | Interactive audio features |
+| Metadata, cover, lyrics | MP5-H (large files) | Cloud sync / accounts |
+| Local library (device-only) | Album packages (`.mp5p`) | Offline polish |
+| Content guidance (optional) | Desktop / mobile packaging | Advanced metadata layers |
 
 ---
 
 ## Codec policy
 
 | Codec | Role |
-|-------|------|
+| ----- | ---- |
 | **MP5-L v3** | **Default / recommended** — lossless, bit-exact |
 | **PCM** | **Reference / debug** only |
 | **MP5-H** | **Hybrid** — clean with CORR; **large**; not default |
@@ -71,7 +79,7 @@ Built for open format exploration, validation tooling, transparent benchmarks, a
 From the [live Alpha demo](https://mp5-audio.vercel.app) — synthetic demo audio only; no copyrighted album art.
 
 | Player | Converter | Metadata |
-|--------|-----------|----------|
+| ------ | --------- | -------- |
 | ![MP5 Player — playlist, playback, Format panel](docs/screenshots/Player.png) | ![MP5 Converter — import, encode, export MP5-L v3](docs/screenshots/Converter.png) | ![MP5 Metadata — title, cover, lyrics, optional guidance](docs/screenshots/Metadata.png) |
 
 More captures: [`docs/screenshots/`](docs/screenshots/README.md)
@@ -89,12 +97,13 @@ pnpm demo          # http://localhost:5173
 **Build and test (contributors):**
 
 ```bash
-pnpm lint          # TypeScript checks
-pnpm test          # Vitest unit tests (excludes compatibilityPass — see compatibility:check)
-pnpm compatibility:check   # synthetic fixture generation + compatibility suite
+pnpm lint              # TypeScript checks
+pnpm test              # unit tests (excludes generated-fixture compatibility suite)
+pnpm test:unit         # same as pnpm test
+pnpm test:compatibility # generate synthetic fixtures + compatibilityPass tests
 cargo test -p mp5-codec   # Rust codec tests
-pnpm build         # container + web production build
-pnpm alpha:check   # full Alpha gate (optional, slower)
+pnpm build             # container + web production build
+pnpm alpha:check       # full Alpha gate (optional, slower)
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full setup, fixture rules, and PR expectations.
@@ -191,7 +200,7 @@ Longer-term research: stems, interactive audio, desktop/mobile packaging — see
 ## Project layout
 
 | Path | Purpose |
-|------|---------|
+| ---- | ------- |
 | `apps/web/` | Player + converter + compact public landing (expandable About) |
 | `packages/mp5-container/` | `.mp5` parser/writer |
 | `rust/mp5-codec/` | MP5-L / MP5-C / MP5-H (WASM) |
@@ -206,6 +215,7 @@ Longer-term research: stems, interactive audio, desktop/mobile packaging — see
 - [Security policy](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 - [Release checklist](RELEASE_CHECKLIST.md)
+- [Release draft notes (v0.13.0-alpha)](docs/GITHUB_RELEASE_v0.13.0-alpha.md)
 - [Public demo copy](docs/MP5_PUBLIC_DEMO_COPY.md)
 - [Demo guide](docs/MP5_DEMO_GUIDE.md)
 - [Current status](docs/CURRENT_MP5_STATUS.md)
@@ -217,4 +227,4 @@ Longer-term research: stems, interactive audio, desktop/mobile packaging — see
 
 ## License
 
-MIT — experimental research prototype.
+[MIT](LICENSE) — experimental research prototype. Copyright (c) 2026 Collin O'Keefe.

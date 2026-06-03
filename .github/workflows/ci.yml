@@ -78,8 +78,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Compatibility check
-        run: pnpm compatibility:check
+      - name: Compatibility tests
+        run: pnpm test:compatibility
 
   build:
     name: Production build

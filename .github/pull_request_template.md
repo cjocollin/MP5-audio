@@ -18,6 +18,7 @@
 - [ ] Compatibility pass if parser/converter fixtures touched (`pnpm compatibility:check`)
 - [ ] Build passes (`pnpm lint`, `pnpm build` or relevant package build)
 - [ ] Docs updated if user-facing behavior, CLI, or codec policy changed
+- [ ] `LICENSE` unchanged unless intentionally updated
 - [ ] No copyrighted media committed (only synthetic / licensed fixtures)
 - [ ] No false performance or maturity claims added (README, UI, comments)
 - [ ] Parser / container changes include validation or fixture coverage where practical
