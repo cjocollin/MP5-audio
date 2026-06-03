@@ -93,7 +93,7 @@ Hosted reference demo: https://mp5-audio.vercel.app
 | Compatibility fixtures + tests | `pnpm compatibility:check` |
 | Rust MP5-C bench report | `pnpm bench:mp5c` |
 | Playback regression gate | `pnpm playback:check` |
-| Browser E2E (Playwright) | `pnpm test:e2e` |
+| Browser E2E (Playwright) | `pnpm e2e:fixtures` then `pnpm test:e2e` |
 
 ## Adding fixtures safely
 

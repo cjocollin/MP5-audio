@@ -10,6 +10,7 @@
     "test:compat": "vitest run tests/compatibilityPass.test.ts",
     "test:watch": "vitest --exclude tests/compatibilityPass.test.ts",
     "test:e2e": "playwright test",
+    "e2e:fixtures": "pnpm --filter @mp5/container build && pnpm wasm:build && node scripts/generate-compatibility-fixtures.mjs",
     "dev": "node scripts/sync-app-version.mjs && pnpm --filter @mp5/web dev",
     "demo": "node scripts/demo.mjs",
     "wasm:build": "wasm-pack build rust/mp5-codec --target web --out-dir ../../apps/web/src/wasm/pkg --release",

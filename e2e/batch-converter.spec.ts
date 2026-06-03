@@ -1,7 +1,9 @@
 import path from "node:path";
+import fs from "node:fs";
 import { test, expect } from "@playwright/test";
 
 const wavFixture = path.join(process.cwd(), "test-fixtures/compatibility/wav_mono_44k_short.wav");
+const hasWavFixture = fs.existsSync(wavFixture);
 
 test.describe("Batch converter", () => {
   test.beforeEach(async ({ page }) => {
@@ -18,6 +20,7 @@ test.describe("Batch converter", () => {
   });
 
   test("queues supported files and shows progress summary", async ({ page }) => {
+    test.skip(!hasWavFixture, "run pnpm e2e:fixtures or pnpm compatibility:fixtures");
     await page.getByTestId("batch-file-input").setInputFiles([wavFixture, wavFixture]);
     await expect(page.getByTestId("batch-progress-summary")).toContainText("Total:");
     await expect(page.getByTestId("batch-queue-list").locator("li")).toHaveCount(1);

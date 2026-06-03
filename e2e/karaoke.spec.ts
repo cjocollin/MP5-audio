@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
 import fs from "fs";
+import {
+  parseDisplayedPlaybackTime,
+  waitForPlaybackProgress,
+  waitForSeekReady,
+} from "./helpers/playbackTime";
 
 const karaokeFixture = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_stems.mp5");
 const hasFixture = fs.existsSync(karaokeFixture);
@@ -15,6 +20,7 @@ test.describe("karaoke / synced lyrics UI", () => {
     await page.getByRole("button", { name: "Player", exact: true }).click();
 
     await page.getByTestId("player-file-input").setInputFiles(karaokeFixture);
+    await waitForSeekReady(page);
 
     await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("lyrics-sync-indicator")).toContainText("Synced");
@@ -29,12 +35,6 @@ test.describe("karaoke / synced lyrics UI", () => {
       timeout: 30_000,
     });
 
-    const parseTime = (s: string | null) => {
-      const m = (s ?? "0:00").trim().match(/^(\d+):(\d{2})$/);
-      if (!m) return 0;
-      return parseInt(m[1]!, 10) * 60 + parseInt(m[2]!, 10);
-    };
-
     await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
@@ -44,10 +44,8 @@ test.describe("karaoke / synced lyrics UI", () => {
       timeout: 15_000,
     });
 
-    const t0 = parseTime(await page.getByTestId("current-time").textContent());
-    await page.waitForTimeout(1500);
-    const t1 = parseTime(await page.getByTestId("current-time").textContent());
-    expect(t1).toBeGreaterThan(t0);
+    await waitForPlaybackProgress(page);
+    expect(parseDisplayedPlaybackTime(await page.getByTestId("current-time").textContent())).toBeGreaterThan(0);
     await expect(page.getByTestId("seek-slider")).toBeEnabled({ timeout: 15_000 });
     // Karaoke seek + transport under stem load: playback-regression.spec.ts (pity party class).
   });

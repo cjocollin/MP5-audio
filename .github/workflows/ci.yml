@@ -144,6 +144,9 @@ jobs:
       - name: Build WASM codecs
         run: pnpm wasm:build
 
+      - name: Generate E2E fixtures
+        run: node scripts/generate-compatibility-fixtures.mjs
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
