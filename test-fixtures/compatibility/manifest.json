@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-20T05:57:25.690Z",
+  "generated": "2026-06-03T18:47:20.431Z",
   "wav": [
     {
       "file": "wav_mono_44k_short.wav",
@@ -29,7 +29,7 @@
       "file": "wav_stereo_44k_long.wav",
       "sampleRate": 44100,
       "channels": 2,
-      "durationSec": 8
+      "durationSec": 3
     }
   ],
   "compressed": [

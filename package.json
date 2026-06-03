@@ -5,8 +5,10 @@
   "description": "MP5 experimental audio format ecosystem",
   "scripts": {
     "build": "pnpm -r run build",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "pnpm test:unit",
+    "test:unit": "vitest run --exclude tests/compatibilityPass.test.ts",
+    "test:compat": "vitest run tests/compatibilityPass.test.ts",
+    "test:watch": "vitest --exclude tests/compatibilityPass.test.ts",
     "test:e2e": "playwright test",
     "dev": "node scripts/sync-app-version.mjs && pnpm --filter @mp5/web dev",
     "demo": "node scripts/demo.mjs",

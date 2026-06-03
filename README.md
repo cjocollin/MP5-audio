@@ -90,7 +90,8 @@ pnpm demo          # http://localhost:5173
 
 ```bash
 pnpm lint          # TypeScript checks
-pnpm test          # Vitest unit/integration tests
+pnpm test          # Vitest unit tests (excludes compatibilityPass — see compatibility:check)
+pnpm compatibility:check   # synthetic fixture generation + compatibility suite
 cargo test -p mp5-codec   # Rust codec tests
 pnpm build         # container + web production build
 pnpm alpha:check   # full Alpha gate (optional, slower)

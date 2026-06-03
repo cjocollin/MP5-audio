@@ -32,7 +32,8 @@ if (existsSync(wasmPkg)) {
   run("Demo fixtures", "pnpm", ["fixtures:generate"]);
   run("Demo album package", "node", ["scripts/generate-demo-album-package.mjs"]);
 }
-run("Unit tests (vitest)", "pnpm", ["test"]);
+run("Unit tests (vitest)", "pnpm", ["test:unit"]);
+run("Compatibility fixtures + tests", "pnpm", ["compatibility:check"]);
 run("Rust codec tests", "cargo", ["test", "-p", "mp5-codec", "--release"]);
 run("Golden fixture validation", "node", ["scripts/validate-golden-fixtures.mjs"]);
 run("Stem fixture validation", "node", ["scripts/validate-stem-fixture.mjs"]);

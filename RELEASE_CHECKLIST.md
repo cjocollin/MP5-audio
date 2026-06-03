@@ -15,7 +15,8 @@ Use this before tagging an alpha release or publishing GitHub release notes. For
 - [ ] `pnpm --filter @mp5/container build`
 - [ ] `pnpm wasm:build`
 - [ ] `pnpm lint`
-- [ ] `pnpm test`
+- [ ] `pnpm test:unit` (or `pnpm test`)
+- [ ] `pnpm compatibility:check`
 - [ ] `cargo test -p mp5-codec --release`
 - [ ] `pnpm fixtures:validate`
 - [ ] `pnpm build`

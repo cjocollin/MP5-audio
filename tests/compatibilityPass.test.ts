@@ -1,6 +1,7 @@
 /**
  * Real-world compatibility pass — synthetic fixtures only (no copyrighted audio).
- * Run: pnpm compatibility:check  (generates fixtures + runs this file)
+ * Run: pnpm compatibility:check  (generates fixtures + pnpm test:compat)
+ * Not included in pnpm test / pnpm test:unit — fixtures are generated, not committed.
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync, existsSync, readdirSync } from "node:fs";

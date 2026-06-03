@@ -45,10 +45,15 @@ pnpm build
 ### Test
 
 ```bash
-# Unit / integration tests (Vitest)
+# Unit / integration tests (Vitest — excludes generated-fixture compatibility suite)
 pnpm test
+# or explicitly:
+pnpm test:unit
 
-# Watch mode
+# Compatibility pass (generates synthetic fixtures + runs compatibilityPass.test.ts)
+pnpm compatibility:check
+
+# Watch mode (unit tests only)
 pnpm test:watch
 
 # TypeScript checks across workspace packages

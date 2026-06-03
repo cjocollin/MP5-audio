@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts", "packages/**/src/**/*.test.ts"],
+    // compatibilityPass.test.ts requires generated fixtures — run via pnpm compatibility:check
     environment: "node",
   },
 });

@@ -46,7 +46,7 @@ if (existsSync(manifestPath)) {
 }
 
 console.log("\n--- Vitest compatibility suite ---");
-const testStatus = run("pnpm", ["exec", "vitest", "run", "tests/compatibilityPass.test.ts"]);
+const testStatus = run("pnpm", ["test:compat"]);
 
 if (testStatus !== 0) {
   console.error("\n=== compatibility:check FAILED ===\n");

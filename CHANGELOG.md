@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - README polish for alpha status, quick start, security, and contributing links.
 - Root acceptance logs moved to `logs/acceptance/` (generated artifacts).
+- Split Vitest: `pnpm test` / `pnpm test:unit` (no generated fixtures) vs `pnpm compatibility:check` (fixture generation + `test:compat`).
 
 ## [0.13.0-alpha] - 2026-05
 

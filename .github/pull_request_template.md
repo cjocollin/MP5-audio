@@ -14,7 +14,8 @@
 
 ## Checklist
 
-- [ ] Tests pass (`pnpm test`, and `cargo test -p mp5-codec` if Rust changed)
+- [ ] Tests pass (`pnpm test:unit` / `pnpm test`, and `cargo test -p mp5-codec` if Rust changed)
+- [ ] Compatibility pass if parser/converter fixtures touched (`pnpm compatibility:check`)
 - [ ] Build passes (`pnpm lint`, `pnpm build` or relevant package build)
 - [ ] Docs updated if user-facing behavior, CLI, or codec policy changed
 - [ ] No copyrighted media committed (only synthetic / licensed fixtures)

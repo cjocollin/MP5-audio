@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
@@ -43,8 +43,8 @@ jobs:
       - name: TypeScript lint
         run: pnpm lint
 
-      - name: Vitest
-        run: pnpm test
+      - name: Vitest (unit)
+        run: pnpm test:unit
 
       - name: Rust codec tests
         run: cargo test -p mp5-codec --release
@@ -52,9 +52,8 @@ jobs:
       - name: Validate golden fixtures
         run: pnpm fixtures:validate
 
-  build:
-    name: Production build
-    needs: lint-and-unit
+  compatibility:
+    name: Compatibility fixtures + tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +64,37 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Install ffmpeg (compressed source fixtures)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compatibility check
+        run: pnpm compatibility:check
+
+  build:
+    name: Production build
+    needs: [lint-and-unit, compatibility]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
           cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
@@ -87,7 +116,7 @@ jobs:
 
   e2e:
     name: Playwright E2E
-    needs: lint-and-unit
+    needs: [lint-and-unit, compatibility]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,7 +127,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: pnpm
 
       - uses: dtolnay/rust-toolchain@stable
