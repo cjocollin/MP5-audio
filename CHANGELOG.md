@@ -15,6 +15,11 @@ _No changes yet._
 - Loaded embedded tracks (e.g. first album row) show HEAD-derived duration instead of stale manifest half-length.
 - Metadata prefetch updates duration on hydrated tracks; hydrate prefers decoded file duration over manifest.
 
+### Milestone — Hosted demo lock
+
+- Production deploy to https://mp5-audio.vercel.app accepted at **v0.15.6-alpha** (`hosted:verify`, `test:e2e:hosted`).
+- Beta candidate readiness docs updated; HADES `.mp5p` manual QA accepted locally.
+
 ## [0.15.5-alpha] - 2026-05
 
 ### Fixed — Playlist Play on unloaded tracks

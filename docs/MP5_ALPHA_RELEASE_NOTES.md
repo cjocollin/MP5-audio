@@ -1,5 +1,13 @@
 # MP5 Alpha release notes
 
+## v0.15.6-alpha — Hosted demo lock (May 2026)
+
+**Version:** MP5 Audio **v0.15.6-alpha**
+
+- **Hosted:** https://mp5-audio.vercel.app production deploy accepted; automated hosted verify + e2e pass.
+- **Embedded albums:** playlist durations, Play/Pause, Play Album, and real-world `.mp5p` (HADES) manual testing accepted locally.
+- **Beta prep:** see [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) Beta candidate decision section.
+
 ## v0.15.6-alpha — Embedded album playlist durations (May 2026)
 
 **Version:** MP5 Audio **v0.15.6-alpha**
