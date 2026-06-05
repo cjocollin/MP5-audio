@@ -22,6 +22,8 @@ export interface PlaybackRegressionSnapshot {
   lastPlaybackRequestReason: string | null;
   lastWaveformSeekReason: string | null;
   lastStemOperation: string | null;
+  lastAlbumAction: string | null;
+  lastAlbumTrackId: string | null;
   transportDiagnosticsLine?: string;
 }
 
@@ -58,6 +60,8 @@ export function buildPlaybackRegressionSnapshot(
     lastPlaybackRequestReason: meta.lastPlaybackRequestReason,
     lastWaveformSeekReason: meta.lastWaveformSeekReason,
     lastStemOperation: meta.lastStemOperation,
+    lastAlbumAction: meta.lastAlbumAction,
+    lastAlbumTrackId: meta.lastAlbumTrackId,
     transportDiagnosticsLine: opts.transportDiagnosticsLine,
   };
 }

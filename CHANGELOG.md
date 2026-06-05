@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.15.1-alpha] - 2026-05
+
+### Fixed — Batch album / embedded MP5P hotfix
+
+- Batch album metadata fields stay responsive after conversion (cached MP5 summaries, deferred preview, album title applied at export).
+- Embedded album cover from first track when manifest has no album cover (fragment prefix read only).
+- Play album queues all embedded tracks lazily; playback state and Play/Pause stay in sync (no overlap).
+- Track duration display uses plausible manifest ms with HEAD fallback.
+
 ## [0.15.0-alpha] - 2026-05
 
 **Status:** Experimental alpha — public Beta readiness / app polish; no format or codec changes.
@@ -76,7 +85,8 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.0-alpha...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.1-alpha...HEAD
+[0.15.1-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.0-alpha...v0.15.1-alpha
 [0.15.0-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.14.0-alpha...v0.15.0-alpha
 [0.14.0-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.13.1-alpha...v0.14.0-alpha
 [0.13.1-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.13.0-alpha...v0.13.1-alpha

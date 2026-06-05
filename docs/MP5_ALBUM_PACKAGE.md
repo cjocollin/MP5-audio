@@ -14,6 +14,8 @@ Optional **album / release packaging** for MP5 without changing the core **singl
 
 No AI metadata, no per-file stem editing in batch, no DRM. Browser download limits apply.
 
+**Batch album metadata** (v0.15.1): album title/artist fields stay responsive after conversion — package preview uses cached per-track MP5 summaries and deferred preview; album title is applied to tracks at export time, not on every keystroke.
+
 After export, a **package summary** offers **Open in Player** (album view), **Save to Library**, and **Download again**.
 
 ## Player album UX (v0.14)
@@ -21,7 +23,9 @@ After export, a **package summary** offers **Open in Player** (album view), **Sa
 Import `.mp5p` in the Player tab to open the **album package view**:
 
 - **Manifest package** — lists sidecar `.mp5` files; calm warning if any are missing.
-- **Embedded package** — self-contained; tracks load lazily on play/select.
+- **Embedded package** — self-contained; **Play album** queues every track immediately (lightweight placeholders) and loads embedded track bytes only when a track is selected or played.
+- **Album cover** — manifest/package cover first; if missing, first embedded track cover (prefix read, no full-package load); placeholder only when none found (UI shows cover source).
+- **Track durations** — manifest `durationMs` when plausible; otherwise inner MP5 HEAD (`durationSamples` / `sampleRate`) when resolved.
 - Actions: Play album, Add to queue, Save to library, Extract tracks, Dismiss.
 - **Saved albums** (Library tab) lists both manifest and embedded packages saved in browser storage.
 

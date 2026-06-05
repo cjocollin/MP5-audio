@@ -7,6 +7,7 @@ import {
 } from "@mp5/container";
 import type { PlaylistTrack } from "../../store/playerStore";
 import { trackDisplayInfo } from "../../player/playlistUtils";
+import { resolveTrackDurationMsFromRef } from "./albumDuration";
 import type { SidecarIntegrityStatus } from "../fingerprint/sidecar";
 
 export type AlbumPackageKind = "manifest" | "embedded";
@@ -77,7 +78,7 @@ export function resolveAlbumTracks(
     const displayTitle = ref.title ?? info?.title ?? base.replace(/\.mp5$/i, "");
     const displayArtist = ref.artist ?? info?.artist ?? albumArtist;
     const durationMs =
-      ref.durationMs ??
+      resolveTrackDurationMsFromRef(ref) ??
       (info?.durationSec != null ? Math.round(info.durationSec * 1000) : null);
 
     return {
@@ -152,7 +153,7 @@ export function resolveEmbeddedAlbumPackage(
       discNumber: ref.discNumber ?? 1,
       displayTitle,
       displayArtist,
-      durationMs: ref.durationMs ?? null,
+      durationMs: resolveTrackDurationMsFromRef(ref),
       playlistTrack: null,
       missing: false,
       embedded: true,

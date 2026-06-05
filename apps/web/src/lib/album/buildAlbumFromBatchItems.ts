@@ -1,5 +1,6 @@
 import type { AlbmPackageManifest, CoverArt } from "@mp5/container";
 import { parseMp5 } from "@mp5/container";
+import { getBatchItemMp5Summary } from "./batchItemMp5Summary";
 import type { BatchQueueItem } from "../../converter/batchTypes";
 import { downloadBlob } from "../performance/downloadBlob";
 import type { PlaylistTrack } from "../../store/playerStore";
@@ -93,14 +94,12 @@ export function computeBatchAlbumPreview(
     const meta = trackMetas[id];
     if (!meta?.title?.trim()) missingTitle++;
     if (!meta?.artist?.trim()) missingArtist++;
-    try {
-      const parsed = parseMp5(item.mp5);
-      if (parsed.coverArt?.data.length || parsed.cover?.length) withCover++;
-      if (parsed.optional.has("LYRC")) withLyrics++;
-      if (parsed.optional.has("STEM")) withStems++;
-      if (parsed.optional.has("VISU")) withVisu++;
-    } catch {
-      /* skip */
+    const summary = getBatchItemMp5Summary(item);
+    if (summary) {
+      if (summary.hasCover) withCover++;
+      if (summary.hasLyrics) withLyrics++;
+      if (summary.hasStems) withStems++;
+      if (summary.hasVisu) withVisu++;
     }
   }
 

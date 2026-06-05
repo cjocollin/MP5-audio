@@ -39,6 +39,7 @@ import {
   type PlaybackRequestReason,
 } from "../lib/playback/requestPlayback";
 import {
+  recordLastAlbumAction,
   recordLastPlaybackRequest,
   recordLastStemOperation,
   recordLastWaveformSeek,
@@ -83,6 +84,10 @@ import {
   ensureEmbeddedTracksLoaded,
   loadEmbeddedTrackAsPlaylistTrack,
 } from "../lib/album/embeddedAlbumLoader";
+import {
+  buildEmbeddedPlaylistPlaceholders,
+  isEmbeddedPlaceholderTrack,
+} from "../lib/album/embeddedAlbumQueue";
 import {
   formatExtractFilename,
   formatPackageBytes,
@@ -134,6 +139,8 @@ export function Mp5Player() {
     repeatMode,
     shuffle,
     appendTracks,
+    setTracks,
+    replacePlaylistTrack,
     removeTrack,
     clearTracks,
     setCurrentIndex,
@@ -198,6 +205,7 @@ export function Mp5Player() {
 
   const playWhenReadyRef = useRef(false);
   const playWhenReadyKaraokeRef = useRef(false);
+  const embeddedHydrateGenRef = useRef(0);
   const autoAdvanceRef = useRef(false);
   const seekRef = useRef<(t: number) => void>(() => {});
   const [karaokeStemPrepFailed, setKaraokeStemPrepFailed] = useState(false);
@@ -752,12 +760,19 @@ export function Mp5Player() {
       useStemPlayback,
       transportMode,
     });
-    if (!track?.file && !track?.parsed) return;
+    if (!track?.file && !track?.parsed && !track?.embeddedAlbum) return;
+    if (!track?.file && track?.embeddedAlbum) {
+      playWhenReadyRef.current = true;
+      setPlaying(true);
+      recordLastPlaybackRequest("play_button");
+      return;
+    }
     requestPlayback({ reason: "play_button", autoPlay: true });
   }, [
     isPlaying,
     track?.file,
     track?.parsed,
+    track?.embeddedAlbum,
     track?.id,
     karaokeMode,
     useStemPlayback,
@@ -1108,8 +1123,56 @@ export function Mp5Player() {
         setIntegrity(null);
       }
     }
+    if (isEmbeddedPlaceholderTrack(track) && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
+      const gen = ++embeddedHydrateGenRef.current;
+      setEmbeddedLoading(true);
+      void (async () => {
+        try {
+          const ref = track.embeddedAlbum!;
+          const loaded = await loadEmbeddedTrackAsPlaylistTrack(
+            activeAlbum.embeddedSource!.file,
+            activeAlbum.embeddedSource!.index,
+            ref.trackId,
+            ref.filename,
+          );
+          if (gen !== embeddedHydrateGenRef.current) return;
+          if (!loaded) {
+            setLoadError("Could not load embedded track from album package.");
+            setPlaying(false);
+            playWhenReadyRef.current = false;
+            return;
+          }
+          replacePlaylistTrack(track.id, {
+            ...loaded,
+            id: track.id,
+            embeddedAlbum: ref,
+            durationSec: track.durationSec ?? loaded.durationSec,
+          });
+          const hydrated = await ensureEmbeddedTracksLoaded(activeAlbum, [ref.trackId]);
+          setActiveAlbum(hydrated);
+        } finally {
+          if (gen === embeddedHydrateGenRef.current) setEmbeddedLoading(false);
+        }
+      })();
+      return;
+    }
     if (track.file) void loadFile(track);
-  }, [track?.id, track?.file, track?.parseError, track?.rawBuffer, track?.parsed, loadFile, setCurrentTime, setDuration, setPlaying, handleTrackEnded, setCurrentIndex]);
+  }, [
+    track?.id,
+    track?.file,
+    track?.parseError,
+    track?.rawBuffer,
+    track?.parsed,
+    track?.embeddedAlbum,
+    activeAlbum,
+    loadFile,
+    replacePlaylistTrack,
+    setCurrentTime,
+    setDuration,
+    setPlaying,
+    handleTrackEnded,
+    setCurrentIndex,
+  ]);
 
   const handleFiles = async (files: FileList) => {
     setSessionRestored(false);
@@ -1255,8 +1318,21 @@ export function Mp5Player() {
 
   const handlePlayAlbum = async () => {
     if (!activeAlbum) return;
+    recordLastAlbumAction("play_album");
+    recordLastPlaybackRequest("play_album");
     if (activeAlbum.packageKind === "embedded") {
-      await handleAlbumTrackSelect(0);
+      const placeholders = buildEmbeddedPlaylistPlaceholders(activeAlbum);
+      if (!placeholders.length) return;
+      setTracks(placeholders);
+      playWhenReadyRef.current = true;
+      setCurrentIndex(0);
+      setPlaying(true);
+      recordLastAlbumAction("play_album", placeholders[0]?.id ?? null);
+      tracePlayback("request_playback", "play_album", {
+        trackCount: placeholders.length,
+        firstTrackId: placeholders[0]?.id,
+        packageKind: "embedded",
+      });
       return;
     }
     let album = activeAlbum;
@@ -1271,16 +1347,18 @@ export function Mp5Player() {
     const idx = existingIdx >= 0 ? existingIdx : startLen;
     playWhenReadyRef.current = true;
     setCurrentIndex(idx);
+    setPlaying(true);
+    recordLastAlbumAction("play_album", first.id);
   };
 
   const handleAddAlbumToQueue = async () => {
     if (!activeAlbum) return;
+    recordLastAlbumAction("add_album_to_queue");
     if (activeAlbum.packageKind === "embedded") {
-      const firstMissing = activeAlbum.tracks.findIndex((t) => !t.playlistTrack && !t.missing);
-      if (firstMissing >= 0) {
-        await handleAlbumTrackSelect(firstMissing);
-      }
-      queueEmbeddedAlbumTracksInBackground();
+      const placeholders = buildEmbeddedPlaylistPlaceholders(activeAlbum);
+      const existingIds = new Set(usePlayerStore.getState().tracks.map((t) => t.id));
+      const toAdd = placeholders.filter((t) => !existingIds.has(t.id));
+      if (toAdd.length) appendTracks(toAdd);
       return;
     }
     let album = activeAlbum;
@@ -1294,6 +1372,18 @@ export function Mp5Player() {
   const handleAlbumTrackSelect = async (rowIndex: number) => {
     const row = activeAlbum?.tracks[rowIndex];
     if (!row) return;
+    const trackId = row.ref.trackId;
+    const queued = usePlayerStore.getState().tracks.find(
+      (t) => t.id === trackId || t.embeddedAlbum?.trackId === trackId,
+    );
+    if (queued) {
+      const idx = usePlayerStore.getState().tracks.findIndex((t) => t.id === queued.id);
+      playWhenReadyRef.current = true;
+      setCurrentIndex(idx);
+      setPlaying(true);
+      recordLastAlbumAction("select_track", trackId);
+      return;
+    }
     let playlistTrack = row.playlistTrack;
     if (!playlistTrack && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
       setEmbeddedLoading(true);
@@ -1318,18 +1408,33 @@ export function Mp5Player() {
     if (idx >= 0) {
       playWhenReadyRef.current = true;
       setCurrentIndex(idx);
+      setPlaying(true);
+      recordLastAlbumAction("play_track", playlistTrack.id);
       return;
     }
     appendTracks([playlistTrack]);
-    setCurrentIndex(tracks.length);
+    const nextIdx = usePlayerStore.getState().tracks.findIndex((t) => t.id === playlistTrack!.id);
+    setCurrentIndex(nextIdx >= 0 ? nextIdx : usePlayerStore.getState().tracks.length - 1);
     playWhenReadyRef.current = true;
+    setPlaying(true);
+    recordLastAlbumAction("play_track", playlistTrack.id);
   };
 
   const handleAddAlbumTrackToQueue = async (rowIndex: number) => {
     const row = activeAlbum?.tracks[rowIndex];
     if (!row) return;
+    if (activeAlbum?.packageKind === "embedded") {
+      const placeholders = buildEmbeddedPlaylistPlaceholders(activeAlbum);
+      const placeholder = placeholders[rowIndex];
+      if (!placeholder || usePlayerStore.getState().tracks.some((t) => t.id === placeholder.id)) {
+        return;
+      }
+      appendTracks([placeholder]);
+      recordLastAlbumAction("add_track_to_queue", placeholder.id);
+      return;
+    }
     let playlistTrack = row.playlistTrack;
-    if (!playlistTrack && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
+    if (!playlistTrack && activeAlbum?.embeddedSource) {
       setEmbeddedLoading(true);
       try {
         const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);

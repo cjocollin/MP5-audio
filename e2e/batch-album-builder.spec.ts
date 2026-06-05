@@ -64,6 +64,9 @@ test.describe("batch album builder", () => {
     await expect(page.getByTestId("album-package-panel")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("album-package-type")).toContainText("Embedded");
     await page.getByTestId("album-play-all").click();
-    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("playlist-item")).toHaveCount(2, { timeout: 20_000 });
+    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", /pause/i, {
+      timeout: 25_000,
+    });
   });
 });

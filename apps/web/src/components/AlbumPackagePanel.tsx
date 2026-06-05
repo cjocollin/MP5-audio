@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { ResolvedAlbumPackage } from "../lib/album/resolveAlbum";
 import { formatDuration } from "../player/playlistUtils";
-import { albumTrackBasename, type AlbmCoverEmbedded } from "@mp5/container";
+import { albumTrackBasename } from "@mp5/container";
+import {
+  resolveAlbumCoverForPackage,
+  type AlbumCoverSource,
+} from "../lib/album/albumCoverResolve";
+import { resolveTrackDurationMsFromRef } from "../lib/album/albumDuration";
 import {
   CreditsSection,
   RightsSection,
@@ -23,18 +28,14 @@ function msToSec(ms: number | null): number | null {
   return ms / 1000;
 }
 
-function albumCoverUrl(manifest: ResolvedAlbumPackage["manifest"]): string | undefined {
-  const cover = manifest.album.cover;
-  if (!cover || cover.type !== "embedded") return undefined;
-  const emb = cover as AlbmCoverEmbedded;
-  try {
-    const binary = atob(emb.dataBase64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    const blob = new Blob([bytes], { type: emb.mime });
-    return URL.createObjectURL(blob);
-  } catch {
-    return undefined;
+function coverSourceLabel(source: AlbumCoverSource): string {
+  switch (source) {
+    case "album":
+      return "Album cover from package manifest.";
+    case "first-track":
+      return "Cover from first track (album cover not in manifest).";
+    default:
+      return "No album cover found in package or first track.";
   }
 }
 
@@ -75,14 +76,31 @@ export function AlbumPackagePanel({
     album;
   const isEmbedded = packageKind === "embedded";
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
+  const [coverSource, setCoverSource] = useState<AlbumCoverSource>("none");
+  const [coverNote, setCoverNote] = useState<string | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
   useEffect(() => {
-    const url = albumCoverUrl(manifest);
-    setCoverUrl(url);
+    let cancelled = false;
+    let objectUrl: string | undefined;
+    setCoverUrl(undefined);
+    setCoverSource("none");
+    setCoverNote(undefined);
+    void (async () => {
+      const resolved = await resolveAlbumCoverForPackage(album);
+      if (cancelled) {
+        if (resolved.url) URL.revokeObjectURL(resolved.url);
+        return;
+      }
+      objectUrl = resolved.url;
+      setCoverUrl(resolved.url);
+      setCoverSource(resolved.source);
+      setCoverNote(resolved.error ?? coverSourceLabel(resolved.source));
+    })();
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [manifest]);
+  }, [album]);
   const sidecarInputRef = useRef<HTMLInputElement>(null);
   const artist = manifest.album.albumArtist ?? manifest.album.artist;
   const metaLine = [manifest.album.year, manifest.album.genre].filter(Boolean).join(" · ");
@@ -95,17 +113,24 @@ export function AlbumPackagePanel({
       data-testid="album-package-panel"
     >
       <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl bg-surface-elevated overflow-hidden flex items-center justify-center mx-auto sm:mx-0">
-          {coverUrl ? (
-            <img
-              src={coverUrl}
-              alt=""
-              className="w-full h-full object-cover"
-              data-testid="album-package-cover"
-            />
-          ) : (
-            <span className="text-3xl sm:text-4xl opacity-30">♪</span>
-          )}
+        <div className="shrink-0 flex flex-col items-center gap-1 mx-auto sm:mx-0">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-surface-elevated overflow-hidden flex items-center justify-center">
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt=""
+                className="w-full h-full object-cover"
+                data-testid="album-package-cover"
+              />
+            ) : (
+              <span className="text-3xl sm:text-4xl opacity-30" data-testid="album-package-cover-placeholder">
+                ♪
+              </span>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-500 text-center max-w-[7rem]" data-testid="album-cover-source">
+            {coverNote ?? coverSourceLabel(coverSource)}
+          </p>
         </div>
         <div className="flex-1 min-w-0 text-center sm:text-left space-y-2">
           <span
@@ -436,8 +461,11 @@ export function AlbumPackagePanel({
                     </span>
                   </div>
                 </div>
-                <span className="text-xs text-gray-500 font-mono shrink-0">
-                  {formatDuration(msToSec(t.durationMs))}
+                <span
+                  className="text-xs text-gray-500 font-mono shrink-0"
+                  data-testid="album-track-duration"
+                >
+                  {formatDuration(msToSec(resolveTrackDurationMsFromRef(t.ref) ?? t.durationMs))}
                 </span>
                 {t.embeddedByteLength != null && (
                   <span className="text-[10px] text-gray-600 shrink-0" data-testid="album-track-embedded-size">

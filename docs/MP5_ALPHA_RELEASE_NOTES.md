@@ -1,5 +1,15 @@
 # MP5 Alpha release notes
 
+## v0.15.1-alpha — Batch album / embedded MP5P hotfix (May 2026)
+
+**Version:** MP5 Audio **v0.15.1-alpha**
+
+- **Play album (embedded):** full playlist queued immediately; track bytes load on play/select.
+- **Cover:** manifest → first embedded track (prefix read) → placeholder with source label.
+- **Durations:** manifest ms when plausible; MP5 HEAD fallback when missing.
+- **Batch album UI:** responsive metadata after conversion (cached summaries, deferred preview).
+- **Playback:** Play album uses canonical load path; Play/Pause reflects playing state (no overlap).
+
 ## v0.15.0-alpha — Public Beta readiness / app polish (May 2026)
 
 **Version:** MP5 Audio **v0.15.0-alpha**

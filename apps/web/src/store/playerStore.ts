@@ -15,6 +15,11 @@ import type { ResolvedAlbumPackage } from "../lib/album/resolveAlbum";
 
 export type { RepeatMode };
 
+export interface EmbeddedAlbumTrackRef {
+  trackId: string;
+  filename: string;
+}
+
 export interface PlaylistTrack {
   id: string;
   name: string;
@@ -27,6 +32,8 @@ export interface PlaylistTrack {
   parseError?: string;
   durationSec?: number;
   objectUrl?: string;
+  /** Queued embedded album track — bytes load when selected/played. */
+  embeddedAlbum?: EmbeddedAlbumTrackRef;
 }
 
 interface PlayerState {
@@ -47,6 +54,7 @@ interface PlayerState {
   /** Set from Library when opening a saved album; consumed by Mp5Player. */
   pendingAlbumPackage: ResolvedAlbumPackage | null;
   setTracks: (t: PlaylistTrack[]) => void;
+  replacePlaylistTrack: (id: string, next: PlaylistTrack) => void;
   appendTracks: (t: PlaylistTrack[]) => void;
   removeTrack: (id: string) => void;
   clearTracks: () => void;
@@ -145,6 +153,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       isPlaying: tracks.length ? s.isPlaying : false,
       shuffleOrder: s.shuffle ? rebuildShuffle(tracks, clampIndex(s.currentIndex, tracks.length)) : [],
     })),
+  replacePlaylistTrack: (id, next) =>
+    set((s) => {
+      const idx = s.tracks.findIndex((t) => t.id === id);
+      if (idx < 0) return s;
+      const tracks = [...s.tracks];
+      tracks[idx] = next;
+      return { tracks };
+    }),
   appendTracks: (incoming) =>
     set((s) => {
       if (!incoming.length) return s;

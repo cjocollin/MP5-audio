@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { BatchQueueItem } from "../converter/batchTypes";
 import type { ManualMetadataEdits } from "../converter/manualMetadata";
 import { extractSourceMetadata } from "../converter/extractSourceMetadata";
@@ -109,9 +109,10 @@ export function BatchAlbumBuilderSection({
     };
   }, [items, album.title, album.artist, album.albumArtist, album.year, album.genre]);
 
+  const deferredAlbum = useDeferredValue(album);
   const preview = useMemo(
-    () => computeBatchAlbumPreview(items, trackOrder, album, trackMetas),
-    [items, trackOrder, album, trackMetas],
+    () => computeBatchAlbumPreview(items, trackOrder, deferredAlbum, trackMetas),
+    [items, trackOrder, deferredAlbum, trackMetas],
   );
 
   const doneCount = completedBatchItems(items).length;
@@ -132,7 +133,7 @@ export function BatchAlbumBuilderSection({
   ) {
     setAlbum((prev) => {
       const next = { ...prev, [key]: value };
-      if (key === "title" || key === "artist" || key === "albumArtist" || key === "genre" || key === "year") {
+      if (key === "artist" || key === "albumArtist" || key === "genre" || key === "year") {
         setTrackMetas((tm) => applyAlbumMetaToTracks(tm, next));
       }
       return next;
@@ -170,9 +171,10 @@ export function BatchAlbumBuilderSection({
           if (!ok) return;
         }
       }
-      const synced = syncBatchOutputFilenames(items, trackMetas, album);
+      const exportMetas = applyAlbumMetaToTracks(trackMetas, album);
+      const synced = syncBatchOutputFilenames(items, exportMetas, album);
       setItems(synced);
-      const result = await exportBatchAlbumPackage(synced, trackOrder, album, trackMetas);
+      const result = await exportBatchAlbumPackage(synced, trackOrder, album, exportMetas);
       if (!result.ok) {
         setExportNote(result.message ?? "Export failed.");
         setLastExport(null);

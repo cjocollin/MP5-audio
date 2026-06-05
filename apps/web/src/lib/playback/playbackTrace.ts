@@ -39,6 +39,8 @@ let enabled =
 let lastPlaybackRequestReason: string | null = null;
 let lastWaveformSeekReason: string | null = null;
 let lastStemOperation: string | null = null;
+let lastAlbumAction: string | null = null;
+let lastAlbumTrackId: string | null = null;
 
 export function setPlaybackTraceEnabled(on: boolean): void {
   enabled = on;
@@ -65,15 +67,25 @@ export function recordLastStemOperation(op: string, detail?: Record<string, unkn
   tracePlayback("stem_operation", op, detail);
 }
 
+export function recordLastAlbumAction(action: string, trackId?: string | null): void {
+  lastAlbumAction = action;
+  if (trackId !== undefined) lastAlbumTrackId = trackId;
+  tracePlayback("transport", "album_action", { action, trackId: trackId ?? lastAlbumTrackId });
+}
+
 export function getPlaybackTraceMeta(): {
   lastPlaybackRequestReason: string | null;
   lastWaveformSeekReason: string | null;
   lastStemOperation: string | null;
+  lastAlbumAction: string | null;
+  lastAlbumTrackId: string | null;
 } {
   return {
     lastPlaybackRequestReason,
     lastWaveformSeekReason,
     lastStemOperation,
+    lastAlbumAction,
+    lastAlbumTrackId,
   };
 }
 
@@ -104,6 +116,8 @@ export function clearPlaybackTrace(): void {
   lastPlaybackRequestReason = null;
   lastWaveformSeekReason = null;
   lastStemOperation = null;
+  lastAlbumAction = null;
+  lastAlbumTrackId = null;
 }
 
 export function traceScrollIntoView(

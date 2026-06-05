@@ -15,7 +15,10 @@ export function albumPlaybackContext(
 ): AlbumPlaybackContext | null {
   if (!album || !track) return null;
   const rowIndex = album.tracks.findIndex(
-    (t) => t.playlistTrack?.id === track.id || t.ref.trackId === track.id,
+    (t) =>
+      t.playlistTrack?.id === track.id ||
+      t.ref.trackId === track.id ||
+      t.ref.trackId === track.embeddedAlbum?.trackId,
   );
   if (rowIndex < 0) return null;
   const row = album.tracks[rowIndex]!;

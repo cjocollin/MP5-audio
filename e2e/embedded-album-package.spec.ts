@@ -36,11 +36,14 @@ test.describe("embedded album package (.mp5p)", () => {
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
   });
 
-  test("play album loads first embedded track lazily", async ({ page }) => {
+  test("play album queues full album and starts first track lazily", async ({ page }) => {
     await page.getByTestId("player-file-input").setInputFiles([embeddedFixture]);
     await expect(page.getByTestId("album-package-panel")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("album-play-all").click();
-    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("playlist-item")).toHaveCount(2, { timeout: 20_000 });
+    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", /pause/i, {
+      timeout: 25_000,
+    });
   });
 
   test("extract track button is present for embedded rows", async ({ page }) => {
