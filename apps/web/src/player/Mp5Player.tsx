@@ -1166,7 +1166,7 @@ export function Mp5Player() {
             ...loaded,
             id: track.id,
             embeddedAlbum: ref,
-            durationSec: track.durationSec ?? loaded.durationSec,
+            durationSec: loaded.durationSec ?? track.durationSec,
           });
           const hydrated = await ensureEmbeddedTracksLoaded(activeAlbum, [ref.trackId]);
           setActiveAlbum(hydrated);
@@ -1345,7 +1345,17 @@ export function Mp5Player() {
       (trackId, patch) => {
         if (gen !== playlistPrefetchGenRef.current) return;
         const current = usePlayerStore.getState().tracks.find((t) => t.id === trackId);
-        if (!current || current.file) return;
+        if (!current) return;
+        if (current.file) {
+          replacePlaylistTrack(trackId, {
+            ...current,
+            durationSec: patch.durationSec ?? current.durationSec,
+            embeddedAlbum: patch.embeddedAlbum
+              ? { ...current.embeddedAlbum!, ...patch.embeddedAlbum }
+              : current.embeddedAlbum,
+          });
+          return;
+        }
         replacePlaylistTrack(trackId, { ...current, ...patch });
       },
       { isCancelled: () => gen !== playlistPrefetchGenRef.current },

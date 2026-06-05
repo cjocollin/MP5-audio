@@ -50,6 +50,18 @@ export function trackDurationSec(parsed?: Mp5File): number | null {
   return samples / head.sampleRate;
 }
 
+/** Prefer HEAD-derived duration when stored manifest duration is clearly wrong (~half, etc.). */
+export function resolvePlaylistTrackDurationSec(track: PlaylistTrack): number | null {
+  const parsedDur = trackDurationSec(track.parsed);
+  const stored = track.durationSec ?? null;
+  if (parsedDur != null && stored != null) {
+    const ratio = stored / parsedDur;
+    if (ratio >= 0.9 && ratio <= 1.1) return stored;
+    return parsedDur;
+  }
+  return stored ?? parsedDur;
+}
+
 export function hasContentNotice(parsed?: Mp5File): boolean {
   if (!parsed) return false;
   try {
@@ -108,7 +120,7 @@ export function trackDisplayInfo(track: PlaylistTrack): TrackDisplayInfo {
     genre,
     moodTags,
     vibeTags,
-    durationSec: track.durationSec ?? trackDurationSec(parsed),
+    durationSec: resolvePlaylistTrackDurationSec(track),
     hasContentNotice: hasContentNotice(parsed),
   };
 }

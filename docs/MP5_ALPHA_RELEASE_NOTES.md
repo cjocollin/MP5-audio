@@ -1,5 +1,11 @@
 # MP5 Alpha release notes
 
+## v0.15.6-alpha — Embedded album playlist durations (May 2026)
+
+**Version:** MP5 Audio **v0.15.6-alpha**
+
+- **Playlist:** loaded embedded tracks show correct HEAD duration; first-row half-length manifest values no longer stick after hydrate.
+
 ## v0.15.5-alpha — Playlist Play on unloaded tracks (May 2026)
 
 **Version:** MP5 Audio **v0.15.5-alpha**

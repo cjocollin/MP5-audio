@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.15.6-alpha] - 2026-05
+
+### Fixed — Embedded album playlist durations
+
+- Loaded embedded tracks (e.g. first album row) show HEAD-derived duration instead of stale manifest half-length.
+- Metadata prefetch updates duration on hydrated tracks; hydrate prefers decoded file duration over manifest.
+
 ## [0.15.5-alpha] - 2026-05
 
 ### Fixed — Playlist Play on unloaded tracks
@@ -116,7 +123,8 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.5-alpha...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.6-alpha...HEAD
+[0.15.6-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.5-alpha...v0.15.6-alpha
 [0.15.5-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.4-alpha...v0.15.5-alpha
 [0.15.4-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.3-alpha...v0.15.4-alpha
 [0.15.3-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.2-alpha...v0.15.3-alpha

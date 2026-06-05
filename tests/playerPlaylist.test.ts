@@ -11,6 +11,7 @@ import {
   formatDuration,
   ingestMp5Files,
   matchesSearch,
+  resolvePlaylistTrackDurationSec,
   trackDisplayInfo,
 } from "../apps/web/src/player/playlistUtils";
 import { usePlayerStore } from "../apps/web/src/store/playerStore";
@@ -149,6 +150,28 @@ describe("player playlist utilities", () => {
     expect(info.artist).toBe("Melanie Martinez");
     expect(info.album).toBe("HADES");
     expect(info.genre).toBe("Alternative");
+  });
+
+  it("trackDisplayInfo prefers HEAD duration when stored manifest duration is ~half", async () => {
+    const file = fileFromBuffer(
+      "garbage.mp5",
+      minimalMp5({
+        head: {
+          codecId: CodecId.MP5L_v3,
+          channels: 2,
+          bitsPerSample: 16,
+          presetId: 0,
+          sampleRate: 44100,
+          totalSamples: 8423100n,
+          encoderVersion: 1,
+        },
+        meta: metaFieldsFromRecord({ title: "GARBAGE", artist: "Melanie Martinez", album: "HADES" }),
+      }),
+    );
+    const { tracks } = await ingestMp5Files([file]);
+    const track = { ...tracks[0]!, durationSec: 95.534 };
+    expect(resolvePlaylistTrackDurationSec(track)).toBeCloseTo(191, 0);
+    expect(formatDuration(trackDisplayInfo(track).durationSec)).toBe("3:11");
   });
 });
 
