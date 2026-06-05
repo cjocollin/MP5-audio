@@ -879,7 +879,7 @@ export function Mp5Player() {
       setLoading(true);
       setIngestStage("decoding_audio");
       setIngestStageDetail(ingestStageLabel("decoding_audio"));
-      if (!autoAdvanceRef.current) {
+      if (!autoAdvanceRef.current && !playWhenReadyRef.current) {
         setPlaying(false);
       }
 
@@ -1524,11 +1524,41 @@ export function Mp5Player() {
     }
   };
 
-  const handlePlayIndex = (index: number) => {
-    playWhenReadyRef.current = true;
-    autoAdvanceRef.current = false;
-    setCurrentIndex(index);
-  };
+  const handlePlayIndex = useCallback(
+    (index: number) => {
+      const target = tracks[index];
+      if (!target || target.parseError) return;
+      playWhenReadyRef.current = true;
+      autoAdvanceRef.current = false;
+      recordLastPlaybackRequest("play_button");
+
+      if (index === currentIndex) {
+        if (target.file && hasMainPcm() && track?.id === target.id && !loading) {
+          playWhenReadyRef.current = false;
+          requestPlayback({ reason: "play_button", autoPlay: true });
+          return;
+        }
+        if (target.file) {
+          void loadFile(target);
+          return;
+        }
+        if (isEmbeddedPlaceholderTrack(target)) {
+          return;
+        }
+      }
+      setCurrentIndex(index);
+    },
+    [
+      tracks,
+      currentIndex,
+      track?.id,
+      loading,
+      hasMainPcm,
+      requestPlayback,
+      loadFile,
+      setCurrentIndex,
+    ],
+  );
 
   const handleSaveToLibrary = async (t: (typeof tracks)[0]) => {
     if (!t?.file) return;

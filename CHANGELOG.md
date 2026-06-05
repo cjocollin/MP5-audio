@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.15.4-alpha] - 2026-05
+
+### Fixed — Playlist Play button
+
+- Playlist row **Play** on the current track now starts playback without requiring the main transport Play button.
+- Preserves play intent during track load when `playWhenReadyRef` is set.
+
 ## [0.15.3-alpha] - 2026-05
 
 ### Fixed — Embedded album playlist display
@@ -101,7 +108,8 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.3-alpha...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.4-alpha...HEAD
+[0.15.4-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.3-alpha...v0.15.4-alpha
 [0.15.3-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.2-alpha...v0.15.3-alpha
 [0.15.2-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.1-alpha...v0.15.2-alpha
 [0.15.1-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.0-alpha...v0.15.1-alpha

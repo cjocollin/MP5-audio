@@ -1,5 +1,11 @@
 # MP5 Alpha release notes
 
+## v0.15.4-alpha — Playlist Play fix (May 2026)
+
+**Version:** MP5 Audio **v0.15.4-alpha**
+
+- **Playlist:** row **Play** on the current track starts playback without using the main transport button.
+
 ## v0.15.3-alpha — Embedded album playlist display (May 2026)
 
 **Version:** MP5 Audio **v0.15.3-alpha**
