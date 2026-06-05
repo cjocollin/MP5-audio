@@ -1,5 +1,11 @@
 # MP5 Alpha release notes
 
+## v0.15.5-alpha — Playlist Play on unloaded tracks (May 2026)
+
+**Version:** MP5 Audio **v0.15.5-alpha**
+
+- **Playlist:** row **Play** on an unloaded track starts and continues playback (no brief stop requiring a second Play).
+
 ## v0.15.4-alpha — Playlist Play fix (May 2026)
 
 **Version:** MP5 Audio **v0.15.4-alpha**

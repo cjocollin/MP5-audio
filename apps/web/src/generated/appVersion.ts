@@ -1,2 +1,2 @@
 /** Auto-generated from root package.json — do not edit */
-export const APP_VERSION = "0.15.4-alpha";
+export const APP_VERSION = "0.15.5-alpha";

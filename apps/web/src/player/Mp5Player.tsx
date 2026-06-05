@@ -209,6 +209,8 @@ export function Mp5Player() {
   const embeddedHydrateGenRef = useRef(0);
   const playlistPrefetchGenRef = useRef(0);
   const loadFileGenRef = useRef(0);
+  const loadedPcmTrackIdRef = useRef<string | null>(null);
+  const embeddedHydratingTrackIdRef = useRef<string | null>(null);
   const autoAdvanceRef = useRef(false);
   const seekRef = useRef<(t: number) => void>(() => {});
   const [karaokeStemPrepFailed, setKaraokeStemPrepFailed] = useState(false);
@@ -874,6 +876,7 @@ export function Mp5Player() {
       const { id: trackId, file, rawBuffer, parsed: ingestParsed } = playlistTrack;
       if (!file) return;
       const loadGen = ++loadFileGenRef.current;
+      const wantPlayAfterLoad = playWhenReadyRef.current || autoAdvanceRef.current;
       stopMainSource();
       setLoadError("");
       setLoading(true);
@@ -958,10 +961,11 @@ export function Mp5Player() {
         ].filter((id): id is string => !!id);
         decodeCache.retain(neighborIds);
 
-        if (playWhenReadyRef.current || autoAdvanceRef.current) {
-          playWhenReadyRef.current = false;
-          autoAdvanceRef.current = false;
-          if (loadGen === loadFileGenRef.current) {
+        if (loadGen === loadFileGenRef.current) {
+          loadedPcmTrackIdRef.current = trackId;
+          if (wantPlayAfterLoad) {
+            playWhenReadyRef.current = false;
+            autoAdvanceRef.current = false;
             setPlaying(true);
           }
         }
@@ -1132,10 +1136,14 @@ export function Mp5Player() {
       }
     }
     if (isEmbeddedPlaceholderTrack(track) && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
+      if (embeddedHydratingTrackIdRef.current === track.id) {
+        return;
+      }
       stopMainSource();
       if (!autoAdvanceRef.current && !playWhenReadyRef.current) {
         setPlaying(false);
       }
+      embeddedHydratingTrackIdRef.current = track.id;
       const gen = ++embeddedHydrateGenRef.current;
       setEmbeddedLoading(true);
       void (async () => {
@@ -1163,19 +1171,37 @@ export function Mp5Player() {
           const hydrated = await ensureEmbeddedTracksLoaded(activeAlbum, [ref.trackId]);
           setActiveAlbum(hydrated);
         } finally {
-          if (gen === embeddedHydrateGenRef.current) setEmbeddedLoading(false);
+          if (gen === embeddedHydrateGenRef.current) {
+            if (embeddedHydratingTrackIdRef.current === track.id) {
+              embeddedHydratingTrackIdRef.current = null;
+            }
+            setEmbeddedLoading(false);
+          }
         }
       })();
       return;
     }
-    if (track.file) void loadFile(track);
+    if (track.file) {
+      const wantPlay = playWhenReadyRef.current || autoAdvanceRef.current;
+      const pcmReady =
+        loadedPcmTrackIdRef.current === track.id && hasMainPcm() && !!decodeCache.get(track.id);
+      if (pcmReady && !wantPlay) {
+        if (track.parsed) setParsed(track.parsed);
+        return;
+      }
+      if (pcmReady && wantPlay) {
+        playWhenReadyRef.current = false;
+        requestPlayback({ reason: "play_button", autoPlay: true });
+        return;
+      }
+      void loadFile(track);
+    }
   }, [
     track?.id,
     track?.file,
     track?.parseError,
     track?.rawBuffer,
-    track?.parsed,
-    track?.embeddedAlbum,
+    track?.embeddedAlbum?.trackId,
     activeAlbum,
       loadFile,
       replacePlaylistTrack,
@@ -1185,6 +1211,8 @@ export function Mp5Player() {
     setPlaying,
     handleTrackEnded,
     setCurrentIndex,
+    hasMainPcm,
+    requestPlayback,
   ]);
 
   const handleFiles = async (files: FileList) => {
@@ -1546,6 +1574,7 @@ export function Mp5Player() {
           return;
         }
       }
+      loadedPcmTrackIdRef.current = null;
       setCurrentIndex(index);
     },
     [
@@ -1615,6 +1644,7 @@ export function Mp5Player() {
     setAlbumManifestError("");
     clearTracks();
     decodeCache.clear();
+    loadedPcmTrackIdRef.current = null;
     clearPlayerSession();
     setParsed(undefined);
     setIntegrity(null);

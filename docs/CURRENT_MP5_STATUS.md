@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.15.4-alpha** · **Date:** May 2026 · **Status:** **Embedded album / batch album hotfix** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.15.5-alpha** · **Date:** May 2026 · **Status:** **Embedded album / batch album hotfix** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -71,6 +71,8 @@
 - **Now playing:** large cover, title/artist/album, codec and content guidance badges, mood/vibe chips
 - **Metadata panel:** track info, cover, lyrics, content guidance, mood/vibe, **VISU visual theme** swatches, **credits / rights / identifiers**, **integrity & fingerprint**, waveform stats, format — with calm empty states
 - **Visual themes (VISU MVP):** optional per-file colors/mood; player accent + soft gradient; Settings toggle to disable file themes — [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md)
+**v0.15.5-alpha — Playlist Play on unloaded tracks:** Row Play on never-loaded tracks starts and keeps playing; metadata prefetch no longer interrupts decode.
+
 **v0.15.4-alpha — Playlist Play fix:** Row Play on the selected track starts playback immediately; play intent preserved during load.
 
 **v0.15.3-alpha — Embedded album playlist display:** Manifest metadata on playlist rows before load; background cover/duration prefetch; album year preserved for package export.

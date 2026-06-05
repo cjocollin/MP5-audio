@@ -1,7 +1,7 @@
 {
   "name": "mp5",
   "private": true,
-  "version": "0.15.4-alpha",
+  "version": "0.15.5-alpha",
   "description": "MP5 experimental audio format ecosystem",
   "license": "MIT",
   "scripts": {
