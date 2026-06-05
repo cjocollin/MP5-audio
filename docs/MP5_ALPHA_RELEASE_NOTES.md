@@ -1,5 +1,13 @@
 # MP5 Alpha release notes
 
+## v0.15.2-alpha — Embedded album hotfix follow-up (May 2026)
+
+**Version:** MP5 Audio **v0.15.2-alpha**
+
+- **Cover:** reads COVR from first embedded track metadata prefix (fragment slices only).
+- **Durations:** Album Details prefer HEAD sample count over manifest when manifest is ~half (stereo).
+- **Playback:** serialized audio start; Play Album stops prior transport; no overlapping sources.
+
 ## v0.15.1-alpha — Batch album / embedded MP5P hotfix (May 2026)
 
 **Version:** MP5 Audio **v0.15.1-alpha**

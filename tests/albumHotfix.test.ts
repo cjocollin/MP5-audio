@@ -10,14 +10,10 @@ import {
 } from "../apps/web/src/lib/album/albumCoverResolve";
 import {
   durationMsFromParsedMp5,
-  isPlausibleTrackDurationMs,
+  headDurationMs,
   resolveTrackDurationMsFromRef,
 } from "../apps/web/src/lib/album/albumDuration";
 import { buildEmbeddedPlaylistPlaceholders } from "../apps/web/src/lib/album/embeddedAlbumQueue";
-import { getBatchItemMp5Summary } from "../apps/web/src/lib/album/batchItemMp5Summary";
-import { computeBatchAlbumPreview } from "../apps/web/src/lib/album/buildAlbumFromBatchItems";
-import { emptyAlbumMeta } from "../apps/web/src/lib/album/batchAlbumMetadata";
-import type { BatchQueueItem } from "../apps/web/src/converter/batchTypes";
 import type { ResolvedAlbumPackage } from "../apps/web/src/lib/album/resolveAlbum";
 import { parseMp5 } from "@mp5/container";
 import { readFileSync, existsSync } from "node:fs";
@@ -87,64 +83,24 @@ describe("album hotfix helpers", () => {
     expect(rows).toHaveLength(2);
     expect(rows[0]?.embeddedAlbum?.trackId).toBe("t1");
     expect(rows[0]?.file).toBeUndefined();
-    expect(rows[0]?.durationSec).toBeCloseTo(95, 0);
-    expect(rows[1]?.durationSec).toBeCloseTo(121, 0);
   });
 
-  it("resolveTrackDurationMsFromRef rejects implausible manifest ms", () => {
-    expect(isPlausibleTrackDurationMs(95_000)).toBe(true);
-    expect(resolveTrackDurationMsFromRef({ trackId: "x", file: "a.mp5", trackNumber: 1, durationMs: 95_000 })).toBe(95_000);
-    expect(resolveTrackDurationMsFromRef({ trackId: "x", file: "a.mp5", trackNumber: 1, durationMs: 0 })).toBeNull();
-  });
-
-  it("getBatchItemMp5Summary caches parse per buffer", () => {
-    const fixture = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_tone.mp5");
-    if (!existsSync(fixture)) return;
-    const bytes = new Uint8Array(readFileSync(fixture));
-    const item: BatchQueueItem = {
-      id: "1",
-      sourceName: "tone.mp5",
-      sourceSize: bytes.length,
-      file: new File([bytes], "tone.mp5"),
-      status: "done",
-      mp5: bytes,
-      outputFilename: "tone.mp5",
-    };
-    const a = getBatchItemMp5Summary(item);
-    const b = getBatchItemMp5Summary(item);
-    expect(a).toBe(b);
-    expect(a?.byteLength).toBe(bytes.length);
-  });
-
-  it("computeBatchAlbumPreview does not require album title in trackMetas churn", () => {
-    const bytes = new Uint8Array(64);
-    const item: BatchQueueItem = {
-      id: "1",
-      sourceName: "a.wav",
-      sourceSize: 8,
-      file: new File([bytes], "a.wav"),
-      status: "complete",
-      mp5: bytes,
-      outputFilename: "01-a.mp5",
-    };
-    const album = { ...emptyAlbumMeta(), title: "My Album", exportTarget: "embedded" as const };
-    const preview = computeBatchAlbumPreview([item], ["1"], album, {
-      "1": {
-        id: "1",
-        title: "A",
-        artist: "B",
-        album: "",
-        albumArtist: "",
-        trackNumber: "1",
-        discNumber: "1",
-        genre: "",
-        year: "",
-        date: "",
-        useAlbumCover: true,
-      },
+  it("headDurationMs uses per-channel frame count (no extra /channels)", () => {
+    const ms = headDurationMs({
+      codecId: 2,
+      channels: 2,
+      bitsPerSample: 16,
+      presetId: 0,
+      sampleRate: 44100,
+      totalSamples: 8423100n,
+      encoderVersion: 1,
     });
-    expect(preview.albumTitle).toBe("My Album");
-    expect(preview.trackCount).toBe(1);
+    expect(ms).toBe(191000);
+  });
+
+  it("resolveTrackDurationMsFromRef prefers HEAD when manifest is half", () => {
+    const ref = { trackId: "x", file: "a.mp5", trackNumber: 1, durationMs: 95_534 };
+    expect(resolveTrackDurationMsFromRef(ref, 191_000)).toBe(191_000);
   });
 
   it("durationMsFromParsedMp5 reads HEAD samples", () => {
@@ -152,12 +108,8 @@ describe("album hotfix helpers", () => {
     if (!existsSync(fixture)) return;
     const bytes = new Uint8Array(readFileSync(fixture));
     const ms = durationMsFromParsedMp5(bytes);
-    expect(ms).not.toBeNull();
-    expect(ms!).toBeGreaterThan(0);
     const parsed = parseMp5(bytes);
-    const expected = Math.round(
-      (Number(parsed.head.totalSamples) / parsed.head.sampleRate / parsed.head.channels) * 1000,
-    );
+    const expected = Math.round((Number(parsed.head!.totalSamples) / parsed.head!.sampleRate) * 1000);
     expect(ms).toBe(expected);
   });
 

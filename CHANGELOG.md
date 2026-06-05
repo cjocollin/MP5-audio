@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.15.2-alpha] - 2026-05
+
+### Fixed — Embedded album hotfix follow-up
+
+- Album cover from first embedded track via metadata prefix parser (no full-file parse).
+- Track durations in Album Details use HEAD sample count (fixes ~half-duration display for stereo).
+- Playback overlap: serialized audio start, Play Album stops prior transport before queueing.
+
 ## [0.15.1-alpha] - 2026-05
 
 ### Fixed — Batch album / embedded MP5P hotfix
@@ -85,7 +93,8 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.1-alpha...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.2-alpha...HEAD
+[0.15.2-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.1-alpha...v0.15.2-alpha
 [0.15.1-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.0-alpha...v0.15.1-alpha
 [0.15.0-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.14.0-alpha...v0.15.0-alpha
 [0.14.0-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.13.1-alpha...v0.14.0-alpha

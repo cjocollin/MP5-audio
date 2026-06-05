@@ -206,6 +206,7 @@ export function Mp5Player() {
   const playWhenReadyRef = useRef(false);
   const playWhenReadyKaraokeRef = useRef(false);
   const embeddedHydrateGenRef = useRef(0);
+  const loadFileGenRef = useRef(0);
   const autoAdvanceRef = useRef(false);
   const seekRef = useRef<(t: number) => void>(() => {});
   const [karaokeStemPrepFailed, setKaraokeStemPrepFailed] = useState(false);
@@ -763,7 +764,6 @@ export function Mp5Player() {
     if (!track?.file && !track?.parsed && !track?.embeddedAlbum) return;
     if (!track?.file && track?.embeddedAlbum) {
       playWhenReadyRef.current = true;
-      setPlaying(true);
       recordLastPlaybackRequest("play_button");
       return;
     }
@@ -871,6 +871,8 @@ export function Mp5Player() {
     async (playlistTrack: PlaylistTrack) => {
       const { id: trackId, file, rawBuffer, parsed: ingestParsed } = playlistTrack;
       if (!file) return;
+      const loadGen = ++loadFileGenRef.current;
+      stopMainSource();
       setLoadError("");
       setLoading(true);
       setIngestStage("decoding_audio");
@@ -957,9 +959,12 @@ export function Mp5Player() {
         if (playWhenReadyRef.current || autoAdvanceRef.current) {
           playWhenReadyRef.current = false;
           autoAdvanceRef.current = false;
-          setPlaying(true);
+          if (loadGen === loadFileGenRef.current) {
+            setPlaying(true);
+          }
         }
       } catch (e) {
+        if (loadGen !== loadFileGenRef.current) return;
         setLoadError(e instanceof Error ? e.message : String(e));
         setDecodePath("");
         setMp5hInfo(undefined);
@@ -984,6 +989,7 @@ export function Mp5Player() {
     },
     [
       loadPcm,
+      stopMainSource,
       setCurrentTime,
       setDuration,
       setPlaying,
@@ -1124,6 +1130,10 @@ export function Mp5Player() {
       }
     }
     if (isEmbeddedPlaceholderTrack(track) && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
+      stopMainSource();
+      if (!autoAdvanceRef.current && !playWhenReadyRef.current) {
+        setPlaying(false);
+      }
       const gen = ++embeddedHydrateGenRef.current;
       setEmbeddedLoading(true);
       void (async () => {
@@ -1165,9 +1175,10 @@ export function Mp5Player() {
     track?.parsed,
     track?.embeddedAlbum,
     activeAlbum,
-    loadFile,
-    replacePlaylistTrack,
-    setCurrentTime,
+      loadFile,
+      replacePlaylistTrack,
+      stopMainSource,
+      setCurrentTime,
     setDuration,
     setPlaying,
     handleTrackEnded,
@@ -1320,13 +1331,14 @@ export function Mp5Player() {
     if (!activeAlbum) return;
     recordLastAlbumAction("play_album");
     recordLastPlaybackRequest("play_album");
+    stopMainSource();
+    setPlaying(false);
     if (activeAlbum.packageKind === "embedded") {
       const placeholders = buildEmbeddedPlaylistPlaceholders(activeAlbum);
       if (!placeholders.length) return;
       setTracks(placeholders);
       playWhenReadyRef.current = true;
       setCurrentIndex(0);
-      setPlaying(true);
       recordLastAlbumAction("play_album", placeholders[0]?.id ?? null);
       tracePlayback("request_playback", "play_album", {
         trackCount: placeholders.length,
@@ -1347,7 +1359,6 @@ export function Mp5Player() {
     const idx = existingIdx >= 0 ? existingIdx : startLen;
     playWhenReadyRef.current = true;
     setCurrentIndex(idx);
-    setPlaying(true);
     recordLastAlbumAction("play_album", first.id);
   };
 
@@ -1380,7 +1391,6 @@ export function Mp5Player() {
       const idx = usePlayerStore.getState().tracks.findIndex((t) => t.id === queued.id);
       playWhenReadyRef.current = true;
       setCurrentIndex(idx);
-      setPlaying(true);
       recordLastAlbumAction("select_track", trackId);
       return;
     }
@@ -1408,7 +1418,6 @@ export function Mp5Player() {
     if (idx >= 0) {
       playWhenReadyRef.current = true;
       setCurrentIndex(idx);
-      setPlaying(true);
       recordLastAlbumAction("play_track", playlistTrack.id);
       return;
     }
@@ -1416,7 +1425,6 @@ export function Mp5Player() {
     const nextIdx = usePlayerStore.getState().tracks.findIndex((t) => t.id === playlistTrack!.id);
     setCurrentIndex(nextIdx >= 0 ? nextIdx : usePlayerStore.getState().tracks.length - 1);
     playWhenReadyRef.current = true;
-    setPlaying(true);
     recordLastAlbumAction("play_track", playlistTrack.id);
   };
 

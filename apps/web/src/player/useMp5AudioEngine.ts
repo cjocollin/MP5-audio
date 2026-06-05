@@ -53,6 +53,7 @@ export function useMp5AudioEngine({
   const bufferRef = useRef<AudioBuffer | null>(null);
   const pcmRef = useRef<PcmData | null>(null);
   const srcRef = useRef<AudioBufferSourceNode | null>(null);
+  const startGenRef = useRef(0);
   const startedAtRef = useRef(0);
   const offsetRef = useRef(0);
   const volumeRef = useRef(volume);
@@ -105,8 +106,10 @@ export function useMp5AudioEngine({
         tracePlayback("main_source", "start skipped — no PCM");
         return;
       }
+      const gen = ++startGenRef.current;
       stopSource();
       const ctx = await ensureContext();
+      if (gen !== startGenRef.current) return;
       if (!bufferRef.current) {
         rebuildBuffer(ctx);
       }
@@ -131,6 +134,14 @@ export function useMp5AudioEngine({
           onTrackEndedRef.current?.();
         }
       };
+      if (gen !== startGenRef.current) {
+        try {
+          src.stop();
+        } catch {
+          /* not started */
+        }
+        return;
+      }
       src.start(0, offset);
       srcRef.current = src;
       tracePlayback("main_source", "start", { offset, bufferSec: bufferRef.current.duration });
@@ -140,6 +151,9 @@ export function useMp5AudioEngine({
 
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
+
+  const startAtRef = useRef(startAt);
+  startAtRef.current = startAt;
 
   const loadPcm = useCallback(
     async (pcm: PcmData) => {
@@ -155,18 +169,19 @@ export function useMp5AudioEngine({
       });
       onPcmReadyRef.current?.();
       if (isPlayingRef.current) {
-        await startAt(offsetRef.current);
+        void startAtRef.current(offsetRef.current);
       }
     },
-    [ensureContext, startAt, stopSource],
+    [ensureContext, stopSource],
   );
 
   const seek = useCallback(
-    (seconds: number, opts?: { start?: boolean }) => {
+    (seconds: number, _opts?: { start?: boolean }) => {
       const clamped = Math.max(0, Math.min(seconds, duration || 0));
       offsetRef.current = clamped;
       setCurrentTime(clamped);
-      if (srcRef.current || isPlaying || opts?.start) {
+      // Only restart when already playing; play-from-pause is handled by the isPlaying effect.
+      if (isPlaying) {
         void startAt(clamped);
       }
     },
@@ -179,16 +194,13 @@ export function useMp5AudioEngine({
     }
   }, [volume]);
 
-  const startAtRef = useRef(startAt);
-  startAtRef.current = startAt;
-
   const stopSourceRef = useRef(stopSource);
   stopSourceRef.current = stopSource;
 
   useEffect(() => {
     if (isPlaying && pcmRef.current) {
       void startAtRef.current(offsetRef.current);
-    } else {
+    } else if (!isPlaying) {
       stopSourceRef.current();
     }
   }, [isPlaying]);

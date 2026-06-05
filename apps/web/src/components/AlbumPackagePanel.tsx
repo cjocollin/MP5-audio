@@ -7,6 +7,7 @@ import {
   type AlbumCoverSource,
 } from "../lib/album/albumCoverResolve";
 import { resolveTrackDurationMsFromRef } from "../lib/album/albumDuration";
+import { resolveEmbeddedAlbumDurations } from "../lib/album/embeddedTrackMetadata";
 import {
   CreditsSection,
   RightsSection,
@@ -78,6 +79,7 @@ export function AlbumPackagePanel({
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
   const [coverSource, setCoverSource] = useState<AlbumCoverSource>("none");
   const [coverNote, setCoverNote] = useState<string | undefined>();
+  const [headDurationMs, setHeadDurationMs] = useState<Record<string, number>>({});
   const [detailsOpen, setDetailsOpen] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -101,11 +103,35 @@ export function AlbumPackagePanel({
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [album]);
+
+  useEffect(() => {
+    if (!isEmbedded || !album.embeddedSource) {
+      setHeadDurationMs({});
+      return;
+    }
+    let cancelled = false;
+    const { file, index } = album.embeddedSource;
+    const trackIds = album.tracks.map((t) => t.ref.trackId);
+    void (async () => {
+      const resolved = await resolveEmbeddedAlbumDurations(file, index, trackIds);
+      if (!cancelled) setHeadDurationMs(resolved);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [album, isEmbedded]);
   const sidecarInputRef = useRef<HTMLInputElement>(null);
   const artist = manifest.album.albumArtist ?? manifest.album.artist;
   const metaLine = [manifest.album.year, manifest.album.genre].filter(Boolean).join(" · ");
   const integrity = summarizeAlbumIntegrity(album);
   const sizeWarning = isEmbedded ? largeEmbeddedWarning(packageFileSize) : null;
+  const resolvedTotalDurationMs =
+    Object.keys(headDurationMs).length > 0
+      ? tracks.reduce((sum, t) => {
+          const ms = resolveTrackDurationMsFromRef(t.ref, headDurationMs[t.ref.trackId]);
+          return sum + (ms ?? 0);
+        }, 0)
+      : album.totalDurationMs;
 
   return (
     <div
@@ -167,11 +193,11 @@ export function AlbumPackagePanel({
                 ? `${tracks.length} embedded`
                 : `${resolvedCount} found${missingCount > 0 ? ` · ${missingCount} missing` : ""}`}
             </dd>
-            {album.totalDurationMs != null && (
+            {resolvedTotalDurationMs != null && resolvedTotalDurationMs > 0 && (
               <>
                 <dt className="text-gray-600">Duration</dt>
                 <dd data-testid="album-total-duration">
-                  {formatDuration(msToSec(album.totalDurationMs))}
+                  {formatDuration(msToSec(resolvedTotalDurationMs))}
                 </dd>
               </>
             )}
@@ -465,7 +491,9 @@ export function AlbumPackagePanel({
                   className="text-xs text-gray-500 font-mono shrink-0"
                   data-testid="album-track-duration"
                 >
-                  {formatDuration(msToSec(resolveTrackDurationMsFromRef(t.ref) ?? t.durationMs))}
+                  {formatDuration(
+                    msToSec(resolveTrackDurationMsFromRef(t.ref, headDurationMs[t.ref.trackId])),
+                  )}
                 </span>
                 {t.embeddedByteLength != null && (
                   <span className="text-[10px] text-gray-600 shrink-0" data-testid="album-track-embedded-size">

@@ -44,10 +44,10 @@ export function isMp5FileName(name: string): boolean {
 
 export function trackDurationSec(parsed?: Mp5File): number | null {
   const head = parsed?.head;
-  if (!head || head.sampleRate <= 0 || head.channels <= 0) return null;
+  if (!head || head.sampleRate <= 0) return null;
   const samples = Number(head.totalSamples);
   if (!Number.isFinite(samples) || samples <= 0) return null;
-  return samples / head.sampleRate / head.channels;
+  return samples / head.sampleRate;
 }
 
 export function hasContentNotice(parsed?: Mp5File): boolean {
