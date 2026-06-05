@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { APP_VERSION } from "../generated/appVersion";
 import { exportPlaybackTraceReport } from "../lib/playback/playbackRegressionSnapshot";
 import {
   clearPlaybackTrace,
@@ -67,6 +68,9 @@ export function PerformanceDiagnosticsPanel() {
       </summary>
       <div className="px-3 pb-3 pt-1 text-xs text-gray-500 space-y-2 font-mono leading-relaxed">
         <p>
+          <span className="text-gray-600">App version:</span> {APP_VERSION}
+        </p>
+        <p>
           <span className="text-gray-600">Playlist queue:</span> {tracks.length} track
           {tracks.length === 1 ? "" : "s"}
         </p>
@@ -115,8 +119,32 @@ export function PerformanceDiagnosticsPanel() {
         <p>
           <span className="text-gray-600">FFmpeg:</span> {ffmpegState}
         </p>
-        <p className="text-[10px] text-gray-600 font-sans leading-relaxed pt-1">
+        <p className="text-[10px] text-gray-600 font-sans leading-relaxed">
           Estimates are approximate. Stem mix RAM is shown in the Stems panel when enabled.
+        </p>
+        <p>
+          <span className="text-gray-600">Stem worker:</span>{" "}
+          {typeof Worker !== "undefined" ? "available" : "unavailable"}
+        </p>
+        <p className="text-[10px] text-gray-600 font-sans leading-relaxed">
+          <a
+            href="https://github.com/cjocollin/MP5-audio/blob/main/docs/MP5_KNOWN_ISSUES.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline"
+            data-testid="diagnostics-known-issues-link"
+          >
+            Known limitations (Alpha)
+          </a>
+          {" · "}
+          <a
+            href="https://github.com/cjocollin/MP5-audio/blob/main/docs/MP5_BETA_READINESS.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-accent hover:underline"
+          >
+            Beta readiness checklist
+          </a>
         </p>
         <div className="border-t border-white/5 pt-2 space-y-2">
           <label className="flex items-center gap-2 text-gray-400 font-sans">

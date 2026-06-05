@@ -14,6 +14,19 @@ Optional **album / release packaging** for MP5 without changing the core **singl
 
 No AI metadata, no per-file stem editing in batch, no DRM. Browser download limits apply.
 
+After export, a **package summary** offers **Open in Player** (album view), **Save to Library**, and **Download again**.
+
+## Player album UX (v0.14)
+
+Import `.mp5p` in the Player tab to open the **album package view**:
+
+- **Manifest package** — lists sidecar `.mp5` files; calm warning if any are missing.
+- **Embedded package** — self-contained; tracks load lazily on play/select.
+- Actions: Play album, Add to queue, Save to library, Extract tracks, Dismiss.
+- **Saved albums** (Library tab) lists both manifest and embedded packages saved in browser storage.
+
+Browser storage is **local to this device**; clearing site data removes saved albums. No DRM or legal verification.
+
 ## Design choice (MVP)
 
 | Approach | Status | Notes |

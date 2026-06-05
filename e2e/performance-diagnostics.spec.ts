@@ -12,5 +12,8 @@ test.describe("performance diagnostics", () => {
     await page.getByTestId("performance-diagnostics").locator("summary").click();
     await expect(page.getByTestId("performance-diagnostics")).toContainText("Decode cache");
     await expect(page.getByTestId("performance-diagnostics")).toContainText("WASM");
+    await expect(page.getByTestId("diagnostics-known-issues-link")).toBeVisible();
+    await page.getByTestId("playback-trace-toggle").check();
+    await expect(page.getByTestId("playback-trace-copy")).toBeVisible();
   });
 });

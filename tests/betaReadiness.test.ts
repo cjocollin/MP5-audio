@@ -49,10 +49,16 @@ function scanFile(relPath: string) {
 describe("beta readiness docs", () => {
   it("MP5_BETA_READINESS.md exists with version and blockers", () => {
     const text = readFileSync(join(docs, "MP5_BETA_READINESS.md"), "utf8");
-    expect(text).toMatch(/0\.10\.\d+-alpha/);
+    expect(text).toMatch(/0\.15\.\d+-alpha/);
     expect(text).toMatch(/beta:check/i);
     expect(text).toMatch(/must NOT be claimed/i);
     expect(text).toMatch(/MP5-C/);
+  });
+
+  it("MP5_MANUAL_QA_CHECKLIST.md exists", () => {
+    const text = readFileSync(join(docs, "MP5_MANUAL_QA_CHECKLIST.md"), "utf8");
+    expect(text).toMatch(/Embedded.*mp5p/i);
+    expect(text).toMatch(/Hosted deployment/i);
   });
 
   it("MP5_KNOWN_ISSUES.md exists with Alpha caveats", () => {
@@ -76,6 +82,7 @@ describe("public claims audit", () => {
     "README.md",
     "docs/MP5_DEMO_GUIDE.md",
     "docs/MP5_PUBLIC_DEMO_COPY.md",
+    "docs/MP5_MANUAL_QA_CHECKLIST.md",
     "apps/web/src/lib/publicLandingCopy.ts",
     "apps/web/src/lib/codecModesCopy.ts",
   ];
@@ -110,6 +117,20 @@ describe("user-facing error messages", () => {
     expect(USER_ERRORS.libraryQuota).toMatch(/storage/i);
     expect(USER_ERRORS.fingerprintMismatch).toMatch(/fingerprint|hash/i);
     expect(USER_ERRORS.stemAlignBlocked).toMatch(/Normalize|full mix/i);
+    expect(USER_ERRORS.embeddedTrackLoadFailed).toMatch(/embedded track/i);
+    expect(USER_ERRORS.stemWorkerUnavailable).toMatch(/Background stem/i);
+  });
+
+  it("WelcomeOnboarding is mounted in App", () => {
+    const app = scanFile("apps/web/src/App.tsx");
+    expect(app).toContain("WelcomeOnboarding");
+  });
+
+  it("DemoModePanel has guided paths A–E", () => {
+    const demo = scanFile("apps/web/src/components/DemoModePanel.tsx");
+    expect(demo).toMatch(/demo-path-\$\{path\.id\}/);
+    expect(demo).toContain('id: "e"');
+    expect(demo).toContain("demo-load-embedded-album");
   });
 
   it("error module is used in converter and playlist paths", () => {
@@ -121,13 +142,13 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.13.x-alpha", () => {
-    expect(packageJson.version).toMatch(/^0\.13\.\d+-alpha$/);
+  it("package.json is 0.15.x-alpha", () => {
+    expect(packageJson.version).toMatch(/^0\.15\.\d+-alpha$/);
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {
     const status = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(status).toMatch(/0\.11\.\d+-alpha/);
+    expect(status).toMatch(/0\.15\.\d+-alpha/);
     expect(status).toMatch(/MP5_BETA_READINESS|beta:check/i);
   });
 });

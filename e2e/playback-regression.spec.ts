@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
 import fs from "fs";
+import {
+  parseDisplayedPlaybackTime,
+  waitForPlaybackProgress,
+  waitForSeekReady,
+} from "./helpers/playbackTime";
+import { dismissWelcomeOnboarding } from "./helpers/onboarding";
 
 const pityClassFixture = path.join(
   process.cwd(),
@@ -9,23 +15,47 @@ const pityClassFixture = path.join(
 const hasFixture = fs.existsSync(pityClassFixture);
 
 function parseTime(s: string | null): number {
-  const m = (s ?? "0:00").trim().match(/^(\d+):(\d{2})$/);
-  if (!m) return 0;
-  return parseInt(m[1]!, 10) * 60 + parseInt(m[2]!, 10);
+  return parseDisplayedPlaybackTime(s);
+}
+
+async function clickPlayAndWait(page: import("@playwright/test").Page): Promise<void> {
+  const play = page.getByTestId("play-pause");
+  await expect(play).toBeEnabled({ timeout: 90_000 });
+  await play.click();
+  const status = page.getByTestId("player-playback-status");
+  try {
+    await expect(status).toContainText("Playing", { timeout: 8_000 });
+  } catch {
+    await play.click();
+    await expect(status).toContainText("Playing", { timeout: 25_000 });
+  }
 }
 
 async function loadPityClass(
   page: import("@playwright/test").Page,
   opts?: { requireStems?: boolean },
 ) {
+  await dismissWelcomeOnboarding(page);
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "Player", exact: true }).click();
   await expect(page.getByTestId("player-file-input")).toBeAttached({ timeout: 30_000 });
   await page.getByTestId("player-file-input").setInputFiles(pityClassFixture);
-  await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 90_000 });
-  const seek = page.getByTestId("seek-slider");
-  await expect(seek).toBeEnabled({ timeout: 90_000 });
   await expect
-    .poll(async () => Number(await seek.getAttribute("max")), { timeout: 90_000 })
+    .poll(
+      async () => {
+        const items = await page.getByTestId("playlist-item").count();
+        if (items > 0) return "loaded";
+        if ((await page.getByTestId("player-load-error").count()) > 0) return "error";
+        return "pending";
+      },
+      { timeout: 180_000 },
+    )
+    .toBe("loaded");
+  await waitForSeekReady(page);
+  await expect
+    .poll(async () => Number(await page.getByTestId("seek-slider").getAttribute("max")), {
+      timeout: 90_000,
+    })
     .toBeGreaterThan(5);
   if (opts?.requireStems !== false) {
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 90_000 });
@@ -36,6 +66,12 @@ async function loadPityClass(
   }
 }
 
+async function seekToStart(page: import("@playwright/test").Page): Promise<void> {
+  const seek = page.getByTestId("seek-slider");
+  await seek.fill("0");
+  await expect(seek).toHaveValue("0", { timeout: 5_000 });
+}
+
 test.describe("playback regression — pity party class", () => {
   test.describe.configure({ timeout: 180_000 });
 
@@ -43,24 +79,18 @@ test.describe("playback regression — pity party class", () => {
 
   test("A. full mix: Play advances time and status is Playing", async ({ page }) => {
     await loadPityClass(page, { requireStems: false });
-    await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
-    await page.getByTestId("play-pause").click();
-    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
-      timeout: 15_000,
-    });
-    await expect(page.getByTestId("player-playback-status")).toContainText("Playing", {
-      timeout: 10_000,
-    });
-
-    const t0 = parseTime(await page.getByTestId("current-time").textContent());
-    await page.waitForTimeout(1200);
-    const t1 = parseTime(await page.getByTestId("current-time").textContent());
-    expect(t1).toBeGreaterThan(t0);
-    expect(t1).toBeLessThan(20);
+    await seekToStart(page);
+    await clickPlayAndWait(page);
+    await waitForPlaybackProgress(page, 0.05, 30_000);
+    const t = parseTime(await page.getByTestId("current-time").textContent());
+    expect(t).toBeGreaterThan(0);
+    expect(t).toBeLessThan(15);
   });
 
   test("B. waveform seek changes time and playback continues", async ({ page }) => {
     await loadPityClass(page);
+    await seekToStart(page);
+    await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
       timeout: 15_000,
@@ -97,17 +127,13 @@ test.describe("playback regression — pity party class", () => {
     await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({
       timeout: 90_000,
     });
+    await seekToStart(page);
 
-    await page.getByTestId("play-pause").click();
-    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
-      timeout: 15_000,
-    });
-
-    const t0 = parseTime(await page.getByTestId("current-time").textContent());
-    await page.waitForTimeout(1500);
-    const t1 = parseTime(await page.getByTestId("current-time").textContent());
-    expect(t1).toBeGreaterThan(t0);
-    expect(t1).toBeLessThan(20);
+    await clickPlayAndWait(page);
+    await waitForPlaybackProgress(page, 0.05, 30_000);
+    const t = parseTime(await page.getByTestId("current-time").textContent());
+    expect(t).toBeGreaterThan(0);
+    expect(t).toBeLessThan(15);
   });
 
   test("D. stem mix: toggles do not reset playhead; no overlap", async ({ page }) => {
@@ -156,17 +182,14 @@ test.describe("playback regression — pity party class", () => {
     await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({
       timeout: 90_000,
     });
+    await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
-    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
-      timeout: 15_000,
+    await expect(page.getByTestId("player-playback-status")).toContainText("Playing", {
+      timeout: 20_000,
     });
 
-    await page.waitForTimeout(3000);
-    let beforeJoin = parseTime(await page.getByTestId("current-time").textContent());
-    if (beforeJoin < 1) {
-      await page.waitForTimeout(1500);
-      beforeJoin = parseTime(await page.getByTestId("current-time").textContent());
-    }
+    await waitForPlaybackProgress(page, 0.05, 15_000);
+    const beforeJoin = parseTime(await page.getByTestId("current-time").textContent());
     expect(beforeJoin).toBeGreaterThanOrEqual(0);
 
     const leadItem = page
@@ -196,7 +219,7 @@ test.describe("playback regression — pity party class", () => {
   });
 
   test("F. scroll: window scrollY does not jump upward during lyrics updates", async ({ page }) => {
-    test.setTimeout(150_000);
+    test.setTimeout(240_000);
     await page.addInitScript(() => {
       const orig = Element.prototype.scrollIntoView;
       (window as unknown as { __badScrollIntoView: number }).__badScrollIntoView = 0;

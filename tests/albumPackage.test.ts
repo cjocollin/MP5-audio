@@ -9,6 +9,14 @@ import {
   createAlbumManifestFromTracks,
   isAlbumPackageFileName,
 } from "../apps/web/src/lib/album/createAlbumPackage";
+import {
+  formatExtractFilename,
+  formatPackageBytes,
+  integrityStatusLabel,
+  summarizeAlbumIntegrity,
+} from "../apps/web/src/lib/album/albumPackageUi";
+import { albumPlaybackContext } from "../apps/web/src/lib/album/albumPlaybackContext";
+import type { ResolvedAlbumPackage } from "../apps/web/src/lib/album/resolveAlbum";
 import type { PlaylistTrack } from "../apps/web/src/store/playerStore";
 
 function track(name: string, id?: string): PlaylistTrack {
@@ -83,5 +91,73 @@ describe("album package web helpers", () => {
     const { manifest, errors } = parseAlbmPackageJson("{}");
     expect(manifest).toBeNull();
     expect(errors.length).toBeGreaterThan(0);
+  });
+});
+
+function minimalAlbum(kind: "embedded" | "manifest"): ResolvedAlbumPackage {
+  return {
+    manifest: {
+      format: kind === "embedded" ? "mp5-album-embedded-v1" : ALBUM_MANIFEST_FORMAT,
+      version: 1,
+      album: { title: "Test LP", artist: "Band" },
+      tracks: [
+        { trackId: "t1", file: "01 - One.mp5", trackNumber: 1, title: "One" },
+        { trackId: "t2", file: "02 - Two.mp5", trackNumber: 2, title: "Two" },
+      ],
+    },
+    tracks: [
+      {
+        ref: { trackId: "t1", file: "01 - One.mp5", trackNumber: 1, title: "One" },
+        trackNumber: 1,
+        discNumber: 1,
+        displayTitle: "One",
+        displayArtist: "Band",
+        durationMs: 120000,
+        playlistTrack: track("01 - One.mp5", "t1"),
+        missing: false,
+      },
+      {
+        ref: { trackId: "t2", file: "02 - Two.mp5", trackNumber: 2, title: "Two" },
+        trackNumber: 2,
+        discNumber: 1,
+        displayTitle: "Two",
+        displayArtist: "Band",
+        durationMs: 90000,
+        playlistTrack: null,
+        missing: kind === "manifest",
+      },
+    ],
+    missingCount: kind === "manifest" ? 1 : 0,
+    resolvedCount: 1,
+    foundFiles: kind === "manifest" ? ["01 - One.mp5"] : [],
+    missingFiles: kind === "manifest" ? ["02 - Two.mp5"] : [],
+    packageKind: kind,
+    warnings: [],
+  };
+}
+
+describe("album package UI helpers", () => {
+  it("formatPackageBytes uses KiB and MiB", () => {
+    expect(formatPackageBytes(512)).toBe("512 B");
+    expect(formatPackageBytes(2048)).toContain("KiB");
+    expect(formatPackageBytes(5 * 1024 * 1024)).toContain("MiB");
+  });
+
+  it("formatExtractFilename uses track number prefix", () => {
+    expect(formatExtractFilename(3, "My Song")).toBe("03 - My Song.mp5");
+  });
+
+  it("summarizeAlbumIntegrity flags missing sidecars", () => {
+    expect(summarizeAlbumIntegrity(minimalAlbum("manifest"))).toBe("sidecar-missing");
+    expect(integrityStatusLabel("sidecar-missing")).toMatch(/Sidecar/i);
+  });
+
+  it("albumPlaybackContext returns package context", () => {
+    const album = minimalAlbum("embedded");
+    const t = album.tracks[0]!.playlistTrack as PlaylistTrack;
+    const ctx = albumPlaybackContext(album, t);
+    expect(ctx?.packageTitle).toBe("Test LP");
+    expect(ctx?.trackNumber).toBe(1);
+    expect(ctx?.packageKind).toBe("embedded");
   });
 });

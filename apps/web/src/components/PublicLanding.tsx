@@ -15,6 +15,8 @@ import {
   LANDING_HEADLINE,
   LANDING_SUBHEADLINE,
   LANDING_SCREENSHOTS,
+  FORMAT_MP5_EXPLAINER,
+  FORMAT_MP5P_EXPLAINER,
 } from "../lib/publicLandingCopy";
 import { MP5_DEMO_URL, MP5_GITHUB_URL } from "../lib/publicLinks";
 
@@ -78,6 +80,21 @@ function LandingAboutDetails() {
           }}
         />
       </div>
+
+      <section className="mp5-card p-4 space-y-2" data-testid="landing-what-works">
+        <SectionTitle>What works today (Alpha)</SectionTitle>
+        <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside leading-relaxed">
+          <li>Convert FLAC/WAV/MP3/etc. to .mp5 (MP5-L v3 default)</li>
+          <li>Play single .mp5 with metadata, lyrics, VISU, stems, karaoke</li>
+          <li>Import manifest or embedded .mp5p album packages</li>
+          <li>Batch album export from the Converter</li>
+          <li>Local library on this device (browser storage)</li>
+        </ul>
+        <p className="text-[10px] text-gray-600">
+          No DRM, no legal verification, no AI stem separation. Large files and embedded albums can be
+          slow or heavy in the browser.
+        </p>
+      </section>
 
       <section className="mp5-card p-4 space-y-2" data-testid="landing-what-is">
         <SectionTitle>What is MP5?</SectionTitle>
@@ -323,6 +340,13 @@ export function PublicLanding() {
         <p className="text-sm sm:text-base text-gray-300 font-medium max-w-2xl" data-testid="landing-subheadline">
           {LANDING_SUBHEADLINE}
         </p>
+        <p
+          className="text-xs text-gray-500 leading-relaxed max-w-2xl space-y-1"
+          data-testid="landing-format-explainer"
+        >
+          <span className="block">{FORMAT_MP5_EXPLAINER}</span>
+          <span className="block">{FORMAT_MP5P_EXPLAINER}</span>
+        </p>
         <div className="flex flex-wrap gap-1.5" data-testid="landing-badges">
           {LANDING_BADGES.map((b) => (
             <Badge key={b}>{b}</Badge>
@@ -350,7 +374,15 @@ export function PublicLanding() {
           </button>
           <button
             type="button"
-            className="mp5-btn-secondary text-sm"
+            className="mp5-btn-secondary text-sm min-h-[40px]"
+            data-testid="landing-open-demo-guide"
+            onClick={() => setActiveTab("demo")}
+          >
+            Demo guide
+          </button>
+          <button
+            type="button"
+            className="mp5-btn-secondary text-sm min-h-[40px]"
             data-testid="landing-open-converter"
             onClick={() => setActiveTab("converter")}
           >

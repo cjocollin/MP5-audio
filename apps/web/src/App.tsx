@@ -8,6 +8,7 @@ import { DemoModePanel } from "./components/DemoModePanel";
 import { PublicLanding } from "./components/PublicLanding";
 import { LocalLibraryPanel } from "./components/LocalLibraryPanel";
 import { PerformanceDiagnosticsPanel } from "./components/PerformanceDiagnosticsPanel";
+import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
 
 export default function App() {
   const { activeTab, setActiveTab, theme, setTheme, useFileThemes, setUseFileThemes } =
@@ -35,6 +36,8 @@ export default function App() {
 
       <PublicLanding />
 
+      <WelcomeOnboarding />
+
       <nav className="flex gap-2 mb-5 flex-wrap sticky top-0 z-10 py-2 -mx-1 px-1 bg-surface/95 backdrop-blur-sm border-b border-white/[0.04]" aria-label="Main" data-testid="app-main-nav">
         {tabs.map((t) => (
           <button
@@ -42,6 +45,7 @@ export default function App() {
             type="button"
             onClick={() => setActiveTab(t.id)}
             aria-current={activeTab === t.id ? "page" : undefined}
+            data-testid={`app-tab-${t.id}`}
             className={`mp5-tab ${activeTab === t.id ? "mp5-tab-active" : "mp5-tab-inactive"}`}
           >
             {t.label}

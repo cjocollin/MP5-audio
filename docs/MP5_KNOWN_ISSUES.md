@@ -1,6 +1,6 @@
 # MP5 known issues and limitations (Alpha)
 
-**Version:** MP5 Audio v0.11.0-alpha · **Status:** Experimental Alpha — not Beta, not production-ready
+**Version:** MP5 Audio v0.15.0-alpha · **Status:** Experimental Alpha — public Beta readiness pass; not production-ready
 
 This page lists honest limitations for testers, demo hosts, and future Beta planning. See also [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) and [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md).
 
@@ -44,10 +44,13 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 
 | Issue | Detail |
 |-------|--------|
-| **Experimental** | Manifest + sidecar `.mp5` tracks — not a single-file album container. |
-| **Manual sidecars** | Track files must be present at listed paths; missing files show warnings. |
+| **Experimental** | Manifest (JSON + sidecars) and embedded (self-contained) `.mp5p` — Alpha UX only. |
+| **Manual sidecars (manifest)** | Track files must be present at listed paths; missing files show calm warnings. |
+| **Embedded size** | Self-contained packages can be very large; save/load uses browser memory and IndexedDB quota. |
+| **Lazy embedded load** | Tracks decode on play/select; “Add album to queue” may load tracks in the background over time. |
 | **Cover file refs** | External cover image paths may not load in the web player MVP. |
 | **No auto-discovery** | Dropping only `.mp5` files does not infer album order without a manifest. |
+| **No DRM** | Package integrity hashes are informational — not legal or ownership verification. |
 
 ---
 
@@ -104,7 +107,7 @@ This page lists honest limitations for testers, demo hosts, and future Beta plan
 
 | Issue | Detail |
 |-------|--------|
-| **Parallel e2e flake** | Full `pnpm test:e2e` with many workers can starve WASM decode and stem workers; `play-pause` may stay disabled and `current-time` may not advance until load finishes. `CI=1` runs **one worker**; karaoke UI asserts transport via `player-playback-status` + a short post-play time delta (seek under stem load is covered in `playback-regression.spec.ts`). |
+| **Parallel e2e flake** | Full `pnpm test:e2e` with many workers can starve WASM decode and stem workers; `play-pause` may stay disabled and `current-time` may not advance until load finishes. **`CI=1` runs one worker + one retry**; playback e2e poll seek slider / `current-time` via shared helpers and assert `player-playback-status` instead of fragile Play/Pause timing. |
 
 ---
 

@@ -19,8 +19,14 @@ Screenshots for README, docs, and the public landing page.
 - No copyrighted album art in marketing images
 - Use synthetic demo tone or user-owned audio only
 
-## Optional future captures
+## Optional future captures (v0.15+)
 
-- Public landing hero (full first screen)
-- Export summary + Open in Player
-- Codec modes helper (About)
+These are **not yet checked in** — placeholders only until captured from the live app:
+
+- Compact landing hero (title, tagline, version badge, Demo guide button)
+- Player with VISU in Now Playing
+- Batch album builder export summary
+- Embedded album package panel
+- Mobile viewport (375px) — tabs + player controls
+
+When adding new PNGs, update this table and verify `pnpm deploy:check` still passes.

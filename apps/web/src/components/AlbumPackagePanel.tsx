@@ -7,23 +7,20 @@ import {
   RightsSection,
   IdentifiersSection,
 } from "../lib/creditsRights/CreditsRightsDisplay";
+import {
+  formatPackageBytes,
+  integrityStatusLabel,
+  largeEmbeddedWarning,
+  LIBRARY_STORAGE_NOTE,
+  MANIFEST_SIDECAR_NOTE,
+  packageTypeBadgeLabel,
+  summarizeAlbumIntegrity,
+} from "../lib/album/albumPackageUi";
+import { badgesForAlbumTrack } from "../lib/album/albumTrackBadges";
 
 function msToSec(ms: number | null): number | null {
   if (ms == null || !Number.isFinite(ms)) return null;
   return ms / 1000;
-}
-
-function sidecarStatusLabel(status: ResolvedAlbumPackage["tracks"][0]["sidecarStatus"]): string | null {
-  switch (status) {
-    case "found-verified":
-      return "Verified";
-    case "found-mismatch":
-      return "Hash mismatch";
-    case "found-no-hash":
-      return "No hash";
-    default:
-      return null;
-  }
 }
 
 function albumCoverUrl(manifest: ResolvedAlbumPackage["manifest"]): string | undefined {
@@ -47,10 +44,15 @@ interface Props {
   onAddToQueue: () => void;
   onDismiss: () => void;
   onSelectTrack: (index: number) => void;
+  onPlayTrack?: (index: number) => void;
+  onAddTrackToQueue?: (index: number) => void;
   onAddSidecarFiles?: (files: FileList) => void;
   onSaveAlbum?: () => void;
   onExtractTrack?: (index: number) => void;
+  onExtractAll?: () => void;
   saveBusy?: boolean;
+  embeddedLoading?: boolean;
+  currentTrackId?: string | null;
 }
 
 export function AlbumPackagePanel({
@@ -59,15 +61,21 @@ export function AlbumPackagePanel({
   onAddToQueue,
   onDismiss,
   onSelectTrack,
+  onPlayTrack,
+  onAddTrackToQueue,
   onAddSidecarFiles,
   onSaveAlbum,
   onExtractTrack,
+  onExtractAll,
   saveBusy,
+  embeddedLoading,
+  currentTrackId,
 }: Props) {
   const { manifest, tracks, missingCount, resolvedCount, manifestName, packageKind, packageFileSize } =
     album;
   const isEmbedded = packageKind === "embedded";
   const [coverUrl, setCoverUrl] = useState<string | undefined>();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   useEffect(() => {
     const url = albumCoverUrl(manifest);
     setCoverUrl(url);
@@ -77,45 +85,17 @@ export function AlbumPackagePanel({
   }, [manifest]);
   const sidecarInputRef = useRef<HTMLInputElement>(null);
   const artist = manifest.album.albumArtist ?? manifest.album.artist;
-  const metaLine = [
-    manifest.album.year,
-    manifest.album.releaseDate,
-    manifest.album.genre,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const metaLine = [manifest.album.year, manifest.album.genre].filter(Boolean).join(" · ");
+  const integrity = summarizeAlbumIntegrity(album);
+  const sizeWarning = isEmbedded ? largeEmbeddedWarning(packageFileSize) : null;
 
   return (
-    <div className="mp5-card p-4 space-y-4" data-testid="album-package-panel">
-      <div
-        className="rounded-lg border border-violet-900/30 bg-violet-950/20 px-3 py-2 text-xs text-gray-300 leading-relaxed"
-        data-testid="album-import-explainer"
-      >
-        <p>
-          {isEmbedded ? (
-            <>
-              <strong className="text-violet-200 font-medium">Embedded album package</strong> — a
-              self-contained <span className="font-mono">.mp5p</span> with complete{" "}
-              <span className="font-mono">.mp5</span> tracks inside. Tracks load on demand when you
-              play or select them.
-            </>
-          ) : (
-            <>
-              <strong className="text-violet-200 font-medium">Manifest album package</strong> — a JSON
-              package that lists sidecar <span className="font-mono">.mp5</span> tracks. Keep the
-              manifest and .mp5 files together in the same folder.
-            </>
-          )}
-        </p>
-        {manifestName && (
-          <p className="mt-1 text-gray-500 font-mono truncate" data-testid="album-manifest-name">
-            {manifestName}
-          </p>
-        )}
-      </div>
-
-      <div className="flex gap-4 flex-col sm:flex-row sm:items-start">
-        <div className="w-28 h-28 shrink-0 rounded-xl bg-surface-elevated overflow-hidden flex items-center justify-center mx-auto sm:mx-0">
+    <div
+      className="mp5-card p-3 sm:p-4 space-y-4 mp5-album-package"
+      data-testid="album-package-panel"
+    >
+      <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-xl bg-surface-elevated overflow-hidden flex items-center justify-center mx-auto sm:mx-0">
           {coverUrl ? (
             <img
               src={coverUrl}
@@ -124,39 +104,38 @@ export function AlbumPackagePanel({
               data-testid="album-package-cover"
             />
           ) : (
-            <span className="text-4xl opacity-30">♪</span>
+            <span className="text-3xl sm:text-4xl opacity-30">♪</span>
           )}
         </div>
-        <div className="flex-1 min-w-0 text-center sm:text-left">
-          <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
-            {isEmbedded ? "Embedded album package" : "Album package"}
-          </p>
-          <h2 className="text-xl font-bold text-white truncate" data-testid="album-package-title">
+        <div className="flex-1 min-w-0 text-center sm:text-left space-y-2">
+          <span
+            className="inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-950/60 text-violet-200 border border-violet-800/40"
+            data-testid="album-package-type"
+          >
+            {isEmbedded ? "Embedded" : "Manifest"}
+          </span>
+          <h2 className="text-lg sm:text-xl font-bold text-white truncate" data-testid="album-package-title">
             {manifest.album.title}
           </h2>
           {artist && (
-            <p className="text-gray-400 truncate" data-testid="album-package-artist">
+            <p className="text-gray-400 truncate text-sm" data-testid="album-package-artist">
               {artist}
             </p>
           )}
           {metaLine && (
-            <p className="text-xs text-gray-600 mt-1" data-testid="album-package-meta">
+            <p className="text-xs text-gray-500" data-testid="album-package-meta">
               {metaLine}
             </p>
           )}
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2 max-w-sm">
-            <dt className="text-gray-600">Package type</dt>
-            <dd data-testid="album-package-type">{isEmbedded ? "Embedded" : "Manifest"}</dd>
-            {packageFileSize != null && (
-              <>
-                <dt className="text-gray-600">Package size</dt>
-                <dd data-testid="album-package-size">
-                  {(packageFileSize / (1024 * 1024)).toFixed(2)} MiB
-                </dd>
-              </>
-            )}
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs max-w-md mx-auto sm:mx-0">
             <dt className="text-gray-600">Tracks</dt>
             <dd data-testid="album-track-count">{tracks.length}</dd>
+            {packageFileSize != null && (
+              <>
+                <dt className="text-gray-600">Size</dt>
+                <dd data-testid="album-package-size">{formatPackageBytes(packageFileSize)}</dd>
+              </>
+            )}
             <dt className="text-gray-600">Available</dt>
             <dd data-testid="album-resolved-count">
               {isEmbedded
@@ -172,64 +151,66 @@ export function AlbumPackagePanel({
               </>
             )}
           </dl>
+          <p className="text-[10px] text-gray-500" data-testid="album-integrity-status">
+            {integrityStatusLabel(integrity)}
+          </p>
+          {manifestName && (
+            <p className="text-[10px] text-gray-600 font-mono truncate" data-testid="album-manifest-name">
+              {manifestName}
+            </p>
+          )}
         </div>
       </div>
 
-      {(manifest.credits || manifest.crdt || manifest.licn || manifest.iden) && (
-        <div className="space-y-3 text-sm" data-testid="album-package-credits-block">
-          {manifest.credits && (
-            <div>
-              <p className="text-[10px] text-gray-500 font-medium mb-1">Album credits (text)</p>
-              <p className="text-xs text-gray-400 whitespace-pre-wrap">{manifest.credits}</p>
-            </div>
-          )}
-          {manifest.crdt && (
-            <div data-testid="album-package-credits">
-              <p className="text-[10px] text-gray-500 font-medium mb-1">Album credits</p>
-              <CreditsSection crdt={manifest.crdt} testId="album-credits-section" />
-            </div>
-          )}
-          {manifest.licn && (
-            <div data-testid="album-package-rights">
-              <p className="text-[10px] text-gray-500 font-medium mb-1">Album rights</p>
-              <RightsSection licn={manifest.licn} testId="album-rights-section" />
-            </div>
-          )}
-          {manifest.iden && (
-            <div data-testid="album-package-identifiers">
-              <p className="text-[10px] text-gray-500 font-medium mb-1">Album identifiers</p>
-              <IdentifiersSection iden={manifest.iden} testId="album-identifiers-section" />
-            </div>
-          )}
-          <p className="text-[10px] text-gray-600 italic">
-            Track-level credits in each .mp5 file remain independent.
+      <div
+        className="rounded-lg border border-violet-900/30 bg-violet-950/20 px-3 py-2 text-xs text-gray-300 leading-relaxed"
+        data-testid="album-import-explainer"
+      >
+        {isEmbedded ? (
+          <p>
+            <strong className="text-violet-200 font-medium">Embedded album package</strong> — self-contained
+            album; tracks load on demand when you play or select them.
           </p>
-        </div>
+        ) : (
+          <p>
+            <strong className="text-violet-200 font-medium">Manifest album package</strong> —{" "}
+            {MANIFEST_SIDECAR_NOTE}
+          </p>
+        )}
+      </div>
+
+      {sizeWarning && (
+        <p className="text-xs text-amber-200/90 bg-amber-950/25 rounded-lg px-3 py-2" data-testid="album-size-warning">
+          {sizeWarning}
+        </p>
+      )}
+
+      {embeddedLoading && (
+        <p className="text-xs text-accent/90 bg-accent/5 rounded-lg px-3 py-2" data-testid="album-embedded-loading">
+          Loading embedded track…
+        </p>
       )}
 
       {!isEmbedded && album.foundFiles.length > 0 && (
         <div className="text-xs" data-testid="album-found-files">
           <p className="text-gray-500 font-medium mb-1">Found sidecar tracks</p>
-          <ul className="font-mono text-gray-400 space-y-0.5 max-h-20 overflow-y-auto">
-            {album.foundFiles.map((f) => (
-              <li key={f} className="truncate">
-                ✓ {albumTrackBasename(f)}
-              </li>
-            ))}
-          </ul>
+          <p className="text-gray-400">{album.foundFiles.length} matched .mp5 file(s)</p>
         </div>
       )}
 
       {!isEmbedded && missingCount > 0 && (
         <div className="space-y-2" data-testid="album-missing-section">
           <p className="text-xs text-amber-200/90" data-testid="album-missing-tracks-note">
-            Missing {missingCount} sidecar .mp5 file{missingCount === 1 ? "" : "s"} — drop them below
-            or add to the playlist (filenames must match the manifest).
+            {missingCount} sidecar .mp5 file{missingCount === 1 ? "" : "s"} not found — drop them
+            below or add matching files to the playlist.
           </p>
-          <ul className="font-mono text-xs text-amber-200/70 space-y-0.5 max-h-20 overflow-y-auto" data-testid="album-missing-files">
+          <ul
+            className="font-mono text-xs text-amber-200/70 space-y-0.5 max-h-20 overflow-y-auto"
+            data-testid="album-missing-files"
+          >
             {album.missingFiles.map((f) => (
               <li key={f} className="truncate">
-                ✗ {albumTrackBasename(f)}
+                {albumTrackBasename(f)}
               </li>
             ))}
           </ul>
@@ -249,7 +230,7 @@ export function AlbumPackagePanel({
               />
               <button
                 type="button"
-                className="mp5-btn-secondary text-xs"
+                className="mp5-btn-secondary text-xs min-h-9"
                 onClick={() => sidecarInputRef.current?.click()}
                 data-testid="album-add-sidecar-btn"
               >
@@ -261,7 +242,7 @@ export function AlbumPackagePanel({
       )}
 
       {album.warnings.length > 0 && (
-        <ul className="text-[10px] text-gray-500 space-y-0.5" data-testid="album-warnings">
+        <ul className="text-xs text-gray-400 space-y-0.5 list-disc pl-4" data-testid="album-warnings">
           {album.warnings.map((w) => (
             <li key={`${w.path}-${w.message}`}>
               {w.path}: {w.message}
@@ -270,45 +251,50 @@ export function AlbumPackagePanel({
         </ul>
       )}
 
-      {manifest.credits && (
-        <p className="text-xs text-gray-500 whitespace-pre-wrap border-t border-white/5 pt-3">
-          {manifest.credits}
-        </p>
-      )}
-
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mp5-album-actions">
         <button
           type="button"
-          className="mp5-btn-primary text-sm"
+          className="mp5-btn-primary text-sm min-h-10 px-4"
           onClick={onPlayAlbum}
-          disabled={isEmbedded ? tracks.length === 0 : resolvedCount === 0}
+          disabled={embeddedLoading || (isEmbedded ? tracks.length === 0 : resolvedCount === 0)}
           data-testid="album-play-all"
         >
           Play album
         </button>
         <button
           type="button"
-          className="mp5-btn-secondary text-sm"
+          className="mp5-btn-secondary text-sm min-h-10 px-3"
           onClick={onAddToQueue}
-          disabled={isEmbedded ? tracks.length === 0 : resolvedCount === 0}
+          disabled={embeddedLoading || (isEmbedded ? tracks.length === 0 : resolvedCount === 0)}
           data-testid="album-add-to-queue"
         >
-          Add album to queue
+          Add to queue
         </button>
         {onSaveAlbum && (
           <button
             type="button"
-            className="mp5-btn-secondary text-sm"
+            className="mp5-btn-secondary text-sm min-h-10 px-3"
             onClick={onSaveAlbum}
-            disabled={saveBusy}
+            disabled={saveBusy || embeddedLoading}
             data-testid="album-save-to-library"
           >
-            {saveBusy ? "Saving…" : "Save album"}
+            {saveBusy ? "Saving…" : "Save to library"}
+          </button>
+        )}
+        {isEmbedded && onExtractAll && (
+          <button
+            type="button"
+            className="mp5-btn-secondary text-sm min-h-10 px-3"
+            onClick={onExtractAll}
+            disabled={embeddedLoading}
+            data-testid="album-extract-all"
+          >
+            Extract all tracks
           </button>
         )}
         <button
           type="button"
-          className="mp5-btn-secondary text-sm"
+          className="mp5-btn-secondary text-sm min-h-10 px-3"
           onClick={onDismiss}
           data-testid="album-dismiss"
         >
@@ -316,78 +302,184 @@ export function AlbumPackagePanel({
         </button>
       </div>
 
-      <ol className="space-y-1 max-h-64 overflow-y-auto" data-testid="album-track-list">
-        {tracks.map((t, index) => (
-          <li
-            key={t.ref.trackId}
-            className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-sm ${
-              t.missing
-                ? "border-amber-900/40 bg-amber-950/20"
-                : "border-white/5 bg-surface/40 hover:bg-white/5"
-            }`}
-            data-testid="album-track-row"
-            data-missing={t.missing ? "true" : "false"}
+      {onSaveAlbum && (
+        <p className="text-[10px] text-gray-500 leading-relaxed" data-testid="album-save-storage-note">
+          {isEmbedded
+            ? `Saving stores the full .mp5p in this browser (~${packageFileSize != null ? formatPackageBytes(packageFileSize) : "unknown size"}). ${LIBRARY_STORAGE_NOTE}`
+            : `Saving stores the manifest JSON locally. Sidecar .mp5 files are not copied. ${LIBRARY_STORAGE_NOTE}`}
+        </p>
+      )}
+
+      <div>
+        <button
+          type="button"
+          className="text-xs text-gray-500 hover:text-gray-300 mb-2"
+          onClick={() => setDetailsOpen((o) => !o)}
+          data-testid="album-details-toggle"
+        >
+          {detailsOpen ? "Hide album details" : "Album details"}
+        </button>
+        {detailsOpen && (
+          <div
+            className="rounded-lg border border-white/5 bg-surface/30 p-3 text-xs space-y-2"
+            data-testid="album-details-panel"
           >
-            <span className="text-[10px] text-gray-600 font-mono w-8 shrink-0">
-              {t.discNumber > 1 ? `${t.discNumber}-` : ""}
-              {t.trackNumber}
-            </span>
-            <button
-              type="button"
-              className="flex-1 min-w-0 text-left disabled:opacity-50"
-              disabled={t.missing}
-              onClick={() => onSelectTrack(index)}
-              data-testid="album-track-select"
+            <p>
+              <span className="text-gray-500">Format:</span>{" "}
+              <span data-testid="album-package-format">{manifest.format}</span> v{manifest.version}
+            </p>
+            <p className="text-gray-500 leading-relaxed">
+              {isEmbedded
+                ? "Embedded packages contain complete .mp5 tracks. No sidecar files required."
+                : "Manifest packages reference external .mp5 files by filename."}
+            </p>
+            <p className="text-gray-600 italic">
+              Credits and rights metadata are informational only — no DRM or legal verification.
+            </p>
+            {(manifest.credits || manifest.crdt || manifest.licn || manifest.iden) && (
+              <div className="space-y-2 pt-2 border-t border-white/5" data-testid="album-package-credits-block">
+                {manifest.crdt && (
+                  <div data-testid="album-package-credits">
+                    <CreditsSection crdt={manifest.crdt} testId="album-credits-section" />
+                  </div>
+                )}
+                {manifest.licn && (
+                  <div data-testid="album-package-rights">
+                    <RightsSection licn={manifest.licn} testId="album-rights-section" />
+                  </div>
+                )}
+                {manifest.iden && (
+                  <div data-testid="album-package-identifiers">
+                    <IdentifiersSection iden={manifest.iden} testId="album-identifiers-section" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <ol className="space-y-1.5 max-h-80 overflow-y-auto mp5-album-tracklist" data-testid="album-track-list">
+        {tracks.map((t, index) => {
+          const badges = badgesForAlbumTrack(t, isEmbedded);
+          const isCurrent =
+            currentTrackId != null &&
+            (t.playlistTrack?.id === currentTrackId || t.ref.trackId === currentTrackId);
+          return (
+            <li
+              key={t.ref.trackId}
+              className={`rounded-lg border px-2 py-2 text-sm ${
+                t.missing
+                  ? "border-amber-900/40 bg-amber-950/20"
+                  : isCurrent
+                    ? "border-accent/40 bg-accent/10"
+                    : "border-white/5 bg-surface/40"
+              }`}
+              data-testid="album-track-row"
+              data-missing={t.missing ? "true" : "false"}
+              data-current={isCurrent ? "true" : "false"}
             >
-              <span className="block text-gray-100 truncate">{t.displayTitle}</span>
-              <span className="block text-xs text-gray-500 truncate">
-                {t.displayArtist}
-                <span className="font-mono text-gray-600"> · {albumTrackBasename(t.ref.file)}</span>
+              <div className="flex flex-wrap items-start gap-2">
+                <span
+                  className="text-xs text-gray-500 font-mono w-7 shrink-0 pt-0.5"
+                  data-testid="album-track-number"
+                >
+                  {t.trackNumber}
+                </span>
+                <div className="flex-1 min-w-[8rem]">
+                  <button
+                    type="button"
+                    className="text-left w-full disabled:opacity-50"
+                    disabled={t.missing}
+                    onClick={() => onSelectTrack(index)}
+                    data-testid="album-track-select"
+                  >
+                    <span className="block text-gray-100 truncate font-medium">{t.displayTitle}</span>
+                    <span className="block text-xs text-gray-500 truncate">{t.displayArtist}</span>
+                  </button>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {badges.codec && (
+                      <span className="mp5-album-badge" data-testid="album-track-codec-badge">
+                        {badges.codec}
+                      </span>
+                    )}
+                    {badges.hasStems && (
+                      <span className="mp5-album-badge" data-testid="album-track-stems-badge">
+                        Stems
+                      </span>
+                    )}
+                    {badges.hasLyrics && (
+                      <span className="mp5-album-badge" data-testid="album-track-lyrics-badge">
+                        Lyrics
+                      </span>
+                    )}
+                    {badges.hasVisu && (
+                      <span className="mp5-album-badge" data-testid="album-track-visu-badge">
+                        VISU
+                      </span>
+                    )}
+                    {badges.hasContentGuidance && (
+                      <span className="mp5-album-badge" data-testid="album-track-guidance-badge">
+                        Guidance
+                      </span>
+                    )}
+                    <span
+                      className={`mp5-album-badge ${
+                        badges.availability === "missing-sidecar" ||
+                        badges.availability === "integrity-warning"
+                          ? "mp5-album-badge-warn"
+                          : ""
+                      }`}
+                      data-testid="album-track-availability"
+                    >
+                      {badges.availabilityLabel}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500 font-mono shrink-0">
+                  {formatDuration(msToSec(t.durationMs))}
+                </span>
                 {t.embeddedByteLength != null && (
-                  <span className="text-gray-600" data-testid="album-track-embedded-size">
-                    {" "}
-                    · {(t.embeddedByteLength / (1024 * 1024)).toFixed(2)} MiB
-                    {t.embeddedFragmentCount != null && t.embeddedFragmentCount > 1
-                      ? ` · ${t.embeddedFragmentCount} frags`
-                      : ""}
+                  <span className="text-[10px] text-gray-600 shrink-0" data-testid="album-track-embedded-size">
+                    {formatPackageBytes(t.embeddedByteLength)}
                   </span>
                 )}
-              </span>
-            </button>
-            <span className="text-[10px] text-gray-600 font-mono shrink-0">
-              {formatDuration(msToSec(t.durationMs))}
-            </span>
-            {isEmbedded && onExtractTrack && (
-              <button
-                type="button"
-                className="text-[10px] text-violet-300 shrink-0 hover:underline"
-                onClick={() => onExtractTrack(index)}
-                data-testid="album-track-extract"
-              >
-                Extract .mp5
-              </button>
-            )}
-            {t.missing && (
-              <span className="text-[10px] text-amber-300 shrink-0" data-testid="album-track-missing">
-                Missing
-              </span>
-            )}
-            {!t.missing && t.sidecarStatus && t.sidecarStatus !== "missing" && (
-              <span
-                className={`text-[10px] shrink-0 ${
-                  t.sidecarStatus === "found-verified"
-                    ? "text-green-400/80"
-                    : t.sidecarStatus === "found-mismatch"
-                      ? "text-amber-300/90"
-                      : "text-gray-500"
-                }`}
-                data-testid="album-track-sidecar-status"
-              >
-                {sidecarStatusLabel(t.sidecarStatus)}
-              </span>
-            )}
-          </li>
-        ))}
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-2 ml-9">
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 rounded border border-white/10 hover:bg-white/5 min-h-8"
+                  disabled={t.missing || embeddedLoading}
+                  onClick={() => (onPlayTrack ?? onSelectTrack)(index)}
+                  data-testid="album-track-play"
+                >
+                  Play
+                </button>
+                {onAddTrackToQueue && (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded border border-white/10 hover:bg-white/5 min-h-8"
+                    disabled={t.missing || embeddedLoading}
+                    onClick={() => onAddTrackToQueue(index)}
+                    data-testid="album-track-queue"
+                  >
+                    Queue
+                  </button>
+                )}
+                {isEmbedded && onExtractTrack && (
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 rounded border border-violet-800/40 text-violet-300 hover:bg-violet-950/30 min-h-8"
+                    onClick={() => onExtractTrack(index)}
+                    data-testid="album-track-extract"
+                  >
+                    Extract
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </div>
   );

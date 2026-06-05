@@ -9,6 +9,7 @@ import {
   type ResolvedPlayerTheme,
 } from "../lib/visualTheme/applyVisualTheme";
 import { TrackMetadata } from "./TrackMetadata";
+import type { AlbumPlaybackContext } from "../lib/album/albumPlaybackContext";
 
 interface Props {
   track?: PlaylistTrack;
@@ -18,6 +19,7 @@ interface Props {
   decodePath: string;
   mp5h?: Mp5hDecodeInfo;
   playerTheme?: ResolvedPlayerTheme | null;
+  albumContext?: AlbumPlaybackContext | null;
 }
 
 function coverFromParsed(parsed?: Mp5File) {
@@ -36,6 +38,7 @@ export function NowPlayingView({
   decodePath,
   mp5h,
   playerTheme,
+  albumContext,
 }: Props) {
   const cover = coverFromParsed(parsed);
   const coverUrl = useCoverObjectUrl(cover);
@@ -99,10 +102,28 @@ export function NowPlayingView({
         <p className="text-gray-400 text-lg truncate" data-testid="now-playing-artist">
           {info?.artist || (track ? "Unknown artist" : "Drop MP5 files to build a playlist")}
         </p>
-        {info?.album && (
+        {info?.album && !albumContext && (
           <p className="text-gray-500 text-sm truncate" data-testid="now-playing-album">
             {info.album}
           </p>
+        )}
+        {albumContext && (
+          <div className="space-y-1" data-testid="now-playing-album-context">
+            <p className="text-gray-500 text-sm truncate" data-testid="now-playing-package-title">
+              {albumContext.packageTitle}
+            </p>
+            <p className="text-xs text-gray-600" data-testid="now-playing-album-position">
+              Track {albumContext.trackNumber} of {albumContext.trackCount}
+            </p>
+            <span
+              className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-950/50 text-violet-200 border border-violet-800/30"
+              data-testid="now-playing-package-badge"
+            >
+              {albumContext.packageKind === "embedded"
+                ? "From embedded album"
+                : "From manifest album"}
+            </span>
+          </div>
         )}
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
           {codec && (

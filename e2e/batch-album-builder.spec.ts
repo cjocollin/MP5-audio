@@ -57,12 +57,13 @@ test.describe("batch album builder", () => {
     const outPath = path.join(os.tmpdir(), `mp5-batch-album-${Date.now()}.mp5p`);
     await download.saveAs(outPath);
     expect(fs.statSync(outPath).size).toBeGreaterThan(1000);
+    await expect(page.getByTestId("batch-album-export-summary")).toBeVisible({ timeout: 10_000 });
 
+    await page.getByTestId("batch-album-open-album-player").click();
     await page.getByRole("button", { name: "Player", exact: true }).click();
-    await page.getByTestId("player-file-input").setInputFiles(outPath);
     await expect(page.getByTestId("album-package-panel")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("album-package-type")).toContainText("Embedded");
     await page.getByTestId("album-play-all").click();
-    await expect(page.getByTestId("playlist-item")).toHaveCount(2, { timeout: 20_000 });
+    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
   });
 });

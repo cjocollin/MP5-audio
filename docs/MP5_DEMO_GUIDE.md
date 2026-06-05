@@ -84,7 +84,9 @@ Also shown on the hosted landing at https://mp5-audio.vercel.app.
 
 **Batch (multiple files):** Converter → **Batch** → drop several WAV/FLAC/MP3/M4A/OGG files → **Start batch**. Each file exports **MP5-L v3** with detected tags, waveform/seek, and FING/HASH when possible. Say: **nothing uploads**; conversion is heavy; large batches are slow; closing the tab stops the queue. Use **Single file** to edit metadata before export. **Download all** saves separate `.mp5` files (no ZIP in this MVP).
 
-**Batch album export:** Enable **Batch album export** on the Batch tab → edit album title/artist and per-track metadata in the table → reorder or sort tracks → **Start batch** → export **manifest `.mp5p` + sidecar MP5s** or one **embedded `.mp5p`**. Warn that embedded packages with stems can be huge and browsers may block many downloads for manifest mode. **Open in Player** loads completed tracks into the playlist.
+**Batch album export:** Enable **Batch album export** on the Batch tab → edit album title/artist and per-track metadata in the table → reorder or sort tracks → **Start batch** → export **manifest `.mp5p` + sidecar MP5s** or one **embedded `.mp5p`**. After export, use the **package summary** to **Open in Player** (album view), **Save to Library**, or **Download again**. Warn that embedded packages can be large; browsers may block many downloads for manifest mode.
+
+**Open in Player** (without export) still loads completed tracks as a flat playlist.
 
 **Performance / diagnostics:** Settings → open **Diagnostics (optional)** — playlist queue, decode cache (max 3 tracks), library bytes, WASM/FFmpeg status. Mention first-load codec download and that very large files or 12+ batch items show calm warnings (not hard blocks unless extreme).
 
@@ -150,16 +152,17 @@ Say: VISU is optional display metadata; playback and codec path are unchanged; o
 
 ### 2h. Album package (.mp5p)
 
-1. Run `node scripts/generate-demo-album-package.mjs` after demo fixtures (or `pnpm fixtures:generate`).
-2. On the **Player** tab, drop **`demo_album_package.mp5p`** together with **`demo_mp5l_v3_tone.mp5`** and **`demo_mp5l_v3_stems.mp5`**.
-3. Read the manifest explainer banner; confirm **Found sidecar tracks** lists both files.
-4. Track 1 = plain demo tone; track 2 = stems + karaoke + sections + highlights + VISU demo.
-5. Album view may show optional **album credits / rights / identifiers** on the demo manifest (informational only).
-6. **Play album** or **Add album to queue**; try **Save album** then open **Library → Saved albums**.
-7. With 2+ tracks in the playlist, use **Create album package** — reorder tracks, read filename list, download manifest.
-8. **Converter** — expand **Credits**, **Rights & license**, or **Release identifiers** (collapsed by default) before export.
+1. Run `node scripts/generate-demo-album-package.mjs` after demo fixtures (or `pnpm fixtures:generate`); for embedded demo: `pnpm fixtures:embedded-album`.
+2. **Manifest:** On the **Player** tab, drop **`demo_album_package.mp5p`** together with sidecar **`demo_mp5l_v3_tone.mp5`** and **`demo_mp5l_v3_stems.mp5`**. Read the manifest explainer; confirm **Found sidecar tracks** lists both files.
+3. **Embedded:** Drop **`demo_embedded_album_package.mp5p`** alone — no sidecars required.
+4. Track 1 = plain demo tone; track 2 = stems + karaoke + sections + highlights + VISU demo (manifest path).
+5. Album view shows cover, package type badge, track badges, integrity status; embedded tracks load lazily.
+6. **Play album** or **Add album to queue**; **Extract** embedded tracks; **Save album** (browser storage confirmation).
+7. Open **Library → Saved albums** for manifest and embedded saves.
+8. With 2+ tracks in the playlist, use **Create album package** — reorder tracks, download manifest or embedded package.
+9. **Converter → Batch album export** — after export, use package summary **Open in Player** / **Save to Library**.
 
-Say: **`.mp5` is core**; **`.mp5p` is experimental**; keep manifest and sidecars in the same folder; no embedded archive yet; third-party players may ignore `.mp5p`.
+Say: **`.mp5` is core**; **`.mp5p`** is manifest (sidecars) or embedded (self-contained); browser storage is local; no DRM.
 
 ### 2b. Local library (device-only)
 

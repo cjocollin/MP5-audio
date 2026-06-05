@@ -3,14 +3,14 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.13.0--alpha-lightgrey)](CHANGELOG.md#0130-alpha---2026-05)
+[![Version](https://img.shields.io/badge/version-v0.15.0--alpha-lightgrey)](CHANGELOG.md#0150-alpha---2026-05)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.13.0-alpha**
+**Version:** MP5 Audio **v0.15.0-alpha**
 
 MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only.
 
@@ -132,7 +132,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full setup, fixture rules, and PR e
 
 **Fingerprints:** Optional **FING** / **HASH** for duplicate detection and local integrity checks — not DRM or legal proof. See [`docs/MP5_FINGERPRINT_INTEGRITY.md`](docs/MP5_FINGERPRINT_INTEGRITY.md).
 
-**Album packages:** Optional **`.mp5p`** manifest (experimental) references sidecar `.mp5` files — not an embedded archive. Import, create, and saved-album playback in the reference app. Single-track `.mp5` remains the core format. See [`docs/MP5_ALBUM_PACKAGE.md`](docs/MP5_ALBUM_PACKAGE.md).
+**Album packages:** Optional **`.mp5p`** — **manifest** (JSON + sidecar `.mp5` files) or **embedded** (one self-contained package). Polished album view in Player: play, queue, save, extract. Batch album builder exports all three modes. Single-track `.mp5` remains the core format. See [`docs/MP5_ALBUM_PACKAGE.md`](docs/MP5_ALBUM_PACKAGE.md) and [`docs/MP5_EMBEDDED_PACKAGE.md`](docs/MP5_EMBEDDED_PACKAGE.md).
 
 ---
 

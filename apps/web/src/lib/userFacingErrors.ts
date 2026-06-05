@@ -17,6 +17,12 @@ export const USER_ERRORS = {
   albumManifestUnreadable: "Could not read the album manifest file.",
   albumSidecarMissing:
     "One or more track files listed in the album manifest were not found. Add the .mp5 sidecars next to the manifest.",
+  albumSidecarNotLoaded:
+    "This package references sidecar .mp5 files that are not currently loaded. Drop the missing files in the Player.",
+  embeddedTrackLoadFailed:
+    "This embedded track could not be loaded. The package may be incomplete or corrupted.",
+  stemWorkerUnavailable:
+    "Background stem decoding is unavailable in this browser. Large stems may prepare more slowly on the main thread.",
   fingerprintMismatch:
     "Stored fingerprint or hash does not match this file. The file may have been edited outside MP5.",
   stemExportBlocked: "Fix stem errors before export — check sample rate and duration alignment.",

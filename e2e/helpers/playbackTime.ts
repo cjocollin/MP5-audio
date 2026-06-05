@@ -18,7 +18,7 @@ export async function waitForSeekReady(page: Page): Promise<void> {
     .toBeGreaterThan(0);
 }
 
-/** Poll seek slider + displayed time — short demo tracks use sub-second labels. */
+/** Poll displayed current-time (and seek slider fallback) until playback advances. */
 export async function waitForPlaybackProgress(
   page: Page,
   minSeconds = 0.05,
@@ -27,13 +27,30 @@ export async function waitForPlaybackProgress(
   await expect
     .poll(
       async () => {
-        const seekVal = Number(await page.getByTestId("seek-slider").inputValue());
-        if (Number.isFinite(seekVal) && seekVal > minSeconds) return seekVal;
-        return parseDisplayedPlaybackTime(
+        const displayed = parseDisplayedPlaybackTime(
           await page.getByTestId("current-time").textContent(),
         );
+        if (displayed > minSeconds) return displayed;
+        const seekVal = Number(await page.getByTestId("seek-slider").inputValue());
+        if (Number.isFinite(seekVal) && seekVal > minSeconds) return seekVal;
+        return displayed;
       },
       { timeout: timeoutMs },
     )
     .toBeGreaterThan(minSeconds);
+}
+
+/** Poll until displayed time strictly increases from a baseline. */
+export async function waitForDisplayedTimeAdvance(
+  page: Page,
+  fromSeconds: number,
+  timeoutMs = 10_000,
+): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        parseDisplayedPlaybackTime(await page.getByTestId("current-time").textContent()),
+      { timeout: timeoutMs },
+    )
+    .toBeGreaterThan(fromSeconds);
 }

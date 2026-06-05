@@ -9,7 +9,8 @@ test.describe("public landing", () => {
     await expect(page.getByTestId("landing-hero-compact")).toBeVisible();
     await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
     await expect(page.getByTestId("landing-subheadline")).toBeVisible();
-    await expect(page.getByTestId("landing-badges")).toBeVisible();
+    await expect(page.getByTestId("landing-format-explainer")).toBeVisible();
+    await expect(page.getByTestId("landing-format-explainer")).toContainText(".mp5p");
     await expect(page.getByTestId("landing-primary-actions")).toBeVisible();
     await expect(page.getByTestId("app-main-nav")).toBeVisible();
     await expect(page.getByRole("button", { name: "Player", exact: true })).toBeVisible();

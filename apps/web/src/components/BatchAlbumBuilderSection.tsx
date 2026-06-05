@@ -23,7 +23,12 @@ import {
   exportBatchAlbumPackage,
   batchItemsToPlaylistTracks,
   syncBatchOutputFilenames,
+  type BatchAlbumExportResult,
 } from "../lib/album/buildAlbumFromBatchItems";
+import { openBatchExportInPlayer, redownloadBatchExport } from "../lib/album/openBatchExportInPlayer";
+import { formatPackageBytes, LIBRARY_STORAGE_NOTE } from "../lib/album/albumPackageUi";
+import { saveAlbumPackage } from "../lib/localLibrary/albumLibrary";
+import { saveEmbeddedAlbumPackage } from "../lib/localLibrary/embeddedAlbumLibrary";
 import { usePlayerStore } from "../store/playerStore";
 
 interface Props {
@@ -51,6 +56,7 @@ export function BatchAlbumBuilderSection({
 }: Props) {
   const [exportBusy, setExportBusy] = useState(false);
   const [exportNote, setExportNote] = useState("");
+  const [lastExport, setLastExport] = useState<BatchAlbumExportResult | null>(null);
   const { appendTracks, setActiveTab, setCurrentIndex } = usePlayerStore();
 
   const queueIds = useMemo(
@@ -169,18 +175,76 @@ export function BatchAlbumBuilderSection({
       const result = await exportBatchAlbumPackage(synced, trackOrder, album, trackMetas);
       if (!result.ok) {
         setExportNote(result.message ?? "Export failed.");
-      } else if (album.exportTarget === "manifest") {
-        setExportNote("Downloaded manifest .mp5p and sidecar .mp5 files (staggered). Keep them together.");
-      } else if (album.exportTarget === "embedded") {
-        setExportNote("Downloaded self-contained embedded .mp5p.");
+        setLastExport(null);
       } else {
-        setExportNote("Downloaded individual MP5 files.");
+        setLastExport(result);
+        if (album.exportTarget === "manifest") {
+          setExportNote("Downloaded manifest .mp5p and sidecar .mp5 files (staggered). Keep them together.");
+        } else if (album.exportTarget === "embedded") {
+          setExportNote("Downloaded self-contained embedded .mp5p.");
+        } else {
+          setExportNote("Downloaded individual MP5 files.");
+        }
       }
     } catch (e) {
       setExportNote(e instanceof Error ? e.message : String(e));
     } finally {
       setExportBusy(false);
     }
+  }
+
+  async function handleOpenExportInPlayer() {
+    if (!lastExport?.ok) {
+      setExportNote("Export an album package first.");
+      return;
+    }
+    try {
+      await openBatchExportInPlayer(lastExport);
+      setExportNote("Opened album package in Player.");
+    } catch (e) {
+      setExportNote(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function handleSaveExportToLibrary() {
+    if (!lastExport?.ok || !lastExport.manifest) {
+      setExportNote("Export an album package first.");
+      return;
+    }
+    const filename = lastExport.packageFilename ?? `${lastExport.manifest.album.title}.mp5p`;
+    if (lastExport.exportTarget === "embedded" && lastExport.packageBytes) {
+      const sizeLabel = formatPackageBytes(lastExport.packageBytes.byteLength);
+      if (
+        !window.confirm(
+          `Save embedded album (${sizeLabel}) to browser storage?\n\n${LIBRARY_STORAGE_NOTE}`,
+        )
+      ) {
+        return;
+      }
+      const file = new File([lastExport.packageBytes.slice().buffer], filename, {
+        type: "application/octet-stream",
+      });
+      await saveEmbeddedAlbumPackage(file, lastExport.manifest);
+      setExportNote(`Saved embedded album (${sizeLabel}) to Library → Saved albums.`);
+      return;
+    }
+    if (lastExport.exportTarget === "manifest") {
+      if (
+        !window.confirm(
+          `Save manifest album to browser storage?\n\nSidecar .mp5 files must remain available. ${LIBRARY_STORAGE_NOTE}`,
+        )
+      ) {
+        return;
+      }
+      saveAlbumPackage(lastExport.manifest, filename);
+      setExportNote("Saved manifest album to Library → Saved albums.");
+    }
+  }
+
+  function handleRedownloadExport() {
+    if (!lastExport?.ok) return;
+    redownloadBatchExport(lastExport);
+    setExportNote("Download started again.");
   }
 
   async function handleOpenInPlayer() {
@@ -492,6 +556,53 @@ export function BatchAlbumBuilderSection({
         <p className="text-xs text-gray-400" data-testid="batch-album-export-note">
           {exportNote}
         </p>
+      )}
+
+      {lastExport?.ok && lastExport.exportTarget !== "individual" && (
+        <div
+          className="rounded-lg border border-accent/20 bg-accent/5 px-3 py-3 space-y-2 text-xs"
+          data-testid="batch-album-export-summary"
+        >
+          <p className="text-gray-300 font-medium">Package exported</p>
+          <p data-testid="batch-album-export-summary-type">
+            Type:{" "}
+            {lastExport.exportTarget === "embedded"
+              ? "Embedded album package (.mp5p)"
+              : "Manifest album package + sidecars"}
+          </p>
+          <p data-testid="batch-album-export-summary-tracks">
+            Tracks: {lastExport.trackCount ?? 0}
+            {lastExport.packageBytes
+              ? ` · Size: ${formatPackageBytes(lastExport.packageBytes.byteLength)}`
+              : ""}
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              className="mp5-btn-secondary text-xs min-h-[32px]"
+              onClick={() => void handleOpenExportInPlayer()}
+              data-testid="batch-album-open-album-player"
+            >
+              Open in Player
+            </button>
+            <button
+              type="button"
+              className="text-xs px-2 py-1.5 rounded border border-white/10 text-gray-300 hover:bg-white/5 min-h-[32px]"
+              onClick={() => void handleSaveExportToLibrary()}
+              data-testid="batch-album-save-library"
+            >
+              Save to Library
+            </button>
+            <button
+              type="button"
+              className="text-xs px-2 py-1.5 rounded border border-white/10 text-gray-400 hover:text-gray-200 min-h-[32px]"
+              onClick={handleRedownloadExport}
+              data-testid="batch-album-redownload"
+            >
+              Download again
+            </button>
+          </div>
+        </div>
       )}
 
       <details className="text-xs text-gray-500">

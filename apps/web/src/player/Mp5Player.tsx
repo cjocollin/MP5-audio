@@ -83,6 +83,12 @@ import {
   ensureEmbeddedTracksLoaded,
   loadEmbeddedTrackAsPlaylistTrack,
 } from "../lib/album/embeddedAlbumLoader";
+import {
+  formatExtractFilename,
+  formatPackageBytes,
+  LIBRARY_STORAGE_NOTE,
+} from "../lib/album/albumPackageUi";
+import { albumPlaybackContext } from "../lib/album/albumPlaybackContext";
 import { downloadBlob } from "../lib/performance/downloadBlob";
 import { AlbumPackagePanel } from "../components/AlbumPackagePanel";
 import { CreateAlbumPackagePanel } from "../components/CreateAlbumPackagePanel";
@@ -178,6 +184,7 @@ export function Mp5Player() {
   const [albumManifestError, setAlbumManifestError] = useState("");
   const [albumSaveBusy, setAlbumSaveBusy] = useState(false);
   const [albumSaveNote, setAlbumSaveNote] = useState("");
+  const [embeddedLoading, setEmbeddedLoading] = useState(false);
   const [integrity, setIntegrity] = useState<IntegrityCheckResult | null>(null);
   const [ingestStage, setIngestStage] = useState<IngestLoadStage>("idle");
   const [ingestStageDetail, setIngestStageDetail] = useState("");
@@ -1177,20 +1184,38 @@ export function Mp5Player() {
     try {
       const name = activeAlbum.manifestName ?? `${activeAlbum.manifest.album.title}.mp5p`;
       if (activeAlbum.packageKind === "embedded" && activeAlbum.embeddedSource?.file) {
-        const sizeMb = (activeAlbum.packageFileSize ?? 0) / (1024 * 1024);
-        if (sizeMb > 64 && !window.confirm(
-          `This embedded album package is about ${sizeMb.toFixed(0)} MiB. Saving will use browser storage. Continue?`,
-        )) {
+        const sizeBytes = activeAlbum.packageFileSize ?? activeAlbum.embeddedSource.file.size;
+        const sizeLabel = formatPackageBytes(sizeBytes);
+        const sizeMb = sizeBytes / (1024 * 1024);
+        const confirmMsg =
+          sizeMb > 16
+            ? `Save the full embedded album package (${sizeLabel}) to browser storage?\n\n${LIBRARY_STORAGE_NOTE}\n\nLarge packages may take a moment. Continue?`
+            : `Save this embedded album package (${sizeLabel}) to browser storage?\n\n${LIBRARY_STORAGE_NOTE}`;
+        if (sizeMb > 16 && !window.confirm(confirmMsg)) {
+          setAlbumSaveNote("Save cancelled.");
+          return;
+        }
+        if (sizeMb <= 16 && !window.confirm(confirmMsg)) {
           setAlbumSaveNote("Save cancelled.");
           return;
         }
         await saveEmbeddedAlbumPackage(activeAlbum.embeddedSource.file, activeAlbum.manifest);
         setAlbumSaveNote(
-          "Embedded album package saved to this browser (Library → Saved albums). Clearing site data removes it.",
+          `Embedded album saved (${sizeLabel}). Library → Saved albums. ${LIBRARY_STORAGE_NOTE}`,
         );
       } else {
+        if (
+          !window.confirm(
+            `Save manifest album to browser storage?\n\nSidecar .mp5 files must stay available on this device. ${LIBRARY_STORAGE_NOTE}`,
+          )
+        ) {
+          setAlbumSaveNote("Save cancelled.");
+          return;
+        }
         saveAlbumPackage(activeAlbum.manifest, name);
-        setAlbumSaveNote("Album manifest saved to this browser (Library → Saved albums).");
+        setAlbumSaveNote(
+          `Manifest album saved. Keep sidecar .mp5 files available. ${LIBRARY_STORAGE_NOTE}`,
+        );
       }
     } catch (e) {
       setAlbumSaveNote(e instanceof Error ? e.message : String(e));
@@ -1208,12 +1233,34 @@ export function Mp5Player() {
     return loaded;
   };
 
+  const queueEmbeddedAlbumTracksInBackground = () => {
+    if (!activeAlbum || activeAlbum.packageKind !== "embedded") return;
+    const albumSnapshot = activeAlbum;
+    void (async () => {
+      for (let i = 0; i < albumSnapshot.tracks.length; i++) {
+        const row = albumSnapshot.tracks[i]!;
+        if (row.playlistTrack || row.missing) continue;
+        const loaded = await ensureEmbeddedTracksLoaded(albumSnapshot, [row.ref.trackId]);
+        setActiveAlbum(loaded);
+        const playlistTrack = loaded.tracks[i]?.playlistTrack;
+        if (!playlistTrack) continue;
+        const existing = usePlayerStore.getState().tracks;
+        if (!existing.some((t) => t.id === playlistTrack.id)) {
+          appendTracks([playlistTrack]);
+        }
+        await new Promise((r) => setTimeout(r, 120));
+      }
+    })();
+  };
+
   const handlePlayAlbum = async () => {
     if (!activeAlbum) return;
-    let album = activeAlbum;
-    if (album.packageKind === "embedded") {
-      album = (await loadEmbeddedAlbumForPlayback()) ?? album;
+    if (activeAlbum.packageKind === "embedded") {
+      await handleAlbumTrackSelect(0);
+      return;
     }
+    let album = activeAlbum;
+    album = (await loadEmbeddedAlbumForPlayback()) ?? album;
     const ordered = resolvedTracksInOrder(album);
     if (!ordered.length) return;
     const first = ordered[0]!;
@@ -1228,10 +1275,16 @@ export function Mp5Player() {
 
   const handleAddAlbumToQueue = async () => {
     if (!activeAlbum) return;
-    let album = activeAlbum;
-    if (album.packageKind === "embedded") {
-      album = (await loadEmbeddedAlbumForPlayback()) ?? album;
+    if (activeAlbum.packageKind === "embedded") {
+      const firstMissing = activeAlbum.tracks.findIndex((t) => !t.playlistTrack && !t.missing);
+      if (firstMissing >= 0) {
+        await handleAlbumTrackSelect(firstMissing);
+      }
+      queueEmbeddedAlbumTracksInBackground();
+      return;
     }
+    let album = activeAlbum;
+    album = (await loadEmbeddedAlbumForPlayback()) ?? album;
     const ordered = resolvedTracksInOrder(album);
     const newIds = new Set(tracks.map((t) => t.id));
     const toAdd = ordered.filter((t) => !newIds.has(t.id));
@@ -1243,16 +1296,21 @@ export function Mp5Player() {
     if (!row) return;
     let playlistTrack = row.playlistTrack;
     if (!playlistTrack && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
-      const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);
-      playlistTrack = await loadEmbeddedTrackAsPlaylistTrack(
-        activeAlbum.embeddedSource.file,
-        activeAlbum.embeddedSource.index,
-        row.ref.trackId,
-        dir?.logicalFile ?? row.ref.file,
-      );
-      if (playlistTrack) {
-        const loaded = await ensureEmbeddedTracksLoaded(activeAlbum, [row.ref.trackId]);
-        setActiveAlbum(loaded);
+      setEmbeddedLoading(true);
+      try {
+        const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);
+        playlistTrack = await loadEmbeddedTrackAsPlaylistTrack(
+          activeAlbum.embeddedSource.file,
+          activeAlbum.embeddedSource.index,
+          row.ref.trackId,
+          dir?.logicalFile ?? row.ref.file,
+        );
+        if (playlistTrack) {
+          const loaded = await ensureEmbeddedTracksLoaded(activeAlbum, [row.ref.trackId]);
+          setActiveAlbum(loaded);
+        }
+      } finally {
+        setEmbeddedLoading(false);
       }
     }
     if (!playlistTrack) return;
@@ -1267,19 +1325,71 @@ export function Mp5Player() {
     playWhenReadyRef.current = true;
   };
 
+  const handleAddAlbumTrackToQueue = async (rowIndex: number) => {
+    const row = activeAlbum?.tracks[rowIndex];
+    if (!row) return;
+    let playlistTrack = row.playlistTrack;
+    if (!playlistTrack && activeAlbum?.packageKind === "embedded" && activeAlbum.embeddedSource) {
+      setEmbeddedLoading(true);
+      try {
+        const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);
+        playlistTrack = await loadEmbeddedTrackAsPlaylistTrack(
+          activeAlbum.embeddedSource.file,
+          activeAlbum.embeddedSource.index,
+          row.ref.trackId,
+          dir?.logicalFile ?? row.ref.file,
+        );
+        if (playlistTrack) {
+          const loaded = await ensureEmbeddedTracksLoaded(activeAlbum, [row.ref.trackId]);
+          setActiveAlbum(loaded);
+        }
+      } finally {
+        setEmbeddedLoading(false);
+      }
+    }
+    if (!playlistTrack || tracks.some((t) => t.id === playlistTrack!.id)) return;
+    appendTracks([playlistTrack]);
+  };
+
   const handleExtractEmbeddedTrack = async (rowIndex: number) => {
     const row = activeAlbum?.tracks[rowIndex];
     if (!activeAlbum?.embeddedSource || !row) return;
-    const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);
-    const filename = dir?.logicalFile ?? row.ref.file;
-    const fileTrack = await loadEmbeddedTrackAsPlaylistTrack(
-      activeAlbum.embeddedSource.file,
-      activeAlbum.embeddedSource.index,
-      row.ref.trackId,
-      filename,
-    );
-    if (!fileTrack?.file) return;
-    downloadBlob(fileTrack.file, filename);
+    setEmbeddedLoading(true);
+    try {
+      const dir = activeAlbum.embeddedSource.index.tracks.find((t) => t.trackId === row.ref.trackId);
+      const title = row.ref.title ?? row.playlistTrack?.name ?? "Track";
+      const filename = formatExtractFilename(row.trackNumber, title);
+      const fileTrack = await loadEmbeddedTrackAsPlaylistTrack(
+        activeAlbum.embeddedSource.file,
+        activeAlbum.embeddedSource.index,
+        row.ref.trackId,
+        dir?.logicalFile ?? row.ref.file,
+      );
+      if (!fileTrack?.file) return;
+      downloadBlob(fileTrack.file, filename);
+    } finally {
+      setEmbeddedLoading(false);
+    }
+  };
+
+  const handleExtractAllEmbedded = async () => {
+    if (!activeAlbum?.embeddedSource || activeAlbum.packageKind !== "embedded") return;
+    const extractable = activeAlbum.tracks.filter((t) => !t.missing);
+    if (!extractable.length) return;
+    if (
+      extractable.length > 1 &&
+      !window.confirm(
+        `Extract ${extractable.length} tracks? Browsers may block or delay multiple downloads.`,
+      )
+    ) {
+      return;
+    }
+    for (let i = 0; i < extractable.length; i++) {
+      await handleExtractEmbeddedTrack(activeAlbum.tracks.indexOf(extractable[i]!));
+      if (i < extractable.length - 1) {
+        await new Promise((r) => setTimeout(r, 350));
+      }
+    }
   };
 
   const handlePlayIndex = (index: number) => {
@@ -1383,6 +1493,45 @@ export function Mp5Player() {
     [useFileThemes, parsed],
   );
 
+  const albumCtx = useMemo(
+    () => albumPlaybackContext(activeAlbum, track),
+    [activeAlbum, track],
+  );
+
+  const currentAlbumTrackId = useMemo(() => {
+    if (!activeAlbum || !track) return null;
+    const row = activeAlbum.tracks.find(
+      (t) => t.playlistTrack?.id === track.id || t.ref.trackId === track.id,
+    );
+    return row?.ref.trackId ?? null;
+  }, [activeAlbum, track]);
+
+  const handlePlayerNext = () => {
+    if (activeAlbum && track) {
+      const rowIndex = activeAlbum.tracks.findIndex(
+        (t) => t.playlistTrack?.id === track.id || t.ref.trackId === track.id,
+      );
+      if (rowIndex >= 0 && rowIndex < activeAlbum.tracks.length - 1) {
+        void handleAlbumTrackSelect(rowIndex + 1);
+        return;
+      }
+    }
+    playNext();
+  };
+
+  const handlePlayerPrev = () => {
+    if (activeAlbum && track) {
+      const rowIndex = activeAlbum.tracks.findIndex(
+        (t) => t.playlistTrack?.id === track.id || t.ref.trackId === track.id,
+      );
+      if (rowIndex > 0) {
+        void handleAlbumTrackSelect(rowIndex - 1);
+        return;
+      }
+    }
+    playPrevious();
+  };
+
   return (
     <div className="space-y-6" data-testid="mp5-player">
       {tracks.length === 0 && <PlayerEmptyState />}
@@ -1426,17 +1575,22 @@ export function Mp5Player() {
       {activeAlbum && (
         <AlbumPackagePanel
           album={activeAlbum}
-          onPlayAlbum={handlePlayAlbum}
-          onAddToQueue={handleAddAlbumToQueue}
+          onPlayAlbum={() => void handlePlayAlbum()}
+          onAddToQueue={() => void handleAddAlbumToQueue()}
           onDismiss={() => {
             setActiveAlbum(null);
             setAlbumSaveNote("");
           }}
           onSelectTrack={(i) => void handleAlbumTrackSelect(i)}
+          onPlayTrack={(i) => void handleAlbumTrackSelect(i)}
+          onAddTrackToQueue={(i) => void handleAddAlbumTrackToQueue(i)}
           onAddSidecarFiles={(f) => void handleAddAlbumSidecars(f)}
           onSaveAlbum={() => void handleSaveAlbumToLibrary()}
           onExtractTrack={(i) => void handleExtractEmbeddedTrack(i)}
+          onExtractAll={() => void handleExtractAllEmbedded()}
           saveBusy={albumSaveBusy}
+          embeddedLoading={embeddedLoading}
+          currentTrackId={currentAlbumTrackId}
         />
       )}
 
@@ -1501,6 +1655,7 @@ export function Mp5Player() {
             decodePath={decodePath}
             mp5h={mp5hInfo}
             playerTheme={playerTheme}
+            albumContext={albumCtx}
           />
         </div>
         <WaveformView
@@ -1527,8 +1682,8 @@ export function Mp5Player() {
                   ? "Karaoke audio unavailable — playing full mix with synced lyrics"
                   : loadError || undefined
             }
-            onPrev={playPrevious}
-            onNext={playNext}
+            onPrev={handlePlayerPrev}
+            onNext={handlePlayerNext}
             canPrev={canPrev}
             canNext={canNext}
             repeatMode={repeatMode}

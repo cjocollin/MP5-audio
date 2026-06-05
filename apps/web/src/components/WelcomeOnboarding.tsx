@@ -25,12 +25,14 @@ export function WelcomeOnboarding() {
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-wider text-accent/80 font-medium">Welcome</p>
         <h2 id="welcome-heading" className="text-xl sm:text-2xl font-semibold text-white">
-          MP5 Alpha — smart audio, clearly explained
+          Welcome to MP5 Audio (Alpha)
         </h2>
         <p className="text-sm text-gray-400 leading-relaxed">
-          MP5 is an experimental audio container with optional metadata. It does not claim to beat
-          MP3, AAC, Opus, or FLAC. For listening, use{" "}
-          <strong className="text-gray-300">MP5-L v3</strong> (lossless, recommended).
+          MP5 is an experimental smart audio container — not production-ready.{" "}
+          <strong className="text-gray-300">.mp5</strong> is one song;{" "}
+          <strong className="text-gray-300">.mp5p</strong> is an album package (experimental). For
+          listening, use <strong className="text-gray-300">MP5-L v3</strong> (lossless, recommended).
+          MP5 does not claim to beat MP3, AAC, Opus, or FLAC.
         </p>
       </div>
 
@@ -58,7 +60,7 @@ export function WelcomeOnboarding() {
           <h3 className="font-medium text-gray-200">Play a file</h3>
           <ol className="text-gray-500 space-y-1.5 list-decimal list-inside text-xs leading-relaxed">
             <li>Open the Player tab</li>
-            <li>Drop one or more .mp5 files</li>
+            <li>Drop one or more .mp5 files or an .mp5p album package</li>
             <li>Search, queue, shuffle, repeat</li>
             <li>Check the Format panel for codec info</li>
           </ol>

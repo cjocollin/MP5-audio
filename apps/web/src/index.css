@@ -16,15 +16,15 @@ body {
   }
 
   .mp5-btn-primary {
-    @apply px-4 py-2 rounded-xl bg-accent text-black font-semibold hover:opacity-90 disabled:opacity-40 mp5-focus-ring transition-opacity;
+    @apply px-4 py-2 min-h-[40px] rounded-xl bg-accent text-black font-semibold hover:opacity-90 disabled:opacity-40 mp5-focus-ring transition-opacity;
   }
 
   .mp5-btn-secondary {
-    @apply px-4 py-2 rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 disabled:opacity-40 mp5-focus-ring transition-colors;
+    @apply px-4 py-2 min-h-[40px] rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 disabled:opacity-40 mp5-focus-ring transition-colors;
   }
 
   .mp5-tab {
-    @apply px-4 py-2 rounded-full text-sm font-medium transition-colors mp5-focus-ring;
+    @apply px-4 py-2 min-h-[40px] rounded-full text-sm font-medium transition-colors mp5-focus-ring;
   }
 
   .mp5-tab-active {
@@ -45,6 +45,27 @@ body {
   .mp5-now-playing-cover-card {
     @apply relative overflow-hidden isolate;
     contain: paint;
+  }
+
+  .mp5-album-badge {
+    @apply inline-block px-1.5 py-0.5 rounded text-[9px] font-medium bg-white/5 text-gray-400 border border-white/10;
+  }
+
+  .mp5-album-badge-warn {
+    @apply text-amber-200/90 border-amber-900/40 bg-amber-950/30;
+  }
+
+  .mp5-album-package .mp5-album-actions {
+    @apply gap-2;
+  }
+
+  @media (max-width: 640px) {
+    .mp5-album-package {
+      overflow-x: hidden;
+    }
+    .mp5-card {
+      @apply p-3;
+    }
   }
 }
 

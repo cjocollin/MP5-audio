@@ -1,4 +1,4 @@
-import type { CoverArt } from "@mp5/container";
+import type { AlbmPackageManifest, CoverArt } from "@mp5/container";
 import { parseMp5 } from "@mp5/container";
 import type { BatchQueueItem } from "../../converter/batchTypes";
 import { downloadBlob } from "../performance/downloadBlob";
@@ -7,7 +7,7 @@ import {
   createAlbumManifestFromTracks,
   defaultAlbumPackageFilename,
   downloadAlbumManifest,
-  downloadEmbeddedAlbumPackage,
+  buildEmbeddedAlbumPackageBytes,
   type CreateAlbumInput,
 } from "./createAlbumPackage";
 import {
@@ -158,12 +158,23 @@ export async function downloadIndividualBatchTracks(
   }
 }
 
+export interface BatchAlbumExportResult {
+  ok: boolean;
+  message?: string;
+  exportTarget?: BatchAlbumExportTarget;
+  trackCount?: number;
+  packageFilename?: string;
+  packageBytes?: Uint8Array;
+  manifest?: AlbmPackageManifest;
+  playableTracks?: PlaylistTrack[];
+}
+
 export async function exportBatchAlbumPackage(
   items: BatchQueueItem[],
   order: string[],
   album: BatchAlbumLevelMeta,
   trackMetas: Record<string, BatchTrackAlbumMeta>,
-): Promise<{ ok: boolean; message?: string }> {
+): Promise<BatchAlbumExportResult> {
   const done = completedBatchItems(items);
   if (done.length < 1) {
     return { ok: false, message: "No completed tracks to export." };
@@ -171,7 +182,7 @@ export async function exportBatchAlbumPackage(
 
   if (album.exportTarget === "individual") {
     await downloadIndividualBatchTracks(items, order);
-    return { ok: true };
+    return { ok: true, exportTarget: "individual", trackCount: done.length };
   }
 
   if (album.exportTarget !== "manifest" && album.exportTarget !== "embedded") {
@@ -208,13 +219,32 @@ export async function exportBatchAlbumPackage(
   const filename = defaultAlbumPackageFilename(manifest);
 
   if (mode === "embedded") {
-    await downloadEmbeddedAlbumPackage(manifest, playable, filename);
-    return { ok: true };
+    const packageBytes = await buildEmbeddedAlbumPackageBytes(manifest, playable);
+    downloadBlob(
+      new Blob([packageBytes.slice().buffer], { type: "application/octet-stream" }),
+      filename.endsWith(".mp5p") ? filename : `${filename}.mp5p`,
+    );
+    return {
+      ok: true,
+      exportTarget: "embedded",
+      trackCount: playable.length,
+      packageFilename: filename,
+      packageBytes,
+      manifest,
+      playableTracks: playable,
+    };
   }
 
   downloadAlbumManifest(manifest, filename);
   await downloadIndividualBatchTracks(items, order);
-  return { ok: true };
+  return {
+    ok: true,
+    exportTarget: "manifest",
+    trackCount: playable.length,
+    packageFilename: filename,
+    manifest,
+    playableTracks: playable,
+  };
 }
 
 /** Recompute output filenames from track metadata (call before batch encode in album mode). */

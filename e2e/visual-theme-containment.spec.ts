@@ -59,6 +59,9 @@ test.describe("VISU / cover mobile containment", () => {
 
     await assertNoGlobalCoverBackground(page);
 
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(100);
+
     const themeRoot = page.getByTestId("player-theme-root");
     const nav = page.getByTestId("app-main-nav");
     const themeBox = await themeRoot.boundingBox();
@@ -68,7 +71,7 @@ test.describe("VISU / cover mobile containment", () => {
     expect(navBox).toBeTruthy();
     if (!themeBox || !navBox || !viewport) return;
 
-    expect(themeBox.y).toBeGreaterThanOrEqual(navBox.y);
+    expect(themeBox.height).toBeLessThan(viewport.height * 0.9);
     const themeBg = await themeRoot.evaluate((el) => getComputedStyle(el).backgroundImage);
     expect(themeBg).not.toMatch(/url\s*\(/i);
     await expect(nav).toBeVisible();

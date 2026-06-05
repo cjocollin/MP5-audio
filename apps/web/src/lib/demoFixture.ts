@@ -10,6 +10,9 @@ export const DEMO_STEMS_FIXTURE_NAME = "demo_mp5l_v3_stems.mp5";
 export const DEMO_PITY_PARTY_CLASS_URL = "/fixtures/demo_pity_party_class.mp5";
 export const DEMO_PITY_PARTY_CLASS_NAME = "demo_pity_party_class.mp5";
 
+export const DEMO_EMBEDDED_ALBUM_URL = "/fixtures/demo_embedded_album_package.mp5p";
+export const DEMO_EMBEDDED_ALBUM_NAME = "demo_embedded_album_package.mp5p";
+
 async function fetchFixture(url: string, name: string): Promise<File | null> {
   try {
     const res = await fetch(url);
@@ -31,4 +34,8 @@ export async function fetchDemoStemsFixture(): Promise<File | null> {
 
 export async function fetchDemoPityPartyClassFixture(): Promise<File | null> {
   return fetchFixture(DEMO_PITY_PARTY_CLASS_URL, DEMO_PITY_PARTY_CLASS_NAME);
+}
+
+export async function fetchEmbeddedAlbumFixture(): Promise<File | null> {
+  return fetchFixture(DEMO_EMBEDDED_ALBUM_URL, DEMO_EMBEDDED_ALBUM_NAME);
 }

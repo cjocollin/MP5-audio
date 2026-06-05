@@ -1,6 +1,6 @@
 # Current MP5 status (Alpha Demo + Metadata MVP)
 
-**Version:** MP5 Audio **v0.13.0-alpha** · **Date:** May 2026 · **Status:** **Beta readiness / QA hardening** (experimental Alpha — not Beta yet)
+**Version:** MP5 Audio **v0.15.0-alpha** · **Date:** May 2026 · **Status:** **Public Beta readiness / app polish** (experimental Alpha — not Beta yet)
 
 **Spec toolkit:** [`MP5_CHUNK_REGISTRY.md`](MP5_CHUNK_REGISTRY.md) · [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · [`MP5_FEATURE_MATRIX.md`](MP5_FEATURE_MATRIX.md) · `pnpm inspect:mp5` · `pnpm validate:mp5` / `pnpm validate:mp5p`
 
@@ -71,6 +71,12 @@
 - **Now playing:** large cover, title/artist/album, codec and content guidance badges, mood/vibe chips
 - **Metadata panel:** track info, cover, lyrics, content guidance, mood/vibe, **VISU visual theme** swatches, **credits / rights / identifiers**, **integrity & fingerprint**, waveform stats, format — with calm empty states
 - **Visual themes (VISU MVP):** optional per-file colors/mood; player accent + soft gradient; Settings toggle to disable file themes — [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md)
+**v0.15.0-alpha — Public Beta readiness / app polish:** Landing `.mp5`/`.mp5p` explainer, wired welcome onboarding, Demo guide paths A–E, diagnostics version/worker/links, mobile tap targets, manual QA checklist, embedded album demo on hosted fixtures, public claims audit — see [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) and [`MP5_MANUAL_QA_CHECKLIST.md`](MP5_MANUAL_QA_CHECKLIST.md).
+
+**v0.14.0-alpha — Embedded album / MP5P UX polish:** Polished album package view (cover, metadata, integrity, size warnings), tracklist badges and per-track actions, lazy embedded track load with loading status, album context in Now Playing, save-to-library confirmations, Saved albums (manifest + embedded), extract tracks (`01 - Title.mp5`), Batch album export summary handoff, mobile layout — see [`MP5_ALBUM_PACKAGE.md`](MP5_ALBUM_PACKAGE.md) and [`MP5_EMBEDDED_PACKAGE.md`](MP5_EMBEDDED_PACKAGE.md).
+
+**v0.13.1-alpha — Acceptance gate + playback e2e hardening:** Serial Playwright workers under `CI=1`, shared playback progress helpers, transport/status assertions instead of fragile Play/Pause timing; no product behavior changes.
+
 **v0.13.0-alpha — Batch album builder / MP5P export MVP:** Converter **Batch album export** — metadata table, track order, manifest or embedded `.mp5p` from batch queue. See [`MP5_ALBUM_PACKAGE.md`](MP5_ALBUM_PACKAGE.md).
 
 **v0.12.1-alpha — VISU / cover mobile containment hotfix:** VISU tint and cover art are scoped to the Now Playing card only. See [`MP5_VISUAL_THEMES.md`](MP5_VISUAL_THEMES.md).

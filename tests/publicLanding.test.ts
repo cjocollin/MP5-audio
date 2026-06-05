@@ -23,8 +23,16 @@ describe("public landing", () => {
   it("has hero copy constants", () => {
     expect(LANDING_HEADLINE).toBe("MP5 Audio");
     expect(LANDING_SUBHEADLINE).toContain("experimental smart audio");
+    expect(LANDING_SUBHEADLINE).toMatch(/album package/i);
     expect(HONESTY_NO_BEAT_CLAIM).toMatch(/does not claim to beat/i);
     expect(HONESTY_NO_BEAT_CLAIM).not.toMatch(/MP5 beats/i);
+  });
+
+  it("App mounts WelcomeOnboarding after landing", () => {
+    const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
+    const landingIdx = src.indexOf("<PublicLanding />");
+    const welcomeIdx = src.indexOf("<WelcomeOnboarding />");
+    expect(welcomeIdx).toBeGreaterThan(landingIdx);
   });
 
   it("PublicLanding uses compact hero and collapsible About", () => {

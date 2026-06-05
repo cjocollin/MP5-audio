@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
 import fs from "fs";
+import { waitForPlaybackProgress } from "./helpers/playbackTime";
+import { dismissWelcomeOnboarding } from "./helpers/onboarding";
 
 const stemFixture = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_stems.mp5");
 const hasStemFixture = fs.existsSync(stemFixture);
@@ -8,6 +10,10 @@ const hasStemFixture = fs.existsSync(stemFixture);
 test.describe("stem playback UI", () => {
   test.describe.configure({ timeout: 120_000 });
   test.skip(!hasStemFixture, "run pnpm fixtures:generate to create demo_mp5l_v3_stems.mp5");
+
+  test.beforeEach(async ({ page }) => {
+    await dismissWelcomeOnboarding(page);
+  });
 
   test("loads stem demo, prepares selected stem, returns to full mix", async ({ page }) => {
     await page.goto("/");
@@ -177,7 +183,14 @@ test.describe("stem playback UI", () => {
     await unloaded.getByTestId("stems-item-mute").click();
     await page.waitForTimeout(300);
 
-    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause");
+    const status = page.getByTestId("player-playback-status");
+    if ((await status.textContent())?.includes("Ready")) {
+      await page.getByTestId("play-pause").click();
+    }
+    await expect(status).toContainText("Playing", {
+      timeout: 20_000,
+    });
+    await waitForPlaybackProgress(page, Math.max(0.05, beforeSec), 15_000);
     const afterSec = parseTime(await page.getByTestId("current-time").textContent());
     expect(afterSec).toBeGreaterThanOrEqual(Math.max(0, beforeSec - 1));
     expect(afterSec).toBeLessThan(8);

@@ -103,11 +103,10 @@ export function downloadAlbumManifest(manifest: AlbmPackageManifest, filename: s
   );
 }
 
-export async function downloadEmbeddedAlbumPackage(
+export async function buildEmbeddedAlbumPackageBytes(
   manifest: AlbmPackageManifest,
   tracks: PlaylistTrack[],
-  filename: string,
-): Promise<void> {
+): Promise<Uint8Array> {
   const playable = tracks.filter((t) => !t.parseError && t.file);
   const embeddedTracks: EmbeddedTrackInput[] = [];
   for (const t of playable) {
@@ -121,7 +120,15 @@ export async function downloadEmbeddedAlbumPackage(
       sha256: ref.fileSha256,
     });
   }
-  const bytes = writeEmbeddedAlbumPackage({ manifest, tracks: embeddedTracks });
+  return writeEmbeddedAlbumPackage({ manifest, tracks: embeddedTracks });
+}
+
+export async function downloadEmbeddedAlbumPackage(
+  manifest: AlbmPackageManifest,
+  tracks: PlaylistTrack[],
+  filename: string,
+): Promise<void> {
+  const bytes = await buildEmbeddedAlbumPackageBytes(manifest, tracks);
   downloadBlob(
     new Blob([bytes.slice().buffer], { type: "application/octet-stream" }),
     filename.endsWith(".mp5p") ? filename : `${filename}.mp5p`,

@@ -1,14 +1,19 @@
 /** Landing copy constants (used in UI + tests). */
 export const LANDING_HEADLINE = "MP5 Audio";
 export const LANDING_SUBHEADLINE =
-  "An experimental smart audio format, converter, and player.";
+  "An experimental smart audio format, converter, player, and album package system.";
 export const LANDING_SUPPORTING =
   "Convert audio into .mp5, play it back with MP5-L v3 lossless audio, and explore a format designed for rich metadata, cover art, lyrics, content guidance, waveform data, and future interactive audio.";
+
+export const FORMAT_MP5_EXPLAINER =
+  ".mp5 = one smart song (single track). MP5-L v3 is the recommended lossless codec.";
+export const FORMAT_MP5P_EXPLAINER =
+  ".mp5p = one smart album/package — manifest (sidecar .mp5 files) or embedded (self-contained). Experimental.";
 
 export const LANDING_BADGES = [
   "MP5 Alpha",
   "MP5-L v3 default",
-  "Lossless",
+  ".mp5 + .mp5p",
   "PWA-ready",
   "Experimental",
 ] as const;

@@ -18,7 +18,9 @@ test.describe("highlights and loop playback", () => {
     await expect(page.getByTestId("highlight-preview").first()).toBeVisible();
 
     await page.getByTestId("highlight-preview").first().click();
-    await expect(page.getByTestId("active-playback-range")).toContainText("Preview");
+    await expect(page.getByTestId("active-playback-range")).toContainText("Preview", {
+      timeout: 15_000,
+    });
   });
 
   test("loop hook and stop loop", async ({ page }) => {

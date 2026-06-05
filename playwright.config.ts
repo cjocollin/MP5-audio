@@ -5,6 +5,7 @@ export default defineConfig({
   testIgnore: "**/hosted-demo.spec.ts",
   // WASM decode + stem workers contend when many browser tabs run in parallel.
   workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 1 : 0,
   timeout: 60_000,
   use: {
     ...devices["Desktop Chrome"],

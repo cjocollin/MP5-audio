@@ -8,6 +8,7 @@ const DEMO_FIXTURES = [
   "demo_mp5l_v3_tone.mp5",
   "demo_mp5l_v3_stems.mp5",
   "demo_pity_party_class.mp5",
+  "demo_embedded_album_package.mp5p",
 ] as const;
 const fixturesDir = path.resolve(webRoot, "../../test-fixtures");
 const screenshotsDir = path.resolve(webRoot, "../../docs/screenshots");

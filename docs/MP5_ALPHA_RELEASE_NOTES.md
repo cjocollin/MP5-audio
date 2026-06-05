@@ -1,5 +1,39 @@
 # MP5 Alpha release notes
 
+## v0.15.0-alpha — Public Beta readiness / app polish (May 2026)
+
+**Version:** MP5 Audio **v0.15.0-alpha**
+
+- **Landing:** Compact hero with `.mp5` / `.mp5p` explainer; Demo guide button; “What works today” in Learn More.
+- **Onboarding:** Welcome card wired (dismissible); explains MP5-L default, lab codecs, album packages.
+- **Demo tab:** Guided paths A–E (song, karaoke/stems, embedded album, convert, batch album).
+- **Diagnostics:** App version, WASM/FFmpeg/worker status, links to known issues and Beta checklist.
+- **Mobile:** Min 40px tap targets; album panel overflow guard.
+- **Docs:** [`MP5_MANUAL_QA_CHECKLIST.md`](MP5_MANUAL_QA_CHECKLIST.md); updated Beta readiness checklist.
+- **Hosted:** Embedded album demo copied to `dist/fixtures/` on build.
+
+## v0.14.0-alpha — Embedded album / MP5P UX polish (May 2026)
+
+**Version:** MP5 Audio **v0.14.0-alpha**
+
+- **Album package view:** Cover, title, artist, year/genre, package type badge, track count, size, integrity status, calm warnings.
+- **Tracklist:** Track number, duration, codec/stems/lyrics/VISU badges, availability state, Play / Queue / Extract per track.
+- **Embedded playback:** Lazy track load with “Loading embedded track…” status; album context in Now Playing (`Track N of M`, package badge).
+- **Library:** Save confirmations with size estimate and browser-storage honesty; Saved albums lists manifest + embedded packages.
+- **Extract:** `01 - Title.mp5` filenames; staggered multi-download with browser warning.
+- **Batch handoff:** Post-export summary with Open in Player (album view), Save to Library, Download again.
+- **Mobile:** Album cover and actions sized for narrow viewports.
+- **Tests:** expanded `tests/albumPackage.test.ts`, expanded `e2e/embedded-album-package.spec.ts`.
+
+## v0.13.1-alpha — Acceptance gate + playback e2e hardening (May 2026)
+
+**Version:** MP5 Audio **v0.13.1-alpha**
+
+- **E2E stability:** `CI=1` runs one Playwright worker + one retry; playback tests poll seek slider / `current-time` via shared helpers.
+- **Assertions:** Prefer `player-playback-status` + progress polls over fragile Play/Pause aria-label timing under WASM/stem load.
+- **Docs:** Parallel e2e flake root cause in [`MP5_KNOWN_ISSUES.md`](MP5_KNOWN_ISSUES.md).
+- **No product changes:** transport, formats, batch album builder, and embedded package logic unchanged.
+
 ## v0.13.0-alpha — Batch album builder / MP5P export MVP (May 2026)
 
 **Version:** MP5 Audio **v0.13.0-alpha**
