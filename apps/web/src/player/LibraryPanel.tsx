@@ -38,6 +38,7 @@ function PlaylistRow({
   const info = trackDisplayInfo(track);
   const coverUrl = useCoverObjectUrl(coverFromParsed(track.parsed));
   const failed = !!track.parseError;
+  const metadataPending = !!track.embeddedAlbum && !track.file && !track.parsed?.coverArt && !track.parsed?.cover?.length;
 
   return (
     <li
@@ -61,6 +62,10 @@ function PlaylistRow({
         <span className="relative w-10 h-10 shrink-0 rounded-md bg-surface-elevated overflow-hidden flex items-center justify-center">
           {coverUrl ? (
             <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+          ) : metadataPending ? (
+            <span className="text-[10px] text-gray-500 animate-pulse" data-testid="playlist-item-cover-pending">
+              …
+            </span>
           ) : (
             <span className="text-sm opacity-40">♪</span>
           )}

@@ -88,6 +88,7 @@ import {
   buildEmbeddedPlaylistPlaceholders,
   isEmbeddedPlaceholderTrack,
 } from "../lib/album/embeddedAlbumQueue";
+import { prefetchEmbeddedPlaylistMetadata } from "../lib/album/embeddedPlaylistMetadata";
 import {
   formatExtractFilename,
   formatPackageBytes,
@@ -206,6 +207,7 @@ export function Mp5Player() {
   const playWhenReadyRef = useRef(false);
   const playWhenReadyKaraokeRef = useRef(false);
   const embeddedHydrateGenRef = useRef(0);
+  const playlistPrefetchGenRef = useRef(0);
   const loadFileGenRef = useRef(0);
   const autoAdvanceRef = useRef(false);
   const seekRef = useRef<(t: number) => void>(() => {});
@@ -1307,6 +1309,21 @@ export function Mp5Player() {
     return loaded;
   };
 
+  const startEmbeddedPlaylistMetadataPrefetch = (album: ResolvedAlbumPackage) => {
+    if (album.packageKind !== "embedded") return;
+    const gen = ++playlistPrefetchGenRef.current;
+    void prefetchEmbeddedPlaylistMetadata(
+      album,
+      (trackId, patch) => {
+        if (gen !== playlistPrefetchGenRef.current) return;
+        const current = usePlayerStore.getState().tracks.find((t) => t.id === trackId);
+        if (!current || current.file) return;
+        replacePlaylistTrack(trackId, { ...current, ...patch });
+      },
+      { isCancelled: () => gen !== playlistPrefetchGenRef.current },
+    );
+  };
+
   const queueEmbeddedAlbumTracksInBackground = () => {
     if (!activeAlbum || activeAlbum.packageKind !== "embedded") return;
     const albumSnapshot = activeAlbum;
@@ -1337,6 +1354,7 @@ export function Mp5Player() {
       const placeholders = buildEmbeddedPlaylistPlaceholders(activeAlbum);
       if (!placeholders.length) return;
       setTracks(placeholders);
+      startEmbeddedPlaylistMetadataPrefetch(activeAlbum);
       playWhenReadyRef.current = true;
       setCurrentIndex(0);
       recordLastAlbumAction("play_album", placeholders[0]?.id ?? null);
@@ -1370,6 +1388,7 @@ export function Mp5Player() {
       const existingIds = new Set(usePlayerStore.getState().tracks.map((t) => t.id));
       const toAdd = placeholders.filter((t) => !existingIds.has(t.id));
       if (toAdd.length) appendTracks(toAdd);
+      startEmbeddedPlaylistMetadataPrefetch(activeAlbum);
       return;
     }
     let album = activeAlbum;

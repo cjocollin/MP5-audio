@@ -1,5 +1,12 @@
 # MP5 Alpha release notes
 
+## v0.15.3-alpha — Embedded album playlist display (May 2026)
+
+**Version:** MP5 Audio **v0.15.3-alpha**
+
+- **Playlist:** embedded album rows show manifest title/artist/album immediately; covers and durations prefetch in background.
+- **Create album package:** album year/genre retained from embedded `.mp5p` manifest.
+
 ## v0.15.2-alpha — Embedded album hotfix follow-up (May 2026)
 
 **Version:** MP5 Audio **v0.15.2-alpha**

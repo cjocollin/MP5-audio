@@ -127,6 +127,29 @@ describe("player playlist utilities", () => {
     expect(matchesSearch(t, "study")).toBe(true);
     expect(matchesSearch(t, "metal")).toBe(false);
   });
+
+  it("trackDisplayInfo uses embedded album manifest when track file is not loaded", () => {
+    const track = {
+      id: "t1",
+      name: "01-track.mp5",
+      embeddedAlbum: {
+        trackId: "t1",
+        filename: "01-track.mp5",
+        display: { title: "GARBAGE", artist: "Melanie Martinez", album: "HADES" },
+        packageMeta: {
+          albumTitle: "HADES",
+          albumArtist: "Melanie Martinez",
+          year: "2026",
+          genre: "Alternative",
+        },
+      },
+    };
+    const info = trackDisplayInfo(track);
+    expect(info.title).toBe("GARBAGE");
+    expect(info.artist).toBe("Melanie Martinez");
+    expect(info.album).toBe("HADES");
+    expect(info.genre).toBe("Alternative");
+  });
 });
 
 describe("player store queue", () => {

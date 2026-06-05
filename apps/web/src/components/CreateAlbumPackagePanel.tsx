@@ -16,7 +16,8 @@ interface Props {
 
 export function CreateAlbumPackagePanel({ tracks }: Props) {
   const playable = useMemo(() => tracks.filter((t) => !t.parseError && t.file), [tracks]);
-  const suggested = useMemo(() => suggestAlbumMetaFromTracks(playable), [playable]);
+  const metaSource = useMemo(() => tracks.filter((t) => !t.parseError), [tracks]);
+  const suggested = useMemo(() => suggestAlbumMetaFromTracks(metaSource), [metaSource]);
   const [ordered, setOrdered] = useState<PlaylistTrack[]>([]);
   const [albumTitle, setAlbumTitle] = useState("");
   const [albumArtist, setAlbumArtist] = useState("");
@@ -30,13 +31,13 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
   }, [playable]);
 
   useEffect(() => {
-    if (playable.length >= 2) {
+    if (metaSource.length >= 2) {
       setAlbumTitle(suggested.albumTitle);
       setAlbumArtist(suggested.albumArtist ?? "");
       setYear(suggested.year ?? "");
       setGenre(suggested.genre ?? "");
     }
-  }, [playable.length, suggested.albumTitle, suggested.albumArtist, suggested.year, suggested.genre]);
+  }, [metaSource.length, suggested.albumTitle, suggested.albumArtist, suggested.year, suggested.genre]);
 
   if (playable.length < 2) {
     return (

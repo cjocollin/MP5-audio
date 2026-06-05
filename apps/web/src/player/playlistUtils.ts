@@ -75,10 +75,20 @@ export function hasContentNotice(parsed?: Mp5File): boolean {
 
 export function trackDisplayInfo(track: PlaylistTrack): TrackDisplayInfo {
   const parsed = track.parsed;
-  const title = getMetaValue(parsed?.meta ?? [], "title") ?? track.name.replace(/\.mp5$/i, "");
-  const artist = getMetaValue(parsed?.meta ?? [], "artist") ?? "";
-  const album = getMetaValue(parsed?.meta ?? [], "album") ?? "";
-  const genre = getMetaValue(parsed?.meta ?? [], "genre") ?? "";
+  const embedded = track.embeddedAlbum;
+  const title =
+    getMetaValue(parsed?.meta ?? [], "title") ??
+    embedded?.display?.title ??
+    track.name.replace(/\.mp5$/i, "");
+  const artist =
+    getMetaValue(parsed?.meta ?? [], "artist") ?? embedded?.display?.artist ?? "";
+  const album =
+    getMetaValue(parsed?.meta ?? [], "album") ??
+    embedded?.display?.album ??
+    embedded?.packageMeta?.albumTitle ??
+    "";
+  const genre =
+    getMetaValue(parsed?.meta ?? [], "genre") ?? embedded?.packageMeta?.genre ?? "";
 
   let moodTags: string[] = [];
   let vibeTags: string[] = [];

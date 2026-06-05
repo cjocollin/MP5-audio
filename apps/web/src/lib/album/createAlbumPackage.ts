@@ -87,11 +87,12 @@ export async function createAlbumManifestFromTracks(
 export function suggestAlbumMetaFromTracks(tracks: PlaylistTrack[]): CreateAlbumInput {
   const first = tracks.find((t) => !t.parseError);
   const info = first ? trackDisplayInfo(first) : null;
+  const packageMeta = tracks.find((t) => t.embeddedAlbum?.packageMeta)?.embeddedAlbum?.packageMeta;
   return {
-    albumTitle: info?.album || info?.title || "My album",
-    albumArtist: info?.artist || "",
-    year: "",
-    genre: info?.genre || "",
+    albumTitle: packageMeta?.albumTitle ?? (info?.album || info?.title || "My album"),
+    albumArtist: packageMeta?.albumArtist ?? (info?.artist || ""),
+    year: packageMeta?.year ?? "",
+    genre: packageMeta?.genre ?? (info?.genre || ""),
   };
 }
 

@@ -15,9 +15,24 @@ import type { ResolvedAlbumPackage } from "../lib/album/resolveAlbum";
 
 export type { RepeatMode };
 
+export interface EmbeddedAlbumPackageMeta {
+  albumTitle: string;
+  albumArtist?: string;
+  year?: string;
+  genre?: string;
+}
+
+export interface EmbeddedAlbumTrackDisplay {
+  title?: string;
+  artist?: string;
+  album?: string;
+}
+
 export interface EmbeddedAlbumTrackRef {
   trackId: string;
   filename: string;
+  display?: EmbeddedAlbumTrackDisplay;
+  packageMeta?: EmbeddedAlbumPackageMeta;
 }
 
 export interface PlaylistTrack {
