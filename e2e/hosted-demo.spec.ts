@@ -21,7 +21,7 @@ test.describe("MP5 hosted demo", () => {
     await page.goto("/");
     await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
     await expect(page.getByTestId("app-version")).toContainText("MP5 Public Beta");
-    await expect(page.getByTestId("app-version")).toContainText("v0.16.1-beta");
+    await expect(page.getByTestId("app-version")).toContainText("v0.16.2-beta");
   });
 
   test("app shell and honest tagline", async ({ page }) => {
@@ -100,6 +100,9 @@ test.describe("MP5 hosted demo", () => {
     await page.getByTestId("app-tab-settings").click();
     await expect(page.getByTestId("performance-diagnostics")).toBeVisible();
     await page.getByTestId("performance-diagnostics").click();
+    await expect(page.getByTestId("diagnostics-copy-report")).toBeVisible();
+    await expect(page.getByTestId("beta-feedback-panel")).toBeVisible();
+    await expect(page.getByTestId("feedback-bug-report-link")).toBeVisible();
     await page.getByTestId("playback-trace-toggle").check();
     await expect(page.getByTestId("playback-trace-copy")).toBeVisible();
   });

@@ -56,6 +56,7 @@ import { downloadBlob } from "../lib/performance/downloadBlob";
 import { assessSourceFile, type GuardrailMessage } from "../lib/performance/guardrails";
 import { GuardrailNotice } from "../components/GuardrailNotice";
 import { useConversionStore } from "../store/conversionStore";
+import { recordUserFacingError } from "../lib/sessionDiagnostics";
 
 type PendingPcm = {
   samples: Int16Array;
@@ -125,6 +126,10 @@ export function ConverterPanel() {
       setCodec("pcm");
     }
   }, [codecUnavailable, codec]);
+
+  useEffect(() => {
+    if (error) recordUserFacingError("converter", error);
+  }, [error]);
 
   function handleCancelConversion() {
     abortRef.current?.abort();

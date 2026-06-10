@@ -1,5 +1,14 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Bug report
+    url: https://github.com/cjocollin/MP5-audio/issues/new?template=bug_report.yml
+    about: Reproducible Public Beta bug with version, browser, and file type
+  - name: Beta feedback
+    url: https://github.com/cjocollin/MP5-audio/issues/new?template=beta_feedback.yml
+    about: General UX, docs, or demo feedback (no file upload required)
+  - name: MP5 file compatibility
+    url: https://github.com/cjocollin/MP5-audio/issues/new?template=mp5_compatibility.yml
+    about: .mp5 or .mp5p load, validate, convert, or play issues
   - name: Security policy
     url: https://github.com/cjocollin/MP5-audio/blob/main/SECURITY.md
     about: Report vulnerabilities privately — do not open public issues

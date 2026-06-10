@@ -1,6 +1,6 @@
 # MP5 Manual QA checklist
 
-**Version:** MP5 Audio **v0.16.1-beta**  
+**Version:** MP5 Audio **v0.16.2-beta**  
 **Purpose:** Public Beta smoke. Synthetic fixtures on hosted demo; local fixtures for Pity Party / sidecar manifest.  
 **Sign-off date:** May 2026 · **Hosted URL:** https://mp5-audio.vercel.app
 
@@ -47,14 +47,32 @@ Status key: **Pass** · **Pass with limitation** · **Blocked** · **Not tested*
 
 - [x] **Pass with limitation** — Library panel + browser-local honesty on hosted; save/delete not automated on hosted
 
-## J. Mobile viewport (≤390px)
+## J. Mobile viewport (Playwright, 375x812)
 
 - [x] **Pass** — Hosted mobile e2e: no horizontal overflow, tappable tabs/buttons, embedded album readable
 
 ## K. Hosted deployment
 
-- [x] **Pass** — Badge **MP5 Public Beta · v0.16.1-beta**; `hosted:verify`; `test:e2e:hosted` **11/11**; PWA/WASM/FFmpeg 200; synthetic fixtures only
+- [x] **Pass** — Badge **MP5 Public Beta**; `hosted:verify`; `test:e2e:hosted` **11/11**; PWA/WASM/FFmpeg 200; synthetic fixtures only
+
+## L. Physical phone spot-check (real device)
+
+Use https://mp5-audio.vercel.app on a phone browser. No large copyrighted local files required — hosted demos only.
+
+- [ ] **Not tested** — Hosted URL opens on phone
+- [ ] **Not tested** — Landing fits without horizontal scroll
+- [ ] **Not tested** — Tabs are tappable (Player, Converter, Demo, Settings)
+- [ ] **Not tested** — Demo guide opens
+- [ ] **Not tested** — MP5-L demo loads and plays
+- [ ] **Not tested** — Embedded album demo opens
+- [ ] **Not tested** — Player controls usable (play/pause, seek)
+- [ ] **Not tested** — Settings and Diagnostics open
+- [ ] **Not tested** — Report a bug / feedback links visible in Settings
+- [ ] **Not tested** — VISU stays contained (no giant wallpaper bug)
+- [ ] **Not tested** — App does not feel frozen after loading demos
+
+**Note:** Automated mobile viewport QA (section J) passed; section L is optional manual confirmation on a physical device.
 
 ---
 
-**Sign-off:** Public Beta accepted — automated hosted QA + maintainer review · **Date:** May 2026 · **Browser / OS:** Desktop Chrome (Playwright); mobile viewport 375×812 (Playwright)
+**Sign-off:** Public Beta accepted — automated hosted QA + maintainer review · **Date:** May 2026 · **Browser / OS:** Desktop Chrome (Playwright); mobile viewport 375x812 (Playwright); physical phone **pending**

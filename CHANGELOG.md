@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.16.2-beta] - 2026-05
+
+### Milestone — Public Beta hardening + feedback loop
+
+- In-app **Report a bug / Give feedback** (Settings) with GitHub Issues links; no telemetry.
+- **Copy diagnostics** in Settings (version, browser, WASM/FFmpeg, last error, privacy note).
+- GitHub issue templates: bug report, Beta feedback, MP5 compatibility, feature request.
+- [`docs/MP5_PUBLIC_BETA_RELEASE_NOTES.md`](docs/MP5_PUBLIC_BETA_RELEASE_NOTES.md) and GitHub release draft.
+- First-user guidance on landing and Demo guide; physical phone QA checklist (section L).
+
+**Still not claimed:** production-ready, beats MP3/AAC/Opus/FLAC, DRM, legal proof, AI stems.
+
 ## [0.16.1-beta] - 2026-05
 
 ### Milestone — Public Beta
@@ -173,7 +185,8 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.16.2-beta...HEAD
+[0.16.2-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta...v0.16.2-beta
 [0.16.1-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta-candidate...v0.16.1-beta
 [0.16.1-beta-candidate]: https://github.com/cjocollin/MP5-audio/compare/v0.16.0-beta-candidate...v0.16.1-beta-candidate
 [0.16.0-beta-candidate]: https://github.com/cjocollin/MP5-audio/compare/v0.15.7-alpha...v0.16.0-beta-candidate

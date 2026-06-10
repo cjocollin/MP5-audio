@@ -13,6 +13,8 @@ test.describe("performance diagnostics", () => {
     await expect(page.getByTestId("performance-diagnostics")).toContainText("Decode cache");
     await expect(page.getByTestId("performance-diagnostics")).toContainText("WASM");
     await expect(page.getByTestId("diagnostics-known-issues-link")).toBeVisible();
+    await expect(page.getByTestId("diagnostics-copy-report")).toBeVisible();
+    await expect(page.getByTestId("beta-feedback-panel")).toContainText("Report a bug");
     await page.getByTestId("playback-trace-toggle").check();
     await expect(page.getByTestId("playback-trace-copy")).toBeVisible();
   });

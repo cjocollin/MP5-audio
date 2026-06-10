@@ -1,6 +1,6 @@
 {
   "name": "@mp5/web",
-  "version": "0.16.1-beta",
+  "version": "0.16.2-beta",
   "private": true,
   "license": "MIT",
   "type": "module",

@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        MP5 is **alpha / research-focused**. We prioritize validation, MP5-L stability, honest docs, and developer tooling over production feature promises.
+        MP5 is **Public Beta / experimental**. We prioritize validation, MP5-L stability, honest docs, and developer tooling over production feature promises.
 
   - type: textarea
     id: problem

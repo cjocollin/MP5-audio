@@ -18,6 +18,7 @@ import {
   FORMAT_MP5_EXPLAINER,
   FORMAT_MP5P_EXPLAINER,
 } from "../lib/publicLandingCopy";
+import { FIRST_USER_TIPS } from "../lib/betaFeedback";
 import { MP5_DEMO_URL, MP5_GITHUB_URL } from "../lib/publicLinks";
 
 function SectionTitle({ id, children }: { id?: string; children: ReactNode }) {
@@ -352,6 +353,14 @@ export function PublicLanding() {
             <Badge key={b}>{b}</Badge>
           ))}
         </div>
+        <ul
+          className="text-[11px] text-gray-500 space-y-0.5 list-disc list-inside max-w-2xl"
+          data-testid="landing-first-user-tips"
+        >
+          {FIRST_USER_TIPS.slice(0, 4).map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
+        </ul>
         <div className="flex flex-wrap gap-2 pt-0.5" data-testid="landing-primary-actions">
           <button
             type="button"

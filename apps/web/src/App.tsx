@@ -9,6 +9,7 @@ import { PublicLanding } from "./components/PublicLanding";
 import { LocalLibraryPanel } from "./components/LocalLibraryPanel";
 import { PerformanceDiagnosticsPanel } from "./components/PerformanceDiagnosticsPanel";
 import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
+import { BetaFeedbackPanel } from "./components/BetaFeedbackPanel";
 
 export default function App() {
   const { activeTab, setActiveTab, theme, setTheme, useFileThemes, setUseFileThemes } =
@@ -100,6 +101,7 @@ export default function App() {
               </p>
               <p>Local library uses browser storage (IndexedDB) on this device only.</p>
             </div>
+            <BetaFeedbackPanel />
             <PerformanceDiagnosticsPanel />
           </div>
         )}

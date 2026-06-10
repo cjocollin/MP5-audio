@@ -152,7 +152,7 @@ describe("compatibility assessment behavior", () => {
 describe("status doc version", () => {
   it("CURRENT_MP5_STATUS mentions Public Beta version and readiness docs", () => {
     const text = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(text).toMatch(/0\.16\.1-beta|Public Beta/i);
+    expect(text).toMatch(/0\.16\.[12]-beta|Public Beta/i);
     expect(text).toMatch(/MP5_BETA_READINESS|beta:check|inspect:mp5|chunk registry/i);
   });
 });

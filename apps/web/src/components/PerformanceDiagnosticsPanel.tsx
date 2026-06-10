@@ -16,6 +16,12 @@ import { formatMemoryEstimate } from "../lib/performance/memoryEstimates";
 import { getIngestDiagnostics } from "../lib/ingest/ingestDiagnostics";
 import { activeConversionLabel, useConversionStore } from "../store/conversionStore";
 import { usePlayerStore } from "../store/playerStore";
+import {
+  buildBetaDiagnosticsReport,
+  getLastUserFacingError,
+  supportedFeaturesList,
+} from "../lib/sessionDiagnostics";
+import { FEEDBACK_PRIVACY_NOTE, MP5_BUG_REPORT_URL } from "../lib/betaFeedback";
 
 export function PerformanceDiagnosticsPanel() {
   const [open, setOpen] = useState(false);
@@ -28,6 +34,29 @@ export function PerformanceDiagnosticsPanel() {
   const tracks = usePlayerStore((s) => s.tracks);
   const currentIndex = usePlayerStore((s) => s.currentIndex);
   const currentTrack = tracks[currentIndex];
+  const lastError = getLastUserFacingError();
+
+  async function copyDiagnostics() {
+    const cacheStats = decodeCache.getStats(currentTrack?.id);
+    const traceText =
+      traceOn && getPlaybackTraceBuffer().length > 0 ? exportPlaybackTraceReport() : undefined;
+    const text = buildBetaDiagnosticsReport({
+      conversion,
+      queueLength: tracks.length,
+      currentFileLabel:
+        currentTrack?.file?.size != null
+          ? `${currentTrack.name ?? "track"} (${formatBytes(currentTrack.file.size)})`
+          : (currentTrack?.name ?? "none"),
+      decodeCacheSummary: `${cacheStats.entryCount}/${DECODE_CACHE_MAX_ENTRIES} (~${formatMemoryEstimate(cacheStats.estimatedBytes)})`,
+      librarySummary: `${libraryCount} entries, ${formatBytes(libraryBytes)}`,
+      includePlaybackTrace: traceText,
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* clipboard may be blocked */
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -69,6 +98,14 @@ export function PerformanceDiagnosticsPanel() {
       <div className="px-3 pb-3 pt-1 text-xs text-gray-500 space-y-2 font-mono leading-relaxed">
         <p>
           <span className="text-gray-600">App version:</span> {APP_VERSION}
+        </p>
+        <p>
+          <span className="text-gray-600">Browser:</span>{" "}
+          {typeof navigator !== "undefined" ? navigator.userAgent : "unknown"}
+        </p>
+        <p>
+          <span className="text-gray-600">Supported:</span>{" "}
+          {supportedFeaturesList().join(" · ")}
         </p>
         <p>
           <span className="text-gray-600">Playlist queue:</span> {tracks.length} track
@@ -126,6 +163,30 @@ export function PerformanceDiagnosticsPanel() {
           <span className="text-gray-600">Stem worker:</span>{" "}
           {typeof Worker !== "undefined" ? "available" : "unavailable"}
         </p>
+        <p>
+          <span className="text-gray-600">Last error:</span>{" "}
+          {lastError ? `${lastError.source}: ${lastError.message}` : "none recorded this session"}
+        </p>
+        <p className="text-[10px] text-gray-600 font-sans leading-relaxed">{FEEDBACK_PRIVACY_NOTE}</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="text-[10px] text-gray-500 hover:text-gray-300 font-sans border border-white/10 rounded px-2 py-1"
+            onClick={() => void copyDiagnostics()}
+            data-testid="diagnostics-copy-report"
+          >
+            Copy diagnostics
+          </button>
+          <a
+            href={MP5_BUG_REPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-accent hover:underline font-sans inline-flex items-center min-h-[24px]"
+            data-testid="diagnostics-bug-report-link"
+          >
+            Report a bug
+          </a>
+        </div>
         <p className="text-[10px] text-gray-600 font-sans leading-relaxed">
           <a
             href="https://github.com/cjocollin/MP5-audio/blob/main/docs/MP5_KNOWN_ISSUES.md"
@@ -134,16 +195,17 @@ export function PerformanceDiagnosticsPanel() {
             className="text-accent hover:underline"
             data-testid="diagnostics-known-issues-link"
           >
-            Known limitations (Alpha)
+            Known limitations (Public Beta)
           </a>
           {" · "}
           <a
-            href="https://github.com/cjocollin/MP5-audio/blob/main/docs/MP5_BETA_READINESS.md"
+            href="https://github.com/cjocollin/MP5-audio/blob/main/docs/MP5_PUBLIC_BETA_RELEASE_NOTES.md"
             target="_blank"
             rel="noopener noreferrer"
             className="text-accent hover:underline"
+            data-testid="diagnostics-release-notes-link"
           >
-            Beta readiness checklist
+            Public Beta release notes
           </a>
         </p>
         <div className="border-t border-white/5 pt-2 space-y-2">

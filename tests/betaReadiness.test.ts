@@ -3,6 +3,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { HONESTY_NO_BEAT_CLAIM, LANDING_SUBHEADLINE } from "../apps/web/src/lib/publicLandingCopy";
 import { USER_ERRORS } from "../apps/web/src/lib/userFacingErrors";
+import {
+  FEEDBACK_PRIVACY_NOTE,
+  FIRST_USER_TIPS,
+  MP5_BUG_REPORT_URL,
+} from "../apps/web/src/lib/betaFeedback";
+import { buildBetaDiagnosticsReport } from "../apps/web/src/lib/sessionDiagnostics";
 
 const root = join(process.cwd());
 const docs = join(root, "docs");
@@ -43,13 +49,69 @@ const REQUIRED_PUBLIC_PHRASES = [
 function scanFile(relPath: string) {
   const full = join(root, relPath);
   expect(existsSync(full), relPath).toBe(true);
-  return readFileSync(full, "utf8");
+  const buf = readFileSync(full);
+  expect(buf[1] === 0, `${relPath} must be UTF-8 (not UTF-16)`).toBe(false);
+  return buf.toString("utf8");
 }
+
+describe("Public Beta hardening", () => {
+  it("issue templates exist", () => {
+    for (const file of [
+      ".github/ISSUE_TEMPLATE/bug_report.yml",
+      ".github/ISSUE_TEMPLATE/beta_feedback.yml",
+      ".github/ISSUE_TEMPLATE/mp5_compatibility.yml",
+      ".github/ISSUE_TEMPLATE/feature_request.yml",
+    ]) {
+      expect(existsSync(join(root, file)), file).toBe(true);
+    }
+  });
+
+  it("public beta release notes exist", () => {
+    const text = readFileSync(join(docs, "MP5_PUBLIC_BETA_RELEASE_NOTES.md"), "utf8");
+    expect(text).toMatch(/Public Beta/i);
+    expect(text).toMatch(/MP5-L/i);
+    expect(text).toMatch(/\.mp5p/i);
+    expect(text).toMatch(/does not claim to beat/i);
+    expect(text).toMatch(/Report.*bug|feedback/i);
+  });
+
+  it("manual QA has physical phone checklist", () => {
+    const text = readFileSync(join(docs, "MP5_MANUAL_QA_CHECKLIST.md"), "utf8");
+    expect(text).toMatch(/Physical phone/i);
+    expect(text).toMatch(/VISU stays contained/i);
+  });
+
+  it("feedback constants and diagnostics report", () => {
+    expect(MP5_BUG_REPORT_URL).toContain("bug_report");
+    expect(FEEDBACK_PRIVACY_NOTE).toMatch(/copyrighted|private audio/i);
+    expect(FIRST_USER_TIPS.length).toBeGreaterThanOrEqual(4);
+    const report = buildBetaDiagnosticsReport({
+      conversion: {
+        singlePhase: "idle",
+        singleFileName: null,
+        batchRunning: false,
+        batchCurrentName: null,
+        batchPendingCount: 0,
+        cancelGeneration: 0,
+        setSinglePhase: () => {},
+        setBatchActivity: () => {},
+        bumpCancelGeneration: () => 0,
+        resetSingle: () => {},
+      },
+      queueLength: 0,
+      currentFileLabel: "none",
+      decodeCacheSummary: "0/3",
+      librarySummary: "0 entries",
+    });
+    expect(report).toMatch(/0\.16\.2-beta/);
+    expect(report).toMatch(/No telemetry/i);
+  });
+});
 
 describe("beta readiness docs", () => {
   it("MP5_BETA_READINESS.md exists with version and blockers", () => {
     const text = readFileSync(join(docs, "MP5_BETA_READINESS.md"), "utf8");
-    expect(text).toMatch(/0\.16\.1-beta|Public Beta/i);
+    expect(text).toMatch(/0\.16\.[12]-beta|Public Beta/i);
     expect(text).toMatch(/beta:check/i);
     expect(text).toMatch(/must NOT be claimed/i);
     expect(text).toMatch(/MP5-C/);
@@ -83,8 +145,10 @@ describe("public claims audit", () => {
     "docs/MP5_DEMO_GUIDE.md",
     "docs/MP5_PUBLIC_DEMO_COPY.md",
     "docs/MP5_MANUAL_QA_CHECKLIST.md",
+    "docs/MP5_PUBLIC_BETA_RELEASE_NOTES.md",
     "apps/web/src/lib/publicLandingCopy.ts",
     "apps/web/src/lib/codecModesCopy.ts",
+    "apps/web/src/lib/betaFeedback.ts",
   ];
 
   for (const rel of targets) {
@@ -126,7 +190,18 @@ describe("user-facing error messages", () => {
     expect(app).toContain("WelcomeOnboarding");
   });
 
-  it("DemoModePanel has guided paths A–E", () => {
+  it("App mounts BetaFeedbackPanel", () => {
+    const app = scanFile("apps/web/src/App.tsx");
+    expect(app).toContain("BetaFeedbackPanel");
+  });
+
+  it("DemoModePanel has first-user tips", () => {
+    const demo = scanFile("apps/web/src/components/DemoModePanel.tsx");
+    expect(demo).toContain("demo-first-user-tips");
+    expect(demo).toContain("FIRST_USER_TIPS");
+  });
+
+  it("DemoModePanel has guided paths A-E", () => {
     const demo = scanFile("apps/web/src/components/DemoModePanel.tsx");
     expect(demo).toMatch(/demo-path-\$\{path\.id\}/);
     expect(demo).toContain('id: "e"');
@@ -142,13 +217,13 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.16.1-beta", () => {
-    expect(packageJson.version).toBe("0.16.1-beta");
+  it("package.json is 0.16.2-beta", () => {
+    expect(packageJson.version).toBe("0.16.2-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {
     const status = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(status).toMatch(/0\.16\.1-beta|Public Beta/i);
-    expect(status).toMatch(/MP5_BETA_READINESS|beta:check/i);
+    expect(status).toMatch(/0\.16\.[12]-beta|Public Beta/i);
+    expect(status).toMatch(/MP5_PUBLIC_BETA|MP5_BETA_READINESS|beta:check/i);
   });
 });

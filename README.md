@@ -3,20 +3,22 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.16.1--beta-blue)](CHANGELOG.md#0161-beta---2026-05)
+[![Version](https://img.shields.io/badge/version-v0.16.2--beta-blue)](CHANGELOG.md#0162-beta---2026-05)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.16.1-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
+**Version:** MP5 Audio **v0.16.2-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
+
+**Report bugs:** [GitHub Issues](https://github.com/cjocollin/MP5-audio/issues/new/choose) · In hosted app: **Settings → Report a bug / Give feedback** · Paste **Settings → Diagnostics → Copy diagnostics** (no files uploaded automatically)
 
 MP5 Public Beta uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only.
 
 **Compatibility toolkit:** [`docs/MP5_CHUNK_REGISTRY.md`](docs/MP5_CHUNK_REGISTRY.md) · [`docs/MP5_COMPATIBILITY_POLICY.md`](docs/MP5_COMPATIBILITY_POLICY.md) · `pnpm inspect:mp5 <file>` · `pnpm validate:mp5 <file>`
 
-**Beta readiness:** [`docs/MP5_BETA_READINESS.md`](docs/MP5_BETA_READINESS.md) · [`docs/MP5_KNOWN_ISSUES.md`](docs/MP5_KNOWN_ISSUES.md) · `pnpm beta:check`
+**Beta readiness:** [`docs/MP5_BETA_READINESS.md`](docs/MP5_BETA_READINESS.md) · [`docs/MP5_PUBLIC_BETA_RELEASE_NOTES.md`](docs/MP5_PUBLIC_BETA_RELEASE_NOTES.md) · [`docs/MP5_KNOWN_ISSUES.md`](docs/MP5_KNOWN_ISSUES.md) · `pnpm beta:check`
 
 **Contributor docs:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md) · [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 
