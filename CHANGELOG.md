@@ -2,11 +2,56 @@
 
 All notable changes to MP5 Audio are documented here.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) with `-alpha` pre-release tags.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) with pre-release tags (`-alpha`, `-beta-candidate`).
 
 ## [Unreleased]
 
 _No changes yet._
+
+## [0.16.1-beta] - 2026-05
+
+### Milestone — Public Beta
+
+- **MP5 Audio v0.16.1-beta** — first **Public Beta** tag for the hosted demo at https://mp5-audio.vercel.app.
+- Version badge: **MP5 Public Beta · v0.16.1-beta** (landing + in-app).
+- Final local gates, package fixtures, and HADES local QA accepted before tag.
+- Hosted verification and `test:e2e:hosted` **11/11** after deploy.
+
+**Still not claimed:** production-ready, beats MP3/AAC/Opus/FLAC, DRM, legal proof, AI stems, universal support.
+
+## [0.16.1-beta-candidate] - 2026-05
+
+### Fixed — Hosted embedded album demo
+
+- **Demo guide → Load embedded album demo** no longer switches to Player before ingest completes (race that dropped `pendingAlbumPackage` on first mount).
+- Landing badge copy: **MP5 Beta Candidate** (was **MP5 Alpha**).
+- Expanded hosted QA e2e (`test:e2e:hosted` 11/11) including embedded album, mobile viewport, diagnostics trace toggle.
+
+### Milestone — Manual QA sign-off
+
+- Hosted desktop + mobile QA pass at https://mp5-audio.vercel.app.
+- **Ready to tag public Beta** (maintainer decision; still experimental, not production-ready).
+
+## [0.16.0-beta-candidate] - 2026-05
+
+### Milestone — Beta Candidate declaration
+
+- First **Beta Candidate** release — public demo candidate at https://mp5-audio.vercel.app; still experimental, not production-ready.
+- Version badge: **MP5 Beta Candidate · v0.16.0-beta-candidate**.
+- All automated gates pass (`pnpm test`, `test:e2e`, `alpha:check`, `beta:check`, `playback:check`, `deploy:check`).
+- Embedded `.mp5p` (incl. HADES-scale manual QA), hosted demo, and package validation accepted.
+
+**Not claimed:** full public Beta, production-ready, beats MP3/AAC/Opus/FLAC, legal proof, DRM, universal support.
+
+## [0.15.7-alpha] - 2026-05
+
+### Fixed — Beta gate doc encoding
+
+- `docs/MP5_MANUAL_QA_CHECKLIST.md` saved as UTF-8 (was UTF-16), fixing `betaReadiness.test.ts` / `alpha:check` failure on Windows.
+
+### Milestone — Final local gate cleanup
+
+- Clean `CI=1` runs: `test:e2e` (75/75), `alpha:check`, and `beta:check` all pass with port 5173 free.
 
 ## [0.15.6-alpha] - 2026-05
 
@@ -128,7 +173,11 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.15.6-alpha...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta...HEAD
+[0.16.1-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta-candidate...v0.16.1-beta
+[0.16.1-beta-candidate]: https://github.com/cjocollin/MP5-audio/compare/v0.16.0-beta-candidate...v0.16.1-beta-candidate
+[0.16.0-beta-candidate]: https://github.com/cjocollin/MP5-audio/compare/v0.15.7-alpha...v0.16.0-beta-candidate
+[0.15.7-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.6-alpha...v0.15.7-alpha
 [0.15.6-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.5-alpha...v0.15.6-alpha
 [0.15.5-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.4-alpha...v0.15.5-alpha
 [0.15.4-alpha]: https://github.com/cjocollin/MP5-audio/compare/v0.15.3-alpha...v0.15.4-alpha

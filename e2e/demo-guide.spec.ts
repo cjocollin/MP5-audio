@@ -14,6 +14,13 @@ test.describe("demo guide", () => {
     await expect(page.getByTestId("demo-load-embedded-album")).toBeVisible();
   });
 
+  test("loads embedded album demo from demo tab", async ({ page }) => {
+    await page.getByTestId("demo-load-embedded-album").click();
+    await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");
+    await expect(page.getByTestId("album-package-panel")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("album-resolved-count")).toContainText("embedded");
+  });
+
   test("load MP5-L demo from demo tab", async ({ page }) => {
     await page.getByTestId("demo-load-demo-play").click();
     await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");

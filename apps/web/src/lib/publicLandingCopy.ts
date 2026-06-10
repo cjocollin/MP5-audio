@@ -11,7 +11,7 @@ export const FORMAT_MP5P_EXPLAINER =
   ".mp5p = one smart album/package — manifest (sidecar .mp5 files) or embedded (self-contained). Experimental.";
 
 export const LANDING_BADGES = [
-  "MP5 Alpha",
+  "MP5 Public Beta",
   "MP5-L v3 default",
   ".mp5 + .mp5p",
   "PWA-ready",

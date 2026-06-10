@@ -2,17 +2,17 @@
 
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
-[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.15.6--alpha-lightgrey)](CHANGELOG.md#0156-alpha---2026-05)
+[![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
+[![Version](https://img.shields.io/badge/version-v0.16.1--beta-blue)](CHANGELOG.md#0161-beta---2026-05)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.15.6-alpha** · **Hosted demo:** https://mp5-audio.vercel.app **accepted** (May 2026)
+**Version:** MP5 Audio **v0.16.1-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
 
-MP5 Alpha uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only.
+MP5 Public Beta uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only.
 
 **Compatibility toolkit:** [`docs/MP5_CHUNK_REGISTRY.md`](docs/MP5_CHUNK_REGISTRY.md) · [`docs/MP5_COMPATIBILITY_POLICY.md`](docs/MP5_COMPATIBILITY_POLICY.md) · `pnpm inspect:mp5 <file>` · `pnpm validate:mp5 <file>`
 
@@ -32,7 +32,7 @@ In plain terms: **MP5** (`.mp5`) is a smart audio container for music, podcasts,
 
 | Area | Status |
 | ---- | ------ |
-| **Overall** | **Alpha / experimental** — research-focused, not production-ready |
+| **Overall** | **Public Beta / experimental** — browser-based preview, not production-ready |
 | **MP5-L v3** | **Recommended** stable lossless path — bit-exact roundtrip |
 | **MP5-C** | **Experimental** — known hiss/artifact limitations; lab-only |
 | **MP5-H** | **Experimental** — hybrid + CORR; large files; not default |

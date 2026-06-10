@@ -4,7 +4,7 @@ import { APP_VERSION } from "../generated/appVersion";
 export function AppVersionBadge() {
   return (
     <p className="text-[10px] text-gray-600 font-mono" data-testid="app-version">
-      MP5 Alpha · v{APP_VERSION}
+      MP5 Public Beta · v{APP_VERSION}
     </p>
   );
 }

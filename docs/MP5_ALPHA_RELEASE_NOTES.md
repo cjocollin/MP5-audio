@@ -1,4 +1,18 @@
-# MP5 Alpha release notes
+# MP5 release notes (Alpha + Beta Candidate)
+
+## v0.16.0-beta-candidate — Beta Candidate declaration (May 2026)
+
+**Version:** MP5 Audio **v0.16.0-beta-candidate**
+
+**Status:** First **Beta Candidate** — public demo candidate at https://mp5-audio.vercel.app. Still experimental; **not** production-ready. **Not** a full public Beta tag.
+
+**Accepted:** Automated gates (test, e2e, playback, alpha, beta, build, deploy), embedded `.mp5p` package validation, HADES-scale manual QA (local), hosted verify + hosted e2e.
+
+**Not claimed:** stable release, production-ready, beats MP3/AAC/Opus/FLAC, legal proof, DRM, universal support.
+
+**Blocks full public Beta:** Manual QA sign-off on Chrome + one mobile browser per [`MP5_MANUAL_QA_CHECKLIST.md`](MP5_MANUAL_QA_CHECKLIST.md).
+
+---
 
 ## v0.15.6-alpha — Hosted demo lock (May 2026)
 

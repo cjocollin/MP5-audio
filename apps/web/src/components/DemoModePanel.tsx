@@ -73,7 +73,6 @@ export function DemoModePanel() {
         );
         return;
       }
-      setActiveTab("player");
       await importAlbumPackageToPlayer(file);
     } finally {
       setAlbumBusy(false);
