@@ -4,9 +4,12 @@ import { join } from "node:path";
 import {
   EMBEDDED_ALBUM_MANIFEST_FORMAT,
   EMBEDDED_MAX_FRAGMENT_PAYLOAD,
+  MAX_ALBUM_MANIFEST_JSON_BYTES,
   detectMp5pPackageKind,
   indexEmbeddedAlbumPackage,
   loadEmbeddedTrackBytes,
+  parseAlbmPackageJson,
+  parseEmbeddedAlbmManifestJson,
   parseMp5,
   reconstructTrackBytesFromFragments,
   setEmbeddedFragmentPayloadTargetForTests,
@@ -94,5 +97,26 @@ describe("embedded album package", () => {
     const bytes = await loadEmbeddedTrackBytes(pkg, index, index.tracks[0]!.trackId);
     const parsed = parseMp5(bytes);
     expect(parsed.head).toBeTruthy();
+  });
+});
+
+describe("embedded package parser hardening", () => {
+  it("rejects oversized JSON manifest text without parsing", () => {
+    const huge = "x".repeat(MAX_ALBUM_MANIFEST_JSON_BYTES + 1);
+    expect(parseAlbmPackageJson(huge).manifest).toBeNull();
+    expect(parseAlbmPackageJson(huge).errors[0]?.message).toMatch(/too large/i);
+    expect(parseEmbeddedAlbmManifestJson(huge).manifest).toBeNull();
+    expect(parseEmbeddedAlbmManifestJson(huge).errors[0]?.message).toMatch(/too large/i);
+  });
+
+  it("rejects a header whose declared manifest length exceeds the cap", () => {
+    const buf = new Uint8Array(64);
+    const v = new DataView(buf.buffer);
+    buf.set([0x4d, 0x50, 0x35, 0x50], 0); // MP5P magic
+    v.setUint32(4, 1, true); // package version
+    v.setUint32(8, 40, true); // header length
+    v.setUint32(12, 40, true); // manifestOffset (lo)
+    v.setUint32(20, MAX_ALBUM_MANIFEST_JSON_BYTES + 1, true); // manifestLength
+    expect(() => indexEmbeddedAlbumPackage(buf)).toThrow(/manifest too large/i);
   });
 });

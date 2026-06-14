@@ -3,6 +3,9 @@ import { LibraryStorageError } from "./errors";
 import { findLibraryDuplicate } from "../fingerprint/duplicates";
 import { parseForLibrary } from "./metadataSummary";
 import { getLibraryStore } from "./store";
+import { deleteSavedAlbum, listSavedAlbums } from "./albumLibrary";
+import { deleteSavedEmbeddedAlbum, listSavedEmbeddedAlbums } from "./embeddedAlbumLibrary";
+import { clearRecentLibrary } from "./recentLibrary";
 import type { LocalLibraryEntry, LocalLibraryRecord, StorageQuotaInfo } from "./types";
 
 export interface SaveToLibraryResult {
@@ -118,6 +121,18 @@ export async function deleteLibraryEntry(id: string): Promise<void> {
 
 export async function clearLocalLibrary(): Promise<void> {
   await getLibraryStore().clearAll();
+}
+
+/** Clear saved tracks, album manifests, embedded packages, and recents. */
+export async function clearAllLibraryData(): Promise<void> {
+  await clearLocalLibrary();
+  for (const album of listSavedAlbums()) {
+    deleteSavedAlbum(album.id);
+  }
+  for (const album of listSavedEmbeddedAlbums()) {
+    deleteSavedEmbeddedAlbum(album.id);
+  }
+  clearRecentLibrary();
 }
 
 export async function getLibraryStorageInfo(): Promise<StorageQuotaInfo> {

@@ -89,6 +89,16 @@ export function SavedAlbumsPanel({ onAlbumOpened }: Props) {
   }
 
   function handleDelete(row: SavedAlbumRow) {
+    const title = row.saved.manifest.album.title;
+    const ok =
+      row.kind === "embedded"
+        ? window.confirm(
+            `Remove embedded album "${title}" and its saved package from this browser? Your original file on disk is not affected.`,
+          )
+        : window.confirm(
+            `Remove manifest album "${title}" from your library? Sidecar tracks stay saved unless you delete them separately.`,
+          );
+    if (!ok) return;
     if (row.kind === "embedded") {
       deleteSavedEmbeddedAlbum(row.saved.id);
     } else {

@@ -22,6 +22,8 @@ export type AlbmPackageFormat =
   | typeof EMBEDDED_ALBUM_MANIFEST_FORMAT;
 export const MAX_ALBUM_TRACKS = 256;
 export const MAX_ALBUM_CREDITS_LEN = 4096;
+/** Upper bound on a `.mp5p` manifest JSON string before parsing (DoS guard). */
+export const MAX_ALBUM_MANIFEST_JSON_BYTES = 8 * 1024 * 1024;
 
 export interface AlbmCoverEmbedded {
   type: "embedded";
@@ -275,6 +277,9 @@ export function parseAlbmPackageJson(text: string): {
   manifest: AlbmPackageManifest | null;
   errors: AlbmValidationError[];
 } {
+  if (text.length > MAX_ALBUM_MANIFEST_JSON_BYTES) {
+    return { manifest: null, errors: [{ path: "", message: "Manifest JSON too large" }] };
+  }
   try {
     const parsed = JSON.parse(text) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {

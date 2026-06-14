@@ -1,0 +1,20 @@
+# Normalize text files to LF in the repo, regardless of contributor OS.
+* text=auto eol=lf
+
+# Binary assets - never normalize or diff as text.
+*.mp5 binary
+*.mp5p binary
+*.wasm binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.flac binary
+*.wav binary
+*.mp3 binary
+*.m4a binary
+*.ogg binary

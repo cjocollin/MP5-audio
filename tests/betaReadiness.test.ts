@@ -103,7 +103,7 @@ describe("Public Beta hardening", () => {
       decodeCacheSummary: "0/3",
       librarySummary: "0 entries",
     });
-    expect(report).toMatch(/0\.16\.2-beta/);
+    expect(report).toMatch(/0\.17\.1-beta/);
     expect(report).toMatch(/No telemetry/i);
   });
 });
@@ -217,13 +217,13 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.16.2-beta", () => {
-    expect(packageJson.version).toBe("0.16.2-beta");
+  it("package.json is 0.17.1-beta", () => {
+    expect(packageJson.version).toBe("0.17.1-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {
     const status = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(status).toMatch(/0\.16\.[12]-beta|Public Beta/i);
+    expect(status).toMatch(/0\.17\.1-beta|0\.17\.0-beta|0\.16\.[12]-beta|Public Beta/i);
     expect(status).toMatch(/MP5_PUBLIC_BETA|MP5_BETA_READINESS|beta:check/i);
   });
 });

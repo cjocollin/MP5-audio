@@ -23,3 +23,7 @@ logs/
 acceptance-*.log
 *.log
 !logs/acceptance/README.md
+
+# Generated build / test artifacts
+*.tsbuildinfo
+test-results/

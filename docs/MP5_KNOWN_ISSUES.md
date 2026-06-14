@@ -1,7 +1,7 @@
 # MP5 Known Issues
 
-**Version:** MP5 Audio v0.16.1-beta (Public Beta)  
-**Last updated:** 2026-05-22
+**Version:** MP5 Audio v0.17.1-beta (Public Beta)  
+**Last updated:** 2026-06-14
 
 ## Product scope
 
@@ -41,6 +41,17 @@ MP5 is **experimental** and **browser-based**. This document lists honest limita
 ## Flaky CI
 
 - `e2e/playback-regression.spec.ts` test E (late Lead Vocal join) may flake under full `alpha:check` load; re-run is usually clean. Not treated as a product blocker for Public Beta.
+
+## Library
+
+- **Browser storage limits** — Saved tracks and embedded packages share browser quota; very large `.mp5p` files may fail to save or be evicted if the user clears site data.
+- **Manifest albums** — `.mp5p` manifest entries reference sidecar `.mp5` files; tracks must remain in the library for full album playback.
+- **Recently opened** — Metadata only unless saved; file-picker opens cannot be reopened after refresh without saving or re-selecting the file.
+- **No cloud sync** — Library data is per-browser profile only.
+
+## Dev toolchain
+
+- **`pnpm audit` (dev-only):** One remaining **high** finding in transitive `esbuild@0.25.x` (via `vite@6.4.2` under Vitest). Advisory GHSA-gv7w-rqvm-qjhr targets Deno module install paths — not exploitable in this Node/pnpm CI workflow. Patched in `esbuild@>=0.28.1`, which requires a **Vite major upgrade** (6→8); deferred for v0.17.1-beta to avoid destabilizing the production build. Vitest was upgraded to `^3.2.6`, clearing the prior critical Vitest UI advisory and other moderate Vite/esbuild findings.
 
 ## Reporting
 

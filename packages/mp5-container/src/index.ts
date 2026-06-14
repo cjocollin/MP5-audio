@@ -102,6 +102,7 @@ export {
   ALBUM_MANIFEST_FORMAT,
   EMBEDDED_ALBUM_MANIFEST_FORMAT,
   MAX_ALBUM_TRACKS,
+  MAX_ALBUM_MANIFEST_JSON_BYTES,
   encodeAlbmPackage,
   decodeAlbm,
   parseAlbmPackageJson,

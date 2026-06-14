@@ -1,41 +1,49 @@
 # MP5 Beta Readiness
 
-**Version:** MP5 Audio v0.16.1-beta  
-**Status:** **Public Beta accepted** (2026-05-22)
+**Version:** MP5 Audio v0.17.1-beta  
+**Status:** **Public Beta accepted — audit cleanup closeout** (2026-06-14)
 
 ## Decision
 
-**MP5 Audio v0.16.1-beta is accepted as Public Beta.**
+**MP5 Audio v0.17.1-beta is accepted as Public Beta.**
 
-The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) ships as **MP5 Public Beta · v0.16.1-beta** with honest experimental wording preserved.
+The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) ships as **MP5 Public Beta · v0.17.1-beta** with honest experimental wording preserved.
 
-## Gate summary (v0.16.1-beta tagging pass)
+## Gate summary (v0.17.1-beta tagging pass)
 
 | Gate | Result |
 |------|--------|
-| `pnpm test` | Pass |
-| `CI=1 pnpm test:e2e` | Pass |
-| `pnpm playback:check` | Pass |
+| `pnpm lint` | Pass |
+| `pnpm test` | Pass (461) |
+| `pnpm test:compat` | Pass (25) |
+| `CI=1 pnpm test:e2e` | Pass (79) |
+| `pnpm playback:check` | Pass (6 playback regression; test E occasionally flaky under full-suite load — known, not a blocker) |
 | `CI=1 pnpm alpha:check` | Pass |
 | `CI=1 pnpm beta:check` | Pass |
 | `pnpm build` | Pass |
 | `pnpm deploy:check` | Pass |
 | Package fixtures | Pass |
-| HADES local QA | Pass (when file present) |
-| `hosted:verify` | Pass (post-deploy) |
-| `test:e2e:hosted` | 11/11 (post-deploy) |
-| Public claims audit | Pass |
-| Physical phone spot-check | Pending optional (automated mobile viewport QA passed) |
+| HADES local QA | Pass (Melanie Martinez - HADES.mp5p, package profile) |
+| `hosted:verify` | _pending post-deploy_ |
+| `test:e2e:hosted` | _pending post-deploy_ |
 
-## Path to Public Beta
+## Dependency audit (v0.17.1-beta)
 
-1. **v0.16.0-beta-candidate** — Beta Candidate declaration, gates, deploy.
-2. **v0.16.1-beta-candidate** — Manual hosted QA, embedded album race fix, 11/11 hosted e2e.
-3. **v0.16.1-beta** — Final local gates, version bump, deploy, Public Beta tag.
+| Before | After |
+|--------|-------|
+| 5 findings (1 critical, 2 high, 2 moderate) | 1 high (dev-only) |
 
-## Blocker resolved (v0.16.1-beta-candidate)
+- **Vitest** `2.1.9` → `3.2.6` — clears critical Vitest UI advisory and most Vite/esbuild transitives.
+- **Remaining:** `esbuild@0.25.x` via `vite@6.4.2` (GHSA-gv7w-rqvm-qjhr, Deno-specific). **Accepted** for v0.17.1-beta; fix requires Vite major upgrade — **deferred**.
 
-**Embedded album demo race** in `DemoModePanel.tsx`: premature tab switch before `importAlbumPackageToPlayer()` completed. Fixed by removing early `setActiveTab("player")`.
+## Parser hardening (v0.17.1-beta)
+
+Guards only — no MP5/STDF/MP5P format semantics change:
+
+- Embedded `.mp5p`: `validateFileSize`, manifest/directory length caps, fragment `recordLength` cap.
+- Manifest JSON: `MAX_ALBUM_MANIFEST_JSON_BYTES` (8 MiB) before `JSON.parse`.
+- Metadata prefix parser: `MAX_CHUNKS` and `MAX_CHUNK_PAYLOAD` limits.
+- Ingest: file-size checks before reading whole `.mp5p` blobs.
 
 ## What must NOT be claimed (public)
 
@@ -56,7 +64,9 @@ The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) 
 ## Verification commands
 
 ```bash
+pnpm lint
 pnpm test
+pnpm test:compat
 CI=1 pnpm test:e2e
 pnpm playback:check
 CI=1 pnpm alpha:check

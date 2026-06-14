@@ -1,7 +1,7 @@
 {
   "name": "mp5",
   "private": true,
-  "version": "0.16.2-beta",
+  "version": "0.17.1-beta",
   "description": "MP5 experimental audio format ecosystem",
   "license": "MIT",
   "scripts": {
@@ -55,7 +55,7 @@
   "devDependencies": {
     "@playwright/test": "^1.51.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^3.2.6"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {

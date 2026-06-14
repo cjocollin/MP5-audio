@@ -21,7 +21,7 @@ test.describe("MP5 hosted demo", () => {
     await page.goto("/");
     await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
     await expect(page.getByTestId("app-version")).toContainText("MP5 Public Beta");
-    await expect(page.getByTestId("app-version")).toContainText("v0.16.2-beta");
+    await expect(page.getByTestId("app-version")).toContainText("v0.17.1-beta");
   });
 
   test("app shell and honest tagline", async ({ page }) => {

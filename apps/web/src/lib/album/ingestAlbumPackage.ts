@@ -1,4 +1,6 @@
 import {
+  MAX_ALBUM_MANIFEST_JSON_BYTES,
+  MAX_FILE_SIZE,
   auditAlbmPackageManifest,
   auditEmbeddedAlbumPackage,
   indexEmbeddedAlbumPackage,
@@ -51,6 +53,14 @@ async function ingestEmbeddedManifestFile(
   existingTracks: PlaylistTrack[],
   onMp5Progress?: IngestProgressCallback,
 ): Promise<AlbumIngestResult> {
+  if (manifestFile.size > MAX_FILE_SIZE) {
+    return {
+      album: null,
+      mp5: { tracks: [], dropErrors: [], addedCount: 0, skippedCount: 0, unreadableCount: 0 },
+      manifestError: USER_ERRORS.albumManifestInvalid,
+      manifestName: manifestFile.name,
+    };
+  }
   const buf = await manifestFile.arrayBuffer();
   const bytes = new Uint8Array(buf);
   if (!isEmbeddedMp5pBytes(bytes)) {
@@ -114,6 +124,15 @@ export async function ingestAlbumPackageFiles(
   const head = new Uint8Array(await manifestFile.slice(0, 4).arrayBuffer());
   if (isEmbeddedMp5pBytes(head)) {
     return ingestEmbeddedManifestFile(manifestFile, existingTracks, onMp5Progress);
+  }
+
+  if (manifestFile.size > MAX_ALBUM_MANIFEST_JSON_BYTES) {
+    return {
+      album: null,
+      mp5: mp5Result,
+      manifestError: USER_ERRORS.albumManifestInvalid,
+      manifestName: manifestFile.name,
+    };
   }
 
   let text: string;

@@ -3,14 +3,14 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.16.2--beta-blue)](CHANGELOG.md#0162-beta---2026-05)
+[![Version](https://img.shields.io/badge/version-v0.17.1--beta-blue)](CHANGELOG.md#0171-beta---2026-06)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.16.2-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
+**Version:** MP5 Audio **v0.17.1-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
 
 **Report bugs:** [GitHub Issues](https://github.com/cjocollin/MP5-audio/issues/new/choose) · In hosted app: **Settings → Report a bug / Give feedback** · Paste **Settings → Diagnostics → Copy diagnostics** (no files uploaded automatically)
 
@@ -120,7 +120,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full setup, fixture rules, and PR e
 
 **Performance (v0.8):** Settings → **Diagnostics** shows queue size, decode cache, library storage, WASM/FFmpeg status, and conversion activity. Calm warnings appear for very large files, long batches, stem RAM limits, and storage pressure. First load downloads WASM + FFmpeg (~31 MB for non-WAV conversion).
 
-**Local library:** **Library** tab → save `.mp5` files on this device (IndexedDB). Search, play, download again, or add to the player queue. Nothing is uploaded to a server; clearing browser data may remove saved files. Large exports can use significant storage.
+**Local library:** **Library** tab → save `.mp5` tracks and `.mp5p` album packages on this device only (IndexedDB + localStorage). Unified collection view with search/filter/sort, storage usage, recently opened metadata, and clear actions (play, queue, download, delete). Embedded `.mp5p` packages stay lazy until you open or play them. Nothing is uploaded; clearing site data may remove saved copies. Keep originals backed up.
 
 **Optional stems:** Converter **Stems** section — add WAV/FLAC stems manually (no AI). Full mix stays in AUDI; **STDA** (small) or **STDF** (large embedded sets). Player uses **lazy stem load** — solo or prepare selected stems; karaoke prefers instrumental-only decode. See [`docs/MP5_STEMS.md`](docs/MP5_STEMS.md).
 

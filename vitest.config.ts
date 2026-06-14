@@ -11,5 +11,7 @@ export default defineConfig({
     include: ["tests/**/*.test.ts", "packages/**/src/**/*.test.ts"],
     // compatibilityPass.test.ts requires generated fixtures — run via pnpm compatibility:check
     environment: "node",
+    // Vitest 3 default 5s is too tight for large STDF/stem encode tests under CI load.
+    testTimeout: 20_000,
   },
 });

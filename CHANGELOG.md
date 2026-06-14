@@ -8,6 +8,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.17.1-beta] - 2026-06
+
+### Milestone — Audit cleanup closeout + release gate
+
+- **Library polish (carried from v0.17.0):** unified collection view, search/filter/sort, storage stats, recents, embedded lazy cards, delete confirmations.
+- **Repo hygiene:** removed throwaway generator scripts; `.gitignore` now excludes `*.tsbuildinfo` and `test-results/`; added `.gitattributes` for LF-normalized text.
+- **Dev toolchain:** Vitest `^2.1.8` → `^3.2.6`; global test timeout raised to 20s for heavy STDF/stem tests under CI load; `pnpm audit` reduced from 5 findings (1 critical) to 1 dev-only high (esbuild via Vite 6 — accepted; Vite major upgrade deferred).
+- **Parser hardening (guards only, no format semantics change):** embedded `.mp5p` file-size cap; manifest/directory length caps; fragment `recordLength` cap; `MAX_ALBUM_MANIFEST_JSON_BYTES` before `JSON.parse`; metadata prefix parser chunk/payload limits; ingest size checks.
+- **Fix:** manifest album `sizeBytes` uses UTF-8 byte count, not JS string length.
+- **Tests:** 2 embedded package hardening tests added.
+
+**Still not claimed:** production-ready, beats MP3/AAC/Opus/FLAC, DRM, legal proof, AI stems, cloud sync.
+
+## [0.17.0-beta] - 2026-05
+
+### Milestone — Library / Saved Albums polish
+
+- Unified **Library** collection view: saved tracks, manifest albums, embedded `.mp5p` packages, and recently opened items.
+- Search, filter (kind), and sort across library items without parsing embedded blobs for cards.
+- Storage usage panel with app-managed totals and browser quota when available.
+- Item actions: play/queue/download/delete with confirmations; album open/play/download; copy summary; recent reopen/remove.
+- Privacy copy: local-only storage, site-data warnings, no upload, no rights verification.
+- Embedded package cards use cached manifest metadata only (lazy on open/play).
+
+**Still not claimed:** production-ready, beats MP3/AAC/Opus/FLAC, DRM, legal proof, AI stems, cloud sync.
+
 ## [0.16.2-beta] - 2026-05
 
 ### Milestone — Public Beta hardening + feedback loop
@@ -185,7 +211,9 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.16.2-beta...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.17.1-beta...HEAD
+[0.17.1-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.17.0-beta...v0.17.1-beta
+[0.17.0-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.2-beta...v0.17.0-beta
 [0.16.2-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta...v0.16.2-beta
 [0.16.1-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta-candidate...v0.16.1-beta
 [0.16.1-beta-candidate]: https://github.com/cjocollin/MP5-audio/compare/v0.16.0-beta-candidate...v0.16.1-beta-candidate

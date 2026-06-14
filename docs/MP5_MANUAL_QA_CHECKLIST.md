@@ -1,6 +1,6 @@
 # MP5 Manual QA checklist
 
-**Version:** MP5 Audio **v0.16.2-beta**  
+**Version:** MP5 Audio **v0.17.1-beta**  
 **Purpose:** Public Beta smoke. Synthetic fixtures on hosted demo; local fixtures for Pity Party / sidecar manifest.  
 **Sign-off date:** May 2026 · **Hosted URL:** https://mp5-audio.vercel.app
 
@@ -72,6 +72,19 @@ Use https://mp5-audio.vercel.app on a phone browser. No large copyrighted local 
 - [ ] **Not tested** — App does not feel frozen after loading demos
 
 **Note:** Automated mobile viewport QA (section J) passed; section L is optional manual confirmation on a physical device.
+
+---
+
+## M. Library collection (v0.17.x)
+
+- [ ] Library tab shows empty state on first visit
+- [ ] Save `.mp5` track → appears under Saved tracks with play/queue/download/delete
+- [ ] Save manifest or embedded album → appears under Saved albums with package badges
+- [ ] Search/filter/sort controls work; large embedded metadata does not freeze the view
+- [ ] Delete confirms browser-local removal only
+- [ ] Storage stats line shows counts and approximate bytes
+- [ ] Recently opened updates after play (metadata only for unsaved file opens)
+- [ ] Mobile viewport: filters and card actions usable
 
 ---
 

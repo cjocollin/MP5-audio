@@ -14,6 +14,8 @@ test.describe("local library", () => {
     await input.setInputFiles(fixture);
     await expect(page.getByTestId("local-library-status")).toContainText(/Saved/i, { timeout: 15_000 });
     await expect(page.getByTestId("local-library-item")).toHaveCount(1);
+    await expect(page.getByTestId("library-section-tracks")).toBeVisible();
+    await expect(page.getByTestId("library-storage-stats")).toBeVisible();
 
     await page.getByTestId("local-library-play").click();
     await page.locator("nav").getByRole("button", { name: "Player", exact: true }).click();
@@ -33,5 +35,36 @@ test.describe("local library", () => {
 
     await page.getByTestId("local-library-search").fill("zzz-no-match");
     await expect(page.getByTestId("local-library-no-matches")).toBeVisible();
+  });
+
+  test("filter and sort controls are present", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Library" }).click();
+    await expect(page.getByTestId("library-kind-filter")).toBeVisible();
+    await expect(page.getByTestId("library-sort")).toBeVisible();
+    await page.getByTestId("library-kind-filter").selectOption("tracks");
+    await page.getByTestId("library-sort").selectOption("title-asc");
+  });
+
+  test("delete confirmation appears for saved track", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Library" }).click();
+    await page.getByTestId("local-library-file-input").setInputFiles(fixture);
+    await expect(page.getByTestId("local-library-item")).toHaveCount(1, { timeout: 15_000 });
+
+    page.once("dialog", (dialog) => {
+      expect(dialog.message()).toMatch(/browser-local saved copy/i);
+      dialog.dismiss();
+    });
+    await page.getByTestId("local-library-delete").click();
+  });
+
+  test("mobile library layout is usable", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Library" }).click();
+    await expect(page.getByTestId("local-library-panel")).toBeVisible();
+    await expect(page.getByTestId("local-library-search")).toBeVisible();
+    await expect(page.getByTestId("library-kind-filter")).toBeVisible();
   });
 });

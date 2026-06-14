@@ -4,6 +4,8 @@ import {
   FILE_HEADER_SIZE,
   MAGIC_STR,
   MAJOR_VERSION,
+  MAX_CHUNKS,
+  MAX_CHUNK_PAYLOAD,
   crc32,
   decodeCover,
   decodeMeta,
@@ -33,12 +35,15 @@ export function parseMp5MetadataPrefix(buffer: ArrayBuffer | Uint8Array): Pick<
   if (magic !== MAGIC_STR || data[4] !== MAJOR_VERSION) return out;
 
   let offset = FILE_HEADER_SIZE;
+  let chunkCount = 0;
   while (offset + CHUNK_HEADER_SIZE <= data.length) {
+    if (++chunkCount > MAX_CHUNKS) break;
     const hv = new DataView(data.buffer, data.byteOffset + offset);
     const fourcc = readFourCC(hv, 0);
     const payloadSize = hv.getUint32(4, true);
     const flags = hv.getUint16(8, true);
     const storedCrc = hv.getUint32(12, true);
+    if (payloadSize > MAX_CHUNK_PAYLOAD) break;
     const payloadStart = offset + CHUNK_HEADER_SIZE;
     const payloadEnd = payloadStart + payloadSize;
     if (payloadEnd > data.length) break;

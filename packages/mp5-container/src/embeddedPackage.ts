@@ -3,9 +3,11 @@ import { MAX_CHUNK_PAYLOAD } from "./constants.js";
 import { Mp5SecurityError } from "./errors.js";
 import { sanitizeJsonString } from "./chunkJson.js";
 import { sha256HexDigest } from "./sha256Digest.js";
+import { validateFileSize } from "./validator.js";
 import {
   ALBUM_MANIFEST_FORMAT,
   EMBEDDED_ALBUM_MANIFEST_FORMAT,
+  MAX_ALBUM_MANIFEST_JSON_BYTES,
   MAX_ALBUM_TRACKS,
   auditAlbmPackageManifest,
   validateAlbmPackageManifest,
@@ -26,6 +28,10 @@ export { EMBEDDED_ALBUM_MANIFEST_FORMAT };
 export const EMBEDDED_DEFAULT_FRAGMENT_PAYLOAD = 12 * 1024 * 1024;
 /** Hard cap per fragment inner payload. */
 export const EMBEDDED_MAX_FRAGMENT_PAYLOAD = 16 * 1024 * 1024;
+/** Hard cap per on-disk fragment record (header + payload) — bounds slice reads. */
+export const EMBEDDED_MAX_FRAGMENT_RECORD = EMBEDDED_MAX_FRAGMENT_PAYLOAD + 1024;
+/** Hard cap on the binary track directory blob (bounded by MAX_ALBUM_TRACKS entries). */
+export const EMBEDDED_MAX_DIRECTORY_BYTES = 16 * 1024 * 1024;
 
 export const EMBEDDED_FILE_HEADER_SIZE = 40;
 export const EMBEDDED_MAX_TRACK_ID_LEN = 128;
@@ -192,6 +198,9 @@ export function parseEmbeddedAlbmManifestJson(text: string): {
   manifest: AlbmPackageManifest | null;
   errors: AlbmValidationError[];
 } {
+  if (text.length > MAX_ALBUM_MANIFEST_JSON_BYTES) {
+    return { manifest: null, errors: [{ path: "", message: "Manifest JSON too large" }] };
+  }
   try {
     const parsed = JSON.parse(text) as unknown;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -454,6 +463,9 @@ function decodeDirectory(data: Uint8Array, fileSize: number): EmbeddedTrackDirec
       if (recordOffset >= fileSize || recordOffset + recordLength > fileSize) {
         throw new Mp5SecurityError(`Embedded fragment record out of bounds (track ${trackId} part ${partIndex})`);
       }
+      if (recordLength > EMBEDDED_MAX_FRAGMENT_RECORD) {
+        throw new Mp5SecurityError(`Embedded fragment record too large (track ${trackId} part ${partIndex})`);
+      }
       if (payloadLength > EMBEDDED_MAX_FRAGMENT_PAYLOAD) {
         throw new Mp5SecurityError(`Embedded fragment payload too large (track ${trackId} part ${partIndex})`);
       }
@@ -501,6 +513,12 @@ function parseFileHeader(data: Uint8Array): {
   const directoryOffset = readU64(v, 24);
   const directoryLength = v.getUint32(32, true);
   const fragmentDataOffset = readU64(v, 36);
+  if (manifestLength > MAX_ALBUM_MANIFEST_JSON_BYTES) {
+    throw new Mp5SecurityError("Embedded manifest too large");
+  }
+  if (directoryLength > EMBEDDED_MAX_DIRECTORY_BYTES) {
+    throw new Mp5SecurityError("Embedded directory too large");
+  }
   if (manifestOffset + manifestLength > data.length) {
     throw new Mp5SecurityError("Embedded manifest out of bounds");
   }
@@ -519,6 +537,7 @@ function parseFileHeader(data: Uint8Array): {
 
 /** Lazy index — reads header, manifest JSON, and track directory only. */
 export function indexEmbeddedAlbumPackage(data: Uint8Array): EmbeddedAlbumPackageIndex {
+  validateFileSize(data.length);
   const header = parseFileHeader(data);
   const manifestText = new TextDecoder().decode(
     data.slice(header.manifestOffset, header.manifestOffset + header.manifestLength),
