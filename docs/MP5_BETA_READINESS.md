@@ -24,8 +24,8 @@ The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) 
 | `pnpm deploy:check` | Pass |
 | Package fixtures | Pass |
 | HADES local QA | Pass (Melanie Martinez - HADES.mp5p, package profile) |
-| `hosted:verify` | _pending post-deploy_ |
-| `test:e2e:hosted` | _pending post-deploy_ |
+| `hosted:verify` | Pass |
+| `test:e2e:hosted` | 11/11 Pass |
 
 ## Dependency audit (v0.17.1-beta)
 
