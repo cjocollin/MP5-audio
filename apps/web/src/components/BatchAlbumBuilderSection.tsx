@@ -27,6 +27,9 @@ import {
 } from "../lib/album/buildAlbumFromBatchItems";
 import { openBatchExportInPlayer, redownloadBatchExport } from "../lib/album/openBatchExportInPlayer";
 import { formatPackageBytes, LIBRARY_STORAGE_NOTE } from "../lib/album/albumPackageUi";
+import { EXPORT_REVIEW_NOTES, guidanceForTarget } from "../lib/album/packageGuidance";
+import { buildPackageSummaryText } from "../lib/album/exportReview";
+import { recordExportContext } from "../lib/sessionDiagnostics";
 import { saveAlbumPackage } from "../lib/localLibrary/albumLibrary";
 import { saveEmbeddedAlbumPackage } from "../lib/localLibrary/embeddedAlbumLibrary";
 import { usePlayerStore } from "../store/playerStore";
@@ -56,6 +59,7 @@ export function BatchAlbumBuilderSection({
 }: Props) {
   const [exportBusy, setExportBusy] = useState(false);
   const [exportNote, setExportNote] = useState("");
+  const [exportStage, setExportStage] = useState("");
   const [lastExport, setLastExport] = useState<BatchAlbumExportResult | null>(null);
   const { appendTracks, setActiveTab, setCurrentIndex } = usePlayerStore();
 
@@ -161,6 +165,7 @@ export function BatchAlbumBuilderSection({
   async function handleExport() {
     setExportBusy(true);
     setExportNote("");
+    setExportStage("Preparing files…");
     try {
       if (album.exportTarget === "embedded") {
         const mb = preview.estimatedEmbeddedBytes / (1024 * 1024);
@@ -168,13 +173,36 @@ export function BatchAlbumBuilderSection({
           const ok = window.confirm(
             `Embedded album package is about ${mb.toFixed(0)} MB. This may be slow to build and download. Continue?`,
           );
-          if (!ok) return;
+          if (!ok) {
+            setExportStage("");
+            return;
+          }
         }
       }
       const exportMetas = applyAlbumMetaToTracks(trackMetas, album);
       const synced = syncBatchOutputFilenames(items, exportMetas, album);
       setItems(synced);
+      setExportStage(
+        album.exportTarget === "embedded"
+          ? "Building & embedding package…"
+          : album.exportTarget === "manifest"
+            ? "Building manifest & sidecars…"
+            : "Preparing downloads…",
+      );
       const result = await exportBatchAlbumPackage(synced, trackOrder, album, exportMetas);
+      recordExportContext({
+        exportMode: album.exportTarget,
+        codecPreset: "MP5-L v3",
+        trackCount: result.trackCount ?? 0,
+        packageType:
+          album.exportTarget === "embedded"
+            ? "embedded .mp5p"
+            : album.exportTarget === "manifest"
+              ? "manifest .mp5p"
+              : "individual .mp5",
+        warningCount: result.warnings?.length ?? 0,
+        lastExportError: result.ok ? undefined : result.message,
+      });
       if (!result.ok) {
         setExportNote(result.message ?? "Export failed.");
         setLastExport(null);
@@ -192,6 +220,27 @@ export function BatchAlbumBuilderSection({
       setExportNote(e instanceof Error ? e.message : String(e));
     } finally {
       setExportBusy(false);
+      setExportStage("");
+    }
+  }
+
+  async function handleCopyPackageSummary() {
+    if (!lastExport?.ok) return;
+    const text = buildPackageSummaryText({
+      mode: lastExport.exportTarget ?? album.exportTarget,
+      albumTitle: lastExport.manifest?.album.title ?? album.title,
+      albumArtist: lastExport.manifest?.album.albumArtist ?? lastExport.manifest?.album.artist,
+      trackCount: lastExport.trackCount ?? 0,
+      packageFilename: lastExport.packageFilename,
+      totalBytes: lastExport.packageBytes?.byteLength,
+      warnings: lastExport.warnings,
+      verification: lastExport.verification,
+    });
+    try {
+      await navigator.clipboard?.writeText(text);
+      setExportNote("Package summary copied to clipboard.");
+    } catch {
+      setExportNote("Could not copy package summary.");
     }
   }
 
@@ -515,6 +564,58 @@ export function BatchAlbumBuilderSection({
         )}
       </div>
 
+      {album.exportTarget !== "individual" && (() => {
+        const guidance = guidanceForTarget(album.exportTarget);
+        return (
+          <div
+            className="rounded-lg border border-accent/15 bg-surface/40 px-3 py-3 text-xs space-y-2"
+            data-testid="batch-album-review"
+          >
+            <p className="text-gray-300 font-medium">Review before export</p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-gray-400">
+              <dt className="text-gray-600">Mode</dt>
+              <dd data-testid="batch-album-review-mode">{guidance?.title ?? album.exportTarget}</dd>
+              <dt className="text-gray-600">Album</dt>
+              <dd>{album.title.trim() || "(untitled)"}{album.artist.trim() ? ` — ${album.artist.trim()}` : ""}</dd>
+              <dt className="text-gray-600">Tracks</dt>
+              <dd>{preview.trackCount}</dd>
+              <dt className="text-gray-600">Est. size</dt>
+              <dd>
+                {formatBytes(
+                  album.exportTarget === "embedded" ? preview.estimatedEmbeddedBytes : preview.totalBytes,
+                )}
+              </dd>
+              <dt className="text-gray-600">Cover</dt>
+              <dd>{album.cover ? "Album cover set" : `${preview.features.withCover} track cover(s)`}</dd>
+            </dl>
+            {guidance && (
+              <p className="text-gray-500" data-testid="batch-album-review-guidance">
+                <span className="text-gray-400">{guidance.summary}</span> Pros: {guidance.pros.join(", ")}. Cons:{" "}
+                {guidance.cons.join(", ")}.
+              </p>
+            )}
+            {(preview.missingTitle > 0 || preview.missingArtist > 0) && (
+              <p className="text-amber-200/80" data-testid="batch-album-review-missing">
+                {preview.missingTitle > 0 && <>{preview.missingTitle} missing title(s). </>}
+                {preview.missingArtist > 0 && <>{preview.missingArtist} missing artist(s). </>}
+                Harmless — export still works.
+              </p>
+            )}
+            <ul className="text-gray-500 space-y-0.5 list-disc pl-4" data-testid="batch-album-review-notes">
+              <li>{EXPORT_REVIEW_NOTES.mp5lRecommended}</li>
+              <li>{EXPORT_REVIEW_NOTES.browserLocal}</li>
+              <li>{EXPORT_REVIEW_NOTES.keepOriginals}</li>
+            </ul>
+          </div>
+        );
+      })()}
+
+      {exportBusy && exportStage && (
+        <p className="text-xs text-accent/90" data-testid="batch-album-export-stage" aria-live="polite">
+          {exportStage}
+        </p>
+      )}
+
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -578,6 +679,22 @@ export function BatchAlbumBuilderSection({
               ? ` · Size: ${formatPackageBytes(lastExport.packageBytes.byteLength)}`
               : ""}
           </p>
+          {lastExport.verification && (
+            <div data-testid="batch-album-validation">
+              <p className={lastExport.verification.valid ? "text-green-300" : "text-amber-300"}>
+                {lastExport.verification.valid
+                  ? `✓ ${lastExport.verification.summary}`
+                  : `⚠ ${lastExport.verification.summary}`}
+              </p>
+              {lastExport.verification.warnings.length > 0 && (
+                <ul className="text-amber-200/80 list-disc pl-4 mt-0.5">
+                  {lastExport.verification.warnings.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="button"
@@ -602,6 +719,14 @@ export function BatchAlbumBuilderSection({
               data-testid="batch-album-redownload"
             >
               Download again
+            </button>
+            <button
+              type="button"
+              className="text-xs px-2 py-1.5 rounded border border-white/10 text-gray-400 hover:text-gray-200 min-h-[32px]"
+              onClick={() => void handleCopyPackageSummary()}
+              data-testid="batch-album-copy-summary"
+            >
+              Copy summary
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 # MP5 Manual QA checklist
 
-**Version:** MP5 Audio **v0.17.1-beta**  
+**Version:** MP5 Audio **v0.18.0-beta**  
 **Purpose:** Public Beta smoke. Synthetic fixtures on hosted demo; local fixtures for Pity Party / sidecar manifest.  
 **Sign-off date:** May 2026 · **Hosted URL:** https://mp5-audio.vercel.app
 
@@ -88,4 +88,18 @@ Use https://mp5-audio.vercel.app on a phone browser. No large copyrighted local 
 
 ---
 
-**Sign-off:** Public Beta accepted — automated hosted QA + maintainer review · **Date:** May 2026 · **Browser / OS:** Desktop Chrome (Playwright); mobile viewport 375x812 (Playwright); physical phone **pending**
+## N. Export / package polish (v0.18.0-beta)
+
+- [ ] Single export shows progress, summary, and **Copy summary** action
+- [ ] Batch "Download all" never overwrites same-titled tracks (de-duplicated names)
+- [ ] Batch failure: successful items remain, failed rows show a reason, **Retry failed** + **Copy error summary** work
+- [ ] Batch Album Builder shows the **review step** (mode, tracks, size, cover, warnings, guidance, reminders) before export
+- [ ] Manifest and embedded `.mp5p` export show **package validation passed / warning** after export
+- [ ] **Copy summary** on a package produces path-free text
+- [ ] Large embedded package shows a heavy-package warning before building
+- [ ] Diagnostics copy includes export context with no local paths
+- [ ] Mobile viewport: export review and actions usable
+
+---
+
+**Sign-off:** Public Beta accepted — automated hosted QA + maintainer review · **Date:** June 2026 · **Browser / OS:** Desktop Chrome (Playwright); mobile viewport 375x812 (Playwright); physical phone **pending**

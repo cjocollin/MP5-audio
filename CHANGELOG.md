@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.18.0-beta] - 2026-06
+
+### Milestone — Export / Package Polish
+
+Makes exporting and `.mp5p` package creation safer and clearer for Public Beta users. **No format, codec policy, or playback changes.**
+
+- **Safer filenames:** centralized sanitizer guards Windows reserved names and trailing dots; batch and "Download all" exports now de-duplicate filenames so same-titled tracks can't overwrite each other; shared safe `.mp5p` package naming.
+- **Package validation:** pre-export preflight blocks invalid packages (fewer than two tracks, missing embedded payloads, unsafe/duplicate track IDs) while leaving harmless missing metadata as warnings; post-export verification validates the embedded package (header/manifest always, per-fragment CRC under 64 MiB) or manifest JSON and shows "Package validation passed" / a clear warning.
+- **Export review step:** Batch Album Builder shows a pre-export review with mode, album/track summary, estimated size, cover status, missing-metadata warnings, manifest-vs-embedded guidance, and honest reminders (MP5-L recommended, browser-local, keep originals).
+- **Progress + post-export actions:** package build shows staged status; post-export actions include Open in Player, Save to Library, Download again, and **Copy summary** (path-free). Single-file export gains **Copy summary** too.
+- **Recoverable batch failures:** failed items keep successful exports and entered metadata, support retry, and a new **Copy error summary** (redacted, no local paths).
+- **Diagnostics:** Copy diagnostics now includes export context (mode, codec/preset, track count, package type, warning count, last export error) with local paths redacted; no audio data, no auto-upload.
+- **Guidance:** concise manifest `.mp5p` (small, needs sidecars) vs embedded `.mp5p` (self-contained, can be large) explainer at export time.
+- **Tests:** 24 new unit tests (filename sanitization/dedup, preflight, post-export verification, guidance, summary/diagnostics text); e2e for the review panel and embedded package validation/copy actions.
+
+**Still not claimed:** production-ready, beats MP3/AAC/Opus/FLAC, DRM, legal proof, AI stems, cloud sync.
+
 ## [0.17.1-beta] - 2026-06
 
 ### Milestone — Audit cleanup closeout + release gate

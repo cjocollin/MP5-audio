@@ -1,8 +1,8 @@
 # MP5 Public Beta release notes
 
-**Current release:** MP5 Audio **v0.16.2-beta**  
+**Current release:** MP5 Audio **v0.18.0-beta**  
 **Hosted demo:** https://mp5-audio.vercel.app  
-**Last updated:** 2026-05-22
+**Last updated:** 2026-06-15
 
 ---
 
@@ -24,6 +24,17 @@ MP5 is an **experimental, browser-based** open-source audio format, container, c
 | **Album packages** | Manifest and embedded `.mp5p` (experimental) |
 | **Local library** | Browser IndexedDB on this device only |
 | **Hosted demos** | Synthetic MP5-L, karaoke, embedded album |
+
+---
+
+## Exporting & packages (v0.18.0-beta)
+
+- **MP5-L v3** is the recommended lossless default for export. **MP5-C** is lab-only and never the default.
+- **Manifest `.mp5p`** — small index file plus separate sidecar `.mp5` files; keep them together.
+- **Embedded `.mp5p`** — one self-contained file; easiest to share but can be large and memory-heavy.
+- A **review step** before package export summarizes mode, tracks, size, cover, and warnings; packages are validated **before and after** export with a clear pass/warning.
+- Exports run **locally in your browser** — no upload, no cloud sync, no telemetry. Filenames are sanitized and de-duplicated.
+- **Keep your originals backed up.** MP5 does **no rights/legal verification** and makes **no claim** to beat MP3/AAC/Opus/FLAC.
 
 ---
 

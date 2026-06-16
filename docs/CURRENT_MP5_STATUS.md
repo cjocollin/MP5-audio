@@ -1,7 +1,7 @@
 # Current MP5 Status
 
-**Version:** MP5 Audio v0.17.1-beta (Public Beta)  
-**Last updated:** 2026-06-14
+**Version:** MP5 Audio v0.18.0-beta (Public Beta)  
+**Last updated:** 2026-06-15
 
 ## What MP5 is today
 
@@ -16,8 +16,18 @@ MP5 is an **experimental, browser-based** music format and player stack. The hos
 | **MP5-H** | Large / experimental — not default |
 | **`.mp5p`** | Experimental album package — browser memory limits apply |
 
+## Exporting & packages
+
+- **MP5-L v3** is the recommended lossless default for all exports. **MP5-C** is lab-only and never the default. The batch and album builders always use MP5-L.
+- **Manifest `.mp5p`** is a small index that references separate sidecar `.mp5` files — easy to inspect, but the files must travel together.
+- **Embedded `.mp5p`** packs every track into one self-contained file — easiest to share, but can be large and use significant browser memory/storage.
+- All conversion and packaging happens **locally in your browser** — nothing is uploaded, no cloud sync, no telemetry.
+- Large packages (HADES-scale) remain possible locally but are clearly flagged as heavy; deep validation of very large embedded packages may be deferred to CLI tools.
+- **Keep your original source files backed up** — exports never replace them. MP5 performs **no rights/legal verification** and makes **no claim** to beat MP3/AAC/Opus/FLAC.
+
 ## Recent milestone
 
+- **v0.18.0-beta** — Export / Package polish: pre-export review step, package preflight + post-export validation, safe/de-duplicated filenames, manifest-vs-embedded guidance, copyable export/error summaries, and export context in diagnostics. No format or codec policy changes.
 - **v0.17.1-beta** — Audit cleanup closeout: repo hygiene, Vitest upgrade, embedded `.mp5p` parser hardening, manifest JSON size caps, UTF-8 storage stats fix.
 - **v0.17.0-beta** — Library polish: unified saved tracks/albums view, search/filter/sort, storage stats, recents, embedded package lazy cards.
 - **v0.16.2-beta** — Public Beta hardening: feedback path, diagnostics copy, issue templates, first-user guidance.

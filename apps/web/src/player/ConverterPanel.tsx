@@ -19,6 +19,8 @@ import { buildExportSummary, type ExportSummary } from "../converter/exportSumma
 import { LOAD_PHASE_LABELS, runExportPipeline } from "../converter/exportPipeline";
 import { importMp5ToPlayer } from "./playerImport";
 import { saveMp5ToLibrary } from "../lib/localLibrary/api";
+import { buildSingleExportSummaryText } from "../lib/album/exportReview";
+import { recordExportContext } from "../lib/sessionDiagnostics";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
 import {
   USER_ERRORS,
@@ -474,6 +476,13 @@ export function ConverterPanel() {
       setLastExportFile(file);
       setExportSummary(summary);
       setExportDone(true);
+      recordExportContext({
+        exportMode: "single",
+        codecPreset: `${exportCodec.toUpperCase()} preset ${preset}`,
+        trackCount: 1,
+        packageType: "single .mp5",
+        warningCount: fingerprintWarning ? 1 : 0,
+      });
       if (fingerprintWarning) {
         setStatus((s) => `${s} ${fingerprintWarning}`.trim());
       }
@@ -492,6 +501,24 @@ export function ConverterPanel() {
     if (lastExportBlob && exportSummary) {
       downloadBlob(lastExportBlob, exportSummary.filename);
     }
+  }
+
+  function handleCopySummary() {
+    if (!exportSummary) return;
+    const text = buildSingleExportSummaryText({
+      filename: exportSummary.filename,
+      codecLabel: exportSummary.codecLabel,
+      outputBytes: exportSummary.outputBytes,
+      sourceBytes: exportSummary.sourceBytes,
+      hasMetaTags: exportSummary.hasMetaTags,
+      hasCoverArt: exportSummary.hasCoverArt,
+      hasLyrics: exportSummary.hasLyrics,
+      stemCount: exportSummary.stemCount,
+    });
+    void navigator.clipboard?.writeText(text).then(
+      () => setLibrarySaveNote("Summary copied to clipboard."),
+      () => setLibrarySaveNote("Could not copy summary."),
+    );
   }
 
   async function handleOpenInPlayer() {
@@ -698,6 +725,7 @@ export function ConverterPanel() {
           onOpenInPlayer={() => void handleOpenInPlayer()}
           onAddToPlaylist={() => void handleAddToPlaylist()}
           onSaveToLibrary={() => void handleSaveToLibrary()}
+          onCopySummary={handleCopySummary}
         />
       )}
 

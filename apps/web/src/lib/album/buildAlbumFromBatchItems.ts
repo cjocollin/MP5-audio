@@ -1,9 +1,17 @@
 import type { AlbmPackageManifest, CoverArt } from "@mp5/container";
-import { parseMp5 } from "@mp5/container";
+import { manifestToJson, parseMp5 } from "@mp5/container";
 import { getBatchItemMp5Summary } from "./batchItemMp5Summary";
+import {
+  preflightPackageExport,
+  verifyExportedEmbeddedPackage,
+  verifyExportedManifest,
+  type PackageVerification,
+  type PreflightTrack,
+} from "./packageValidation";
 import type { BatchQueueItem } from "../../converter/batchTypes";
 import { downloadBlob } from "../performance/downloadBlob";
 import type { PlaylistTrack } from "../../store/playerStore";
+import { dedupeExportFilenames } from "../../converter/exportFilename";
 import {
   createAlbumManifestFromTracks,
   defaultAlbumPackageFilename,
@@ -145,11 +153,12 @@ export async function downloadIndividualBatchTracks(
   const done = completedBatchItems(items);
   const byId = new Map(done.map((i) => [i.id, i]));
   const list = order.map((id) => byId.get(id)).filter(Boolean) as BatchQueueItem[];
+  const names = dedupeExportFilenames(list.map((item) => item.outputFilename!));
   for (let i = 0; i < list.length; i++) {
     const item = list[i]!;
     downloadBlob(
       new Blob([new Uint8Array(item.mp5!)], { type: "audio/mp5" }),
-      item.outputFilename!,
+      names[i]!,
     );
     if (i < list.length - 1) {
       await new Promise((r) => setTimeout(r, staggerMs));
@@ -166,6 +175,25 @@ export interface BatchAlbumExportResult {
   packageBytes?: Uint8Array;
   manifest?: AlbmPackageManifest;
   playableTracks?: PlaylistTrack[];
+  /** Post-export validation result (manifest/embedded only). */
+  verification?: PackageVerification;
+  /** Non-blocking preflight advisories surfaced to the user. */
+  warnings?: string[];
+}
+
+function preflightTracksFromPlayable(
+  playable: PlaylistTrack[],
+  manifest: AlbmPackageManifest,
+): PreflightTrack[] {
+  return playable.map((t) => {
+    const ref = manifest.tracks.find((r) => r.trackId === t.id);
+    return {
+      trackId: t.id,
+      hasPayload: !!t.file && !t.parseError,
+      byteLength: t.file?.size ?? 0,
+      title: ref?.title,
+    };
+  });
 }
 
 export async function exportBatchAlbumPackage(
@@ -215,10 +243,20 @@ export async function exportBatchAlbumPackage(
     return { ok: false, message: "Could not build album manifest." };
   }
 
+  const preflight = preflightPackageExport({
+    exportTarget: album.exportTarget,
+    manifest,
+    tracks: preflightTracksFromPlayable(playable, manifest),
+  });
+  if (!preflight.ok) {
+    return { ok: false, message: preflight.blockers.join(" ") };
+  }
+
   const filename = defaultAlbumPackageFilename(manifest);
 
   if (mode === "embedded") {
     const packageBytes = await buildEmbeddedAlbumPackageBytes(manifest, playable);
+    const verification = verifyExportedEmbeddedPackage(packageBytes, playable.length);
     downloadBlob(
       new Blob([packageBytes.slice().buffer], { type: "application/octet-stream" }),
       filename.endsWith(".mp5p") ? filename : `${filename}.mp5p`,
@@ -231,9 +269,12 @@ export async function exportBatchAlbumPackage(
       packageBytes,
       manifest,
       playableTracks: playable,
+      verification,
+      warnings: preflight.warnings,
     };
   }
 
+  const verification = verifyExportedManifest(manifestToJson(manifest, true), playable.length);
   downloadAlbumManifest(manifest, filename);
   await downloadIndividualBatchTracks(items, order);
   return {
@@ -243,6 +284,8 @@ export async function exportBatchAlbumPackage(
     packageFilename: filename,
     manifest,
     playableTracks: playable,
+    verification,
+    warnings: preflight.warnings,
   };
 }
 

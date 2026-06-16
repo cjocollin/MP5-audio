@@ -11,6 +11,7 @@ import type { PlaylistTrack } from "../../store/playerStore";
 import { trackDisplayInfo } from "../../player/playlistUtils";
 import { sha256HexFromArrayBuffer } from "../fingerprint/sha256";
 import { downloadBlob } from "../performance/downloadBlob";
+import { safePackageFilename } from "../../converter/exportFilename";
 
 export type AlbumPackageExportMode = "manifest" | "embedded";
 
@@ -137,12 +138,6 @@ export async function downloadEmbeddedAlbumPackage(
 }
 
 export function defaultAlbumPackageFilename(manifest: AlbmPackageManifest): string {
-  const artist = manifest.album.albumArtist ?? manifest.album.artist ?? "Album";
-  const title = manifest.album.title;
-  const safe = (s: string) =>
-    s
-      .replace(/[<>:"/\\|?*\x00-\x1f]/g, "")
-      .trim()
-      .slice(0, 80) || "Album";
-  return `${safe(artist)} - ${safe(title)}.mp5p`;
+  const artist = manifest.album.albumArtist ?? manifest.album.artist;
+  return safePackageFilename(artist, manifest.album.title);
 }

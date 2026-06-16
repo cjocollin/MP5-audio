@@ -29,6 +29,19 @@ test.describe("batch album builder", () => {
     await expect(page.getByTestId("batch-album-preview")).toContainText(/Tracks:/);
   });
 
+  test("shows export review panel with guidance and honest notes", async ({ page }) => {
+    await page.getByTestId("batch-file-input").setInputFiles([wavA, wavB]);
+    await expect(page.getByTestId("batch-album-track-row")).toHaveCount(2, { timeout: 15_000 });
+    await page.getByTestId("batch-album-target-manifest").click();
+    await expect(page.getByTestId("batch-album-review")).toBeVisible();
+    await expect(page.getByTestId("batch-album-review-mode")).toContainText(/Manifest/i);
+    await expect(page.getByTestId("batch-album-review-guidance")).toContainText(/sidecar/i);
+    await expect(page.getByTestId("batch-album-review-notes")).toContainText(/MP5-L/);
+    await expect(page.getByTestId("batch-album-review-notes")).toContainText(/locally/i);
+    await page.getByTestId("batch-album-target-embedded").click();
+    await expect(page.getByTestId("batch-album-review-guidance")).toContainText(/self-contained/i);
+  });
+
   test("reorders tracks in metadata table", async ({ page }) => {
     await page.getByTestId("batch-file-input").setInputFiles([wavA, wavB]);
     await expect(page.getByTestId("batch-album-track-row")).toHaveCount(2, { timeout: 15_000 });
@@ -58,6 +71,10 @@ test.describe("batch album builder", () => {
     await download.saveAs(outPath);
     expect(fs.statSync(outPath).size).toBeGreaterThan(1000);
     await expect(page.getByTestId("batch-album-export-summary")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("batch-album-validation")).toContainText(/passed/i, {
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId("batch-album-copy-summary")).toBeVisible();
 
     await page.getByTestId("batch-album-open-album-player").click();
     await page.getByRole("button", { name: "Player", exact: true }).click();

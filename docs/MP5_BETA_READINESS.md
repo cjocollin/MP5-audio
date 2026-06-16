@@ -1,13 +1,30 @@
 # MP5 Beta Readiness
 
-**Version:** MP5 Audio v0.17.1-beta  
-**Status:** **Public Beta accepted — audit cleanup closeout** (2026-06-14)
+**Version:** MP5 Audio v0.18.0-beta  
+**Status:** **Public Beta — Export / Package polish** (2026-06-15)
 
 ## Decision
 
-**MP5 Audio v0.17.1-beta is accepted as Public Beta.**
+**MP5 Audio v0.18.0-beta is accepted as Public Beta** (export/package polish; no format or codec policy changes).
 
-The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) ships as **MP5 Public Beta · v0.17.1-beta** with honest experimental wording preserved.
+The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) ships as **MP5 Public Beta · v0.18.0-beta** with honest experimental wording preserved.
+
+## Gate summary (v0.18.0-beta tagging pass)
+
+| Gate | Result |
+|------|--------|
+| `pnpm lint` | _pending gate run_ |
+| `pnpm test` | _pending gate run_ |
+| `pnpm test:compat` | _pending gate run_ |
+| `CI=1 pnpm test:e2e` | _pending gate run_ |
+| `pnpm playback:check` | _pending gate run_ |
+| `CI=1 pnpm alpha:check` | _pending gate run_ |
+| `CI=1 pnpm beta:check` | _pending gate run_ |
+| `pnpm build` | _pending gate run_ |
+| `pnpm deploy:check` | _pending gate run_ |
+| Package validation | _pending gate run_ |
+
+## Previous gate summary (v0.17.1-beta tagging pass)
 
 ## Gate summary (v0.17.1-beta tagging pass)
 

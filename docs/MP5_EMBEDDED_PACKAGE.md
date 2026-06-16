@@ -18,4 +18,10 @@ Manifest `.mp5p` (JSON + sidecars) is unchanged.
 
 **Batch album export** in the Converter can build embedded `.mp5p` directly from a completed batch queue (synthetic sources only in tests).
 
+## Export validation (v0.18.0-beta)
+
+- **Before export:** a preflight checks required album metadata, that every track has an embeddable payload, that track IDs are safe, and warns on large embedded sizes. Invalid packages are blocked; harmless missing metadata only warns.
+- **After export:** the embedded package is re-indexed (header/manifest/directory) and, for packages under ~64 MiB, per-fragment CRC is verified. Very large packages skip deep in-browser validation and recommend CLI verification (`pnpm validate:mp5p <file> --profile package`).
+- **Manifest vs embedded:** manifest `.mp5p` is smaller but needs its sidecar `.mp5` files kept together; embedded `.mp5p` is self-contained but can be large and memory-heavy. **Keep your original source files backed up.**
+
 See [MP5_ALBUM_PACKAGE.md](MP5_ALBUM_PACKAGE.md).

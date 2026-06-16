@@ -24,6 +24,9 @@ import { runBatchItemConversion } from "../converter/runBatchItem";
 import { saveMp5ToLibrary } from "../lib/localLibrary/api";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
 import { downloadBlob } from "../lib/performance/downloadBlob";
+import { dedupeExportFilenames } from "../converter/exportFilename";
+import { redactLocalPaths } from "../lib/album/exportReview";
+import { APP_VERSION } from "../generated/appVersion";
 import { assessBatchQueue, type GuardrailMessage } from "../lib/performance/guardrails";
 import { GuardrailNotice } from "./GuardrailNotice";
 import { useConversionStore } from "../store/conversionStore";
@@ -279,8 +282,10 @@ export function BatchConverterPanel() {
 
   async function handleDownloadAll() {
     const done = items.filter((i) => i.status === "complete" && i.mp5 && i.outputFilename);
+    const names = dedupeExportFilenames(done.map((i) => i.outputFilename!));
     for (let i = 0; i < done.length; i++) {
-      handleDownloadItem(done[i]!);
+      const item = done[i]!;
+      downloadBlob(new Blob([new Uint8Array(item.mp5!)], { type: "audio/mp5" }), names[i]!);
       if (i < done.length - 1) {
         await new Promise((r) => setTimeout(r, 300));
       }
@@ -298,6 +303,27 @@ export function BatchConverterPanel() {
   async function handleSaveOne(item: BatchQueueItem) {
     const patch = await saveItemToLibrary(item);
     setItems((prev) => patchItem(prev, item.id, patch));
+  }
+
+  async function handleCopyErrorSummary() {
+    const failed = items.filter((i) => i.status === "failed" || i.status === "cancelled");
+    if (!failed.length) return;
+    const lines = [
+      "MP5 batch export — failed items",
+      `App version: ${APP_VERSION}`,
+      `Failed: ${failed.length} of ${items.length}`,
+      "",
+      ...failed.map((i) => `- ${i.sourceName}: ${i.errorMessage ?? "unknown error"}`),
+      "",
+      "Processed locally in-browser; no upload.",
+    ];
+    const text = redactLocalPaths(lines.join("\n"));
+    try {
+      await navigator.clipboard?.writeText(text);
+      setBatchError("Error summary copied to clipboard.");
+    } catch {
+      setBatchError("Could not copy error summary.");
+    }
   }
 
   return (
@@ -454,6 +480,15 @@ export function BatchConverterPanel() {
           data-testid="batch-retry-failed"
         >
           Retry failed
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleCopyErrorSummary()}
+          disabled={!hasRetryableItems(items)}
+          className="px-4 py-2 rounded-lg bg-surface-elevated text-sm text-gray-300 border border-white/10 disabled:opacity-40"
+          data-testid="batch-copy-errors"
+        >
+          Copy error summary
         </button>
         <button
           type="button"

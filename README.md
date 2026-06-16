@@ -10,7 +10,7 @@ An experimental open-source audio format, container, codec, converter, and playe
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.17.1-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
+**Version:** MP5 Audio **v0.18.0-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
 
 **Report bugs:** [GitHub Issues](https://github.com/cjocollin/MP5-audio/issues/new/choose) · In hosted app: **Settings → Report a bug / Give feedback** · Paste **Settings → Diagnostics → Copy diagnostics** (no files uploaded automatically)
 

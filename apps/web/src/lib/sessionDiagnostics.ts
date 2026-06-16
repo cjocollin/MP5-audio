@@ -5,6 +5,10 @@ import { getCodecLoadState } from "../wasm/codec";
 import { getFfmpegLoadState } from "../converter/ffmpegLoader";
 import { getIngestDiagnostics } from "./ingest/ingestDiagnostics";
 import { FEEDBACK_PRIVACY_NOTE } from "./betaFeedback";
+import {
+  formatExportDiagnostics,
+  type ExportDiagnosticsContext,
+} from "./album/exportReview";
 
 export type UserErrorRecord = {
   source: string;
@@ -25,6 +29,17 @@ export function recordUserFacingError(source: string, message: string) {
 
 export function getLastUserFacingError(): UserErrorRecord | null {
   return lastUserError;
+}
+
+let lastExportContext: ExportDiagnosticsContext | null = null;
+
+/** Record export context for diagnostics (no audio data, paths redacted on render). */
+export function recordExportContext(ctx: ExportDiagnosticsContext): void {
+  lastExportContext = ctx;
+}
+
+export function getExportContext(): ExportDiagnosticsContext | null {
+  return lastExportContext;
 }
 
 export type DiagnosticsReportInput = {
@@ -63,6 +78,7 @@ export function buildBetaDiagnosticsReport(input: DiagnosticsReportInput): strin
     lastUserError
       ? `Last error (${lastUserError.source} @ ${lastUserError.at}): ${lastUserError.message}`
       : "Last error: (none recorded this session)",
+    ...(lastExportContext ? formatExportDiagnostics(lastExportContext) : []),
     FEEDBACK_PRIVACY_NOTE,
   ];
   if (input.includePlaybackTrace?.trim()) {
