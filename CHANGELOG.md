@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.20.0-beta] - 2026-06
+
+### Milestone - Spec / Developer Toolkit Polish
+
+Refreshes MP5's developer-facing specs, compatibility docs, fixture catalog, and inspect/validate tooling while preserving existing playback, codec, and format behavior.
+
+- **Docs/toolkit:** added the developer quickstart, compatibility matrix, fixture catalog, and refreshed chunk registry with Public Beta limits, support levels, safe-ignore rules, test coverage, and doc links.
+- **Specs/status:** updated format, container, metadata, stems, album package, embedded package, VISU, hosted demo, install/demo, known-issues, status, and beta-readiness docs for v0.20.0-beta.
+- **CLI polish:** `inspect:mp5`, `validate:mp5`, and `validate:mp5p` now provide clearer `--help` text, profile explanations, examples, and structural/rights disclaimers.
+- **Tests:** added developer toolkit doc coverage and updated Public Beta readiness/spec/deployment assertions for v0.20.0-beta.
+- **No behavior expansion:** no codec work, AI generation, playback transport rewrite, converter encoding behavior change, MP5/STDF/MP5P/LYRC/VISU/metadata semantic change, telemetry, upload, or cloud sync.
+
 ## [0.19.0-beta] - 2026-06
 
 ### Milestone - Player / Listening UX Polish
@@ -242,7 +254,8 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.19.0-beta...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.20.0-beta...HEAD
+[0.20.0-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.19.0-beta...v0.20.0-beta
 [0.19.0-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.18.0-beta...v0.19.0-beta
 [0.18.0-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.17.1-beta...v0.18.0-beta
 [0.17.1-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.17.0-beta...v0.17.1-beta

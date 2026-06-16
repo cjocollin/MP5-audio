@@ -18,7 +18,12 @@ const BLOCKED_AUDIO_EXT = new Set([
   ".aac",
   ".wma",
 ]);
-const ALLOWED_MP5_IN_DIST = new Set(["demo_mp5l_v3_tone.mp5"]);
+const ALLOWED_DEMO_AUDIO_IN_DIST = new Set([
+  "demo_mp5l_v3_tone.mp5",
+  "demo_mp5l_v3_stems.mp5",
+  "demo_pity_party_class.mp5",
+  "demo_embedded_album_package.mp5p",
+]);
 
 const LOCAL_PATH_PATTERNS = [
   /C:\\Users\\/i,
@@ -103,13 +108,13 @@ if (!existsSync(dist)) {
   const distFiles = walk(dist);
   const distAudio = distFiles.filter((p) => {
     const ext = extname(p).toLowerCase();
-    if (ext === ".mp5") {
+    if (ext === ".mp5" || ext === ".mp5p") {
       const base = p.split(/[/\\]/).pop();
-      return !ALLOWED_MP5_IN_DIST.has(base);
+      return !ALLOWED_DEMO_AUDIO_IN_DIST.has(base);
     }
     return BLOCKED_AUDIO_EXT.has(ext);
   });
-  if (distAudio.length === 0) ok("dist contains no unexpected audio (only allowed demo .mp5 if present)");
+  if (distAudio.length === 0) ok("dist contains no unexpected audio (only allowed public demo fixtures if present)");
   else fail(`unexpected audio in dist: ${distAudio.join(", ")}`);
 
   const textBundle = distFiles
@@ -135,7 +140,7 @@ if (/benchmarks\/real-music\/ORIGAMI/.test(srcText)) {
 
 console.log("\n=== Summary ===\n");
 console.log("  Hosted deploy ships: static dist only — no env vars, no server secrets.");
-console.log("  Demo audio: synthetic 440 Hz tone (demo_mp5l_v3_tone.mp5) when bundled at build.");
+console.log("  Demo audio: synthetic public demo fixtures only when bundled at build.");
 
 if (failed) {
   console.error("\nDeploy content audit failed.\n");

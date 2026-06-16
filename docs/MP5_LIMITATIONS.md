@@ -1,42 +1,40 @@
-# MP5 limitations (technical notes)
+# MP5 Limitations
 
-**Version:** MP5 Audio v0.10.0-alpha
+**Version:** MP5 Audio v0.20.0-beta  
+**Status:** Public Beta technical notes
 
-For the canonical Alpha limitations list (codec, browser, library, `.mp5p`, stems, batch), see **[`MP5_KNOWN_ISSUES.md`](MP5_KNOWN_ISSUES.md)**. For the Beta gate checklist, see **[`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md)**.
+MP5 is experimental and browser-based. It is not production-ready for archival, legal, rights, or untrusted ingestion workflows.
 
-## Format status
+For the current public list, see [MP5_KNOWN_ISSUES.md](MP5_KNOWN_ISSUES.md). For the v0.20 release gate record, see [MP5_BETA_READINESS.md](MP5_BETA_READINESS.md).
 
-MP5 is an **experimental Alpha prototype**, not production-ready and not a standardized format.
+## Format Status
 
-## MP5-C
+- `.mp5` playback is centered on `HEAD` + `AUDI`.
+- `.mp5p` album packages are experimental and can be memory-heavy.
+- Unknown optional chunks are safe to skip, but the format is not standardized outside this project.
+- MP5 performs no DRM enforcement, rights verification, legal proof, telemetry, upload, or cloud sync.
 
-- Audible artifacts at low bitrates (pre-echo, HF loss)
-- No mature VBR
-- Psychoacoustic model is educational, not tuned
-- **Do not claim** MP3/AAC/Opus superiority without measurements
+## Codec Limits
 
-## MP5-L
+| Codec | Limitation |
+|-------|------------|
+| MP5-L v3 | Recommended lossless path, bit-exact, but not claimed to beat FLAC. Reference material remains around 0.95x PCM in existing benchmarks. |
+| MP5-C | Lab-only; known hiss/artifact risk on music material; not for normal listening or distribution claims. |
+| MP5-H | Experimental hybrid mode; correction layers can produce large files; not default. |
+| PCM | Reference/debug fallback; large files. |
 
-- **v3** (current): LPC + delta + varint + silence + optional stereo M/S; bit-exact on ORIGAMI ~**0.95× PCM** (see `benchmarks/real-music/MP5L_COMPRESSION.md`). Does not meet stretch ≤0.80× PCM; does not beat FLAC on reference material.
-- **v2** legacy: raw PCM blocks only (~100% PCM).
-- Block size fixed at 4096 samples/channel in v3.
-- Mid/side only applied when full L/R round-trip is verified (extreme anti-correlated pairs may stay L/R).
-- Encode slower than v2 raw due to per-block mode search.
+## Browser Limits
 
-## MP5-H
+- WASM and FFmpeg cold loads are large.
+- Long files, many stems, and large embedded `.mp5p` packages can stress memory and storage.
+- Mobile viewports are supported by tests, but dense lyrics/stem/package views may still require scrolling.
 
-- Correction layer can inflate file size
-- Enhancement quality is prototype-only
+## Metadata Limits
 
-## Security
+- Optional chunks are display/tooling metadata; playback must continue without them.
+- Content guidance, mood/vibe, credits, rights, and identifiers are informational only.
+- The reference converter does not generate lyrics, warnings, stems, or AI-enriched metadata.
 
-Untrusted `.mp5` files: parser enforces caps; metadata sanitized; never execute embedded content.
+## Security Model
 
-## Platform
-
-- Browser decode via WASM (CPU cost on mobile)
-- ffmpeg.wasm is large (~25MB+) when loaded
-
-## AI / advanced / moonshot chunks
-
-Optional. Missing chunks must not affect playback. AI tags may be wrong — user-editable, provenance labeled.
+The parser enforces file/chunk/value/package caps and avoids executing embedded content. Treat untrusted `.mp5` and `.mp5p` files as experimental inputs, not as hardened production media.

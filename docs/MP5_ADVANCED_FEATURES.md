@@ -1,27 +1,36 @@
-# MP5 Advanced Features (optional)
+# MP5 Advanced Features
 
-## STEM chunk
+**Version:** MP5 Audio v0.20.0-beta  
+**Status:** Optional / experimental registry
 
-Flexible artist-defined stems. Recommended taxonomy + custom labels.
+Advanced chunks are optional. They are never required for playback, and v0.20.0-beta does not add new advanced semantics.
 
-### Taxonomy (examples)
+## Stems
 
-lead_vocals, background_vocals, drums, bass, guitar, piano, instrumental, acapella, clean_vocals, custom, …
+Implemented stem support uses:
 
-### Per-stem metadata
+- `STEM` for the manifest.
+- `STDA` for small single-chunk stem payloads.
+- `STDF` for fragmented large stem payloads.
 
-stemId, stemName, stemType, codecId, durationSamples, sampleRate, channels, defaultVolume, soloMuteCapable, requiredForPlayback (default false), explicitContent, cleanAlternateStemId, checksum, dataRef.
+Stems are user/artist-provided through the converter. There is no AI stem separation. Full-mix playback remains in `AUDI`, and the player falls back to `AUDI` when stems are missing or too heavy for the device.
 
-### Validation (converter)
+See [MP5_STEMS.md](MP5_STEMS.md).
 
-When muxing multiple stems: aligned duration, sample rate, channels.
+## Registry-Only Advanced Chunks
 
-### Player
+The following names are reserved or documented for forward-compatible storage but do not have Public Beta semantic decoders:
 
-Default: master AUDI. Optional: stem mixer, karaoke, instrumental, acapella, clean. Fallback to AUDI if device cannot mix many stems.
+`LAYS`, `MIXR`, `KARA`, `SOLO`, `CVRA`, `ARTS`, `SHAR`, `CLIP`, `NOTE`, `MEMR`, `ACCS`, `QUAL`, `REPR`, `AIPR`, `VERS`, `SIGN`
 
-## Other advanced chunks
+Parsers must skip them safely. Apps may choose to display raw presence, but must not require them for playback.
 
-LAYS, MIXR, KARA, SOLO, HOOK, HILT, VISU, CVRA, ARTS, CRDT, LICN, SHAR, CLIP, NOTE, MEMR, ACCS, QUAL, REPR, AIPR, VERS, ALBM — see MP5_ROADMAP maturity matrix.
+## Implemented Optional Advanced Metadata
 
-NOTE/MEMR: local/private by default.
+| FourCC | Purpose | Docs |
+|--------|---------|------|
+| `CRDT` | Credits | [Credits/rights](MP5_CREDITS_RIGHTS.md) |
+| `LICN` | License/rights notes | [Credits/rights](MP5_CREDITS_RIGHTS.md) |
+| `IDEN` | Release identifiers | [Credits/rights](MP5_CREDITS_RIGHTS.md) |
+| `HASH` | Integrity metadata | [Fingerprint/integrity](MP5_FINGERPRINT_INTEGRITY.md) |
+| `ALBM` | In-file album manifest metadata | [Album package](MP5_ALBUM_PACKAGE.md) |

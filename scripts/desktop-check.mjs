@@ -52,7 +52,7 @@ if (existsSync(tauriCargo)) {
 
 console.log("\n=== Readiness ===\n");
 console.log("  Status: SCAFFOLD ONLY — not a production desktop app yet.");
-console.log("  Web build is the primary Alpha target: pnpm build → apps/web/dist");
+console.log("  Web build is the primary Public Beta target: pnpm build -> apps/web/dist");
 console.log("  Expected desktop flow (when wired):");
 console.log("    1. pnpm wasm:build && pnpm build");
 console.log("    2. tauri build   (requires Rust + Tauri CLI + src-tauri project)");

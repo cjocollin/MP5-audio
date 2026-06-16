@@ -1,66 +1,31 @@
-# MP5 Album Package (MVP)
+# MP5 Album Package
 
-Optional **album / release packaging** for MP5 without changing the core **single-track `.mp5`** format.
+**Version:** MP5 Audio v0.20.0-beta  
+**Status:** Experimental Public Beta package format
 
-## Batch album export (Converter)
+Album packaging is optional and does not change the core single-track `.mp5` format. Single-track `.mp5` playback remains the baseline.
 
-**Batch album export** (Converter → Batch) lets you import multiple source audio files, edit album/track metadata in a table, convert to MP5-L, then export:
+## Package Types
 
-| Export | Result |
-|--------|--------|
-| Individual MP5 | One `.mp5` per track (existing batch download) |
-| Manifest `.mp5p` | JSON manifest + sidecar `.mp5` files (keep together) |
-| Embedded `.mp5p` | One self-contained package (can be very large) |
+| Type | Extension | Status | Notes |
+|------|-----------|--------|-------|
+| Manifest package | `.mp5p` JSON | Experimental | References sidecar `.mp5` files; keep files together |
+| Embedded package | `.mp5p` binary (`MP5P`) | Experimental | Self-contained; can be large and memory-heavy |
+| `ALBM` chunk | `.mp5` optional chunk | Optional metadata | In-file album manifest metadata; never required for playback |
 
-No AI metadata, no per-file stem editing in batch, no DRM. Browser download limits apply.
+## Converter Behavior
 
-**Batch album metadata** (v0.15.1): album title/artist fields stay responsive after conversion — package preview uses cached per-track MP5 summaries and deferred preview; album title is applied to tracks at export time, not on every keystroke.
+Batch Album Builder can export:
 
-After export, a **package summary** offers **Open in Player** (album view), **Save to Library**, and **Download again**.
+- Individual `.mp5` files.
+- Manifest `.mp5p` plus sidecar `.mp5` files.
+- Embedded `.mp5p` self-contained package.
 
-## Player album UX (v0.14)
+Exports use MP5-L v3 by default. No DRM, legal verification, telemetry, upload, cloud sync, or AI metadata/stem generation is added.
 
-Import `.mp5p` in the Player tab to open the **album package view**:
+## Manifest Schema
 
-- **Manifest package** — lists sidecar `.mp5` files; calm warning if any are missing.
-- **Embedded package** — self-contained; **Play album** queues every track immediately (lightweight placeholders) and loads embedded track bytes only when a track is selected or played.
-- **Album cover** — manifest/package cover first; if missing, first embedded track cover (prefix read, no full-package load); placeholder only when none found (UI shows cover source).
-- **Track durations** — manifest `durationMs` when plausible; otherwise inner MP5 HEAD (`durationSamples` / `sampleRate`) when resolved.
-- Actions: Play album, Add to queue, Save to library, Extract tracks, Dismiss.
-- **Saved albums** (Library tab) lists both manifest and embedded packages saved in browser storage.
-
-Browser storage is **local to this device**; clearing site data removes saved albums. No DRM or legal verification.
-
-## Design choice (MVP)
-
-| Approach | Status | Notes |
-|----------|--------|--------|
-| **A. Manifest package** (`.mp5p` JSON + sibling `.mp5` files) | **Implemented** | Safest MVP; easy to inspect and version |
-| **B. Embedded package** (one `.mp5p` blob with multiple tracks) | **Implemented (Alpha)** | See [MP5_EMBEDDED_PACKAGE.md](MP5_EMBEDDED_PACKAGE.md); also from **Batch album export** |
-
-**Single-track `.mp5` remains the normal format.** Players decode one AUDI stream per file. Album mode is an optional layer on top.
-
-## File types
-
-| Extension | Role |
-|-----------|------|
-| `.mp5` | One track — **core format** (unchanged) |
-| `.mp5p` | **Experimental** album manifest (JSON) — references `.mp5` files by relative path |
-
-MIME (informal): `application/vnd.mp5.album+json` or plain `application/json`.
-
-## Relationship to ALBM chunk
-
-The same JSON schema can be stored as an optional **ALBM** fourCC chunk inside a container (advanced tier, not required for playback). The reference app uses standalone **`.mp5p`** manifests for import/export.
-
-Third-party apps may:
-
-- Ignore album packages entirely
-- Read only `.mp5` files
-- Implement `.mp5p` + sidecar tracks
-- Embed ALBM in a wrapper file later
-
-## Manifest schema (`mp5-album-manifest-v1`)
+Manifest packages use `mp5-album-manifest-v1`:
 
 ```json
 {
@@ -70,152 +35,59 @@ Third-party apps may:
     "title": "Album title",
     "artist": "Display artist",
     "albumArtist": "Album artist",
-    "year": "2026",
-    "releaseDate": "2026-05-20",
-    "genre": "Genre",
-    "cover": {
-      "type": "embedded",
-      "mime": "image/jpeg",
-      "dataBase64": "..."
-    }
+    "year": "2026"
   },
   "tracks": [
     {
-      "trackId": "unique-id",
+      "trackId": "track-1",
       "file": "01-track.mp5",
       "trackNumber": 1,
       "discNumber": 1,
       "title": "Track title",
       "artist": "Track artist",
-      "durationMs": 180000,
-      "gaplessPrevious": false,
-      "gaplessNext": true
+      "durationMs": 180000
     }
-  ],
-  "credits": "Optional liner notes / credits text",
-  "crdt": { "producer": ["Name"], "primaryArtist": ["Artist"] },
-  "licn": { "licenseType": "All rights reserved" },
-  "iden": { "catalogNumber": "CAT-001" },
-  "gaplessDefault": false
+  ]
 }
 ```
 
-### Track list rules
+## Validation Rules
 
-- **1–256** tracks after validation
-- Sorted by `discNumber` then `trackNumber` on import
-- `file` must be a relative path **without** `..`, `\`, absolute `/`, or Windows drive letters
-- **Duplicate `trackId` or duplicate file basename** → later entries rejected with validation errors
-- `durationMs` capped at 24 hours per track
-- `trackId` is stable for re-import when the same session created the manifest
+| Rule | Limit / behavior |
+|------|------------------|
+| Track count | 1 to 256 tracks |
+| Manifest JSON | 8 MiB cap before parse |
+| Track duration | 24 hours max per track |
+| Sidecar paths | Relative only; no `..`, absolute paths, backslashes, or drive letters |
+| Duplicate track IDs/files | Rejected or reported as validation errors |
+| Cover art | Embedded cover warning when large |
 
-### Validation (`validateAlbmPackageManifest` + `auditAlbmPackageManifest`)
+## Player Behavior
 
-| Check | On failure |
-|-------|------------|
-| `format` / `version` | Manifest rejected |
-| Album title required | Manifest rejected |
-| Path traversal in `file` or cover path | Entry rejected |
-| Duplicate track IDs / file refs | Duplicate entries dropped + error |
-| Invalid JSON | Parse error |
-| Cover `file` ref (MVP) | Non-fatal audit warning |
-| Oversized embedded cover | Audit warning |
+- Manifest packages list referenced sidecar `.mp5` files and warn when files are missing.
+- Embedded packages show album metadata without decoding every track up front.
+- **Play album** queues tracks and loads embedded bytes on demand.
+- Save-to-library is browser-local storage only.
 
-### Cover art
-
-- **`embedded`**: base64 image (no `data:` URL prefix)
-- **`file`**: relative path e.g. `cover.jpg` (player may not load in MVP — metadata display only)
-
-### Gapless playback
-
-- Per-track `gaplessPrevious` / `gaplessNext` hints for future crossfade/gapless engines
-- `gaplessDefault` is album-level preference
-- **MVP player** does not change decode; hints are display/metadata only
-
-### Credits / booklet
-
-- `credits` string for simple liner notes
-- Optional album-level **`crdt`**, **`licn`**, **`iden`** (same schemas as track chunks) — see [`MP5_CREDITS_RIGHTS.md`](MP5_CREDITS_RIGHTS.md)
-- Track-level CRDT/LICN/IDEN in each `.mp5` remain independent
-- Full digital booklet (PDF, synced pages) — **future**
-
-## Reference app behavior
-
-### Import
-
-1. Drop **`.mp5p`** together with referenced **`.mp5`** files (or load tracks first, then manifest).
-2. Banner explains that **`.mp5p` is a manifest**, not an embedded archive.
-3. Manifest is validated; invalid JSON shows an error and does **not** break the player.
-4. **Album view** shows title, artist/album artist, year, release date, genre, track count, total duration, cover, **found** vs **missing** file lists.
-5. **Add missing .mp5 files** — file picker adds sidecars and re-resolves the manifest.
-6. Missing rows stay visible as **Missing** — playback uses only resolved tracks.
-7. Optional **`fileSha256`** per track — sidecar status **Verified**, **Hash mismatch**, or **No hash** (see [`MP5_FINGERPRINT_INTEGRITY.md`](MP5_FINGERPRINT_INTEGRITY.md)).
-
-### Create
-
-With **two or more** playable tracks in the playlist:
-
-1. Open **Create album package** in the library column.
-2. Set album title, artist, year, genre; preview **track order** with move up/down.
-3. See each **referenced filename** before export.
-4. Warning: manifest must stay beside sidecar `.mp5` files; embedded archives are future work.
-5. **Download .mp5p manifest** — filenames match playlist `file.name` values.
-
-Keep the `.mp5p` file in the **same folder** as the `.mp5` tracks for re-import.
-
-### Saved albums (Library tab)
-
-- **Save album** on the album panel stores the manifest in browser **localStorage** (not IndexedDB tracks).
-- **Library → Saved albums** — play (loads matching library tracks by filename), delete.
-- Track `.mp5` files must still be saved to the library separately for Play from saved albums.
-
-### Playback
-
-- **Play album** — queues resolved tracks in order and starts the first available track.
-- **Add album to queue** — appends resolved tracks without clearing the queue.
-- Click a track row to play that track (if present).
-- Single **`.mp5`** drops without a manifest behave exactly as before.
-
-## Safety
-
-- JSON size capped at 64 KiB when embedded as ALBM chunk
-- Path traversal blocked on `file` and cover `path`
-- Strings sanitized (control characters stripped)
-- No arbitrary HTML/CSS in manifest
-
-## Demo fixture
-
-`test-fixtures/demo_album_package.mp5p` references:
-
-- `demo_mp5l_v3_tone.mp5`
-- `demo_mp5l_v3_stems.mp5`
-
-Synthetic metadata only — **no copyrighted album bundles** in the repo.
-
-Generate:
+## CLI
 
 ```bash
-pnpm --filter @mp5/container build
-node scripts/generate-demo-fixtures.mjs
-node scripts/generate-demo-album-package.mjs
+pnpm validate:mp5p test-fixtures/demo_album_package.mp5p --dir test-fixtures --profile package
+pnpm validate:mp5p test-fixtures/demo_embedded_album_package.mp5p --profile package
+pnpm inspect:mp5 test-fixtures/demo_embedded_album_package.mp5p
 ```
 
-## Limitations (MVP)
+## Fixtures
 
-- No embedded multi-track `.mp5p` archive (zip/tar) — manifest + sidecars only
-- No cloud sync or album storefront
-- No automatic gapless crossfade in the Web Audio player
-- Cover `file` references may not load in the player UI
-- Saved albums store manifests only in localStorage — not bundled audio (match library tracks by filename)
-- ALBM chunk in a single `.mp5` is defined but not exposed in the converter UI
+Synthetic fixtures only:
 
-## Implementation
+- `test-fixtures/demo_album_package.mp5p`
+- `test-fixtures/demo_embedded_album_package.mp5p`
 
-| Area | Location |
-|------|----------|
-| Schema / validate | `packages/mp5-container/src/albm.ts` |
-| Resolve / create / ingest | `apps/web/src/lib/album/` |
-| Album UI | `AlbumPackagePanel.tsx` |
-| Create UI | `CreateAlbumPackagePanel.tsx` |
+See [MP5_FIXTURE_CATALOG.md](MP5_FIXTURE_CATALOG.md).
 
-See also [`MP5_METADATA_SPEC.md`](MP5_METADATA_SPEC.md), [`MP5_DEMO_GUIDE.md`](MP5_DEMO_GUIDE.md).
+## Related Docs
+
+- [Embedded package](MP5_EMBEDDED_PACKAGE.md)
+- [Chunk registry](MP5_CHUNK_REGISTRY.md)
+- [Compatibility matrix](MP5_COMPATIBILITY_MATRIX.md)

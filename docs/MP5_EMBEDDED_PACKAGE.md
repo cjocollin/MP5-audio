@@ -1,27 +1,49 @@
-﻿# MP5 embedded album package (prototype Alpha)
+# MP5 Embedded Album Package
 
-**Version:** MP5 Audio v0.16.0-beta-candidate
+**Version:** MP5 Audio v0.20.0-beta  
+**Status:** Experimental Public Beta package format
 
-Embedded `.mp5p` uses magic `MP5P`, manifest format `mp5-album-embedded-v1`, track directory, and fragmented embedded `.mp5` payloads (12 MiB default, 16 MiB max per fragment, CRC32 + per-track SHA-256).
+Embedded `.mp5p` packages use magic `MP5P`, manifest format `mp5-album-embedded-v1`, a track directory, and fragmented embedded `.mp5` payloads. v0.20.0-beta does not change MP5P semantics.
 
-## Player UX (v0.14)
+## Binary Package Limits
 
-- Import embedded `.mp5p` → **album package view** with cover, metadata, size, and integrity.
-- **Play album** queues the full track list immediately; embedded bytes load **on demand** when a track is selected or played (not all parsed upfront).
-- **Cover:** album manifest cover when present; otherwise first-track cover from a small prefix read (no full 600MB+ package read).
-- **Durations:** manifest `durationMs` when valid; HEAD fallback when missing.
-- **Extract** embedded tracks as `01 - Title.mp5` (staggered if many).
-- **Save to Library** stores the full package in browser storage (IndexedDB) with size confirmation.
-- **Now Playing** shows album title and “From embedded album” when playing from a package.
+| Limit | Value |
+|-------|-------|
+| Default fragment payload | 12 MiB |
+| Max fragment payload | 16 MiB |
+| Max directory bytes | 16 MiB |
+| Max track id length | 128 chars |
+| Max logical filename length | 512 chars |
+| Large package warning | > 512 MiB |
+| Large track warning | > 256 MiB |
 
-Manifest `.mp5p` (JSON + sidecars) is unchanged.
+## Player UX
 
-**Batch album export** in the Converter can build embedded `.mp5p` directly from a completed batch queue (synthetic sources only in tests).
+- Import embedded `.mp5p` to open the album package view.
+- Cover and manifest metadata are read without decoding every track up front.
+- **Play album** queues all tracks using lightweight placeholders.
+- Embedded track bytes load on demand when a track is selected or played.
+- Extract saves individual `.mp5` files with safe filenames.
+- Save to Library stores the full package in browser storage after size confirmation.
 
-## Export validation (v0.18.0-beta)
+## Export Validation
 
-- **Before export:** a preflight checks required album metadata, that every track has an embeddable payload, that track IDs are safe, and warns on large embedded sizes. Invalid packages are blocked; harmless missing metadata only warns.
-- **After export:** the embedded package is re-indexed (header/manifest/directory) and, for packages under ~64 MiB, per-fragment CRC is verified. Very large packages skip deep in-browser validation and recommend CLI verification (`pnpm validate:mp5p <file> --profile package`).
-- **Manifest vs embedded:** manifest `.mp5p` is smaller but needs its sidecar `.mp5` files kept together; embedded `.mp5p` is self-contained but can be large and memory-heavy. **Keep your original source files backed up.**
+- Preflight blocks invalid package inputs and warns on large/heavy exports.
+- Post-export validation re-indexes the package.
+- Packages under the browser threshold can verify per-fragment CRC in-tab.
+- Very large packages may defer deep validation to CLI:
+
+```bash
+pnpm validate:mp5p <file.mp5p> --profile package
+```
+
+## Manifest Versus Embedded
+
+| Mode | Benefit | Tradeoff |
+|------|---------|----------|
+| Manifest `.mp5p` | Small and inspectable | Sidecar `.mp5` files must travel with it |
+| Embedded `.mp5p` | Self-contained | Larger and more memory/storage intensive |
+
+Keep original source files backed up. MP5P does not provide DRM, legal proof, telemetry, upload, or cloud sync.
 
 See [MP5_ALBUM_PACKAGE.md](MP5_ALBUM_PACKAGE.md).

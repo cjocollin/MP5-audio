@@ -1,116 +1,73 @@
-# MP5 Manual QA checklist
+# MP5 Manual QA Checklist
 
-**Version:** MP5 Audio **v0.19.0-beta**
-**Purpose:** Public Beta smoke. Synthetic fixtures on hosted demo; local fixtures for Pity Party / sidecar manifest.  
-**Sign-off date:** May 2026 · **Hosted URL:** https://mp5-audio.vercel.app
+**Version:** MP5 Audio v0.20.0-beta  
+**Purpose:** Public Beta hosted/demo smoke using synthetic fixtures.  
+**Hosted URL:** https://mp5-audio.vercel.app
 
-Status key: **Pass** · **Pass with limitation** · **Blocked** · **Not tested**
+Status key: **Pass**, **Pass with limitation**, **Blocked**, **Not tested**.
 
----
+## A. Hosted App Shell
 
-## A. Normal track playback
+- [ ] Badge shows `MP5 Public Beta - v0.20.0-beta`.
+- [ ] Public copy remains experimental and honest.
+- [ ] Settings and diagnostics open.
 
-- [x] **Pass** — MP5-L demo loads and plays on hosted (Playwright + hosted e2e)
-- [x] **Pass** — Play / pause / seek / volume (hosted MP5-L demo playback)
-- [x] **Pass** — MP5-L v3 visible in UI
-- [ ] **Not tested** — Queue add/remove on hosted (local e2e covers playlist)
+## B. Player
 
-## B. Pity Party-style large stem file
+- [ ] MP5-L demo loads and plays.
+- [ ] Play, pause, seek, volume, previous/next, and queue controls work.
+- [ ] Now Playing shows title, artist, album, source badge, duration, remaining time, and integrity/VISU state when available.
+- [ ] Queue rows show current row state, source badge, album context, duration, and empty state clearly.
 
-- [x] **Pass with limitation** — `demo_pity_party_class.mp5` via local `pnpm playback:check` / playback-regression e2e (not shipped on hosted)
+## C. Karaoke / Lyrics / Stems
 
-## C. Karaoke and synced lyrics
+- [ ] Karaoke demo loads.
+- [ ] Lyrics panel shows synced line highlighting and previous/upcoming context.
+- [ ] Karaoke toggle works.
+- [ ] Stem states are readable when stems are present.
 
-- [x] **Pass** — Hosted karaoke demo loads; karaoke mode toggles on; play enabled
+## D. Album Packages
 
-## D. Stems mute/unmute/check/uncheck
+- [ ] Embedded album demo opens.
+- [ ] Play all queues the embedded tracks.
+- [ ] Source badge distinguishes embedded `.mp5p`.
+- [ ] Manifest `.mp5p` remains covered by local package validation.
 
-- [ ] **Not tested** — Hosted automated QA (local stems e2e + playback-regression cover core paths)
+## E. Converter / Batch
 
-## E. Metadata / lyrics / VISU
+- [ ] Converter tab opens.
+- [ ] Batch tab opens.
+- [ ] Batch Album Builder opens.
+- [ ] Export copy remains local/browser-only and MP5-L v3 recommended.
 
-- [x] **Pass with limitation** — Lyrics panel on karaoke demo; VISU containment via local `visual-theme-containment` + mobile smoke e2e
+## F. Mobile / VISU
 
-## F. Single-file conversion
+- [ ] 375x812 viewport has no horizontal overflow.
+- [ ] Tabs and player controls are tappable.
+- [ ] Embedded album view remains readable.
+- [ ] VISU stays contained to the Now Playing/player visual area.
 
-- [x] **Pass with limitation** — Converter panel reachable on hosted; full WAV drop not run on hosted (local converter e2e)
+## G. Privacy / Release Hygiene
 
-## G. Manifest `.mp5p`
+- [ ] No telemetry, upload, or cloud sync claims.
+- [ ] No DRM/legal-proof/beat-codec claims.
+- [ ] No local/private/copyrighted audio is committed or deployed.
+- [ ] Diagnostics copy remains manual and path-redacted.
 
-- [x] **Pass with limitation** — Local `demo_album_package.mp5p` e2e; sidecar UX not re-run on hosted this session
+## H. Hosted deployment
 
-## H. Embedded `.mp5p`
+- [ ] Production URL is https://mp5-audio.vercel.app.
+- [ ] `hosted:verify` passes.
+- [ ] `test:e2e:hosted` passes.
 
-- [x] **Pass** — Hosted embedded album demo (fixed v0.16.1); HADES manual QA accepted locally (prior milestone)
+## I. Physical Phone Spot-Check (Optional)
 
-## I. Library save / load / delete
+- [ ] Hosted URL opens on a real phone.
+- [ ] Landing fits without horizontal scroll.
+- [ ] MP5-L demo plays.
+- [ ] Embedded album demo opens.
+- [ ] Settings and feedback links are visible.
 
-- [x] **Pass with limitation** — Library panel + browser-local honesty on hosted; save/delete not automated on hosted
+## Sign-Off
 
-## J. Mobile viewport (Playwright, 375x812)
-
-- [x] **Pass** — Hosted mobile e2e: no horizontal overflow, tappable tabs/buttons, embedded album readable
-
-## K. Hosted deployment
-
-- [x] **Pass** — Badge **MP5 Public Beta**; `hosted:verify`; `test:e2e:hosted` **11/11**; PWA/WASM/FFmpeg 200; synthetic fixtures only
-
-## L. Physical phone spot-check (real device)
-
-Use https://mp5-audio.vercel.app on a phone browser. No large copyrighted local files required — hosted demos only.
-
-- [ ] **Not tested** — Hosted URL opens on phone
-- [ ] **Not tested** — Landing fits without horizontal scroll
-- [ ] **Not tested** — Tabs are tappable (Player, Converter, Demo, Settings)
-- [ ] **Not tested** — Demo guide opens
-- [ ] **Not tested** — MP5-L demo loads and plays
-- [ ] **Not tested** — Embedded album demo opens
-- [ ] **Not tested** — Player controls usable (play/pause, seek)
-- [ ] **Not tested** — Settings and Diagnostics open
-- [ ] **Not tested** — Report a bug / feedback links visible in Settings
-- [ ] **Not tested** — VISU stays contained (no giant wallpaper bug)
-- [ ] **Not tested** — App does not feel frozen after loading demos
-
-**Note:** Automated mobile viewport QA (section J) passed; section L is optional manual confirmation on a physical device.
-
----
-
-## M. Library collection (v0.17.x)
-
-- [ ] Library tab shows empty state on first visit
-- [ ] Save `.mp5` track → appears under Saved tracks with play/queue/download/delete
-- [ ] Save manifest or embedded album → appears under Saved albums with package badges
-- [ ] Search/filter/sort controls work; large embedded metadata does not freeze the view
-- [ ] Delete confirms browser-local removal only
-- [ ] Storage stats line shows counts and approximate bytes
-- [ ] Recently opened updates after play (metadata only for unsaved file opens)
-- [ ] Mobile viewport: filters and card actions usable
-
----
-
-## N. Export / package polish (v0.18.0-beta)
-
-- [ ] Single export shows progress, summary, and **Copy summary** action
-- [ ] Batch "Download all" never overwrites same-titled tracks (de-duplicated names)
-- [ ] Batch failure: successful items remain, failed rows show a reason, **Retry failed** + **Copy error summary** work
-- [ ] Batch Album Builder shows the **review step** (mode, tracks, size, cover, warnings, guidance, reminders) before export
-- [ ] Manifest and embedded `.mp5p` export show **package validation passed / warning** after export
-- [ ] **Copy summary** on a package produces path-free text
-- [ ] Large embedded package shows a heavy-package warning before building
-- [ ] Diagnostics copy includes export context with no local paths
-- [ ] Mobile viewport: export review and actions usable
-
-## O. Player / Listening UX polish (v0.19.0-beta)
-
-- [ ] Now Playing shows title, artist, album, cover/fallback, codec, source badge, time/duration/remaining, and integrity when available
-- [ ] Queue current row highlight, source badge, album context, duration, and empty state are clear
-- [ ] Timeline play/pause/seek/next/previous remain accurate; no double audio overlap after rapid play/pause/seek
-- [ ] Lyrics/karaoke current line highlight, previous/upcoming context, and no-lyrics state are readable
-- [ ] Stems selected/loaded/audible/muted/preparing states are obvious; checking/unchecking does not restart unexpectedly
-- [ ] VISU stays contained to Now Playing/player area and falls back safely when missing
-- [ ] Mobile viewport 375x812 has no horizontal overflow and controls remain tappable
-- [ ] Diagnostics copy remains manual, local-only, and path-redacted
-
----
-
-**Sign-off:** Public Beta accepted — automated hosted QA + maintainer review · **Date:** June 2026 · **Browser / OS:** Desktop Chrome (Playwright); mobile viewport 375x812 (Playwright); physical phone **pending**
+Pending v0.20.0-beta hosted verification.

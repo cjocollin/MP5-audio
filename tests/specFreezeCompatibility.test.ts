@@ -18,9 +18,9 @@ const fixtures = join(root, "test-fixtures");
 
 const REGISTRY_DOC = join(docs, "MP5_CHUNK_REGISTRY.md");
 const POLICY_DOC = join(docs, "MP5_COMPATIBILITY_POLICY.md");
-const MATRIX_DOC = join(docs, "MP5_FEATURE_MATRIX.md");
+const MATRIX_DOC = join(docs, "MP5_COMPATIBILITY_MATRIX.md");
 
-/** Chunks with parser/writer or decode in Alpha — must appear in registry doc. */
+/** Chunks with parser/writer or decode in Public Beta must appear in registry doc. */
 const IMPLEMENTED_CHUNKS = [
   "HEAD",
   "META",
@@ -71,7 +71,7 @@ describe("spec freeze docs", () => {
   it("compatibility policy document exists", () => {
     expect(existsSync(POLICY_DOC)).toBe(true);
     const text = readFileSync(POLICY_DOC, "utf8");
-    expect(text).toMatch(/Alpha/i);
+    expect(text).toMatch(/Public Beta/i);
     expect(text).toMatch(/unknown optional/i);
   });
 
@@ -79,10 +79,10 @@ describe("spec freeze docs", () => {
     expect(existsSync(MATRIX_DOC)).toBe(true);
     const text = readFileSync(MATRIX_DOC, "utf8");
     expect(text).toContain("MP5-L v3");
-    expect(text).toContain("Batch stem import");
+    expect(text).toContain("STDF");
   });
 
-  it("registry covers implemented Alpha chunks", () => {
+  it("registry covers implemented Public Beta chunks", () => {
     const text = readFileSync(REGISTRY_DOC, "utf8");
     for (const fourcc of IMPLEMENTED_CHUNKS) {
       expect(text, `registry missing ${fourcc}`).toContain(fourcc);
@@ -152,7 +152,7 @@ describe("compatibility assessment behavior", () => {
 describe("status doc version", () => {
   it("CURRENT_MP5_STATUS mentions Public Beta version and readiness docs", () => {
     const text = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(text).toMatch(/0\.16\.[12]-beta|Public Beta/i);
+    expect(text).toMatch(/0\.20\.0-beta|Public Beta/i);
     expect(text).toMatch(/MP5_BETA_READINESS|beta:check|inspect:mp5|chunk registry/i);
   });
 });

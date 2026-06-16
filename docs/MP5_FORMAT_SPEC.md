@@ -1,68 +1,70 @@
-# MP5 Format Specification (v0.1)
+# MP5 Format Specification
 
-## Overview
+**Version:** MP5 Audio v0.20.0-beta  
+**Status:** Public Beta reference spec
 
-MP5 is an experimental audio ecosystem:
+MP5 is an experimental open-source audio format ecosystem. The core `.mp5` file is a chunked container with audio plus optional metadata/enrichment chunks. Public Beta playback requires only `HEAD` and `AUDI`.
 
-- **Container** — chunk-based `.mp5` file (`MP5A` magic)
-- **Codecs** — MP5-C (lossy), MP5-L (lossless), MP5-H (hybrid)
-- **Optional metadata** — AI, warnings, stems, advanced/moonshot chunks
+This document is descriptive of the current reference implementation. v0.20.0-beta does not change codec policy, playback transport, MP5/STDF/MP5P semantics, or converter encoding behavior.
 
-Core playback requires only `HEAD` + `AUDI`. All enrichment chunks are optional.
+## File Model
 
-## Terminology
-
-| Term | Meaning |
-|------|---------|
-| Container | File format: chunks (HEAD, META, AUDI, …) |
-| Codec | Bitstream inside AUDI (+ CORR for MP5-H) |
-| Encoder/Decoder | Rust implementation (WASM/native) |
-| Player | Parses container, decodes, plays audio |
+| Layer | Role |
+|-------|------|
+| `.mp5` container | `MP5A` magic plus chunk stream |
+| `HEAD` | codec id, sample rate, channel count, duration |
+| `AUDI` | MP5-L, MP5-C, MP5-H, or PCM audio frames |
+| Optional chunks | metadata, cover art, seek/waveform, lyrics, stems, sections, VISU, integrity, credits, album metadata |
+| `.mp5p` package | separate album package format; manifest JSON or embedded binary package |
 
 ## Codec IDs
 
-| ID | Codec |
-|----|-------|
-| 0 | PCM fallback |
-| 1 | MP5-C experimental lossy |
-| 2 | MP5-L experimental lossless |
-| 3 | MP5-H hybrid |
-| 4 | External passthrough |
-| 255 | Private/experimental |
+| ID | Codec | Public Beta role |
+|----|-------|------------------|
+| 0 | PCM | Reference/debug fallback |
+| 1 | MP5-C | Lab-only lossy research mode; may hiss |
+| 2 | MP5-L | Recommended lossless mode; v3 is the default |
+| 3 | MP5-H | Experimental hybrid mode; large; not default |
+| 4 | External passthrough | Registry value; not a normal export target |
+| 255 | Private/experimental | Not a public interoperability target |
 
-## Core chunks (MVP)
+## Core Chunks
 
-| FourCC | Purpose |
-|--------|---------|
-| HEAD | Global header |
-| META | Title, artist, album, … |
-| COVR | Cover art |
-| AUDI | Encoded audio frames |
-| SEEK | Seek table |
-| WAVE | Waveform preview |
-| INFO | Encoder/source info |
-| CORR | Hybrid correction (MP5-H) |
+| FourCC | Required | Purpose |
+|--------|----------|---------|
+| `HEAD` | yes | Global audio header |
+| `AUDI` | yes | Audio frames |
+| `META` | no | Standard text metadata |
+| `COVR` | no | Cover art |
+| `SEEK` | no | Seek table |
+| `WAVE` | no | Waveform preview |
+| `INFO` | no | Encoder/tool info |
+| `CORR` | no | MP5-H correction layer |
 
-## Optional chunks
+All other chunks are optional and safe to ignore if the parser can skip them within limits.
 
-See [AI_METADATA_SPEC.md](./AI_METADATA_SPEC.md), [MP5_CONTENT_WARNINGS.md](./MP5_CONTENT_WARNINGS.md), [MP5_ADVANCED_FEATURES.md](./MP5_ADVANCED_FEATURES.md), [MP5_MOONSHOT_FEATURES.md](./MP5_MOONSHOT_FEATURES.md).
+## Optional Metadata And Enrichment
 
-## Feature maturity
+The reference implementation understands optional chunks for lyrics (`LYRC`), stems (`STEM`, `STDA`, `STDF`), sections (`SECT`, `HOOK`, `HILT`), content guidance (`EXPL`, `SAFE`, `SENS`, `RECV`), visual themes (`VISU`), credits/rights (`CRDT`, `LICN`, `IDEN`), and integrity (`FING`, `HASH`). See the [chunk registry](MP5_CHUNK_REGISTRY.md) for the complete list.
 
-| Tier | Build in MVP? |
-|------|---------------|
-| MVP | Yes |
-| Planned | No — display stubs |
-| Experimental | No |
-| Advanced | No |
-| Moonshot | Spec only |
+Optional metadata is informational. It must not block playback, claim legal proof, enforce rights, or imply that MP5 beats MP3/AAC/Opus/FLAC.
 
-See [MP5_ROADMAP.md](./MP5_ROADMAP.md).
+## Forward Compatibility
 
-## Forward compatibility
+Parsers should:
 
-Unknown FourCC chunks: read size, verify CRC if flagged, skip. Never required for decode.
+- Reject bad magic, unsupported required structure, impossible sizes, and required chunk CRC failures.
+- Enforce the public caps in [MP5_CONTAINER_SPEC.md](MP5_CONTAINER_SPEC.md).
+- Skip unknown optional chunks after validating declared length and CRC if present.
+- Continue playback when optional metadata is missing or unsupported.
 
-## Honesty
+## Related Specs
 
-MP5 is experimental. Do not claim superiority over established formats without benchmark data.
+- [Container spec](MP5_CONTAINER_SPEC.md)
+- [Codec spec](MP5_CODEC_SPEC.md)
+- [Metadata spec](MP5_METADATA_SPEC.md)
+- [Stems](MP5_STEMS.md)
+- [Album package](MP5_ALBUM_PACKAGE.md)
+- [Embedded package](MP5_EMBEDDED_PACKAGE.md)
+- [Compatibility matrix](MP5_COMPATIBILITY_MATRIX.md)
+- [Developer quickstart](MP5_DEVELOPER_QUICKSTART.md)

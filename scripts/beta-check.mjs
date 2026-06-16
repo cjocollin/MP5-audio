@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Pre-Beta / QA hardening gate — stricter than day-to-day dev.
- * Runs golden fixture validation, beta docs tests, full alpha:check, build, deploy:check.
+ * Public Beta / QA hardening gate - stricter than day-to-day dev.
+ * Runs golden fixture validation, beta docs tests, the legacy full gate, build, deploy:check.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -23,7 +23,7 @@ function run(label, command, args) {
   }
 }
 
-console.log("MP5 Beta readiness check (v0.10.4-alpha gate)\n");
+console.log("MP5 Beta readiness check (v0.20.0-beta gate)\n");
 
 run("Container build", "pnpm", ["--filter", "@mp5/container", "build"]);
 run("Golden fixture validation", "node", ["scripts/validate-golden-fixtures.mjs"]);
@@ -32,16 +32,17 @@ run("Beta readiness unit tests", "pnpm", [
   "vitest",
   "run",
   "tests/betaReadiness.test.ts",
+  "tests/developerToolkitDocs.test.ts",
   "tests/publicLanding.test.ts",
   "tests/specFreezeCompatibility.test.ts",
 ]);
 
 const wasmPkg = join(root, "apps/web/src/wasm/pkg/mp5_codec_bg.wasm");
 if (!existsSync(wasmPkg)) {
-  console.log("\n(WASM pkg missing — alpha:check will run wasm:build via fixtures:generate)\n");
+  console.log("\n(WASM pkg missing - alpha:check will run wasm:build via fixtures:generate)\n");
 }
 
-run("Alpha check (full gate)", "pnpm", ["alpha:check"]);
+run("Full compatibility gate", "pnpm", ["alpha:check"]);
 run("Production build", "pnpm", ["build"]);
 run("Deploy dist check", "pnpm", ["deploy:check"]);
 

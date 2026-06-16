@@ -1,0 +1,7 @@
+benchmarks/
+test-fixtures/origami-compare/
+logs/
+test-results/
+acceptance-*.log
+*.log
+.env

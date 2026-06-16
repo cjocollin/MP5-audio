@@ -129,7 +129,7 @@ test.describe("stem playback UI", () => {
       return parseInt(m[1]!, 10) * 60 + parseInt(m[2]!, 10);
     };
 
-    // Synthetic demo stems are ~2s — run seamless toggles immediately after play starts.
+    // Synthetic demo stems are short — run seamless toggles immediately after play starts.
     await page.waitForTimeout(400);
     const beforeSec = parseTime(await page.getByTestId("current-time").textContent());
 

@@ -17,7 +17,7 @@ function ok(path) {
   return existsSync(path);
 }
 
-console.log("\n  MP5 Alpha — local demo\n");
+console.log("\n  MP5 Public Beta - local demo\n");
 
 const steps = [];
 
@@ -47,11 +47,11 @@ if (steps.length > 0) {
     );
   }
 } else {
-  console.log("Setup OK — WASM codecs and demo fixtures found.\n");
+  console.log("Setup OK - WASM codecs and demo fixtures found.\n");
   console.log("  Try: test-fixtures/demo_mp5l_v3_tone.mp5\n");
 }
 
-console.log("Starting dev server → http://localhost:5173\n");
+console.log("Starting dev server -> http://localhost:5173\n");
 
 const child = spawn("pnpm", ["dev"], {
   cwd: root,

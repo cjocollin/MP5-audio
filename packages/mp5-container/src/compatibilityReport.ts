@@ -224,7 +224,7 @@ export function assessMp5Compatibility(
       issues.push({
         level: "warning",
         code: "mp5l_not_v3",
-        message: "MP5-L bitstream is not v3 — v3 is the Alpha default/recommended.",
+        message: "MP5-L bitstream is not v3 - v3 is the Public Beta default/recommended.",
       });
       warnings.push("MP5-L not v3");
     }
@@ -284,7 +284,7 @@ export function assessMp5Compatibility(
     issues.push({
       level: "info",
       code: "unknown_optional",
-      message: `Unknown optional chunk(s): ${optionalUnknown.join(", ")} — safe to ignore per Alpha policy.`,
+      message: `Unknown optional chunk(s): ${optionalUnknown.join(", ")} - safe to ignore per Public Beta compatibility policy.`,
     });
   }
 
@@ -353,7 +353,7 @@ export function assessMp5Compatibility(
     path: opts?.path,
     fileSize: opts?.fileSize ?? 0,
     magic: "MP5A",
-    containerVersion: "1 (Alpha)",
+    containerVersion: "1 (Public Beta)",
     codecId,
     codecLabel: CODEC_LABELS[codecId] ?? `codec ${codecId}`,
     codecVersion: mp5CodecVersionLabel(codecId, audi),

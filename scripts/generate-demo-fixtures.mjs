@@ -72,7 +72,7 @@ const pcmMp5 = writeMp5({
   },
   meta: [
     { key: "title", value: "Demo tone (PCM reference)" },
-    { key: "artist", value: "MP5 Alpha Demo" },
+    { key: "artist", value: "MP5 Public Beta Demo" },
   ],
   audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: pcmBytes }],
   seek: [{ sampleOffset: 0n, byteOffset: 0n }],
@@ -96,7 +96,7 @@ const mp5lMp5 = writeMp5({
   },
   meta: [
     { key: "title", value: "Demo tone (MP5-L v3)" },
-    { key: "artist", value: "MP5 Alpha Demo" },
+    { key: "artist", value: "MP5 Public Beta Demo" },
   ],
   audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: mp5lBitstream }],
   seek: [{ sampleOffset: 0n, byteOffset: 0n }],
@@ -117,7 +117,7 @@ const mp5cMp5 = writeMp5({
   },
   meta: [
     { key: "title", value: "Demo tone (MP5-C lab)" },
-    { key: "artist", value: "MP5 Alpha Demo" },
+    { key: "artist", value: "MP5 Public Beta Demo" },
   ],
   audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: mp5cBitstream }],
   seek: [{ sampleOffset: 0n, byteOffset: 0n }],
@@ -157,7 +157,7 @@ function mixStems(...parts) {
   return out;
 }
 
-const stemDurationSec = 1.5;
+const stemDurationSec = 6.0;
 const stemN = Math.floor(sampleRate * stemDurationSec);
 const stemTotal = BigInt(stemN);
 
@@ -177,27 +177,27 @@ const demoSections = encodeSect({
   version: 1,
   source: "demo",
   sections: [
-    { sectionId: "sect-1", type: "intro", startMs: 0, endMs: 300, title: "Opening", source: "user" },
-    { sectionId: "sect-2", type: "verse", startMs: 300, endMs: 600, title: "Verse 1", source: "user" },
-    { sectionId: "sect-3", type: "chorus", startMs: 600, endMs: 900, title: "First chorus", source: "user" },
-    { sectionId: "sect-4", type: "hook", startMs: 900, endMs: 1200, title: "Main hook", source: "user" },
-    { sectionId: "sect-5", type: "outro", startMs: 1200, endMs: 1500, title: "Closing", source: "user" },
+    { sectionId: "sect-1", type: "intro", startMs: 0, endMs: 1200, title: "Opening", source: "user" },
+    { sectionId: "sect-2", type: "verse", startMs: 1200, endMs: 2400, title: "Verse 1", source: "user" },
+    { sectionId: "sect-3", type: "chorus", startMs: 2400, endMs: 3600, title: "First chorus", source: "user" },
+    { sectionId: "sect-4", type: "hook", startMs: 3600, endMs: 4800, title: "Main hook", source: "user" },
+    { sectionId: "sect-5", type: "outro", startMs: 4800, endMs: 6000, title: "Closing", source: "user" },
   ],
 });
 
 const demoHook = encodeHook({
   sectionId: "sect-4",
-  startMs: 900,
-  endMs: 1200,
+  startMs: 3600,
+  endMs: 4800,
   label: "Main hook",
 });
 
 const demoHilt = encodeHilt({
   source: "demo",
   highlights: [
-    { startMs: 300, endMs: 600, label: "Verse preview", useCase: "preview" },
-    { startMs: 600, endMs: 900, label: "Chorus peak", useCase: "emotional_peak" },
-    { startMs: 900, endMs: 1200, label: "Hook share clip", useCase: "share" },
+    { startMs: 1200, endMs: 2400, label: "Verse preview", useCase: "preview" },
+    { startMs: 2400, endMs: 3600, label: "Chorus peak", useCase: "emotional_peak" },
+    { startMs: 3600, endMs: 4800, label: "Hook share clip", useCase: "share" },
   ],
 });
 
@@ -217,10 +217,10 @@ const demoSyncedLyrics = encodeLyrc({
   unsynced: "MP5 demo starts\nVerse and chorus flow\nHook then outro",
   synced: [
     { timeMs: 0, text: "MP5 demo starts", section: "Intro" },
-    { timeMs: 300, text: "Verse and chorus flow", section: "Verse" },
-    { timeMs: 600, text: "First chorus rises", section: "Chorus" },
-    { timeMs: 900, text: "Main hook plays", section: "Hook" },
-    { timeMs: 1200, text: "Smart audio, playing clean", section: "Outro" },
+    { timeMs: 1200, text: "Verse and chorus flow", section: "Verse" },
+    { timeMs: 2400, text: "First chorus rises", section: "Chorus" },
+    { timeMs: 3600, text: "Main hook plays", section: "Hook" },
+    { timeMs: 4800, text: "Smart audio, playing clean", section: "Outro" },
   ],
 });
 
@@ -260,7 +260,7 @@ const stemsMp5 = writeMp5({
   },
   meta: [
     { key: "title", value: "Demo song map (MP5-L v3)" },
-    { key: "artist", value: "MP5 Alpha Demo" },
+    { key: "artist", value: "MP5 Public Beta Demo" },
     { key: "genre", value: "Synthetic demo" },
   ],
   audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: mixBitstream }],

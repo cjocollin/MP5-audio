@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Full MP5 Alpha verification — run before a demo or release tag.
+ * Full MP5 compatibility verification - run before a demo or release tag.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -25,7 +25,7 @@ function run(label, command, args) {
 
 run("Container build", "pnpm", ["--filter", "@mp5/container", "build"]);
 if (existsSync(wasmPkg)) {
-  console.log("\n(WASM pkg present — skipping wasm:build for demo fixtures)\n");
+  console.log("\n(WASM pkg present - skipping wasm:build for demo fixtures)\n");
   run("Demo fixtures", "node", ["scripts/generate-demo-fixtures.mjs"]);
   run("Demo album package", "node", ["scripts/generate-demo-album-package.mjs"]);
 } else {
@@ -40,4 +40,4 @@ run("Stem fixture validation", "node", ["scripts/validate-stem-fixture.mjs"]);
 run("Playback regression gate", "pnpm", ["playback:check"]);
 run("E2E (Playwright)", "pnpm", ["test:e2e"]);
 
-console.log("\n=== MP5 Alpha check: all passed ===\n");
+console.log("\n=== MP5 compatibility check: all passed ===\n");

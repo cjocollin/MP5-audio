@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Validate MP5 Alpha hosted HTTPS demo (static checks).
+ * Validate MP5 Public Beta hosted HTTPS demo (static checks).
  * Usage: MP5_HOSTED_URL=https://your-app.vercel.app node scripts/verify-hosted-demo.mjs
  */
 import { spawnSync } from "node:child_process";

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Production demo — build if needed, serve apps/web/dist, print smoke-test hint.
+ * Production demo - build if needed, serve apps/web/dist, print smoke-test hint.
  */
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -26,7 +26,7 @@ function run(cmd, args) {
   });
 }
 
-console.log("\n  MP5 Alpha — production preview\n");
+console.log("\n  MP5 Public Beta - production preview\n");
 
 const setup = [];
 if (!existsSync(wasmBg)) setup.push("pnpm wasm:build");
@@ -42,13 +42,13 @@ if (setup.length) {
 }
 
 if (!existsSync(distIndex)) {
-  console.log("Building production bundle…\n");
+  console.log("Building production bundle...\n");
   await run("pnpm", ["build"]);
 } else {
   console.log("Using existing dist/ (run pnpm build to refresh).\n");
 }
 
-console.log(`Starting preview → http://${PREVIEW_HOST}:${PREVIEW_PORT}\n`);
+console.log(`Starting preview -> http://${PREVIEW_HOST}:${PREVIEW_PORT}\n`);
 console.log("In another terminal:  node scripts/verify-prod-preview.mjs\n");
 console.log("Manual checks: Player, Converter, Load MP5-L demo, PWA install (localhost OK).\n");
 

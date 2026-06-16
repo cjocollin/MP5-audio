@@ -1,172 +1,113 @@
-# MP5 Public Beta — Hosted Demo Validation
+# MP5 Public Beta Hosted Demo Validation
 
-This document records **HTTPS hosted demo** validation for MP5 Public Beta. Use it after [`MP5_DEPLOYMENT_GUIDE.md`](MP5_DEPLOYMENT_GUIDE.md) build steps.
+**Version:** MP5 Audio v0.20.0-beta (Public Beta)  
+**Canonical URL:** https://mp5-audio.vercel.app  
+**Last updated:** 2026-06-16
 
-**Version:** MP5 Audio **v0.16.1-beta** (Public Beta)  
-**Codec policy (unchanged):** MP5-L v3 default/recommended · MP5-C lab-only · MP5-H hybrid/large/not default.
+Use this document for production hosted-demo validation after local gates pass.
 
----
-
-## Recommended platform
+## Platform
 
 | Platform | Status | Notes |
-|----------|--------|--------|
-| **Vercel** | **Recommended** | Project name **`mp5-audio`** → https://mp5-audio.vercel.app — see [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md) |
-| **Netlify** | Supported | `netlify.toml` — same build command pattern |
-| **Any static host** | Supported | Upload `apps/web/dist` over HTTPS |
+|----------|--------|-------|
+| Vercel | Recommended | Project `mp5-audio`, production URL https://mp5-audio.vercel.app |
+| Netlify | Supported static host | Uses `netlify.toml`, publishes `apps/web/dist` |
+| Any HTTPS static host | Supported | Upload `apps/web/dist`; service worker and WASM mime types must work |
 
-**Environment variables:** none required for the web demo. No private paths, API keys, or local `C:\Users\...` references in shipped bundles.
+The web demo does not require environment variables. No private paths, API keys, or local `C:\Users\...` references should appear in shipped bundles.
 
-### Vercel URLs (do not confuse)
-
-| URL | Role |
-|-----|------|
-| **https://mp5-audio.vercel.app** | **Canonical** public demo (after `mp5-audio` project deploy) |
-| https://mp5-alpha-demo.vercel.app | **Invalid** — broken/blank; do not share |
-| https://dist-livid-two-82.vercel.app | **Temporary** — prebuilt validation only |
-
----
-
-## Vercel deployment checklist
-
-Full steps: [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md)
-
-- [ ] GitHub repo **`mp5-audio`**
-- [ ] Vercel project **`mp5-audio`** (not `mp5-alpha-demo` or `dist`)
-- [ ] `pnpm beta:check` / `pnpm deploy:check` / `pnpm vercel:check` pass locally
-- [ ] Root directory = repo root; output **`apps/web/dist`**
-- [ ] Build: `node scripts/vercel-build.mjs` (from `vercel.json`)
-- [ ] Production URL: **https://mp5-audio.vercel.app**
-- [ ] `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm hosted:verify`
-- [ ] `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted`
-
-## Netlify deployment checklist
-
-- [ ] Same local gates as above
-- [ ] Build: `node scripts/vercel-build.mjs` (or prebuild locally and publish `apps/web/dist`)
-- [ ] Publish directory: `apps/web/dist`
-- [ ] `netlify.toml` headers for `*.wasm` → `application/wasm`
-- [ ] HTTPS enabled (Netlify default)
-- [ ] Same hosted smoke + browser steps as Vercel
-
----
-
-## Copyrighted audio policy
+## Copyrighted Audio Policy
 
 | Location | Included in deploy? |
 |----------|---------------------|
-| `test-fixtures/*.mp5` | **Synthetic tones only** — optional copy into `dist/fixtures/` at build |
-| `benchmarks/real-music/` | **Local dev/bench only** — `.gitignore` / not in `dist/` |
-| `.flac`, `.wav`, `.mp3`, `.m4a` in repo | **Must not be committed** (gitignored) |
+| `test-fixtures/*.mp5` | Synthetic tones/demos only; copied when build tooling includes fixtures |
+| `test-fixtures/*.mp5p` | Synthetic package fixtures only |
+| `benchmarks/real-music/` | Local dev/bench only; not deployed |
+| Private `.flac`, `.wav`, `.mp3`, `.m4a` | Must not be committed or deployed |
 
-Audit: `pnpm audit:deploy`
+Audit with `pnpm audit:deploy`.
 
----
+## Pre-Deploy Gates
 
-## Hosted validation (May 2026)
+```bash
+pnpm lint
+pnpm test
+pnpm test:compat
+CI=1 pnpm test:e2e
+pnpm playback:check
+CI=1 pnpm alpha:check
+CI=1 pnpm beta:check
+pnpm build
+pnpm deploy:check
+```
 
-| Field | Value |
-|-------|--------|
-| **Canonical URL** | **https://mp5-audio.vercel.app** |
-| **Release** | **v0.16.1-beta** — Public Beta tag |
-| **Badge** | **MP5 Public Beta · v0.16.1-beta** |
-| **Vercel project** | `mp5-audio` (Git: `cjocollin/MP5-audio`) |
-| **Git build** | `node scripts/vercel-build.mjs` → **Pass** |
-| **HTTP smoke** | **Pass** — `pnpm hosted:verify` |
-| **Browser e2e** | **Pass** — 11/11 hosted tests |
-| **Manual** | HADES `.mp5p` embedded album QA accepted locally (not deployed) |
+Package validation:
 
-**Retired URLs (do not share):**
+```bash
+pnpm fixtures:embedded-album
+node scripts/validate-embedded-album-package.mjs
+pnpm inspect:mp5 test-fixtures/demo_embedded_album_package.mp5p
+pnpm validate:mp5p test-fixtures/demo_embedded_album_package.mp5p --profile package
+pnpm validate:mp5p test-fixtures/demo_album_package.mp5p --dir test-fixtures --profile package
+```
 
-- https://mp5-alpha-demo.vercel.app — broken/blank
-- https://dist-livid-two-82.vercel.app — temporary prebuilt validation only
+Do not use or commit copyrighted/private local audio for release gates.
+
+## Production Deploy
+
+```bash
+npx vercel deploy --prod --yes
+```
+
+After deployment:
 
 ```bash
 MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm hosted:verify
 MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted
 ```
 
----
-
-## Hosted validation matrix
+## Hosted Validation Matrix
 
 | Check | Method | Expected |
 |-------|--------|----------|
-| App shell | GET `/` | 200, MP5 Audio heading |
+| App shell | GET `/` | 200 and MP5 Audio app shell |
+| Version badge | `data-testid="app-version"` | `MP5 Public Beta - v0.20.0-beta` |
 | PWA manifest | GET `/manifest.webmanifest` | `name: MP5 Player` |
-| Service worker | GET `/sw.js` | 200, precache lists WASM |
-| MP5 codec WASM | GET `/assets/*mp5_codec*.wasm` | 200 |
-| FFmpeg WASM | GET `/assets/*ffmpeg-core*.wasm` | 200 |
-| Demo fixture | GET `/fixtures/demo_mp5l_v3_tone.mp5` | 200 if bundled at build |
-| MP5-L demo plays | Browser — **Load MP5-L demo & play** | Seek max > 0 |
-| Embedded album demo | Browser — demo guide | Album loads in player |
-| Format panel | Browser | Shows MP5-L v3 |
-| Converter loads | Browser — Converter tab | Panel visible |
-| Version label | `data-testid="app-version"` | **MP5 Public Beta · v0.16.1-beta** |
+| Service worker | GET `/sw.js` | 200 and precache data |
+| MP5 codec WASM | GET built WASM asset | 200 |
+| FFmpeg WASM | GET FFmpeg core asset | 200 |
+| MP5-L demo | Hosted e2e | Loads, plays, seek duration > 0 |
+| Karaoke demo | Hosted e2e | Lyrics panel and karaoke toggle work |
+| Embedded album demo | Hosted e2e | Album view loads, queue/player controls visible |
+| Converter | Hosted e2e | Converter panel opens |
+| Batch | Hosted e2e | Batch panel and album builder open |
+| Mobile viewport | Hosted e2e 375x812 | No horizontal overflow; controls tappable |
+| VISU containment | Hosted e2e/local e2e | Visual theme stays inside player area |
+| Public claims | Docs/tests | Honest experimental wording preserved |
 
-Automated HTTP: `MP5_HOSTED_URL=… node scripts/verify-hosted-demo.mjs`  
-Automated browser: `MP5_HOSTED_URL=… pnpm test:e2e:hosted`
+## v0.20.0-beta Hosted Record
 
----
+| Field | Value |
+|-------|-------|
+| Production URL | Pending deployment |
+| Deployment URL | Pending deployment |
+| Deploy ID | Pending deployment |
+| Badge | `MP5 Public Beta - v0.20.0-beta` |
+| `hosted:verify` | Pending |
+| `test:e2e:hosted` | Pending |
+| Private/copyrighted audio | Not used for release gates |
 
 ## Hosted demo limitations
 
-1. **Large first load** — ~30+ MB service worker precache (FFmpeg WASM). First visit may take tens of seconds.
-2. **FFmpeg / WASM cold start** — first convert or non-WAV decode loads ~31 MB FFmpeg WASM in-tab.
-3. **Browser memory** — long files, `.mp5p` albums, or many queue items can stress mobile browsers.
-4. **PWA install** — requires **HTTPS** (hosted URL OK; plain HTTP hosts will not install).
-5. **Google Fonts** — first paint needs network to `fonts.googleapis.com`.
-6. **No server-side encoding** — all convert/decode in-browser; no background jobs.
-7. **Demo fixture optional** — if missing from build, demo button shows a calm message; drop your own `.mp5`.
-8. **Not a production music service** — experimental Public Beta; MP5 does not claim to beat MP3/AAC/Opus/FLAC.
+1. Large first load due to WASM and FFmpeg assets.
+2. Browser memory/storage can limit large packages or stem-heavy tracks.
+3. PWA install requires HTTPS.
+4. Demo fixtures are synthetic; users load their own files locally.
+5. This is not a production music service and does not claim to beat MP3/AAC/Opus/FLAC.
 
----
+## Related Docs
 
-## Exact deploy steps (this environment)
-
-### Option A — Git-connected `mp5-audio` (recommended)
-
-See [`MP5_VERCEL_SETUP.md`](MP5_VERCEL_SETUP.md).
-
-1. Push to GitHub repo **`mp5-audio`**.
-2. Vercel → New project → **`mp5-audio`** → import repo.
-3. Confirm `vercel.json` settings (root, `node scripts/vercel-build.mjs`, `apps/web/dist`).
-4. Deploy → **https://mp5-audio.vercel.app**
-
-### Option B — Prebuilt dist (emergency / validation only)
-
-```bash
-pnpm build && pnpm deploy:check
-npx vercel deploy apps/web/dist --prod --yes
-```
-
-Produces a **temporary** URL (e.g. `dist-*.vercel.app`) unless `--prod` targets the linked project.
-
-### Option C — Netlify
-
-```bash
-pnpm build
-npx netlify deploy --prod --dir=apps/web/dist
-```
-
----
-
-## Commands (local gate before/after deploy)
-
-```bash
-pnpm beta:check
-pnpm build
-pnpm deploy:check
-pnpm audit:deploy
-MP5_HOSTED_URL=https://your-url.vercel.app pnpm hosted:verify
-MP5_HOSTED_URL=https://your-url.vercel.app pnpm test:e2e:hosted
-```
-
----
-
-## Related docs
-
-- [`MP5_DEPLOYMENT_GUIDE.md`](MP5_DEPLOYMENT_GUIDE.md)
-- [`MP5_INSTALL_GUIDE.md`](MP5_INSTALL_GUIDE.md)
-- [`MP5_DEMO_GUIDE.md`](MP5_DEMO_GUIDE.md)
-- [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md)
+- [Deployment guide](MP5_DEPLOYMENT_GUIDE.md)
+- [Vercel setup](MP5_VERCEL_SETUP.md)
+- [Beta readiness](MP5_BETA_READINESS.md)
+- [Developer quickstart](MP5_DEVELOPER_QUICKSTART.md)

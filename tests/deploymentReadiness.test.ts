@@ -9,15 +9,15 @@ describe("deployment readiness", () => {
     const hosted = readFileSync(join(root, "docs/MP5_HOSTED_DEMO.md"), "utf8");
     expect(hosted).toContain("Hosted demo limitations");
     expect(hosted).toContain("mp5-audio");
-    expect(hosted).toContain("mp5-alpha-demo");
+    expect(hosted).toContain("v0.20.0-beta");
   });
 
   it("has mp5-audio Vercel setup guide", () => {
     const setup = readFileSync(join(root, "docs/MP5_VERCEL_SETUP.md"), "utf8");
     expect(setup).toContain("mp5-audio");
     expect(setup).toContain("apps/web/dist");
-    expect(setup).toContain("dist-livid-two-82");
-    expect(setup).toContain("mp5-alpha-demo");
+    expect(setup).toContain("v0.20.0-beta");
+    expect(setup).toContain("node scripts/vercel-build.mjs");
   });
 
   it("has deployment guide with checklist and platform notes", () => {

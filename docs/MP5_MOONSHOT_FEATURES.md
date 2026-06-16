@@ -1,21 +1,17 @@
-# MP5 Moonshot Features (spec-only)
+# MP5 Moonshot Features
 
-**Do not implement until Phases 1–9 complete and gate checklist passes.**
+**Version:** MP5 Audio v0.20.0-beta  
+**Status:** Spec-only reservations
 
-## Chunks
+Moonshot chunks are reserved names only. They are not implemented product features and must never be required for playback.
 
-ADPT, BRCH, RESP, EXPR, COMM, RULS, HEAL, TIME, CLEAN, LIVE, LANG, MAST, DNA_, SAMP, AIRG
+Reserved FourCCs:
 
-## Rules
+`ADPT`, `BRCH`, `RESP`, `EXPR`, `COMM`, `RULS`, `HEAL`, `TIME`, `CLEAN`, `LIVE`, `LANG`, `MAST`, `DNA_`, `SAMP`, `AIRG`
 
-- All optional; playback = HEAD + AUDI only
-- Unknown chunks: skip safely
-- TIME: local/private by default
-- AIRG, LICN, RULS, SIGN: expressive metadata, not legal enforcement
+Rules:
 
-## Gate checklist
-
-- [ ] Container tests green
-- [ ] Codec roundtrips green
-- [ ] Converter + player MVP shipped
-- [ ] Advanced chunk stubs documented
+- Core playback remains `HEAD` + `AUDI`.
+- Unknown/reserved optional chunks are skipped safely.
+- Rights-like metadata (`RULS`, `SIGN`, `LICN`) is informational only and not legal enforcement.
+- Private/listening-context metadata (`TIME`, `NOTE`, `MEMR`) must be treated as local/private by default.

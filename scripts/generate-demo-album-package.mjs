@@ -19,8 +19,8 @@ const manifest = {
   version: 1,
   album: {
     title: "MP5 Demo Album",
-    artist: "MP5 Alpha Demo",
-    albumArtist: "MP5 Alpha Demo",
+    artist: "MP5 Public Beta Demo",
+    albumArtist: "MP5 Public Beta Demo",
     year: "2026",
     releaseDate: "2026-05-20",
     genre: "Synthetic demo",
@@ -32,7 +32,7 @@ const manifest = {
       trackNumber: 1,
       discNumber: 1,
       title: "Demo tone (MP5-L v3)",
-      artist: "MP5 Alpha Demo",
+      artist: "MP5 Public Beta Demo",
     },
     {
       trackId: "demo-song-map",
@@ -40,16 +40,16 @@ const manifest = {
       trackNumber: 2,
       discNumber: 1,
       title: "Demo song map — stems, karaoke, sections, highlights, VISU",
-      artist: "MP5 Alpha Demo",
+      artist: "MP5 Public Beta Demo",
       gaplessNext: false,
     },
   ],
   credits:
     "Synthetic MP5 demo only. Import: drop this .mp5p plus demo_mp5l_v3_tone.mp5 and demo_mp5l_v3_stems.mp5 together.",
   crdt: {
-    primaryArtist: ["MP5 Alpha Demo"],
+    primaryArtist: ["MP5 Public Beta Demo"],
     producer: ["MP5 Synthetic Lab"],
-    copyrightHolder: ["MP5 Alpha Demo"],
+    copyrightHolder: ["MP5 Public Beta Demo"],
   },
   licn: {
     licenseType: "Synthetic demo — not for commercial distribution",

@@ -33,8 +33,8 @@ const manifest = {
   version: 1,
   album: {
     title: "MP5 Demo Embedded Album",
-    artist: "MP5 Alpha Demo",
-    albumArtist: "MP5 Alpha Demo",
+    artist: "MP5 Public Beta Demo",
+    albumArtist: "MP5 Public Beta Demo",
     year: "2026",
     genre: "Synthetic demo",
   },

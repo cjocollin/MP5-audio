@@ -1,236 +1,65 @@
-# MP5 Alpha Demo Guide
+# MP5 Demo Guide
 
-**Version:** MP5 Audio v0.10.4-alpha · Inspect: `pnpm inspect:mp5 <file>` (reports **STDA** vs **STDF** stem storage) · Pre-Beta: [`MP5_BETA_READINESS.md`](MP5_BETA_READINESS.md) · `pnpm beta:check`
+**Version:** MP5 Audio v0.20.0-beta  
+**Hosted demo:** https://mp5-audio.vercel.app
 
-Use this guide to show MP5 to someone in about five minutes. No copyrighted music is required — use the bundled synthetic fixtures or your own FLAC/WAV.
+Use synthetic fixtures for public demos. Do not use copyrighted/private local audio in a deploy, recording, or release gate.
 
-**Live demo:** https://mp5-audio.vercel.app — compact app-first header; expand **Learn more about MP5** for codec cards, screenshots, and honesty notes.
+## Demo Goals
 
-## Codec policy
+- Show that the hosted app loads and the badge reads `MP5 Public Beta - v0.20.0-beta`.
+- Show MP5-L v3 as the recommended lossless path.
+- Show optional metadata and package features without implying they are required for playback.
+- Keep public claims honest: experimental Public Beta, no beat-codec/DRM/legal-proof/telemetry/upload/cloud-sync claims.
 
-| Codec | Role |
-|-------|------|
-| **MP5-L v3** | **Default / recommended** — lossless, bit-exact, modest compression |
-| **PCM** | **Reference / debug** — uncompressed samples in the container |
-| **MP5-H** | **Hybrid** — MP5-C base + lossless CORR; **clean when CORR is applied**, but **large**; not default |
-| **MP5-C** | **Lab-only / experimental** — lossy; may **hiss** on all presets; not for normal listening |
+## Path A: MP5-L Demo
 
-**MP5 does not claim to beat MP3, AAC, Opus, or FLAC.**
+1. Open https://mp5-audio.vercel.app.
+2. Click **Load MP5-L demo**.
+3. Confirm the track loads, source badge shows `.mp5`, MP5-L v3 appears in format details, and play/pause/seek work.
 
-## What to say during a demo
+## Path B: Karaoke Demo
 
-Short script you can read aloud:
+1. Open **Demo guide**.
+2. Load the karaoke/stems demo.
+3. Confirm lyrics appear, karaoke mode toggles on, and player controls remain usable.
 
-1. **Opening** — “MP5 is a general-purpose smart audio format we’re prototyping — for music listeners, artists, podcasts, DJs, educators, and apps. It’s not claiming to replace MP3, AAC, Opus, or FLAC. Optional metadata can also support filtering, accessibility, and specialized apps like Haven.”
+## Path C: Embedded Album Demo
 
-2. **Default mode** — “For real listening, we use **MP5-L v3**: lossless and bit-exact. The decoded audio matches the source sample-for-sample. It’s the **default and recommended** export in the converter.”
+1. Open **Demo guide**.
+2. Load the embedded album demo.
+3. Confirm the album panel opens, **Play all** queues tracks, and Now Playing shows embedded `.mp5p` context.
 
-3. **Play demo file** — “I’ll load a small synthetic demo file — no copyrighted music in the repo. The Format panel shows MP5-L v3, bit-exact, and which WASM decode path ran.”
+## Path D: Converter
 
-4. **Convert** — “If I drop a FLAC or WAV here, the app encodes **MP5-L v3** and downloads a `.mp5` automatically. Same player path as PCM fallback — no hidden loudness processing.”
+1. Open **Converter**.
+2. Confirm the single-file converter opens.
+3. Explain that conversion is browser-local and MP5-L v3 is the recommended export path.
 
-5. **Honest limits** — “We’re not beating FLAC on size yet. MP5-L is modestly smaller than raw PCM on our reference track, not a magic smaller-than-FLAC codec.”
+## Path E: Batch
 
-6. **What not to sell** — “**MP5-C** is lab-only — it can hiss; we don’t use it for normal playback. **MP5-H** is a hybrid: clean when the CORR correction layer is present, but files are much larger — also not the default. **PCM** in the container is just reference/debug.”
+1. Open **Converter -> Batch**.
+2. Confirm batch mode and Batch Album Builder open.
+3. Explain manifest `.mp5p` versus embedded `.mp5p`: manifest is smaller but needs sidecars; embedded is self-contained but can be large.
 
-7. **Close** — “Before we ship a demo build, we run `pnpm alpha:check` — unit tests, Rust tests, fixture checks, and browser playback tests.”
-
-## Prerequisites
-
-- Node.js 20+
-- Rust toolchain (for `pnpm alpha:check`)
-- `pnpm install`
-- `pnpm wasm:build` (required for MP5-L export in the browser)
-
-See `docs/WASM_SETUP.md` if WASM fails to load.
-
-## Run the app
+## Toolkit Demo
 
 ```bash
-pnpm install
-pnpm wasm:build
-pnpm dev
+pnpm inspect:mp5 test-fixtures/demo_mp5l_v3_tone.mp5
+pnpm validate:mp5 test-fixtures/demo_mp5l_v3_tone.mp5 --profile playable
+pnpm validate:mp5p test-fixtures/demo_album_package.mp5p --dir test-fixtures --profile package
 ```
-
-Open **http://localhost:5173** — you should see a **compact landing** (title, tagline, badges, primary actions), then **Player** / **Converter** / **Library** tabs without scrolling. Use **Learn more about MP5** for the full marketing sections.
-
-## Screenshots
-
-| View | File |
-|------|------|
-| Player | [`docs/screenshots/Player.png`](screenshots/Player.png) |
-| Converter | [`docs/screenshots/Converter.png`](screenshots/Converter.png) |
-| Metadata | [`docs/screenshots/Metadata.png`](screenshots/Metadata.png) |
-
-Also shown on the hosted landing at https://mp5-audio.vercel.app.
-
-## Quick demo (recommended path)
-
-### 1. Play a bundled demo file
-
-1. On the welcome panel or **Player** tab, click **Load MP5-L demo & play** (synthetic tone — no copyrighted music in the repo).
-2. Or drop `test-fixtures/demo_mp5l_v3_tone.mp5` manually — each valid file is added to the **playlist** (append on drop).
-3. For real listening tests, convert your own **FLAC or WAV** in the Converter (not bundled commercial music).
-4. Use **search** to filter by title, artist, album, genre, or mood/vibe tags.
-5. Select a track, use **next/previous** or per-row **play**, and open the **metadata panel** below for full chunk details.
-6. Check the **Format** panel:
-   - **MP5-L v3 (lossless · default)**
-   - Encoder **v3 (LPC + delta + varint)**
-   - **Bit-exact: Yes (lossless)**
-   - Decode path: **MP5-L WASM v3 decode (lossless)**
-7. Press **Play** — seek and volume should work. Use **Shuffle** and **Repeat** (off → all → one) in the transport or playlist header. Playback auto-advances to the next track when a song ends.
-
-### 2. Convert your own FLAC/WAV
-
-**Batch (multiple files):** Converter → **Batch** → drop several WAV/FLAC/MP3/M4A/OGG files → **Start batch**. Each file exports **MP5-L v3** with detected tags, waveform/seek, and FING/HASH when possible. Say: **nothing uploads**; conversion is heavy; large batches are slow; closing the tab stops the queue. Use **Single file** to edit metadata before export. **Download all** saves separate `.mp5` files (no ZIP in this MVP).
-
-**Batch album export:** Enable **Batch album export** on the Batch tab → edit album title/artist and per-track metadata in the table → reorder or sort tracks → **Start batch** → export **manifest `.mp5p` + sidecar MP5s** or one **embedded `.mp5p`**. After export, use the **package summary** to **Open in Player** (album view), **Save to Library**, or **Download again**. Warn that embedded packages can be large; browsers may block many downloads for manifest mode.
-
-**Open in Player** (without export) still loads completed tracks as a flat playlist.
-
-**Performance / diagnostics:** Settings → open **Diagnostics (optional)** — playlist queue, decode cache (max 3 tracks), library bytes, WASM/FFmpeg status. Mention first-load codec download and that very large files or 12+ batch items show calm warnings (not hard blocks unless extreme).
-
-1. Open the **Converter** tab — the step strip shows: drop source → edit metadata → preview → export → download / open in player.
-2. Confirm **MP5-L v3** is selected (default).
-3. Drop a FLAC or WAV file — status shows **decoding** then **extracting metadata** (no immediate download).
-4. Edit metadata if needed — track info, cover, lyrics, optional **Content guidance** (content notices, sensitive themes, listener comfort), mood/vibe. Haven / Recovery is under **Specialized app metadata** (last in profile list; collapsed by default).
-5. Check **Export preview** — detected vs what will be embedded.
-6. Click **Export MP5** — progress shows waveform/seek build, encode, metadata chunks, validation, then **export summary** (filename, size, embedded flags).
-7. Use **Download again**, **Open in Player**, **Add to playlist**, or **Save to library** — or switch to **Player** and drop the `.mp5` manually.
-
-### 2c. Optional stems (manual or demo fixture)
-
-**Quick demo:** Player → **Load stems demo** (or drop `test-fixtures/demo_mp5l_v3_stems.mp5`) — synthetic drums, bass, and melody; no copyrighted audio.
-
-**Your own export:**
-
-1. In **Converter**, after loading a source, open **Stems (optional)**.
-2. Click **Import stems** or drop multiple WAV/FLAC/MP3/M4A/OGG files — review the batch summary (imported, skipped, guessed types).
-3. Edit stem names/types if filename guessing is wrong (e.g. `lead_vocal.wav` → Lead vocals).
-4. If sample rate or duration differs from the full mix, click **Normalize stems to match full mix** (applies to all stems). Use **Normalize all** or **Remove all** for bulk actions.
-5. If all stems are longer than the mix, consider **Pad full mix** instead of trimming.
-6. Export — full mix is still MP5-L v3 in AUDI; stems are optional add-ons.
-7. In **Player**, read the **Stems** panel help text, then optionally enable **Mix stems in player** for mute/solo/volume.
-
-Say out loud: stems are optional; full mix always works; no AI separation; normalization is a helper for session mismatches (trimming can remove audio); other players can ignore STEM/STDA/STDF; large exports use segmented **STDF** automatically; stem mix uses more memory and is experimental.
-
-### 2d. Synced lyrics and karaoke (demo)
-
-1. Player → **Load karaoke demo** (or drop `test-fixtures/demo_mp5l_v3_stems.mp5`).
-2. Open the **Lyrics** panel — synced lines highlight during playback.
-3. Toggle **Karaoke mode** — stem mix enables with instrumental/vocal preset when stems allow.
-4. In **Converter**, add synced lines manually: `[00:12.50] Your line` (no AI lyrics).
-
-Say: lyrics are optional; synced lyrics are manual; karaoke audio needs compatible stems.
-
-### 2e. Song map / sections (demo)
-
-1. Same **Load karaoke demo** file includes **SECT**, **HOOK**, and **HILT**.
-2. Open **Song map** — five synthetic sections (Intro → Outro).
-3. Use **Jump to chorus**, **Replay hook**, **Skip intro**, or click a section row.
-4. Waveform shows faint section markers when WAVE data is present.
-
-In **Converter**, add sections manually: `[00:00.00-00:12.00|Intro] Opening` — no AI analysis.
-
-### 2f. Highlights and preview clips
-
-1. In the **Highlights** list, try **Preview** on the verse clip (stops at end).
-2. **Play** on the share highlight; use **Loop hook** for the hook range.
-3. **Stop loop** returns to normal transport; repeat/shuffle unchanged.
-
-Say: highlights are manual HILT metadata; no AI detection; no social export yet.
-
-### 2g. Visual theme (VISU)
-
-1. **Load karaoke demo** — Now Playing picks up **Calm demo** accent colors (soft indigo gradient on the cover card).
-2. Open **Metadata** panel — **Visual theme (VISU)** shows theme name, mood, style, source, and color swatches.
-3. **Settings** → uncheck **Apply VISU file themes** — player returns to default chrome (metadata still lists VISU).
-
-In **Converter**, set theme name and hex colors under **Visual theme** — no AI palette extraction.
-
-Say: VISU is optional display metadata; playback and codec path are unchanged; other players may ignore it.
-
-### 2h. Album package (.mp5p)
-
-1. Run `node scripts/generate-demo-album-package.mjs` after demo fixtures (or `pnpm fixtures:generate`); for embedded demo: `pnpm fixtures:embedded-album`.
-2. **Manifest:** On the **Player** tab, drop **`demo_album_package.mp5p`** together with sidecar **`demo_mp5l_v3_tone.mp5`** and **`demo_mp5l_v3_stems.mp5`**. Read the manifest explainer; confirm **Found sidecar tracks** lists both files.
-3. **Embedded:** Drop **`demo_embedded_album_package.mp5p`** alone — no sidecars required.
-4. Track 1 = plain demo tone; track 2 = stems + karaoke + sections + highlights + VISU demo (manifest path).
-5. Album view shows cover, package type badge, track badges, integrity status; embedded tracks load lazily.
-6. **Play album** or **Add album to queue**; **Extract** embedded tracks; **Save album** (browser storage confirmation).
-7. Open **Library → Saved albums** for manifest and embedded saves.
-8. With 2+ tracks in the playlist, use **Create album package** — reorder tracks, download manifest or embedded package.
-9. **Converter → Batch album export** — after export, use package summary **Open in Player** / **Save to Library**.
-
-Say: **`.mp5` is core**; **`.mp5p`** is manifest (sidecars) or embedded (self-contained); browser storage is local; no DRM.
-
-### 2b. Local library (device-only)
-
-1. Open the **Library** tab.
-2. Drop `.mp5` files or use **Save to library** from the player playlist or converter export summary.
-3. Search by title, artist, album, filename, genre, mood, or vibe; filter by codec, content guidance, cover, or lyrics.
-4. **Play** loads into the player; **Queue** appends to the playlist; **Download** saves the file again.
-5. Say out loud: files stay **on this browser/device** (IndexedDB). **No cloud upload.** Clearing browser/site data may remove them. Large files use storage quickly.
-
-Exported filenames use **`Artist - Title.mp5`** when tags allow (sanitized). Non-default codecs add a variant suffix, e.g. `Track (PCM reference).mp5`. Browsers cannot overwrite downloads reliably; use **Download again** or the suggested `Track (MP5-L v3).mp5` pattern if you save twice.
-
-**Player import:** dropping multiple `.mp5` files shows how many were added, skipped (not `.mp5`), or unreadable — valid files still load.
-
-**Metadata policy:** optional content guidance is **never** auto-generated and does not affect playback. Most players can ignore specialized app metadata; Haven / Recovery is only one optional profile. See [`MP5_METADATA_SPEC.md`](MP5_METADATA_SPEC.md).
-
-### 3. Compare codecs (optional)
-
-| File | What to say |
-|------|-------------|
-| `demo_pcm_reference_tone.mp5` | “Reference / debug — raw PCM in the container, same playback path.” |
-| `demo_mp5c_lab_tone.mp5` | “Lab-only experimental codec — Format panel warns about hiss; not our default.” |
-
-Do **not** present MP5-C as a listening-quality default.
-
-## Format panel cheat sheet
-
-| Field | Meaning |
-|-------|---------|
-| **Codec label** | Container codec (MP5-L, PCM, MP5-H, MP5-C) |
-| **Container / Encoder** | Bitstream version and mode |
-| **Output quality** | Lossless bit-exact vs lossy / hybrid |
-| **Decode path** | How the browser decoded audio (WASM path) |
-| **Compression ratio** | File size vs raw PCM payload (informational) |
-
-For MP5-L v3, decoded PCM is **mathematically identical** to the source (verified on ORIGAMI — see `benchmarks/real-music/ORIGAMI_L_PCM_PARITY.md`).
-
-## Verify before a demo
-
-```bash
-pnpm alpha:check
-```
-
-Runs fixture generation, unit tests, Rust codec tests, fixture validation, and Playwright e2e. All steps must pass.
-
-## Current limitations (say these out loud)
-
-- MP5 does **not** claim to beat MP3, AAC, Opus, or FLAC.
-- MP5-L v3 does **not** meet the stretch goal of ≤0.80× PCM size (~0.95× on ORIGAMI).
-- MP5-L does **not** beat FLAC on reference material.
-- MP5-C may hiss — lab/research only.
-- MP5-H is clean with CORR but **much larger** than MP5-L; not default.
-- Encode/decode in the browser is CPU-bound (WASM).
-- Local library is **device/browser-local** only — no sync across machines.
-- Playlist queue still does not restore file handles after a full page reload (library does persist MP5 bytes).
-- Shuffle/repeat and mobile packaging are not polished yet.
-- Mood/vibe AI tagging is not enabled; lyrics depend on source file tags.
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| Only PCM export available | Run `pnpm wasm:build`, refresh browser |
-| Player shows decode error | Re-export with current converter (MP5-L v3) |
-| No sound | Click Play after load; check OS/browser volume |
-| e2e / alpha:check fails on fixtures | Run `pnpm fixtures:generate` |
+| Symptom | Likely cause | Try |
+|---------|--------------|-----|
+| Hosted app looks stale | Service worker cache | Refresh, then retry |
+| Demo fixture missing | Build did not copy fixtures | Run `pnpm build` and `pnpm deploy:check` |
+| Conversion fails | FFmpeg WASM load or unsupported source | Refresh; try WAV; check Settings diagnostics |
+| Package validation fails | Missing sidecars or corrupt embedded package | Use `validate:mp5p` with `--dir` for manifest packages |
+| Mobile layout feels cramped | Dense lyrics/stems/package view | Scroll vertically; report horizontal overflow as a bug |
 
-## Next steps (post-demo)
+## Close
 
-- Roadmap: `docs/MP5_ROADMAP.md`
-- Release notes: `docs/MP5_ALPHA_RELEASE_NOTES.md`
-- Status: `docs/CURRENT_MP5_STATUS.md`
+Before sharing a production Public Beta deploy, run the local gates and hosted checks in [MP5_HOSTED_DEMO.md](MP5_HOSTED_DEMO.md).

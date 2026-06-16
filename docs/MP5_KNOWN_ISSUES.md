@@ -1,60 +1,51 @@
 # MP5 Known Issues
 
-**Version:** MP5 Audio v0.19.0-beta (Public Beta)
+**Version:** MP5 Audio v0.20.0-beta (Public Beta)  
 **Last updated:** 2026-06-16
 
-## Product scope
+MP5 is experimental and browser-based. This document lists honest limitations, not scheduled promises.
 
-MP5 is **experimental** and **browser-based**. This document lists honest limitations — not a promise of fixes on a schedule.
+## Playback And Stems
 
-## Playback and stems
+- Large `.mp5p` packages and multi-stem tracks can stress browser memory and storage.
+- Stem mix preparation and playback use more CPU/memory than full-mix AUDI playback.
+- Decoding stems in workers takes time; solo/mute during preparation is best-effort.
+- Complex seek/loop/stem transitions can be heavy on slow devices; the playback regression suite monitors common cases.
+- Tracks without waveform data show a fallback; playback and seek still use the main timeline.
+- Dense lyrics, stems, and package views may require vertical scrolling on small phones.
 
-- **Large files** — Album packages (`.mp5p`) and multi-stem tracks can stress browser memory; very large packages may warn or fail on low-memory devices.
-- **Stem preparation** — Decoding stems in workers takes time; UI shows preparation state. Solo/mute during prep is best-effort.
-- **Playback transport** — Complex seek/loop/stem transitions may occasionally need a manual pause/play on slow devices (regression suite monitors this).
-- **Waveform preview** — Tracks without waveform data show a safe fallback; playback and seek still work through the main timeline.
-- **Mobile listening** — Controls are larger in v0.19.0-beta, but very dense lyrics/stems/package views may still require vertical scrolling on small phones.
+## Hosted Demo
 
-## Hosted demo
+- First load can be slow because MP5 codec WASM and FFmpeg WASM assets are large.
+- Service-worker updates may require a refresh to pick up a new deployment.
+- Hosted fixtures are synthetic only; users load their own files locally.
 
-- **First load** — WASM (MP5 codec, FFmpeg) is large; cold start can be slow on mobile networks.
-- **Service worker** — Updates may require a refresh to pick up a new deployment.
-- **No copyrighted audio** — Demo fixtures are synthetic; user must load their own files locally.
+## Formats And Conversion
 
-## Formats and conversion
+- **MP5-C hiss** - known hiss/artifact risk on music material; it remains lab-only.
+- MP5-H is large/experimental and not default.
+- `.mp5p` is experimental and not a universal interchange standard.
+- FFmpeg WASM handles non-WAV browser conversion paths and may fail to load on restrictive networks/devices.
 
-- **MP5-C hiss** — Known artifact/hiss on music material; lab-only, not default.
-- **MP5-H** — Large/experimental; not default.
-- **`.mp5p`** — Experimental album container; not a universal interchange standard.
-- **FFmpeg WASM** — Large first-load download; FLAC/MP3/M4A convert paths depend on it loading successfully.
+## Not Supported / Not Claimed
 
-## Stems
-
-- **Stem mix** — Experimental; uses more memory and CPU than full-mix AUDI playback.
-
-## Not supported / not claimed
-
-- AI stem separation in the app
-- DRM or rights enforcement
-- Legal or archival certification
-- Beating MP3/AAC/Opus/FLAC on size or quality
-- Third-party player ecosystem
-
-## Flaky CI
-
-- `e2e/playback-regression.spec.ts` test E (late Lead Vocal join) may flake under full `alpha:check` load; re-run is usually clean. Not treated as a product blocker for Public Beta.
+- AI stem separation in the app.
+- DRM or rights enforcement.
+- Legal or archival certification.
+- Beating MP3/AAC/Opus/FLAC on size or quality.
+- Third-party ecosystem support.
+- Telemetry, upload, or cloud sync in the reference app.
 
 ## Library
 
-- **Browser storage limits** — Saved tracks and embedded packages share browser quota; very large `.mp5p` files may fail to save or be evicted if the user clears site data.
-- **Manifest albums** — `.mp5p` manifest entries reference sidecar `.mp5` files; tracks must remain in the library for full album playback.
-- **Recently opened** — Metadata only unless saved; file-picker opens cannot be reopened after refresh without saving or re-selecting the file.
-- **No cloud sync** — Library data is per-browser profile only.
+- Browser storage quotas vary; very large embedded packages may fail to save or be evicted if site data is cleared.
+- Manifest `.mp5p` entries reference sidecar `.mp5` files; the sidecars must stay available for playback.
+- Recently opened entries are metadata-only unless saved.
 
-## Dev toolchain
+## Dev Toolchain
 
-- **`pnpm audit` (dev-only):** One remaining **high** finding in transitive `esbuild@0.25.x` (via `vite@6.4.2` under Vitest). Advisory GHSA-gv7w-rqvm-qjhr targets Deno module install paths — not exploitable in this Node/pnpm CI workflow. Patched in `esbuild@>=0.28.1`, which requires a **Vite major upgrade** (6→8); deferred for v0.19.0-beta to avoid destabilizing the production build. Vitest was upgraded to `^3.2.6`, clearing the prior critical Vitest UI advisory and other moderate Vite/esbuild findings.
+- `pnpm audit` may report a dev-only transitive `esbuild@0.25.x` advisory through Vite/Vitest. It is tracked as a tooling upgrade item rather than a v0.20 product blocker.
 
 ## Reporting
 
-Open issues on the project repository with reproduction steps, browser, and file size/format details.
+Open an issue with reproduction steps, browser/OS, MP5 version, and file size/format details. Do not attach copyrighted/private audio unless you have rights and intentionally choose to share it.

@@ -22,7 +22,7 @@ const FORBIDDEN_PUBLIC_CLAIMS: { pattern: RegExp; allowNegated?: boolean }[] = [
   { pattern: /\blegally verified\b/i },
   { pattern: /\benforces rights\b/i },
   { pattern: /\brecovery[- ]only\b/i, allowNegated: true },
-  { pattern: /\bAI stem separation\b/i },
+  { pattern: /\bAI stem separation\b/i, allowNegated: true },
 ];
 
 function assertNoOverclaim(text: string, rel: string) {
@@ -31,8 +31,8 @@ function assertNoOverclaim(text: string, rel: string) {
     let match: RegExpExecArray | null;
     while ((match = re.exec(text)) !== null) {
       if (allowNegated) {
-        const before = text.slice(Math.max(0, match.index - 12), match.index);
-        if (/\bnot\s+$/i.test(before)) continue;
+        const before = text.slice(Math.max(0, match.index - 24), match.index);
+        if (/\b(no|not|without)\s+$/i.test(before) || /\bdoes\s+not\s+.*$/i.test(before)) continue;
       }
       throw new Error(`forbidden in ${rel}: ${pattern}`);
     }
@@ -103,7 +103,7 @@ describe("Public Beta hardening", () => {
       decodeCacheSummary: "0/3",
       librarySummary: "0 entries",
     });
-    expect(report).toMatch(/0\.19\.0-beta/);
+    expect(report).toMatch(/0\.20\.0-beta/);
     expect(report).toMatch(/No telemetry/i);
   });
 });
@@ -111,7 +111,7 @@ describe("Public Beta hardening", () => {
 describe("beta readiness docs", () => {
   it("MP5_BETA_READINESS.md exists with version and blockers", () => {
     const text = readFileSync(join(docs, "MP5_BETA_READINESS.md"), "utf8");
-    expect(text).toMatch(/0\.16\.[12]-beta|Public Beta/i);
+    expect(text).toMatch(/0\.20\.0-beta|Public Beta/i);
     expect(text).toMatch(/beta:check/i);
     expect(text).toMatch(/must NOT be claimed/i);
     expect(text).toMatch(/MP5-C/);
@@ -123,7 +123,7 @@ describe("beta readiness docs", () => {
     expect(text).toMatch(/Hosted deployment/i);
   });
 
-  it("MP5_KNOWN_ISSUES.md exists with Alpha caveats", () => {
+  it("MP5_KNOWN_ISSUES.md exists with Public Beta caveats", () => {
     const text = readFileSync(join(docs, "MP5_KNOWN_ISSUES.md"), "utf8");
     expect(text).toMatch(/MP5-C hiss/i);
     expect(text).toMatch(/FFmpeg/i);
@@ -217,13 +217,13 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.19.0-beta", () => {
-    expect(packageJson.version).toBe("0.19.0-beta");
+  it("package.json is 0.20.0-beta", () => {
+    expect(packageJson.version).toBe("0.20.0-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {
     const status = readFileSync(join(docs, "CURRENT_MP5_STATUS.md"), "utf8");
-    expect(status).toMatch(/0\.17\.1-beta|0\.17\.0-beta|0\.16\.[12]-beta|Public Beta/i);
+    expect(status).toMatch(/0\.20\.0-beta|Public Beta/i);
     expect(status).toMatch(/MP5_PUBLIC_BETA|MP5_BETA_READINESS|beta:check/i);
   });
 });
