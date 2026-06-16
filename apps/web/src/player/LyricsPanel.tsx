@@ -12,6 +12,11 @@ import { parseLyrcFromFile } from "../lib/lyrics/parseLyrics";
 import { traceScrollIntoView } from "../lib/playback/playbackTrace";
 import { scrollChildIntoContainer } from "../lib/ui/scrollWithinContainer";
 import { usePlaybackClock } from "./usePlaybackClock";
+import {
+  lyricLineDisplay,
+  lyricsEmptyMessage,
+  lyricsModeLabel,
+} from "../lib/lyrics/lyricsDisplay";
 
 interface Props {
   parsed?: Mp5File;
@@ -138,9 +143,13 @@ export function LyricsPanel({
       </div>
 
       {!hasAnyLyrics ? (
-        <p className="text-sm text-gray-500 italic" data-testid="lyrics-empty">
-          No lyrics embedded
-        </p>
+        <div
+          className="rounded-lg border border-dashed border-white/10 bg-surface/30 px-3 py-4"
+          data-testid="lyrics-empty"
+        >
+          <p className="text-sm text-gray-400">{lyricsEmptyMessage(!!parsed)}</p>
+          <p className="text-xs text-gray-600 mt-1">Playback still works normally.</p>
+        </div>
       ) : (
         <>
           <div className="flex flex-wrap gap-2 text-[10px] text-gray-500">
@@ -148,7 +157,7 @@ export function LyricsPanel({
               className="px-2 py-0.5 rounded border border-white/10"
               data-testid="lyrics-sync-indicator"
             >
-              {useSynced ? "Synced" : "Unsynced"}
+              {lyricsModeLabel(useSynced, karaokeMode)}
             </span>
             {lyrc?.source && <span>Source: {lyrc.source}</span>}
             <span data-testid="lyrics-karaoke-availability">
@@ -193,36 +202,37 @@ export function LyricsPanel({
             (useSynced ? (
               <div
                 ref={scrollRef}
-                className="max-h-48 overflow-y-auto rounded-lg border border-white/5 bg-surface/30 p-2"
+                className="max-h-64 overflow-y-auto rounded-xl border border-white/5 bg-surface/30 p-2 sm:p-3"
                 data-testid="lyrics-synced-view"
               >
-                <ul className="space-y-1">
+                <ul className="space-y-1.5">
                   {synced!.map((line, i) => {
-                    const showSection =
-                      line.section &&
-                      (i === 0 || synced![i - 1]?.section !== line.section);
+                    const display = lyricLineDisplay(synced!, i, activeIdx);
                     return (
                       <li key={`${line.timeMs}-${i}`}>
-                        {showSection && (
+                        {display.sectionLabel && (
                           <p
-                            className="text-[10px] uppercase tracking-wider text-gray-600 mt-2 mb-0.5"
+                            className="text-[10px] uppercase text-gray-600 mt-3 mb-1"
                             data-testid="lyrics-section-header"
                           >
-                            {line.section}
+                            {display.sectionLabel}
                           </p>
                         )}
                         <button
                           type="button"
                           ref={i === activeIdx ? activeLineRef : undefined}
-                          className={`w-full text-left text-sm px-2 py-1 rounded transition-colors ${
-                            i === activeIdx
-                              ? "bg-accent/20 text-accent font-medium"
-                              : "text-gray-400 hover:bg-white/5"
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            display.isCurrent
+                              ? "bg-accent/20 text-accent font-semibold text-base"
+                              : display.tone === "previous"
+                                ? "text-gray-600 text-sm hover:bg-white/5"
+                                : "text-gray-300 text-sm hover:bg-white/5"
                           }`}
                           onClick={() => onSeek(seekTimeSecForLine(line))}
                           disabled={duration <= 0}
                           data-testid="lyrics-synced-line"
-                          data-active={i === activeIdx ? "true" : "false"}
+                          data-active={display.isCurrent ? "true" : "false"}
+                          data-tone={display.tone}
                         >
                           {line.text}
                         </button>

@@ -7,6 +7,7 @@ import { getIngestDiagnostics } from "./ingest/ingestDiagnostics";
 import { FEEDBACK_PRIVACY_NOTE } from "./betaFeedback";
 import {
   formatExportDiagnostics,
+  redactLocalPaths,
   type ExportDiagnosticsContext,
 } from "./album/exportReview";
 
@@ -62,6 +63,10 @@ const SUPPORTED_FEATURES = [
 
 export function buildBetaDiagnosticsReport(input: DiagnosticsReportInput): string {
   const ingest = getIngestDiagnostics();
+  const currentFileLabel = redactLocalPaths(input.currentFileLabel);
+  const playbackTrace = input.includePlaybackTrace
+    ? redactLocalPaths(input.includePlaybackTrace)
+    : undefined;
   const lines = [
     "MP5 Audio - Beta diagnostics (paste into GitHub issue if helpful)",
     `App version: ${APP_VERSION}`,
@@ -71,7 +76,7 @@ export function buildBetaDiagnosticsReport(input: DiagnosticsReportInput): strin
     `FFmpeg WASM: ${getFfmpegLoadState()}`,
     `Conversion: ${activeConversionLabel(input.conversion)}`,
     `Playlist queue: ${input.queueLength}`,
-    `Current file: ${input.currentFileLabel}`,
+    `Current file: ${currentFileLabel}`,
     `Decode cache: ${input.decodeCacheSummary}`,
     `Library: ${input.librarySummary}`,
     `Ingest: ${ingest.ingestMode} - chunks ${ingest.chunkCount} - integrity ${ingest.integrityStatus}`,
@@ -81,8 +86,8 @@ export function buildBetaDiagnosticsReport(input: DiagnosticsReportInput): strin
     ...(lastExportContext ? formatExportDiagnostics(lastExportContext) : []),
     FEEDBACK_PRIVACY_NOTE,
   ];
-  if (input.includePlaybackTrace?.trim()) {
-    lines.push("", "--- Playback trace (optional) ---", input.includePlaybackTrace.trim());
+  if (playbackTrace?.trim()) {
+    lines.push("", "--- Playback trace (optional) ---", playbackTrace.trim());
   }
   return lines.join("\n");
 }

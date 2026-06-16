@@ -3,14 +3,14 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.17.1--beta-blue)](CHANGELOG.md#0171-beta---2026-06)
+[![Version](https://img.shields.io/badge/version-v0.19.0--beta-blue)](CHANGELOG.md#0190-beta---2026-06)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
 **Live demo:** https://mp5-audio.vercel.app · **GitHub:** https://github.com/cjocollin/MP5-audio
 
-**Version:** MP5 Audio **v0.18.0-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
+**Version:** MP5 Audio **v0.19.0-beta** (Public Beta) · **Live demo:** https://mp5-audio.vercel.app (experimental — not production-ready for archival or legal use)
 
 **Report bugs:** [GitHub Issues](https://github.com/cjocollin/MP5-audio/issues/new/choose) · In hosted app: **Settings → Report a bug / Give feedback** · Paste **Settings → Diagnostics → Copy diagnostics** (no files uploaded automatically)
 
@@ -135,6 +135,8 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for full setup, fixture rules, and PR e
 **Fingerprints:** Optional **FING** / **HASH** for duplicate detection and local integrity checks — not DRM or legal proof. See [`docs/MP5_FINGERPRINT_INTEGRITY.md`](docs/MP5_FINGERPRINT_INTEGRITY.md).
 
 **Album packages:** Optional **`.mp5p`** — **manifest** (JSON + sidecar `.mp5` files) or **embedded** (one self-contained package). Polished album view in Player: play, queue, save, extract. Batch album builder exports all three modes. Single-track `.mp5` remains the core format. See [`docs/MP5_ALBUM_PACKAGE.md`](docs/MP5_ALBUM_PACKAGE.md) and [`docs/MP5_EMBEDDED_PACKAGE.md`](docs/MP5_EMBEDDED_PACKAGE.md).
+
+**Player / Listening UX (v0.19.0-beta):** Now Playing, queue rows, album context, timeline, lyrics/karaoke, stems, and VISU states are clearer for real listening. Source badges distinguish `.mp5`, manifest `.mp5p`, and embedded `.mp5p`; embedded tracks show hydration state; diagnostics remain copyable and path-redacted. No playback transport rewrite, codec policy change, telemetry, upload, or rights/legal verification.
 
 ---
 

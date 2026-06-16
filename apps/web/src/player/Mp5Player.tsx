@@ -1734,6 +1734,13 @@ export function Mp5Player() {
     playPrevious();
   };
 
+  const embeddedHydratingTrackId = embeddedLoading ? embeddedHydratingTrackIdRef.current : null;
+  const isEnded =
+    duration > 0 &&
+    !isPlaying &&
+    currentTime >= Math.max(0, duration - 0.05) &&
+    playbackSnapshot.readiness !== "error";
+
   return (
     <div className="space-y-6" data-testid="mp5-player">
       {tracks.length === 0 && <PlayerEmptyState />}
@@ -1836,6 +1843,8 @@ export function Mp5Player() {
           onCycleRepeat={cycleRepeatMode}
           onSaveToLibrary={(t) => void handleSaveToLibrary(t)}
           librarySaveBusy={librarySaveBusy}
+          album={activeAlbum}
+          hydratingTrackId={embeddedHydratingTrackId}
         />
         <CreateAlbumPackagePanel tracks={tracks} />
         </div>
@@ -1858,6 +1867,10 @@ export function Mp5Player() {
             mp5h={mp5hInfo}
             playerTheme={playerTheme}
             albumContext={albumCtx}
+            currentTime={currentTime}
+            duration={duration}
+            embeddedHydrating={embeddedHydratingTrackId === track?.id}
+            integrity={integrity}
           />
         </div>
         <WaveformView
@@ -1870,11 +1883,15 @@ export function Mp5Player() {
             playedFill={playerTheme?.waveformPlayedFill}
             unplayedFill={playerTheme?.waveformUnplayedFill}
             onSeek={handleWaveformSeek}
+            disabled={loading || duration <= 0}
           />
           <PlayerControls
             isPlaying={isPlaying}
             onPlayPause={handlePlayPause}
             playbackStatus={playbackSnapshot.playState}
+            playbackReadiness={playbackSnapshot.readiness}
+            hasTrack={!!track}
+            isEnded={isEnded}
             playbackStatusDetail={
               playbackSnapshot.playState === "preparing"
                 ? karaokePreparing

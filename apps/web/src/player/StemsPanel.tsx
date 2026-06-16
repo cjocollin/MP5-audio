@@ -30,6 +30,7 @@ import { downloadBlob } from "../lib/performance/downloadBlob";
 import { formatDuration } from "./playlistUtils";
 import type { StemMixSeamlessOp } from "../lib/playback/stemMixOps";
 import type { StemPcmTrack } from "./useStemMixerEngine";
+import { describeStemControlState } from "../lib/stems/stemControlUi";
 
 export interface StemUiState {
   id: string;
@@ -810,13 +811,29 @@ export function StemsPanel({
                 stemMixActive: stemMixActive && mixMode !== "full_mix",
               })
             : (["available"] as const);
+          const controlStatus = describeStemControlState({
+            selected: ui?.selected ?? false,
+            muted: ui?.muted ?? false,
+            solo: ui?.solo ?? false,
+            loaded,
+            active,
+            preparing: ui?.preparing ?? false,
+            pendingAudible: ui?.pendingAudible,
+            availability: avail?.status,
+            stemMixActive: stemMixActive && mixMode !== "full_mix",
+          });
           return (
             <li
               key={stem.stemId}
-              className="rounded-lg border border-white/5 bg-surface/40 p-3 space-y-2"
+              className={`rounded-lg border p-3 space-y-2 ${
+                controlStatus.audible
+                  ? "border-accent/40 bg-accent/10"
+                  : "border-white/5 bg-surface/40"
+              }`}
               data-testid="stems-item"
               data-stem-id={stem.stemId}
               data-stem-loaded={loaded ? "true" : "false"}
+              data-stem-audible={controlStatus.audible ? "true" : "false"}
             >
               <div className="flex flex-wrap justify-between gap-1">
                 <label className="flex items-center gap-2 text-sm text-gray-200 flex-wrap">
@@ -870,20 +887,33 @@ export function StemsPanel({
                   {Math.round(estimateStemDecodedBytes(stem) / (1024 * 1024))} MB
                 </span>
               </div>
+              <div
+                className={`text-[10px] ${
+                  controlStatus.audible
+                    ? "text-accent/90"
+                    : controlStatus.disabledReason
+                      ? "text-amber-200/80"
+                      : "text-gray-500"
+                }`}
+                data-testid="stems-item-state"
+              >
+                {controlStatus.label}
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  className="px-2 py-0.5 rounded text-xs border border-accent/30 text-accent"
+                  className="px-3 py-1.5 min-h-9 rounded-lg text-xs border border-accent/30 text-accent disabled:opacity-40"
                   onClick={() => void handleSoloStem(stem.stemId)}
                   disabled={loading || preparing}
                   data-testid="stems-item-solo-load"
+                  title={controlStatus.disabledReason ?? undefined}
                 >
                   Solo
                 </button>
                 {loaded && (
                   <button
                     type="button"
-                    className="px-2 py-0.5 rounded text-xs border border-white/10 text-gray-500"
+                    className="px-3 py-1.5 min-h-9 rounded-lg text-xs border border-white/10 text-gray-500"
                     onClick={() => unloadStem(stem.stemId)}
                     data-testid="stems-item-unload"
                   >
@@ -899,12 +929,13 @@ export function StemsPanel({
                     value={Math.round((ui?.gain ?? 1) * 100)}
                     onChange={(e) => handleGainChange(stem.stemId, Number(e.target.value) / 100)}
                     disabled={!loaded}
+                    className="h-8 flex-1"
                     data-testid="stems-item-volume"
                   />
                 </label>
                 <button
                   type="button"
-                  className={`px-2 py-0.5 rounded text-xs border ${
+                  className={`px-3 py-1.5 min-h-9 rounded-lg text-xs border ${
                     ui?.muted ? "border-red-500/40 text-red-300" : "border-white/10 text-gray-400"
                   }`}
                   onClick={() => handleMuteToggle(stem.stemId)}
@@ -914,7 +945,7 @@ export function StemsPanel({
                 </button>
                 <button
                   type="button"
-                  className="px-2 py-0.5 rounded text-xs border border-white/10 text-gray-500 hover:text-gray-300"
+                  className="px-3 py-1.5 min-h-9 rounded-lg text-xs border border-white/10 text-gray-500 hover:text-gray-300"
                   onClick={() => void downloadStem(stem, index)}
                   disabled={downloadBusy === stem.stemId || preparing}
                   data-testid="stems-item-download"

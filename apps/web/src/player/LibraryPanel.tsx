@@ -3,8 +3,11 @@ import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import { codecLabel } from "../lib/codecDisplay";
 import type { PlaylistTrack, RepeatMode } from "../store/playerStore";
 import { repeatModeLabel } from "./queueNavigation";
-import { formatDuration, matchesSearch, trackDisplayInfo } from "./playlistUtils";
+import { matchesSearch, trackDisplayInfo } from "./playlistUtils";
 import type { Mp5File } from "@mp5/container";
+import type { ResolvedAlbumPackage } from "../lib/album/resolveAlbum";
+import { albumPlaybackContext } from "../lib/album/albumPlaybackContext";
+import { buildQueueRowSummary } from "./playerDisplay";
 
 function coverFromParsed(parsed?: Mp5File) {
   if (parsed?.coverArt?.data.length) return parsed.coverArt;
@@ -24,6 +27,8 @@ function PlaylistRow({
   onRemove,
   onSaveToLibrary,
   saveBusy,
+  album,
+  isHydrating,
 }: {
   track: PlaylistTrack;
   index: number;
@@ -34,11 +39,21 @@ function PlaylistRow({
   onRemove: () => void;
   onSaveToLibrary?: () => void;
   saveBusy?: boolean;
+  album?: ResolvedAlbumPackage | null;
+  isHydrating?: boolean;
 }) {
+  const albumContext = albumPlaybackContext(album ?? null, track);
   const info = trackDisplayInfo(track);
+  const summary = buildQueueRowSummary({
+    track,
+    index,
+    isCurrent,
+    isPlayingNow,
+    albumContext,
+    isHydrating,
+  });
   const coverUrl = useCoverObjectUrl(coverFromParsed(track.parsed));
   const failed = !!track.parseError;
-  const metadataPending = !!track.embeddedAlbum && !track.file && !track.parsed?.coverArt && !track.parsed?.cover?.length;
 
   return (
     <li
@@ -62,7 +77,7 @@ function PlaylistRow({
         <span className="relative w-10 h-10 shrink-0 rounded-md bg-surface-elevated overflow-hidden flex items-center justify-center">
           {coverUrl ? (
             <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-          ) : metadataPending ? (
+          ) : summary.metadataPending ? (
             <span className="text-[10px] text-gray-500 animate-pulse" data-testid="playlist-item-cover-pending">
               …
             </span>
@@ -81,23 +96,42 @@ function PlaylistRow({
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span className="block text-sm text-gray-100 truncate" data-testid="playlist-item-title">
-              {info.title}
+              {summary.title}
             </span>
-            {isCurrent && !isPlayingNow && (
-              <span className="shrink-0 text-[10px] text-accent/90 font-medium">Selected</span>
+            {summary.statusLabel && (
+              <span
+                className="shrink-0 text-[10px] text-accent/90 font-medium"
+                data-testid="playlist-item-status"
+              >
+                {summary.statusLabel}
+              </span>
             )}
           </span>
           <span className="block text-xs text-gray-500 truncate">
-            {info.artist || "Unknown artist"}
+            {summary.artist}
             {info.album ? ` · ${info.album}` : ""}
           </span>
+          {summary.albumContextLabel && (
+            <span
+              className="block text-[10px] text-gray-600 truncate"
+              data-testid="playlist-item-album-context"
+            >
+              {summary.albumContextLabel}
+            </span>
+          )}
           <span className="flex flex-wrap items-center gap-1.5 mt-0.5">
+            <span
+              className="text-[10px] px-1.5 py-0 rounded border border-white/10 text-gray-500"
+              data-testid="playlist-item-source-badge"
+            >
+              {summary.sourceLabel}
+            </span>
             {track.parsed?.head != null && (
               <span className="text-[10px] font-semibold text-accent/90">
                 {codecLabel(track.parsed.head.codecId)}
               </span>
             )}
-            <span className="text-[10px] text-gray-600 font-mono">{formatDuration(info.durationSec)}</span>
+            <span className="text-[10px] text-gray-600 font-mono">{summary.durationLabel}</span>
             {info.hasContentNotice && (
               <span className="text-[10px] px-1.5 py-0 rounded bg-gray-800 text-gray-400 border border-gray-700">
                 Content
@@ -131,7 +165,7 @@ function PlaylistRow({
         className="shrink-0 px-2 py-1.5 rounded text-xs text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-30 border border-white/10"
         onClick={onPlay}
         disabled={failed}
-        aria-label={`Play ${info.title}`}
+        aria-label={`Play ${summary.title}`}
         data-testid="playlist-item-play"
       >
         Play
@@ -164,6 +198,8 @@ interface Props {
   onCycleRepeat: () => void;
   onSaveToLibrary?: (track: PlaylistTrack) => void;
   librarySaveBusy?: boolean;
+  album?: ResolvedAlbumPackage | null;
+  hydratingTrackId?: string | null;
 }
 
 export function LibraryPanel({
@@ -181,6 +217,8 @@ export function LibraryPanel({
   onCycleRepeat,
   onSaveToLibrary,
   librarySaveBusy,
+  album,
+  hydratingTrackId,
 }: Props) {
   const [search, setSearch] = useState("");
 
@@ -293,6 +331,8 @@ export function LibraryPanel({
                   onSaveToLibrary && track.file ? () => onSaveToLibrary(track) : undefined
                 }
                 saveBusy={librarySaveBusy}
+                album={album}
+                isHydrating={hydratingTrackId === track.id}
               />
             );
           })}

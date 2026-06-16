@@ -28,17 +28,21 @@ test.describe("stem playback UI", () => {
     await expect(page.getByTestId("stems-mix-blocked")).toHaveCount(0);
 
     const firstItem = page.getByTestId("stems-item").first();
+    await expect(firstItem.getByTestId("stems-item-state")).toContainText(/available/i);
     await firstItem.getByTestId("stems-item-select").check();
     await expect(page.getByTestId("stems-prepare-selected")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("stems-prepare-selected").click();
     await expect(firstItem.getByTestId("stems-item-loaded")).toBeVisible({ timeout: 30_000 });
+    await expect(firstItem.getByTestId("stems-item-state")).toContainText(/ready|loaded/i);
 
     await page.getByTestId("play-pause").click();
     await page.getByTestId("stems-enable-mix").click();
     await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({ timeout: 15_000 });
+    await expect(firstItem).toHaveAttribute("data-stem-audible", "true");
 
     await firstItem.getByTestId("stems-item-mute").click();
     await expect(firstItem.getByTestId("stems-item-mute")).toContainText(/unmute/i);
+    await expect(firstItem.getByTestId("stems-item-state")).toContainText(/muted/i);
 
     await page.getByTestId("stem-mix-stop").click();
     await expect(page.getByTestId("stems-mix-active-note")).toHaveCount(0);

@@ -1,28 +1,40 @@
 # MP5 Beta Readiness
 
-**Version:** MP5 Audio v0.18.0-beta  
-**Status:** **Public Beta — Export / Package polish** (2026-06-15)
+**Version:** MP5 Audio v0.19.0-beta
+**Status:** **Public Beta - Player / Listening UX polish deployed** (2026-06-16)
 
 ## Decision
 
-**MP5 Audio v0.18.0-beta is accepted as Public Beta** (export/package polish; no format or codec policy changes).
+**MP5 Audio v0.19.0-beta is accepted as deployed Public Beta** (Player / Listening UX polish; no playback transport, format, or codec policy changes).
 
-The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) ships as **MP5 Public Beta · v0.18.0-beta** with honest experimental wording preserved.
+The hosted demo at [https://mp5-audio.vercel.app](https://mp5-audio.vercel.app) ships as **MP5 Public Beta - v0.19.0-beta** with honest experimental wording preserved.
 
-## Gate summary (v0.18.0-beta tagging pass)
+Deployment URL: [https://mp5-audio-92mjchxml-cjocollins-projects.vercel.app](https://mp5-audio-92mjchxml-cjocollins-projects.vercel.app)
+Deploy ID: `dpl_6TU1NuXSy9WxWEwyGmpTxHyNzDsu`
+
+## Gate summary (v0.19.0-beta tagging pass)
 
 | Gate | Result |
 |------|--------|
-| `pnpm lint` | _pending gate run_ |
-| `pnpm test` | _pending gate run_ |
-| `pnpm test:compat` | _pending gate run_ |
-| `CI=1 pnpm test:e2e` | _pending gate run_ |
-| `pnpm playback:check` | _pending gate run_ |
-| `CI=1 pnpm alpha:check` | _pending gate run_ |
-| `CI=1 pnpm beta:check` | _pending gate run_ |
-| `pnpm build` | _pending gate run_ |
-| `pnpm deploy:check` | _pending gate run_ |
-| Package validation | _pending gate run_ |
+| `pnpm lint` | Pass |
+| `pnpm test` | Pass (492) |
+| `pnpm test:compat` | Pass (25; ffmpeg-only compressed fixture skips unchanged) |
+| `CI=1 pnpm test:e2e` | Pass (81, via alpha/beta gate) |
+| `pnpm playback:check` | Pass (6 playback regression e2e; 30 timing/unit checks) |
+| `CI=1 pnpm alpha:check` | Pass |
+| `CI=1 pnpm beta:check` | Pass |
+| `pnpm build` | Pass |
+| `pnpm deploy:check` | Pass |
+| Package validation | Pass (synthetic embedded and manifest `.mp5p`; HADES local file skipped under no private/copyrighted audio constraint) |
+| Production deploy | Pass (`dpl_6TU1NuXSy9WxWEwyGmpTxHyNzDsu`) |
+| `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm hosted:verify` | Pass |
+| `MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted` | Pass (11) |
+
+## Player / Listening UX scope (v0.19.0-beta)
+
+- Now Playing, queue/album context, timeline/waveform, lyrics/karaoke, stems, VISU fallback, mobile controls, and playback/error labels were polished.
+- Existing playback transport, MP5-L lossless behavior, MP5-C lab-only policy, STDF behavior, MP5P semantics, and browser-local privacy model are unchanged.
+- No codec work, AI generation, telemetry, uploads, cloud sync, or rights/legal verification.
 
 ## Previous gate summary (v0.17.1-beta tagging pass)
 

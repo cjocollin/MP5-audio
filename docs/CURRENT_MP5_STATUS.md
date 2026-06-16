@@ -1,7 +1,7 @@
 # Current MP5 Status
 
-**Version:** MP5 Audio v0.18.0-beta (Public Beta)  
-**Last updated:** 2026-06-15
+**Version:** MP5 Audio v0.19.0-beta (Public Beta)
+**Last updated:** 2026-06-16
 
 ## What MP5 is today
 
@@ -25,8 +25,16 @@ MP5 is an **experimental, browser-based** music format and player stack. The hos
 - Large packages (HADES-scale) remain possible locally but are clearly flagged as heavy; deep validation of very large embedded packages may be deferred to CLI tools.
 - **Keep your original source files backed up** — exports never replace them. MP5 performs **no rights/legal verification** and makes **no claim** to beat MP3/AAC/Opus/FLAC.
 
+## Player / Listening UX
+
+- Now Playing shows normalized title, artist, album, cover art fallback, codec/profile, source type, album track position, current time, duration, remaining time, embedded hydration, and local integrity status when available.
+- Queue rows and album views stay connected: current rows are clearer, package source badges distinguish `.mp5`, manifest `.mp5p`, and embedded `.mp5p`, and embedded metadata is used without full package decoding for row rendering.
+- Timeline, waveform, lyrics/karaoke, stems, and VISU are display/UI polish only. The playback transport, MP5-L lossless behavior, MP5-C lab-only policy, STDF behavior, and MP5P semantics are unchanged.
+- Diagnostics remain manual/copyable and path-redacted. No telemetry, no upload, no cloud sync.
+
 ## Recent milestone
 
+- **v0.19.0-beta** — Player / Listening UX polish: clearer Now Playing, queue/album context, timeline/waveform, lyrics/karaoke, stems, VISU fallback, mobile controls, and playback/error state labels. No transport, codec, or format-policy changes.
 - **v0.18.0-beta** — Export / Package polish: pre-export review step, package preflight + post-export validation, safe/de-duplicated filenames, manifest-vs-embedded guidance, copyable export/error summaries, and export context in diagnostics. No format or codec policy changes.
 - **v0.17.1-beta** — Audit cleanup closeout: repo hygiene, Vitest upgrade, embedded `.mp5p` parser hardening, manifest JSON size caps, UTF-8 storage stats fix.
 - **v0.17.0-beta** — Library polish: unified saved tracks/albums view, search/filter/sort, storage stats, recents, embedded package lazy cards.

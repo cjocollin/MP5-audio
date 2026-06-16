@@ -77,6 +77,9 @@ test.describe("MP5 player playback", () => {
 
   test("loads MP5-L v3 fixture and shows format panel", async ({ page }) => {
     await loadFixture(page, mp5lFixture);
+    await expect(page.getByTestId("now-playing-source-badge")).toContainText(".mp5");
+    await expect(page.getByTestId("now-playing-duration")).toContainText(/:/);
+    await expect(page.getByTestId("now-playing-visu-fallback")).toContainText("Default visual");
     await expect(page.getByTestId("codec-label")).toContainText(/MP5-L/i);
     await expect(page.getByTestId("mp5l-playback-detail")).toBeVisible();
     await expect(page.getByTestId("decode-path")).toContainText(/MP5-L WASM v3/i);
@@ -103,9 +106,12 @@ test.describe("MP5 player playback", () => {
   test("next and previous change playlist selection", async ({ page }) => {
     await page.getByTestId("player-file-input").setInputFiles([pcmFixture, mp5lFixture]);
     await expect(page.getByTestId("playlist-item")).toHaveCount(2);
+    await expect(page.getByTestId("playlist-item-source-badge").first()).toContainText(".mp5");
+    await expect(page.getByTestId("playlist-item").first().getByTestId("playlist-item-status")).toContainText(/selected/i);
     await page.getByTestId("player-next").click();
     const items = page.getByTestId("playlist-item");
     await expect(items.nth(1)).toHaveClass(/accent/);
+    await expect(items.nth(1).getByTestId("playlist-item-status")).toContainText(/selected/i);
     await page.getByTestId("player-prev").click();
     await expect(items.nth(0)).toHaveClass(/accent/);
   });

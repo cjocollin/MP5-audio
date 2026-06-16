@@ -1,6 +1,6 @@
 # MP5 Manual QA checklist
 
-**Version:** MP5 Audio **v0.18.0-beta**  
+**Version:** MP5 Audio **v0.19.0-beta**
 **Purpose:** Public Beta smoke. Synthetic fixtures on hosted demo; local fixtures for Pity Party / sidecar manifest.  
 **Sign-off date:** May 2026 · **Hosted URL:** https://mp5-audio.vercel.app
 
@@ -99,6 +99,17 @@ Use https://mp5-audio.vercel.app on a phone browser. No large copyrighted local 
 - [ ] Large embedded package shows a heavy-package warning before building
 - [ ] Diagnostics copy includes export context with no local paths
 - [ ] Mobile viewport: export review and actions usable
+
+## O. Player / Listening UX polish (v0.19.0-beta)
+
+- [ ] Now Playing shows title, artist, album, cover/fallback, codec, source badge, time/duration/remaining, and integrity when available
+- [ ] Queue current row highlight, source badge, album context, duration, and empty state are clear
+- [ ] Timeline play/pause/seek/next/previous remain accurate; no double audio overlap after rapid play/pause/seek
+- [ ] Lyrics/karaoke current line highlight, previous/upcoming context, and no-lyrics state are readable
+- [ ] Stems selected/loaded/audible/muted/preparing states are obvious; checking/unchecking does not restart unexpectedly
+- [ ] VISU stays contained to Now Playing/player area and falls back safely when missing
+- [ ] Mobile viewport 375x812 has no horizontal overflow and controls remain tappable
+- [ ] Diagnostics copy remains manual, local-only, and path-redacted
 
 ---
 

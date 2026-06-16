@@ -1,7 +1,7 @@
 # MP5 Known Issues
 
-**Version:** MP5 Audio v0.18.0-beta (Public Beta)  
-**Last updated:** 2026-06-14
+**Version:** MP5 Audio v0.19.0-beta (Public Beta)
+**Last updated:** 2026-06-16
 
 ## Product scope
 
@@ -12,6 +12,8 @@ MP5 is **experimental** and **browser-based**. This document lists honest limita
 - **Large files** — Album packages (`.mp5p`) and multi-stem tracks can stress browser memory; very large packages may warn or fail on low-memory devices.
 - **Stem preparation** — Decoding stems in workers takes time; UI shows preparation state. Solo/mute during prep is best-effort.
 - **Playback transport** — Complex seek/loop/stem transitions may occasionally need a manual pause/play on slow devices (regression suite monitors this).
+- **Waveform preview** — Tracks without waveform data show a safe fallback; playback and seek still work through the main timeline.
+- **Mobile listening** — Controls are larger in v0.19.0-beta, but very dense lyrics/stems/package views may still require vertical scrolling on small phones.
 
 ## Hosted demo
 
@@ -51,7 +53,7 @@ MP5 is **experimental** and **browser-based**. This document lists honest limita
 
 ## Dev toolchain
 
-- **`pnpm audit` (dev-only):** One remaining **high** finding in transitive `esbuild@0.25.x` (via `vite@6.4.2` under Vitest). Advisory GHSA-gv7w-rqvm-qjhr targets Deno module install paths — not exploitable in this Node/pnpm CI workflow. Patched in `esbuild@>=0.28.1`, which requires a **Vite major upgrade** (6→8); deferred for v0.18.0-beta to avoid destabilizing the production build. Vitest was upgraded to `^3.2.6`, clearing the prior critical Vitest UI advisory and other moderate Vite/esbuild findings.
+- **`pnpm audit` (dev-only):** One remaining **high** finding in transitive `esbuild@0.25.x` (via `vite@6.4.2` under Vitest). Advisory GHSA-gv7w-rqvm-qjhr targets Deno module install paths — not exploitable in this Node/pnpm CI workflow. Patched in `esbuild@>=0.28.1`, which requires a **Vite major upgrade** (6→8); deferred for v0.19.0-beta to avoid destabilizing the production build. Vitest was upgraded to `^3.2.6`, clearing the prior critical Vitest UI advisory and other moderate Vite/esbuild findings.
 
 ## Reporting
 

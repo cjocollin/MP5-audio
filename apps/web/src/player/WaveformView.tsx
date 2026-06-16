@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { formatPlaybackTime } from "./playlistUtils";
+
 export interface WaveformSectionMarker {
   startMs: number;
   endMs?: number;
@@ -25,6 +28,7 @@ interface Props {
   /** VISU accent for played bars when file theme is active. */
   playedFill?: string;
   unplayedFill?: string;
+  disabled?: boolean;
 }
 
 export function WaveformView({
@@ -37,25 +41,42 @@ export function WaveformView({
   activeLoopRange = null,
   playedFill,
   unplayedFill,
+  disabled = false,
 }: Props) {
+  const [previewRatio, setPreviewRatio] = useState<number | null>(null);
+
   if (!peaks.length) {
-    return <div className="h-16 rounded-xl bg-surface-elevated animate-pulse" />;
+    return (
+      <div
+        className="h-20 rounded-xl bg-surface-elevated/80 border border-white/5 flex items-center justify-center text-xs text-gray-600"
+        data-testid="waveform-empty"
+      >
+        Waveform preview unavailable
+      </div>
+    );
   }
 
   const w = peaks.length;
 
   return (
-    <svg
-      className="w-full h-16 rounded-xl bg-surface-elevated cursor-pointer"
-      data-testid="waveform"
-      viewBox={`0 0 ${w} 32`}
-      preserveAspectRatio="none"
-      onClick={(e) => {
-        if (!onSeek) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        onSeek((e.clientX - rect.left) / rect.width);
-      }}
-    >
+    <div className="relative rounded-xl bg-surface-elevated border border-white/5 overflow-hidden">
+      <svg
+        className={`w-full h-20 ${disabled || !onSeek ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+        data-testid="waveform"
+        viewBox={`0 0 ${w} 32`}
+        preserveAspectRatio="none"
+        onPointerMove={(e) => {
+          if (disabled || !onSeek) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          setPreviewRatio(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)));
+        }}
+        onPointerLeave={() => setPreviewRatio(null)}
+        onClick={(e) => {
+          if (!onSeek || disabled) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          onSeek((e.clientX - rect.left) / rect.width);
+        }}
+      >
       {activeLoopRange && durationSec > 0 && (
         <rect
           x={(activeLoopRange.startSec / durationSec) * w}
@@ -123,6 +144,19 @@ export function WaveformView({
             />
           );
         })}
-    </svg>
+      </svg>
+      {previewRatio != null && durationSec > 0 && !disabled && (
+        <span
+          className="pointer-events-none absolute top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-mono text-gray-200"
+          style={{
+            left: `${previewRatio * 100}%`,
+            transform: "translateX(-50%)",
+          }}
+          data-testid="waveform-seek-preview"
+        >
+          {formatPlaybackTime(previewRatio * durationSec)}
+        </span>
+      )}
+    </div>
   );
 }

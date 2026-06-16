@@ -26,6 +26,17 @@ test.describe("Mobile smoke", () => {
     await expect(page.getByTestId("demo-path-a")).toBeVisible();
   });
 
+  test("player controls stay reachable without horizontal overflow", async ({ page }) => {
+    await page.goto("/");
+    await page.getByTestId("app-tab-player").click();
+    await expect(page.getByTestId("player-controls")).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(2);
+    const play = page.getByTestId("play-pause");
+    const box = await play.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(56);
+  });
+
   test("VISU stays in Now Playing only on mobile", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("app-tab-player").click();

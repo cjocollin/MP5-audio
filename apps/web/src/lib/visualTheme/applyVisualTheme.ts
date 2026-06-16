@@ -174,3 +174,12 @@ export function themeAccentDiffersFromDefault(theme: ResolvedPlayerTheme | null)
   if (!theme) return false;
   return theme.accent.toLowerCase() !== DEFAULT_APP_ACCENT.toLowerCase();
 }
+
+export function visuFallbackLabel(
+  theme: ResolvedPlayerTheme | null | undefined,
+  useFileThemes = true,
+): string {
+  if (!useFileThemes) return "Default visual";
+  if (!theme) return "Default visual";
+  return theme.themeName ? `VISU: ${theme.themeName}` : "VISU theme";
+}

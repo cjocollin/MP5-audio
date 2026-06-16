@@ -21,7 +21,7 @@ test.describe("MP5 hosted demo", () => {
     await page.goto("/");
     await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
     await expect(page.getByTestId("app-version")).toContainText("MP5 Public Beta");
-    await expect(page.getByTestId("app-version")).toContainText("v0.18.0-beta");
+    await expect(page.getByTestId("app-version")).toContainText("v0.19.0-beta");
   });
 
   test("app shell and honest tagline", async ({ page }) => {
@@ -45,6 +45,11 @@ test.describe("MP5 hosted demo", () => {
   test("loads demo fixture and shows MP5-L v3 format panel", async ({ page }) => {
     await page.getByTestId("landing-try-demo").click({ timeout: 15_000 });
     await waitForSeekReady(page);
+    await expect(page.getByTestId("now-playing-source-badge")).toContainText(".mp5");
+    await expect(page.getByTestId("now-playing-duration")).toContainText(/:/);
+    await expect(page.getByTestId("now-playing-visu-fallback")).toContainText("Default visual");
+    await expect(page.getByTestId("player-controls")).toBeVisible();
+    await expect(page.getByTestId("remaining-time")).toContainText("-");
     await expect(page.getByText(/MP5-L/i).first()).toBeVisible();
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
@@ -71,6 +76,19 @@ test.describe("MP5 hosted demo", () => {
     await page.getByTestId("karaoke-mode-toggle").click();
     await expect(page.getByTestId("karaoke-mode-toggle")).toContainText("on");
     await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
+    const visuContained = await page.getByTestId("now-playing-theme-card").evaluate((card) => {
+      const root = document.querySelector('[data-testid="now-playing"]');
+      if (!root) return false;
+      const cardBox = card.getBoundingClientRect();
+      const rootBox = root.getBoundingClientRect();
+      return (
+        cardBox.left >= rootBox.left - 1 &&
+        cardBox.right <= rootBox.right + 1 &&
+        cardBox.top >= rootBox.top - 1 &&
+        cardBox.bottom <= rootBox.bottom + 1
+      );
+    });
+    expect(visuContained).toBe(true);
   });
 
   test("embedded album demo loads album view", async ({ page }) => {
@@ -79,6 +97,15 @@ test.describe("MP5 hosted demo", () => {
     await expect(page.getByTestId("album-package-panel")).toBeVisible({ timeout: 45_000 });
     await expect(page.getByTestId("album-resolved-count")).toContainText("embedded");
     await expect(page.getByTestId("album-play-all")).toBeVisible();
+    await page.getByTestId("album-play-all").click();
+    await expect(page.getByTestId("playlist-item")).toHaveCount(2, { timeout: 20_000 });
+    await expect(page.getByTestId("now-playing-source-badge")).toContainText("embedded .mp5p", {
+      timeout: 20_000,
+    });
+    await expect(page.getByTestId("now-playing-album-position")).toContainText(/Track 1 of 2/i);
+    await expect(page.getByTestId("player-controls")).toBeVisible();
+    await expect(page.getByTestId("player-next")).toBeVisible();
+    await expect(page.getByTestId("player-prev")).toBeVisible();
   });
 
   test("converter tab loads", async ({ page }) => {

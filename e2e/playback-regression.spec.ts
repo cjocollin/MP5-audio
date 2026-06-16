@@ -91,10 +91,7 @@ test.describe("playback regression — pity party class", () => {
     await loadPityClass(page);
     await seekToStart(page);
     await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
-    await page.getByTestId("play-pause").click();
-    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
-      timeout: 15_000,
-    });
+    await clickPlayAndWait(page);
     await page.waitForTimeout(600);
     const beforeSeek = parseTime(await page.getByTestId("current-time").textContent());
 

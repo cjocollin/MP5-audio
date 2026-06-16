@@ -1,6 +1,7 @@
 import type { RepeatMode } from "../store/playerStore";
+import type { PlaybackReadiness } from "../lib/playback/playbackState";
 import { repeatModeLabel } from "./queueNavigation";
-import { formatDuration, formatPlaybackTime } from "./playlistUtils";
+import { formatTimelineRange, playbackStateLabel } from "./playerDisplay";
 
 export type PlayerPlaybackStatus = "stopped" | "playing" | "paused" | "preparing";
 
@@ -8,7 +9,10 @@ interface Props {
   isPlaying: boolean;
   onPlayPause: () => void;
   playbackStatus?: PlayerPlaybackStatus;
+  playbackReadiness?: PlaybackReadiness;
   playbackStatusDetail?: string;
+  hasTrack?: boolean;
+  isEnded?: boolean;
   onPrev: () => void;
   onNext: () => void;
   canPrev?: boolean;
@@ -28,7 +32,10 @@ export function PlayerControls({
   isPlaying,
   onPlayPause,
   playbackStatus,
+  playbackReadiness = "not_loaded",
   playbackStatusDetail,
+  hasTrack = false,
+  isEnded = false,
   onPrev,
   onNext,
   canPrev = true,
@@ -44,7 +51,7 @@ export function PlayerControls({
   onVolume,
 }: Props) {
   const ready = duration > 0;
-  const statusLabel = isPlaying
+  const legacyStatusLabel = isPlaying
     ? playbackStatus === "preparing"
       ? playbackStatusDetail || "Preparing audio…"
       : "Playing"
@@ -53,8 +60,17 @@ export function PlayerControls({
       : playbackStatus === "paused" && ready
         ? "Ready to play"
         : playbackStatusDetail;
+  void legacyStatusLabel;
+  const timeline = formatTimelineRange(currentTime, duration);
+  const statusLabel = playbackStateLabel({
+    readiness: playbackReadiness,
+    playState: playbackStatus ?? "stopped",
+    detail: playbackStatusDetail,
+    hasTrack,
+    isEnded,
+  });
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="player-controls">
       {!ready && (
         <p className="text-xs text-gray-500 text-center" data-testid="player-not-ready">
           Load an .mp5 file to enable playback
@@ -76,20 +92,21 @@ export function PlayerControls({
         step={0.01}
         value={currentTime}
         onChange={(e) => onSeek(Number(e.target.value))}
-        className="w-full accent-accent"
+        className="w-full h-8 accent-accent touch-pan-x disabled:opacity-40"
         data-testid="seek-slider"
         aria-label="Seek"
         disabled={!ready}
       />
-      <div className="flex items-center justify-between text-xs text-gray-500 font-mono">
-        <span data-testid="current-time">{formatPlaybackTime(currentTime)}</span>
-        <span data-testid="duration-time">{formatDuration(duration)}</span>
+      <div className="flex items-center justify-between gap-3 text-xs text-gray-500 font-mono">
+        <span data-testid="current-time">{timeline.current}</span>
+        <span className="text-gray-600" data-testid="remaining-time">{timeline.remaining}</span>
+        <span data-testid="duration-time">{timeline.duration}</span>
       </div>
       <div className="flex items-center justify-center gap-2 flex-wrap">
         <button
           type="button"
           onClick={onToggleShuffle}
-          className={`px-2.5 py-1 rounded-full text-xs border ${
+          className={`px-3 py-2 rounded-full text-xs border min-h-10 ${
             shuffle
               ? "border-accent/50 bg-accent/20 text-accent"
               : "border-white/10 text-gray-500 hover:text-gray-300"
@@ -102,7 +119,7 @@ export function PlayerControls({
         <button
           type="button"
           onClick={onCycleRepeat}
-          className={`px-2.5 py-1 rounded-full text-xs border ${
+          className={`px-3 py-2 rounded-full text-xs border min-h-10 ${
             repeatMode !== "off"
               ? "border-accent/50 bg-accent/20 text-accent"
               : "border-white/10 text-gray-500 hover:text-gray-300"
@@ -114,12 +131,12 @@ export function PlayerControls({
           {repeatMode === "one" ? "Repeat 1" : repeatMode === "all" ? "Repeat all" : "Repeat off"}
         </button>
       </div>
-      <div className="flex items-center justify-center gap-4">
+      <div className="flex items-center justify-center gap-5">
         <button
           type="button"
           onClick={onPrev}
           disabled={!canPrev}
-          className="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="min-h-12 min-w-12 p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/5"
           aria-label="Previous"
           data-testid="player-prev"
         >
@@ -129,7 +146,7 @@ export function PlayerControls({
           type="button"
           onClick={onPlayPause}
           disabled={!ready}
-          className="p-4 rounded-full bg-accent hover:bg-violet-500 text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+          className="min-h-16 min-w-16 p-4 rounded-full bg-accent hover:bg-violet-500 text-white shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
           data-testid="play-pause"
           aria-label={isPlaying ? "Pause" : "Play"}
         >
@@ -139,7 +156,7 @@ export function PlayerControls({
           type="button"
           onClick={onNext}
           disabled={!canNext}
-          className="p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="min-h-12 min-w-12 p-2 rounded-full hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed border border-white/5"
           aria-label="Next"
           data-testid="player-next"
         >
@@ -155,7 +172,7 @@ export function PlayerControls({
           step={0.01}
           value={volume}
           onChange={(e) => onVolume(Number(e.target.value))}
-          className="flex-1 accent-accent"
+          className="flex-1 h-8 accent-accent"
           data-testid="volume-slider"
           aria-label="Volume"
         />

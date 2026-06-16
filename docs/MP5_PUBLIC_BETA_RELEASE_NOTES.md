@@ -1,8 +1,8 @@
 # MP5 Public Beta release notes
 
-**Current release:** MP5 Audio **v0.18.0-beta**  
-**Hosted demo:** https://mp5-audio.vercel.app  
-**Last updated:** 2026-06-15
+**Current release:** MP5 Audio **v0.19.0-beta**
+**Hosted demo:** https://mp5-audio.vercel.app
+**Last updated:** 2026-06-16
 
 ---
 
@@ -26,6 +26,14 @@ MP5 is an **experimental, browser-based** open-source audio format, container, c
 | **Hosted demos** | Synthetic MP5-L, karaoke, embedded album |
 
 ---
+
+## Player / Listening UX (v0.19.0-beta)
+
+- Now Playing shows clearer title, artist, album, cover fallback, codec/profile, source type, album position, current time, duration, remaining time, embedded hydration, integrity, and VISU fallback state.
+- Queue and album rows show source/package badges, current row status, thumbnails/fallbacks, durations, and embedded/manifest context without parsing huge embedded packages just for rows.
+- Timeline and waveform controls have larger mobile targets, remaining time, disabled/loading states, and a safe seek preview.
+- Lyrics/karaoke highlights are more readable with previous/upcoming context and better no-lyrics states. Stems show audible/ready/preparing/muted states more clearly.
+- VISU remains contained to the player visual area. MP5-C remains lab-only; MP5-L lossless behavior and MP5P/STDF semantics are unchanged.
 
 ## Exporting & packages (v0.18.0-beta)
 

@@ -1,15 +1,17 @@
 import type { Mp5File } from "@mp5/container";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
-import { codecLabel } from "../lib/codecDisplay";
 import type { Mp5hDecodeInfo } from "./decodeMp5";
 import { hasContentNotice, trackDisplayInfo } from "./playlistUtils";
 import type { PlaylistTrack } from "../store/playerStore";
 import {
   resolveCoverCardStyle,
   type ResolvedPlayerTheme,
+  visuFallbackLabel,
 } from "../lib/visualTheme/applyVisualTheme";
 import { TrackMetadata } from "./TrackMetadata";
 import type { AlbumPlaybackContext } from "../lib/album/albumPlaybackContext";
+import type { IntegrityCheckResult } from "@mp5/container";
+import { buildNowPlayingSummary } from "./playerDisplay";
 
 interface Props {
   track?: PlaylistTrack;
@@ -20,6 +22,10 @@ interface Props {
   mp5h?: Mp5hDecodeInfo;
   playerTheme?: ResolvedPlayerTheme | null;
   albumContext?: AlbumPlaybackContext | null;
+  currentTime: number;
+  duration: number;
+  embeddedHydrating?: boolean;
+  integrity?: IntegrityCheckResult | null;
 }
 
 function coverFromParsed(parsed?: Mp5File) {
@@ -39,11 +45,25 @@ export function NowPlayingView({
   mp5h,
   playerTheme,
   albumContext,
+  currentTime,
+  duration,
+  embeddedHydrating = false,
+  integrity,
 }: Props) {
   const cover = coverFromParsed(parsed);
   const coverUrl = useCoverObjectUrl(cover);
   const info = track ? trackDisplayInfo(track) : null;
-  const codec = parsed?.head != null ? codecLabel(parsed.head.codecId) : null;
+  const summary = buildNowPlayingSummary({
+    track,
+    parsed,
+    albumContext,
+    currentTimeSec: currentTime,
+    durationSec: duration,
+    loading,
+    embeddedHydrating,
+    integrity,
+  });
+  const codec = summary.codecLabel;
   const showContentBadge = hasContentNotice(parsed);
   const moodTags = info?.moodTags ?? [];
   const vibeTags = info?.vibeTags ?? [];
@@ -97,14 +117,14 @@ export function NowPlayingView({
           style={playerTheme?.titleStyle}
           data-testid="now-playing-title"
         >
-          {info?.title ?? "No track selected"}
+          {summary.title}
         </h1>
         <p className="text-gray-400 text-lg truncate" data-testid="now-playing-artist">
-          {info?.artist || (track ? "Unknown artist" : "Drop MP5 files to build a playlist")}
+          {summary.artist}
         </p>
-        {info?.album && !albumContext && (
+        {summary.album && !albumContext && (
           <p className="text-gray-500 text-sm truncate" data-testid="now-playing-album">
-            {info.album}
+            {summary.album}
           </p>
         )}
         {albumContext && (
@@ -112,20 +132,32 @@ export function NowPlayingView({
             <p className="text-gray-500 text-sm truncate" data-testid="now-playing-package-title">
               {albumContext.packageTitle}
             </p>
+            {albumContext.packageArtist && (
+              <p className="text-xs text-gray-500 truncate" data-testid="now-playing-package-artist">
+                {albumContext.packageArtist}
+              </p>
+            )}
             <p className="text-xs text-gray-600" data-testid="now-playing-album-position">
-              Track {albumContext.trackNumber} of {albumContext.trackCount}
+              {summary.trackPositionLabel}
             </p>
             <span
               className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-950/50 text-violet-200 border border-violet-800/30"
               data-testid="now-playing-package-badge"
             >
-              {albumContext.packageKind === "embedded"
-                ? "From embedded album"
-                : "From manifest album"}
+              {summary.sourceLabel}
             </span>
           </div>
         )}
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
+        <div
+          className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1"
+          data-testid="now-playing-badges"
+        >
+          <span
+            className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-300 border border-white/10"
+            data-testid="now-playing-source-badge"
+          >
+            {summary.sourceLabel}
+          </span>
           {codec && (
             <span
               className={
@@ -146,6 +178,22 @@ export function NowPlayingView({
               data-testid="now-playing-theme-badge"
             >
               {playerTheme.themeName}
+            </span>
+          )}
+          {!playerTheme && (
+            <span
+              className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-white/10 text-gray-500"
+              data-testid="now-playing-visu-fallback"
+            >
+              {visuFallbackLabel(playerTheme)}
+            </span>
+          )}
+          {summary.integrityLabel && (
+            <span
+              className="px-2 py-0.5 rounded-full text-[10px] font-medium border border-emerald-500/30 text-emerald-200/80 bg-emerald-950/20"
+              data-testid="now-playing-integrity-badge"
+            >
+              {summary.integrityLabel}
             </span>
           )}
           {playerTheme?.moodLabel && (
@@ -187,9 +235,33 @@ export function NowPlayingView({
         )}
       </div>
 
-      {loading && (
+      <div
+        className="grid grid-cols-3 gap-2 rounded-xl border border-white/5 bg-surface/40 px-3 py-2 text-center"
+        data-testid="now-playing-time-strip"
+      >
+        <div>
+          <p className="text-[10px] uppercase text-gray-600">Now</p>
+          <p className="text-xs font-mono text-gray-300" data-testid="now-playing-current-time">
+            {summary.currentTimeLabel}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase text-gray-600">Duration</p>
+          <p className="text-xs font-mono text-gray-300" data-testid="now-playing-duration">
+            {summary.durationLabel}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase text-gray-600">Left</p>
+          <p className="text-xs font-mono text-gray-300" data-testid="now-playing-remaining">
+            {summary.remainingLabel}
+          </p>
+        </div>
+      </div>
+
+      {summary.loadingLabel && (
         <p className="text-sm text-accent text-center md:text-left" data-testid="player-loading">
-          Decoding…
+          {summary.loadingLabel}
         </p>
       )}
       {loadError && (

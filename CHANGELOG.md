@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 _No changes yet._
 
+## [0.19.0-beta] - 2026-06
+
+### Milestone - Player / Listening UX Polish
+
+Makes the player clearer and more premium for real listening while preserving the stable playback transport and existing MP5/STDF/MP5P semantics. **No codec work, AI generation, telemetry, cloud sync, or format-policy changes.**
+
+- **Now Playing:** normalized title/artist/album/source display, `.mp5` vs manifest `.mp5p` vs embedded `.mp5p` badges, album track position, current/duration/remaining time, embedded hydration state, integrity badge, and default VISU fallback label.
+- **Queue / album context:** playlist rows now show source badges, album/package context, clearer selected/playing/hydrating status, thumbnails/fallbacks, and duration without decoding rows just for display.
+- **Timeline / waveform:** larger mobile seek target, remaining-time label, disabled/loading state, and safe waveform seek preview.
+- **Lyrics / karaoke:** clearer synced/karaoke mode label, stronger current lyric highlight, previous/upcoming context, section headers, and a better empty state without changing LYRC/SECT/HOOK/HILT behavior.
+- **Stems:** rows show explicit audible/ready/preparing/muted states, larger mobile controls, and less ambiguity when a checked stem is not currently audible.
+- **VISU / diagnostics:** VISU remains contained to the Now Playing/player area with a default visual fallback; copy diagnostics redacts local paths in player file labels and playback traces.
+- **Tests:** new player listening UX unit coverage plus e2e assertions for Now Playing badges, queue row status, stem row state, mobile controls, and embedded album source context.
+
 ## [0.18.0-beta] - 2026-06
 
 ### Milestone — Export / Package Polish
@@ -228,7 +242,9 @@ Detailed notes for v0.12.x, v0.11.x, v0.10.x, and earlier milestones are in:
 - [`docs/MP5_ALPHA_RELEASE_NOTES.md`](docs/MP5_ALPHA_RELEASE_NOTES.md)
 - [`docs/CURRENT_MP5_STATUS.md`](docs/CURRENT_MP5_STATUS.md)
 
-[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.17.1-beta...HEAD
+[Unreleased]: https://github.com/cjocollin/MP5-audio/compare/v0.19.0-beta...HEAD
+[0.19.0-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.18.0-beta...v0.19.0-beta
+[0.18.0-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.17.1-beta...v0.18.0-beta
 [0.17.1-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.17.0-beta...v0.17.1-beta
 [0.17.0-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.2-beta...v0.17.0-beta
 [0.16.2-beta]: https://github.com/cjocollin/MP5-audio/compare/v0.16.1-beta...v0.16.2-beta
