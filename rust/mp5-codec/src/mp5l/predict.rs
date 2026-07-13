@@ -1,5 +1,7 @@
 //! Fixed and LPC predictors for MP5-L lossless blocks.
 
+/// Max fixed-predictor order used by the encoder. Higher LPC orders need a
+/// sturdier Levinson path; keep at 4 so bit-exact gates stay green.
 pub const MAX_ORDER: usize = 4;
 
 pub fn residuals(samples: &[i16], order: u8) -> Vec<i32> {
@@ -154,10 +156,24 @@ mod tests {
         let samples: Vec<i16> = (0..512)
             .map(|i| ((i as f32 * 0.03).sin() * 20000.0) as i16)
             .collect();
-        for order in 0..=4u8 {
+        for order in 0..=MAX_ORDER as u8 {
             let res = residuals(&samples, order);
             let back = reconstruct(&res, order);
             assert_eq!(samples, back, "order {order}");
         }
+    }
+
+    #[test]
+    fn best_order_stays_in_range_and_roundtrips() {
+        let samples: Vec<i16> = (0..256)
+            .map(|i| {
+                let t = i as f64 / 256.0;
+                ((t * t * t * 12000.0 - t * t * 4000.0) as i16).saturating_add(100)
+            })
+            .collect();
+        let order = best_order(&samples, MAX_ORDER as u8);
+        assert!(order <= MAX_ORDER as u8);
+        let res = residuals(&samples, order);
+        assert_eq!(reconstruct(&res, order), samples);
     }
 }

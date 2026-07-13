@@ -59,6 +59,18 @@ import { assessSourceFile, type GuardrailMessage } from "../lib/performance/guar
 import { GuardrailNotice } from "../components/GuardrailNotice";
 import { useConversionStore } from "../store/conversionStore";
 import { recordUserFacingError } from "../lib/sessionDiagnostics";
+import { AiSuggestionsPanel } from "../components/AiSuggestionsPanel";
+import {
+  enrichWithAi,
+  suggestionsToTagString,
+  beatBpmLabel,
+  type AiAnalysisProgress,
+  type AiMetadataSuggestions,
+} from "../converter/aiMetadataHooks";
+import { cloudAiConfigured, loadAiSettings } from "../lib/ai/aiSettings";
+import { formatSectionsText } from "../lib/sections/sectionParser";
+import { formatSyncedLyricsText } from "../lib/lyrics/lyrcTimestampParser";
+import { sanitizeUnsyncedLyrics } from "../lib/ai/lyricSanitize";
 
 type PendingPcm = {
   samples: Int16Array;
@@ -94,6 +106,8 @@ export function ConverterPanel() {
   const [mode, setMode] = useState<ConverterMode>("single");
   const [codec, setCodec] = useState<OutputCodec>("mp5l");
   const [preset, setPreset] = useState(2);
+  const [labCodecsOpen, setLabCodecsOpen] = useState(false);
+  const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -111,6 +125,10 @@ export function ConverterPanel() {
   const [stemBatchSummary, setStemBatchSummary] = useState<BatchStemImportSummary | null>(null);
   const [stemImportGuardrails, setStemImportGuardrails] = useState<GuardrailMessage[]>([]);
   const [sourceGuardrails, setSourceGuardrails] = useState<GuardrailMessage[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<AiMetadataSuggestions>({});
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiProgress, setAiProgress] = useState<AiAnalysisProgress | null>(null);
+  const [aiError, setAiError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const { bumpCancelGeneration, setSinglePhase, resetSingle } = useConversionStore();
 
@@ -128,6 +146,12 @@ export function ConverterPanel() {
       setCodec("pcm");
     }
   }, [codecUnavailable, codec]);
+
+  useEffect(() => {
+    if (!labCodecsOpen && (codec === "mp5c" || codec === "mp5c2")) {
+      setCodec("mp5l");
+    }
+  }, [labCodecsOpen, codec]);
 
   useEffect(() => {
     if (error) recordUserFacingError("converter", error);
@@ -168,6 +192,8 @@ export function ConverterPanel() {
     setStems([]);
     setStemIssues([]);
     setCoverError("");
+    setAiSuggestions({});
+    setAiError("");
     const controller = new AbortController();
     abortRef.current = controller;
     const gen = useConversionStore.getState().cancelGeneration;
@@ -414,6 +440,161 @@ export function ConverterPanel() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleAnalyzeWithAi() {
+    if (!pending || !edits || aiBusy) return;
+    const settings = loadAiSettings();
+    if (!settings.enabled) {
+      setAiError("Enable AI suggestions in Settings first.");
+      return;
+    }
+    setAiBusy(true);
+    setAiError("");
+    setAiProgress({
+      label: "Preparing analysis…",
+      detail: "Checking which features are enabled in Settings.",
+      step: 0,
+      totalSteps: 1,
+      percent: 0,
+    });
+    try {
+      const suggestions = await enrichWithAi({
+        pcm: pending.pcm.samples,
+        sampleRate: pending.pcm.sampleRate,
+        channels: pending.pcm.channels,
+        context: {
+          title: edits.meta.title,
+          artist: edits.meta.artist,
+          album: edits.meta.album,
+          genre: edits.meta.genre,
+          comment: edits.meta.comment,
+          lyricsText: [edits.lyricsUnsynced, edits.lyricsSyncedText].filter(Boolean).join("\n"),
+        },
+        onProgress: setAiProgress,
+      });
+      setAiSuggestions(suggestions);
+      const partial =
+        suggestions.beat ||
+        suggestions.beatCloud ||
+        suggestions.sect?.sections.length ||
+        suggestions.lyrc?.unsynced ||
+        suggestions.lyrc?.synced?.length ||
+        suggestions.expl ||
+        suggestions.safe ||
+        suggestions.mood ||
+        suggestions.vibe ||
+        suggestions.summ;
+      const partialErrors = [
+        suggestions.cloudBeatError,
+        suggestions.cloudStructureError,
+        suggestions.cloudLyricsError,
+        suggestions.cloudContentWarningsError,
+      ].filter(Boolean);
+      if (!partial) {
+        setAiError(
+          partialErrors[0] ??
+            "No suggestions returned. Check API key, enable cloud features in Settings, or try different metadata.",
+        );
+      } else if (partialErrors.length) {
+        setAiError(`Partial success: ${partialErrors.join("; ")}`);
+      }
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAiBusy(false);
+      setAiProgress(null);
+    }
+  }
+
+  function acceptBeatSuggestion(beat: NonNullable<AiMetadataSuggestions["beat"]>) {
+    if (!edits) return;
+    setEdits({
+      ...edits,
+      beatBpm: beatBpmLabel(beat),
+      beatKey: beat.key ?? edits.beatKey,
+      beatTimeSignature: beat.timeSignature ?? edits.beatTimeSignature,
+      beatSource: beat.source ?? "ai-local",
+    });
+  }
+
+  function acceptMoodVibeSuggestion() {
+    if (!edits) return;
+    setEdits({
+      ...edits,
+      moodTags: aiSuggestions.mood?.tags?.length
+        ? suggestionsToTagString(aiSuggestions.mood.tags)
+        : edits.moodTags,
+      vibeTags: aiSuggestions.vibe?.tags?.length
+        ? suggestionsToTagString(aiSuggestions.vibe.tags)
+        : edits.vibeTags,
+      moodSource: aiSuggestions.mood?.source ?? edits.moodSource,
+      vibeSource: aiSuggestions.vibe?.source ?? edits.vibeSource,
+    });
+  }
+
+  function acceptSummarySuggestion() {
+    if (!edits || !aiSuggestions.summ?.text) return;
+    setEdits({
+      ...edits,
+      trackSummary: aiSuggestions.summ.text,
+      summSource: aiSuggestions.summ.source ?? "ai-cloud",
+    });
+  }
+
+  function acceptStructureSuggestion() {
+    if (!edits || !aiSuggestions.sect?.sections.length) return;
+    setEdits({
+      ...edits,
+      sectionsText: formatSectionsText(aiSuggestions.sect.sections),
+    });
+  }
+
+  function acceptLyricsSuggestion() {
+    if (!edits || !aiSuggestions.lyrc) return;
+    setEdits({
+      ...edits,
+      lyricsUnsynced: aiSuggestions.lyrc.unsynced
+        ? sanitizeUnsyncedLyrics(aiSuggestions.lyrc.unsynced)
+        : edits.lyricsUnsynced,
+      lyricsSyncedText: aiSuggestions.lyrc.synced?.length
+        ? formatSyncedLyricsText(aiSuggestions.lyrc.synced)
+        : edits.lyricsSyncedText,
+      lyricsSource: aiSuggestions.lyrc.source ?? "ai-cloud",
+    });
+  }
+
+  function acceptContentWarningsSuggestion() {
+    if (!edits) return;
+    const expl = aiSuggestions.expl;
+    const safe = aiSuggestions.safe;
+    if (!expl && !safe) return;
+    setEdits({
+      ...edits,
+      expl: expl
+        ? {
+            ...edits.expl,
+            explicit: edits.expl.explicit || !!expl.explicit,
+            cleanVersionAvailable: edits.expl.cleanVersionAvailable || !!expl.cleanVersionAvailable,
+            strongLanguage: edits.expl.strongLanguage || !!expl.strongLanguage,
+            sexualContent: edits.expl.sexualContent || !!expl.sexualContent,
+            violence: edits.expl.violence || !!expl.violence,
+            drugReferences: edits.expl.drugReferences || !!expl.drugReferences,
+            alcoholReferences: edits.expl.alcoholReferences || !!expl.alcoholReferences,
+            selfHarmThemes: edits.expl.selfHarmThemes || !!expl.selfHarmThemes,
+            traumaThemes: edits.expl.traumaThemes || !!expl.traumaThemes,
+            matureThemes: edits.expl.matureThemes || !!expl.matureThemes,
+          }
+        : edits.expl,
+      safe: safe
+        ? {
+            ...edits.safe,
+            griefThemes: edits.safe.griefThemes || !!safe.griefThemes,
+            traumaThemes: edits.safe.traumaThemes || !!safe.traumaThemes,
+            distressingThemes: edits.safe.distressingThemes || !!safe.distressingThemes,
+          }
+        : edits.safe,
+    });
   }
 
   async function handleExport() {
@@ -666,40 +847,73 @@ export function ConverterPanel() {
             onCoverError={setCoverError}
           />
           <MetadataReviewPanel extracted={pending.extracted} edits={edits} />
-          <StemImportSection
-            stems={stems}
-            issues={stemIssues}
-            mix={
-              pending
-                ? {
-                    sampleRate: pending.pcm.sampleRate,
-                    channels: pending.pcm.channels,
-                    durationSec: mixDurationSec,
-                  }
-                : null
-            }
-            busy={busy}
-            batchSummary={stemBatchSummary}
-            importGuardrails={stemImportGuardrails}
-            onAddStems={(files) => void handleAddStems(files)}
-            onUpdateStem={(id, patch) =>
-              setStems((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
-            }
-            onRemoveStem={(id) => setStems((prev) => prev.filter((s) => s.id !== id))}
-            onRemoveAllStems={() => {
-              setStems([]);
-              setStemBatchSummary(null);
-            }}
-            onSetAllVolumesFull={() =>
-              setStems((prev) => prev.map((s) => ({ ...s, defaultVolume: 1 })))
-            }
-            onNormalizeStems={(strategy, allowLargeTrim) => {
-              void handleNormalizeStems(strategy, allowLargeTrim);
-            }}
-            onPadMixToStems={(sec) => {
-              void handlePadMixToStems(sec);
-            }}
-          />
+          <button
+            type="button"
+            className="text-xs text-gray-500 hover:text-gray-300 underline-offset-2 hover:underline self-start"
+            onClick={() => setAdvancedToolsOpen((o) => !o)}
+            aria-expanded={advancedToolsOpen}
+            data-testid="converter-advanced-tools-toggle"
+          >
+            {advancedToolsOpen ? "Hide stems & AI tools" : "Show stems & AI tools"}
+          </button>
+          {advancedToolsOpen && (
+            <>
+              <AiSuggestionsPanel
+                suggestions={aiSuggestions}
+                busy={aiBusy}
+                progress={aiProgress}
+                error={aiError}
+                onAnalyze={() => void handleAnalyzeWithAi()}
+                onAcceptBeat={acceptBeatSuggestion}
+                onAcceptStructure={acceptStructureSuggestion}
+                onAcceptLyrics={acceptLyricsSuggestion}
+                onAcceptContentWarnings={acceptContentWarningsSuggestion}
+                onAcceptMoodVibe={acceptMoodVibeSuggestion}
+                onAcceptSummary={acceptSummarySuggestion}
+                onDismiss={() => setAiSuggestions({})}
+                aiEnabled={loadAiSettings().enabled}
+                cloudConfigured={cloudAiConfigured(loadAiSettings())}
+                cloudBeatEnabled={loadAiSettings().cloudBeat}
+                cloudStructureEnabled={loadAiSettings().cloudStructure}
+                cloudLyricsEnabled={loadAiSettings().cloudLyrics}
+                cloudContentWarningsEnabled={loadAiSettings().cloudContentWarnings}
+              />
+              <StemImportSection
+                stems={stems}
+                issues={stemIssues}
+                mix={
+                  pending
+                    ? {
+                        sampleRate: pending.pcm.sampleRate,
+                        channels: pending.pcm.channels,
+                        durationSec: mixDurationSec,
+                      }
+                    : null
+                }
+                busy={busy}
+                batchSummary={stemBatchSummary}
+                importGuardrails={stemImportGuardrails}
+                onAddStems={(files) => void handleAddStems(files)}
+                onUpdateStem={(id, patch) =>
+                  setStems((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
+                }
+                onRemoveStem={(id) => setStems((prev) => prev.filter((s) => s.id !== id))}
+                onRemoveAllStems={() => {
+                  setStems([]);
+                  setStemBatchSummary(null);
+                }}
+                onSetAllVolumesFull={() =>
+                  setStems((prev) => prev.map((s) => ({ ...s, defaultVolume: 1 })))
+                }
+                onNormalizeStems={(strategy, allowLargeTrim) => {
+                  void handleNormalizeStems(strategy, allowLargeTrim);
+                }}
+                onPadMixToStems={(sec) => {
+                  void handlePadMixToStems(sec);
+                }}
+              />
+            </>
+          )}
           <button
             type="button"
             onClick={() => void handleExport()}
@@ -736,6 +950,13 @@ export function ConverterPanel() {
         </p>
       )}
 
+      {codec === "mp5c2" && codecReady && (
+        <p className="text-xs text-sky-200/90 bg-sky-950/40 rounded-lg p-2" data-testid="mp5c2-lab-warning">
+          <strong>MP5-C vNext is lab/advanced.</strong> Hybrid quiet-lossless coding — hiss risk is low on
+          lab fixtures, but MP5-L remains the recommended default for sharing.
+        </p>
+      )}
+
       {codec === "mp5h" && codecReady && (
         <p className="text-xs text-blue-200/90 bg-blue-950/30 rounded-lg p-2" data-testid="mp5h-size-warning">
           <strong>MP5-H is hybrid (not default).</strong> MP5-C base + lossless CORR correction. Larger than
@@ -745,7 +966,7 @@ export function ConverterPanel() {
 
       <CodecModesHelper />
 
-      <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start">
         <label className="text-sm text-gray-400 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
           <span>Export format</span>
           <select
@@ -760,17 +981,39 @@ export function ConverterPanel() {
               <option value="pcm">{codecExportOptionLabel("pcm")} (WASM required for MP5 codecs)</option>
             ) : (
               <>
-                <option value="mp5l">{codecExportOptionLabel("mp5l")}</option>
-                <option value="mp5h">{codecExportOptionLabel("mp5h")}</option>
-                <option value="pcm">{codecExportOptionLabel("pcm")}</option>
-                <option value="mp5c">{codecExportOptionLabel("mp5c")}</option>
+                <optgroup label="Recommended">
+                  <option value="mp5l">{codecExportOptionLabel("mp5l")}</option>
+                </optgroup>
+                <optgroup label="Debug">
+                  <option value="pcm">{codecExportOptionLabel("pcm")}</option>
+                </optgroup>
+                <optgroup label="Not default">
+                  <option value="mp5h">{codecExportOptionLabel("mp5h")}</option>
+                </optgroup>
+                {labCodecsOpen && (
+                  <optgroup label="Lab / advanced">
+                    <option value="mp5c2">{codecExportOptionLabel("mp5c2")}</option>
+                    <option value="mp5c">{codecExportOptionLabel("mp5c")}</option>
+                  </optgroup>
+                )}
               </>
             )}
           </select>
         </label>
 
+        <button
+          type="button"
+          className="text-xs text-gray-500 hover:text-gray-300 underline-offset-2 hover:underline mt-1 sm:mt-6"
+          onClick={() => setLabCodecsOpen((o) => !o)}
+          aria-expanded={labCodecsOpen}
+          data-testid="lab-codecs-toggle"
+          disabled={codecUnavailable || busy}
+        >
+          {labCodecsOpen ? "Hide lab codecs" : "Show lab / advanced codecs"}
+        </button>
+
         <label className="text-sm text-gray-400 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-          <span>Preset (MP5-C / MP5-H)</span>
+          <span>Preset (MP5-C / MP5-H / vNext)</span>
           <select
             value={preset}
             onChange={(e) => setPreset(Number(e.target.value))}

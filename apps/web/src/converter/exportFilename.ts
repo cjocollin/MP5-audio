@@ -50,7 +50,9 @@ export function buildExportFilename(
         ? " (MP5-H hybrid)"
         : codec === "mp5c"
           ? " (MP5-C lab)"
-          : "";
+          : codec === "mp5c2"
+            ? " (MP5-C vNext)"
+            : "";
 
   return `${base}${variant}.mp5`;
 }

@@ -3,11 +3,20 @@
 
 export function decode_mp5c(data: Uint8Array): Int16Array;
 
+export function decode_mp5c_vnext(data: Uint8Array): Int16Array;
+
 export function decode_mp5h(data: Uint8Array, enhanced: boolean): Int16Array;
 
 export function decode_mp5l(data: Uint8Array): Int16Array;
 
 export function encode_mp5c(samples: Int16Array, channels: number, preset: number): Uint8Array;
+
+/**
+ * MP5-C vNext (experimental, lab-only). Sub-block + per-band + hysteresis
+ * lossless fallback. NOT a public MP5-C stream and NOT written into normal
+ * `.mp5` exports — used by the audio quality lab for measurement only.
+ */
+export function encode_mp5c_vnext(samples: Int16Array, channels: number, preset: number): Uint8Array;
 
 export function encode_mp5h(samples: Int16Array, channels: number, preset: number): Uint8Array;
 
@@ -20,9 +29,11 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly decode_mp5c: (a: number, b: number) => [number, number, number, number];
+    readonly decode_mp5c_vnext: (a: number, b: number) => [number, number, number, number];
     readonly decode_mp5h: (a: number, b: number, c: number) => [number, number, number, number];
     readonly decode_mp5l: (a: number, b: number) => [number, number, number, number];
     readonly encode_mp5c: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly encode_mp5c_vnext: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5h: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5l: (a: number, b: number, c: number) => [number, number];
     readonly snr_db_wasm: (a: number, b: number, c: number, d: number) => number;

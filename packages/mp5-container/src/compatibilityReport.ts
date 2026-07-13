@@ -101,6 +101,7 @@ const CODEC_LABELS: Record<number, string> = {
   [CodecId.MP5C]: "MP5-C (lab)",
   [CodecId.MP5L]: "MP5-L",
   [CodecId.MP5H]: "MP5-H (hybrid)",
+  [CodecId.MP5C2]: "MP5-C vNext (lab)",
 };
 
 function metaValue(file: Mp5File, key: string): string | undefined {
@@ -156,6 +157,10 @@ export function mp5CodecVersionLabel(codecId: number, audi?: Uint8Array): string
   }
   if (codecId === CodecId.MP5H) return audi.length ? "hybrid frame" : "n/a";
   if (codecId === CodecId.PCM) return "raw PCM";
+  if (codecId === CodecId.MP5C2) {
+    if (audi[0] === 0x43 && audi[1] === 0x34) return "vNext native (0x43 0x34)";
+    return "vNext";
+  }
   return "unknown";
 }
 
@@ -211,6 +216,15 @@ export function assessMp5Compatibility(
         message: "MP5-C is lab-only and may hiss — not recommended for distribution.",
       });
       warnings.push("MP5-C lab codec — experimental playback");
+    }
+    if (codecId === CodecId.MP5C2) {
+      issues.push({
+        level: "warning",
+        code: "codec_vnext_lab",
+        message:
+          "MP5-C vNext is an advanced/lab hybrid (lossless quiet + lossy loud). Prefer MP5-L for distribution.",
+      });
+      warnings.push("MP5-C vNext lab codec — advanced export");
     }
     if (codecId === CodecId.MP5H && !file.corr.length) {
       issues.push({

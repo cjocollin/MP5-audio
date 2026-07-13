@@ -1,0 +1,8 @@
+# User-local lab config (may contain absolute paths to personal music).
+lab.config.json
+
+# Anything a developer drops here for local-only testing.
+local/
+*.wav
+*.flac
+*.mp3

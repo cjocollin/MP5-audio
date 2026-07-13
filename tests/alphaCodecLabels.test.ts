@@ -33,6 +33,12 @@ describe("Alpha codec labels", () => {
     expect(codecExportOptionLabel("pcm")).toMatch(/debug/i);
   });
 
+  it("labels MP5-C vNext as lab/advanced hybrid", () => {
+    expect(codecLabel(CodecId.MP5C2)).toMatch(/vNext/i);
+    expect(codecExportOptionLabel("mp5c2")).toMatch(/vNext/i);
+    expect(codecExportOptionLabel("mp5c2")).toMatch(/not default/i);
+  });
+
   it("detects MP5-L v3 bitstream", () => {
     const frame = new Uint8Array([0x4c, 3, 2, 0, 0, 0, 0]);
     expect(mp5lBitstreamVersion(frame)).toBe(3);

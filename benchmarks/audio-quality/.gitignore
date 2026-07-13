@@ -1,0 +1,16 @@
+# Generated audio-quality reports are machine-specific and re-creatable.
+# Keep only the committed README + this file.
+report-*.json
+report-*.csv
+report-*.md
+QUALITY_REPORT.md
+NULL_TEST.md
+null-test.json
+MP5C_HISS_REPORT.md
+mp5c-hiss-report.json
+compare-report.md
+compare-report.json
+listening/
+local-listening/
+local/
+*.wav

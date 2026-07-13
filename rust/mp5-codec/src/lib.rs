@@ -1,6 +1,7 @@
 pub mod pcm;
 pub mod mp5l;
 pub mod mp5c;
+pub mod mp5c2;
 pub mod mp5h;
 
 use mp5c::Preset;
@@ -62,6 +63,20 @@ pub fn decode_mp5h(data: &[u8], enhanced: bool) -> Result<Vec<i16>, JsValue> {
         mp5h::DecodeMode::BaseOnly
     };
     mp5h::decode(base, corr, mode).map_err(|e| JsValue::from_str(&e))
+}
+
+/// MP5-C vNext (experimental, lab-only). Sub-block + per-band + hysteresis
+/// lossless fallback. NOT a public MP5-C stream and NOT written into normal
+/// `.mp5` exports — used by the audio quality lab for measurement only.
+#[wasm_bindgen]
+pub fn encode_mp5c_vnext(samples: &[i16], channels: u8, preset: u8) -> Vec<u8> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::Extreme);
+    mp5c2::encode(samples, channels, p)
+}
+
+#[wasm_bindgen]
+pub fn decode_mp5c_vnext(data: &[u8]) -> Result<Vec<i16>, JsValue> {
+    mp5c2::decode(data).map_err(|e| JsValue::from_str(&e))
 }
 
 #[wasm_bindgen]

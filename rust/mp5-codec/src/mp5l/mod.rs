@@ -143,10 +143,15 @@ struct BlockPlan {
 
 fn plan_blocks(per_ch: &[Vec<i16>]) -> BlockPlan {
     let max_len = per_ch.iter().map(|c| c.len()).max().unwrap_or(0);
+    let probe = per_ch.first().map(|c| c.as_slice()).unwrap_or(&[]);
     let mut boundaries = Vec::new();
     let mut i = 0usize;
     while i < max_len {
-        let end = (i + BLOCK_SIZE).min(max_len);
+        let hard_end = (i + BLOCK_SIZE).min(max_len);
+        let mut end = silence_aware_block_end(probe, i, hard_end);
+        if end <= i {
+            end = hard_end;
+        }
         boundaries.push(end);
         i = end;
     }
@@ -159,6 +164,45 @@ fn plan_blocks(per_ch: &[Vec<i16>]) -> BlockPlan {
         frames_per_ch,
         boundaries,
     }
+}
+
+/// Prefer ending a non-silent block just before a long silence run, and ending a
+/// silence block when signal returns — so FLAG_SILENCE can cover whole blocks.
+fn silence_aware_block_end(probe: &[i16], start: usize, hard_end: usize) -> usize {
+    if probe.is_empty() || start >= hard_end {
+        return hard_end;
+    }
+    let scan_end = hard_end.min(probe.len());
+    if start >= scan_end {
+        return hard_end;
+    }
+    let in_silence = probe[start] == 0;
+    if in_silence {
+        let mut j = start;
+        while j < scan_end && probe[j] == 0 {
+            j += 1;
+        }
+        if j - start >= MIN_SILENCE_RUN {
+            return j;
+        }
+        return hard_end;
+    }
+    let mut run = 0usize;
+    let mut run_start = start;
+    for j in start..scan_end {
+        if probe[j] == 0 {
+            if run == 0 {
+                run_start = j;
+            }
+            run += 1;
+            if run >= MIN_SILENCE_RUN && run_start > start {
+                return run_start;
+            }
+        } else {
+            run = 0;
+        }
+    }
+    hard_end
 }
 
 fn encode_channel_blocks(out: &mut Vec<u8>, channel: &[i16], plan: &BlockPlan, force_raw: bool) {
@@ -404,5 +448,21 @@ mod tests {
             v2.len()
         );
         assert_eq!(samples, decode(&v3).unwrap());
+    }
+
+    #[test]
+    fn silence_aware_plan_splits_before_long_silence() {
+        let mut ch = vec![1000i16; 200];
+        ch.extend(std::iter::repeat(0i16).take(128));
+        ch.extend(std::iter::repeat(500i16).take(100));
+        let plan = plan_blocks(&[ch.clone()]);
+        assert!(
+            plan.boundaries.len() >= 2,
+            "expected silence split, got {:?}",
+            plan.boundaries
+        );
+        assert_eq!(plan.boundaries[0], 200);
+        let enc = encode(&ch, 1);
+        assert_eq!(decode(&enc).unwrap(), ch);
     }
 }

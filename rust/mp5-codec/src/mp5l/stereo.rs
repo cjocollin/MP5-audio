@@ -30,12 +30,50 @@ pub fn decode_ms(mid: &[i16], side: &[i16]) -> (Vec<i16>, Vec<i16>) {
 }
 
 pub fn ms_worth_try(left: &[i16], right: &[i16]) -> bool {
+    let n = left.len().min(right.len());
+    if n < 2 {
+        return false;
+    }
     let (mid, side) = encode_ms(left, right);
     let l_var = variance_i16(left);
     let r_var = variance_i16(right);
     let m_var = variance_i16(&mid);
     let s_var = variance_i16(&side);
-    m_var + s_var < l_var + r_var
+    let lr = l_var + r_var;
+    if lr == 0 {
+        return false;
+    }
+    // Prefer M/S when mid+side energy is clearly lower, or channels are correlated
+    // enough that side is cheap even if variance is close.
+    let energy_win = m_var + s_var < lr;
+    let corr = correlation_i16(left, right);
+    let corr_win = corr.abs() >= 0.35 && s_var < (r_var.max(l_var) / 2).max(1);
+    energy_win || corr_win
+}
+
+fn correlation_i16(a: &[i16], b: &[i16]) -> f64 {
+    let n = a.len().min(b.len()) as f64;
+    if n < 2.0 {
+        return 0.0;
+    }
+    let mean_a = a.iter().map(|&x| x as f64).sum::<f64>() / n;
+    let mean_b = b.iter().map(|&x| x as f64).sum::<f64>() / n;
+    let mut num = 0f64;
+    let mut da = 0f64;
+    let mut db = 0f64;
+    for i in 0..a.len().min(b.len()) {
+        let xa = a[i] as f64 - mean_a;
+        let xb = b[i] as f64 - mean_b;
+        num += xa * xb;
+        da += xa * xa;
+        db += xb * xb;
+    }
+    let den = (da * db).sqrt();
+    if den < 1e-12 {
+        0.0
+    } else {
+        (num / den).clamp(-1.0, 1.0)
+    }
 }
 
 fn variance_i16(s: &[i16]) -> u64 {

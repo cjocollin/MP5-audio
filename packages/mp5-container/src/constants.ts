@@ -16,6 +16,8 @@ export const CodecId = {
   MP5L: 2,
   MP5H: 3,
   PASSTHROUGH: 4,
+  /** MP5-C vNext hybrid (lossless quiet + lossy loud). Lab/advanced export only. */
+  MP5C2: 5,
   PRIVATE: 255,
 } as const;
 

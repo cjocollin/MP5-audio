@@ -1,4 +1,4 @@
-export type CodecModeId = "mp5l" | "mp5c" | "mp5h" | "pcm";
+export type CodecModeId = "mp5l" | "mp5c" | "mp5c2" | "mp5h" | "pcm";
 
 export interface CodecModeHelp {
   id: CodecModeId;
@@ -15,6 +15,13 @@ export const CODEC_MODE_HELP: CodecModeHelp[] = [
     tagline: "Lossless · recommended default",
     detail:
       "Bit-exact listening export. Modest compression vs raw PCM. Use this for normal playback and sharing.",
+  },
+  {
+    id: "mp5c2",
+    name: "MP5-C vNext",
+    tagline: "Hybrid quiet-lossless · lab/advanced",
+    detail:
+      "Lossless on quiet/fragile passages; lossy on loud ones. Hiss risk is low on lab fixtures, but MP5-L remains the default for distribution.",
   },
   {
     id: "mp5c",

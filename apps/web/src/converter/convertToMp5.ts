@@ -1,8 +1,8 @@
-import { CodecId, writeMp5, type AudioFrame, type CoverArt, type MetaField } from "@mp5/container";
+import { CodecId, writeMp5, type AudioFrame, type CodecIdValue, type CoverArt, type MetaField } from "@mp5/container";
 import { getCodec, CodecPreset, isWasmCodecReady } from "../wasm/codec";
 import { generateWaveform } from "./generateWaveform";
 
-export type OutputCodec = "pcm" | "mp5c" | "mp5l" | "mp5h";
+export type OutputCodec = "pcm" | "mp5c" | "mp5l" | "mp5h" | "mp5c2";
 
 export interface ConvertOptions {
   samples: Int16Array;
@@ -28,7 +28,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
 
   if (!wasmReady && opts.codec !== "pcm") {
     throw new Error(
-      "MP5-C, MP5-L, and MP5-H require WASM codecs. Run pnpm wasm:build and refresh, or export as PCM only.",
+      "MP5 codecs require WASM. Run pnpm wasm:build and refresh, or export as PCM only.",
     );
   }
 
@@ -60,6 +60,10 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     }
     codecId = CodecId.MP5H;
     encoderLabel = "MP5-H WASM (MP5-C base + lossless CORR)";
+  } else if (opts.codec === "mp5c2") {
+    bitstream = codec.encode_mp5c_vnext(opts.samples, ch, preset);
+    codecId = CodecId.MP5C2;
+    encoderLabel = "MP5-C vNext WASM (hybrid quiet-lossless · lab/advanced)";
   } else {
     bitstream = codec.encode_mp5c(opts.samples, ch, preset);
     codecId = CodecId.MP5C;
@@ -80,7 +84,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
 
   return writeMp5({
     head: {
-      codecId: codecId as 0 | 1 | 2 | 3,
+      codecId: codecId as CodecIdValue,
       channels: ch,
       bitsPerSample: 16,
       presetId: preset,

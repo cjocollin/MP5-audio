@@ -1,0 +1,12 @@
+{
+  "$comment": "Copy to lab.config.json (git-ignored) and point at LOCAL files only. Never commit copyrighted audio. The lab reads 16/24-bit or float WAV for --source; .mp5 files are read for inspect/compare.",
+  "referenceMp5": "C:/Users/you/Downloads/My Track (MP5-L v3).mp5",
+  "candidateMp5": [
+    "C:/Users/you/Downloads/My Track (MP5-C High).mp5",
+    "C:/Users/you/Downloads/My Track (MP5-C Extreme).mp5",
+    "C:/Users/you/Downloads/My Track (MP5-H hybrid High).mp5"
+  ],
+  "sources": [
+    "C:/Users/you/Music/test.wav"
+  ]
+}

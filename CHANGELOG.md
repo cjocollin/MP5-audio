@@ -6,7 +6,184 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-_No changes yet._
+### Milestone - Hiss fix coalesce + MP5-C vNext lab export + Converter UX
+
+**Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
+No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
+
+- **Lossy sub-block coalescing (vNext):** adjacent lossy units merge into one MP5-C encode
+  (Rust `mp5c2` + JS `coalesce: true` on smooth modes). Synthetic `reverb_tail` stays hiss risk
+  **low**; `dense_music` size drops ~1.17× → ~0.97× PCM vs no-coalesce. JS/native stay bit-identical.
+- **Real-track gate:** local commercial reference re-encoded with native Extreme → full SNR ~39.5 dB,
+  **tail SNR ~32.6 dB (hiss risk medium)** — better than MP5-C High/Extreme (~24–26 dB) but not yet
+  the ≥40 dB “low” gate. Lab/advanced only; MP5-L stays recommended for sharing.
+- **Public `CodecId.MP5C2` (5):** Converter can export vNext behind **Show lab / advanced codecs**;
+  player decodes via `decode_mp5c_vnext`. Batch export stays MP5-L-only.
+- **MP5-L compression:** silence-aware block planning + stronger stereo M/S correlation heuristic
+  (bit-exact gates green). Higher-order LPC left at max 4 (overflow-safe).
+- **Website:** codec select grouped Recommended / Debug / Lab; stems & AI behind advanced toggle;
+  WASM cold-load progress bar in `WasmSetupBanner`.
+- **Lab:** `validate-vnext-ref` command; hiss-report includes no-coalesce baseline for A/B size.
+
+## [0.25.0-beta] - 2026-06
+
+### Milestone - Native Rust MP5-C vNext (additive, MP5-C unchanged)
+
+Ports the winning vNext "smooth" engine into the native Rust codec, carefully and additively.
+**Quality before compression.** MP5-L stays the bit-exact default; **MP5-C (v5.1) is byte-identical
+(unchanged)**; vNext stays lab-only, default OFF, never written to `.mp5`, not in the Converter, with
+no public `CodecId`; no AI/DRM/telemetry; no copyrighted audio committed; no mainstream-codec claims.
+
+- **Native engine:** new `rust/mp5-codec/src/mp5c2.rs` implements sub-block + per-band + hysteresis
+  lossless fallback by composing the existing `mp5l` and `mp5c` codecs. Exposed via additive WASM
+  functions `encode_mp5c_vnext` / `decode_mp5c_vnext` (lib.rs); existing exports untouched.
+- **Bit-identical to the JS prototype:** lab mode `mp5c2-native-extreme` matches `mp5c2-smooth-extreme`
+  with parity SNR = ∞ on every fixture; reaches `reverb_tail` hiss risk **low**; silence/quiet bit-exact.
+- **MP5-C unchanged (proven):** the `mp5c` module was not modified; the vNext stream uses a distinct
+  `0x43 0x34` magic (MP5-C is `0x43 0x06`) and the two decoders reject each other's containers. Full
+  Rust suite (35 tests, release) **and** full JS suite (536 tests) pass against the rebuilt WASM — the
+  regression proof that existing codec behavior is byte-identical.
+- **Tests:** `tests/audioCompareLab.test.ts` adds native-vs-JS parity, native-reaches-low, and
+  MP5-C-not-altered checks; `rust/mp5-codec/src/mp5c2.rs` adds 5 cargo tests (silence/quiet bit-exact,
+  tail protection, loud-not-wasted, distinct-from-mp5c).
+- **Known (pre-existing, not introduced):** `mp5c::pack_v5::tests::v5_modes_roundtrip` panics on a
+  multiply-overflow only in **debug** `cargo test`; it passes in the project's `--release` gate (where
+  the multiply wraps). The overflow is in untouched `mp5c` code and is left as-is for this milestone.
+- **Docs:** updated codec status, vNext plan/results, the audio-lab mode matrix, and README.
+
+## [0.24.0-beta] - 2026-06
+
+### Milestone - MP5-C vNext Hysteresis/Lookahead + Noise-Shaping Experiment
+
+Pushes MP5-C vNext quiet protection past the loud→quiet transition band and resolves the
+Playwright e2e port collision. **Quality before compression.** MP5-L stays the bit-exact default;
+MP5-C public behavior, the Converter, MP5/MP5P semantics, and the playback harness are unchanged;
+vNext stays lab-only, default OFF, never written to `.mp5`, not in the Converter; no AI/DRM/telemetry;
+no copyrighted audio committed; no mainstream-codec claims. `rust/` was read-only.
+
+- **Hysteresis + lookahead tail latch** (`mp5c2-smooth`, `mp5c2-smooth-extreme`): once a sub-block is
+  broadly quiet or low-level-and-staying-low for the next ~186 ms, the whole fade/tail is coded
+  losslessly until a clearly-loud sub-block breaks the latch. This takes `reverb_tail` from hiss risk
+  **medium → low** (quiet *and* tail windows bit-exact) at a size slightly smaller than v0.23.
+  Full progression: severe (MP5-C) → high (block) → medium (sub-block+band) → **low** (+hysteresis).
+- **Noise-shaping experiment — rejected with data** (`mp5c2-shaped-extreme`): JS pre/de-emphasis on
+  lossy sub-blocks made `reverb_tail` tail SNR *worse* (33 → 27 dB) and adds nothing once the fragile
+  content is already lossless. Real shaping belongs in the quantizer (a from-scratch transform codec) —
+  documented in `docs/MP5C_VNEXT_PLAN.md`.
+- **Hiss Risk fix:** `hissRisk()` now distinguishes "all quiet/tail windows bit-exact" (→ **low**) from
+  "no quiet/tail windows at all" (→ **n/a**); previously the all-clean case mis-read as n/a.
+- **Playwright e2e port fix:** the e2e webServer now uses a dedicated port (`E2E_PORT`, default 5188,
+  `--strictPort`) so a developer's `pnpm dev` on 5173 can no longer collide with the e2e server.
+- **Tests:** `tests/audioCompareLab.test.ts` adds smooth-reaches-low, the honest shaping-not-better
+  check, and the Hiss-Risk low-vs-n/a distinction; existing gates kept intact.
+- **Docs:** updated `MP5C_VNEXT_RESULTS.md`, `MP5C_VNEXT_PLAN.md`, the audio-lab mode matrix, codec
+  status, and README.
+
+## [0.23.0-beta] - 2026-06
+
+### Milestone - MP5-C vNext Sub-block / Per-band Quiet Detection
+
+Improves the experimental MP5-C vNext prototype from block-granular to sub-block and per-band
+quiet protection, then measures the effect honestly. **Quality before compression.** MP5-L stays
+the bit-exact default; MP5-C public behavior, the Converter, MP5/MP5P semantics, and the playback
+harness are unchanged; vNext stays lab-only, default OFF, never written to `.mp5`, not in the
+Converter; no AI, DRM, or telemetry; no copyrighted audio committed; no mainstream-codec claims.
+`rust/` was read-only this milestone.
+
+- **Sub-block detection:** vNext now decides lossless/lossy per ~23 ms (1024-frame) sub-block
+  (`mp5c2-subblock`), so decaying tails switch to lossless as soon as they fall quiet — raising
+  `reverb_tail` quiet-window SNR 12.6 → 22.3 dB vs the previous block-level vNext.
+- **Per-band detection:** low-level sub-blocks carrying a quiet-but-present 3.6 kHz high-band tail
+  escalate to lossless (`mp5c2-bandquiet`, `mp5c2-bandquiet-extreme`) — without wasting lossless on
+  HF masked by a loud low end. This takes `reverb_tail` from hiss risk **high → medium** with
+  bit-exact quiet windows (lossless coverage 56.7% → 74.5%). silence/quiet stay bit-exact; loud
+  fixtures get 0% fallback. See `docs/MP5C_VNEXT_RESULTS.md`.
+- **Frozen baseline:** block-level `mp5c2-lab` / `mp5c2-extreme` are kept unchanged for comparison.
+- **Fallback-usage stats:** `vnextFallbackStats()` recovers protected-sample % (L = broadband-quiet,
+  B = per-band tail) from any vNext container; the hiss report shows protected % and the active
+  thresholds.
+- **Noise-shaped quantization:** evaluated and **deferred** — real shaping needs control of the
+  MP5-C quantizer (Rust); recorded as a medium-term redesign item in `docs/MP5C_VNEXT_PLAN.md`.
+- **Honest size cost:** fine sub-blocks pad lossy units to the 2048 MP5-C frame, so loud material
+  can exceed 1× PCM (dense_music ~1.17×) — compression stays secondary; vNext is not a shipping codec.
+- **Tests:** `tests/audioCompareLab.test.ts` adds sub-block-triggers-in-loud-block, per-band-triggers
+  -on-HF-tail, fallback-usage-in-report, and a no-regression-vs-previous-vNext gate; existing
+  `audioQualityGates.test.ts` assertions kept intact.
+- **Docs:** new `docs/MP5C_VNEXT_RESULTS.md`; updated vNext plan, audio-lab mode matrix + "How to hear
+  vNext", codec status, hiss audit, and README.
+
+## [0.22.0-beta] - 2026-06
+
+### Milestone - MP5-C Hiss Audit + vNext Listening Lab
+
+Audits the MP5-C hiss with synthetic fixtures **and** real reference exports, makes the
+MP5-C vNext prototype runnable, and documents a quality-first redesign plan. **Quality
+before compression.** MP5-L stays the bit-exact default; MP5-C public behavior, the
+converter UX, MP5/MP5P semantics, and the playback harness are unchanged; no AI, DRM, or
+telemetry; no copyrighted audio committed; no mainstream-codec claims.
+
+- **Decode contract + self-test:** `tools/audio-lab/mp5file.mjs` decodes any `.mp5` through
+  the app's authoritative path (parse → matching WASM decoder → trim to `totalSamples`),
+  gated by a self-test that round-trips an MP5-L container bit-exact before any number is reported.
+- **File comparison tooling:** `audio:inspect`, `audio:compare-files`, `audio:compare-set`,
+  `audio:hiss-report`, `audio:bench:mp5c-vnext`, `audio:quality-report:mp5c`,
+  `audio:export-listening:{mp5c,vnext}`. Listening WAVs use descriptive names
+  (`pcm_reference`, `mp5c_current_high`, `mp5c_vnext_extreme`, …) under `listening/` and
+  `local-listening/` (git-ignored).
+- **Hiss metrics + Hiss Risk:** `tools/audio-lab/hiss.mjs` adds tail-window SNR, reverb-decay
+  error, HF noise floor, error spectral flatness (compact FFT), noise-gate sweeps
+  (−35/−45/−55 dBFS), and worst-quiet 500 ms/1 s windows, with committed Hiss Risk
+  thresholds (low ≥40 · medium ≥25 · high ≥12 · severe <12 dB; quiet-class SNR, never full-song).
+- **Root cause:** MP5-C quantizes in the **time domain** with a full-scale-relative step
+  (4-band one-pole filterbank, **no MDCT**), so its broadband error hisses in quiet/decaying
+  passages while loud passages mask it. On a real reference track MP5-C High is hiss-risk
+  *high* at 0.968× PCM — larger than the MP5-L lossless file (0.871×). MP5-H + CORR is
+  sample-exact but ~1.8× PCM. See `docs/MP5C_HISS_AUDIT.md`.
+- **MP5-C vNext (`mp5c2-lab` High, `mp5c2-extreme` Extreme):** lab-only, default OFF, never
+  written to `.mp5`. Takes silence/sustained-quiet to bit-exact and roughly doubles
+  reverb-tail quiet SNR (4.8 → 10.6 → 12.6 dB); block-granular detection still leaves
+  decaying tails partly lossy. Plan in `docs/MP5C_VNEXT_PLAN.md`.
+- **Tests:** `tests/audioCompareLab.test.ts` (self-test, compare on generated `.mp5`, vNext
+  exposure but not a converter default, Hiss Risk thresholds, git-ignore safety); existing
+  `tests/audioQualityGates.test.ts` assertions kept intact.
+- **Docs:** new `docs/MP5C_HISS_AUDIT.md` and `docs/MP5C_VNEXT_PLAN.md`; updated audio-lab
+  mode matrix, codec status, current status, and README.
+
+## [0.21.0-beta] - 2026-06
+
+### Milestone - MP5 Audio Quality / Codec Lab MVP
+
+Adds a serious in-repo audio quality lab and uses it to audit and safely
+experiment on the MP5 audio modes. **Quality before compression.** MP5-L stays
+the bit-exact recommended default; no codec policy, converter UX, MP5/MP5P
+semantics, or playback-harness change; no AI, DRM, or telemetry; no copyrighted
+audio committed; no mainstream-codec comparison claims.
+
+- **Audio lab:** new `tools/audio-lab/` harness (fixtures, metrics, null test,
+  report writers, CLI) driving the prebuilt codec WASM, with reports written to
+  `benchmarks/audio-quality/` (generated output and listening WAVs are git-ignored).
+- **Fixtures:** 13 synthetic categories (silence, quiet/loud/swept sine, pink/white
+  noise, impulse, kick/snare, bass loop, vocal-like, stereo width, reverb tail,
+  dense music). User-local files are supported via `--source` / `lab.config.json`
+  and are never committed.
+- **Honest metrics:** size, ×PCM ratio, encode/decode time, full-song SNR,
+  quiet-window SNR, worst-1s SNR, RMS/peak error, noise floor, clipping, stereo
+  correlation error, HF error, silence residual, duration match, bit-exact and
+  content-exact. Full-song SNR is documented as misleading on its own.
+- **Audit results:** MP5-L is bit-exact on every fixture (digital-silence null);
+  MP5-C's quiet-passage hiss is now measured (reverb-tail quiet-window SNR ~2.6–5.7 dB
+  while full-song SNR looks fine) and it stays lab-only; MP5-H + CORR is sample-exact
+  content but averages >1× PCM and stays optional/not-default.
+- **MP5-C vNext prototype (`mp5c2-lab`):** experimental, default OFF, never written
+  to `.mp5`. Adaptive lossless fallback for quiet/silent blocks takes silence and
+  sustained-quiet to bit-exact and improves reverb-tail quiet SNR (~4.8 → ~10.6 dB).
+- **Commands:** `pnpm audio:bench[:mp5l|:mp5c|:mp5h]`, `audio:quality-report`,
+  `audio:null-test`, `audio:export-listening`, `audio:gates`.
+- **Gates:** new `tests/audioQualityGates.test.ts` (part of `pnpm test`) locks in
+  MP5-L bit-exactness/no-drift, MP5-C's documented lossy/hiss status, MP5-H content
+  exactness, the vNext prototype targets, no-crash robustness, and MP5-L-default policy.
+- **Docs:** new `docs/MP5_AUDIO_QUALITY_LAB.md` and `docs/MP5_CODEC_STATUS.md`;
+  updated limitations, known issues, current status, and README.
 
 ## [0.20.0-beta] - 2026-06
 

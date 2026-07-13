@@ -1,0 +1,114 @@
+# MP5-C vNext Results — Sub-block / Per-band / Hysteresis Quiet Detection
+
+**Version:** MP5 Audio v0.26.0-beta  
+**Reproduce:** `pnpm audio:hiss-report` (synthetic + optional local reference).
+
+> **TL;DR (v0.26).** **Coalescing adjacent lossy sub-blocks** keeps synthetic `reverb_tail` hiss risk
+> **low** while cutting loud size (`dense_music` ~1.17× → **~0.97× PCM**). `CodecId.MP5C2` is a
+> Converter **lab/advanced** export. Local commercial reference: **~32.6 dB tail SNR (medium)** —
+> better than MP5-C Extreme (~25.6), not yet the ≥40 dB low gate. MP5-L stays default. No claim vs
+> MP3/AAC/Opus/FLAC/WAV.
+
+## v0.26 — lossy coalescing
+
+| Mode | ×PCM (reverb_tail) | ×PCM (dense_music) | Hiss risk (reverb) |
+|------|-------------------:|-------------------:|:------------------:|
+| smooth Extreme no-coalesce | 0.749 | 1.167 | low |
+| **smooth Extreme + coalesce** | **0.676** | **0.971** | **low** |
+| native Extreme (coalesce) | 0.676 | 0.971 | low |
+| MP5-L | 0.655 | 0.751 | low |
+
+## v0.24 — hysteresis/lookahead + noise-shaping experiment
+
+The v0.23 sub-block+band engine still left the loud→quiet transition band partly lossy
+(`reverb_tail` = medium, tail SNR ~33 dB). v0.24 adds a **decay latch with lookahead**: once a
+sub-block is broadly quiet or low-level-and-staying-low for the next ~186 ms, the whole fade/tail
+is protected losslessly until a clearly-loud sub-block breaks the latch. This protects the entire
+decaying tail → tail windows become bit-exact → **risk low**.
+
+| `reverb_tail` mode | ×PCM | Quiet SNR | Tail SNR | Worst-1s | Protected % | Hiss risk |
+|--------------------|-----:|----------:|---------:|---------:|:-----------:|:---------:|
+| MP5-C High | 0.360 | 4.8 | 14.0 | 0.0 | — | 🔴 severe |
+| vNext block Extreme | 0.640 | 12.6 | 17.0 | 13.4 | 56.7 | 🟠 high |
+| vNext sub-block+band Extreme (v0.23) | 0.751 | ∞ | 33.0 | ∞ | 74.5 | 🟡 medium |
+| **vNext smooth Extreme (v0.24)** | **0.749** | **∞** | **∞** | **∞** | 76.0 | 🟢 **low** |
+| vNext shaped Extreme (experiment) | 0.768 | ∞ | **27.1** | ∞ | 74.5 | 🟡 medium |
+| MP5-L (anchor) | 0.655 | ∞ | ∞ | ∞ | — | 🟢 low |
+
+**Noise shaping — rejected (measured).** Pre/de-emphasis on lossy sub-blocks (`mp5c2-shaped-extreme`)
+made tail SNR *worse* (de-emphasis colours the quantization noise toward LF and the per-sub-block
+filter reset adds boundary error), and it has nothing useful to act on once the fragile content is
+already coded losslessly. Real noise shaping belongs inside the quantizer (a from-scratch
+transform-domain codec), not as a JS bolt-on — see [MP5C_VNEXT_PLAN.md](MP5C_VNEXT_PLAN.md).
+
+## What changed (v0.23, retained)
+
+The block-level vNext protected whole 8192-frame (~186 ms) blocks, so quiet moments
+inside loud blocks stayed lossy. v0.23 adds two localized decisions
+([`tools/audio-lab/codecs.mjs`](../tools/audio-lab/codecs.mjs)):
+
+1. **Sub-block detection** — decide lossless/lossy per **1024-frame (~23 ms) sub-block**, so
+   decaying tails switch to lossless as soon as they fall below the quiet threshold.
+2. **Per-band detection** — additionally escalate a *low-level* sub-block to lossless when it
+   carries a **quiet-but-present high-frequency tail** (3.6 kHz high band peak in a fragile
+   range) — the exact signal MP5-C turns to hiss — **without** wasting lossless on HF that is
+   masked by a loud low end.
+
+Noise-shaped quantization was **evaluated and deferred**: real noise shaping needs control of
+the MP5-C quantizer, which lives in the Rust codec (out of scope this milestone — `rust/` was
+read-only). The JS lab can only compose whole-signal encoders, so shaping is recorded as a
+medium-term redesign item in [MP5C_VNEXT_PLAN.md](MP5C_VNEXT_PLAN.md) rather than shipped as a
+fragile lab hack.
+
+## Modes
+
+| Mode id | What it is | Status |
+|---------|-----------|--------|
+| `mp5c2-lab` / `mp5c2-extreme` | Previous **block-level** vNext (High / Extreme) | frozen baseline for comparison |
+| `mp5c2-subblock` | Sub-block only (High) | new |
+| `mp5c2-bandquiet` | Sub-block + per-band (High) | **best High** |
+| `mp5c2-bandquiet-extreme` | Sub-block + per-band (Extreme) | **best Extreme** |
+
+## Results — `reverb_tail` (the hiss-exposing fixture)
+
+| Mode | ×PCM | Quiet-window SNR | Worst-1s quiet | Tail SNR | Protected % (L / B) | Hiss risk |
+|------|-----:|-----------------:|---------------:|---------:|:-------------------:|:---------:|
+| MP5-C High | 0.360 | 4.8 | 0.0 | 14.0 | — | 🔴 severe |
+| MP5-C Extreme | 0.372 | 5.7 | 0.0 | 14.4 | — | 🔴 severe |
+| vNext block Extreme (prev) | 0.640 | 12.6 | 13.4 | 17.0 | 56.7 (56.7 / 0) | 🟠 high |
+| vNext **sub-block** High | 0.719 | **22.3** | 13.6 | 17.1 | 59.8 (59.8 / 0) | 🟠 high |
+| vNext **sub-block+band** High | 0.741 | **∞** | **∞** | 28.4 | 74.5 (59.8 / **14.7**) | 🟡 **medium** |
+| vNext **sub-block+band** Extreme | 0.751 | **∞** | **∞** | 33.0 | 74.5 (59.8 / **14.7**) | 🟡 **medium** |
+| MP5-L (anchor) | 0.655 | ∞ | ∞ | ∞ | — | 🟢 low |
+
+Sub-block alone nearly doubles quiet-window SNR (12.6 → 22.3); the per-band rule then adds the
+fragile-HF-tail sub-blocks (the extra **14.7%** "B" protection), making the quiet windows
+bit-exact and the residual tail SNR rise to ~28–33 dB — risk **high → medium**.
+
+## Other fixtures
+
+- `silence`: bit-exact (100% protected) — low. `quiet_sine`: bit-exact (∞) — low. No regression.
+- `vocal_like`, `dense_music`: loud throughout → **0% fallback** (per-band correctly does not
+  waste lossless on masked content); quality identical to MP5-C.
+
+## Size cost (honest)
+
+Fine sub-blocks make lossy sub-blocks pad to the 2048-frame MP5-C frame, so loud material grows:
+
+| Fixture | MP5-C | vNext block | vNext sub-block+band |
+|---------|------:|------------:|---------------------:|
+| reverb_tail | 0.360 | 0.640 | 0.751 |
+| dense_music | 0.941 | 0.972 | **1.167** |
+
+On loud material the sub-block prototype can exceed 1× PCM. **This is why compression stays
+secondary and vNext is not a shipping codec.** A natural future optimization (deferred) is to
+coalesce adjacent lossy sub-blocks to remove the padding penalty — but that changes MP5-C frame
+RMS and therefore quality, so it needs its own measurement pass.
+
+## Verdict
+
+vNext is **measurably closer to headphone-clean on quiet/reverb material** (reverb_tail now
+medium, quiet windows bit-exact) and continues to be worth pursuing. It is **not yet clean**
+(the loud-to-quiet transition band still has finite tail SNR; truly clean needs medium-term
+noise shaping / transform-domain work in `MP5C_VNEXT_PLAN.md`). MP5-L stays the default;
+MP5-C stays lab-only.

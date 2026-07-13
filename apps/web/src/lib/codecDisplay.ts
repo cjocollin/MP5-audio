@@ -19,6 +19,8 @@ export function codecLabel(codecId: number): string {
   switch (codecId) {
     case CodecId.MP5C:
       return "MP5-C (experimental / lab)";
+    case CodecId.MP5C2:
+      return "MP5-C vNext (hybrid · lab/advanced)";
     case CodecId.MP5L:
       return "MP5-L v3 (lossless · default)";
     case CodecId.MP5H:
@@ -32,7 +34,9 @@ export function codecLabel(codecId: number): string {
   }
 }
 
-export function codecExportOptionLabel(codec: "mp5l" | "mp5h" | "mp5c" | "pcm"): string {
+export function codecExportOptionLabel(
+  codec: "mp5l" | "mp5h" | "mp5c" | "mp5c2" | "pcm",
+): string {
   switch (codec) {
     case "mp5l":
       return "MP5-L v3 (lossless · default export · bit-exact)";
@@ -40,6 +44,8 @@ export function codecExportOptionLabel(codec: "mp5l" | "mp5h" | "mp5c" | "pcm"):
       return "MP5-H (hybrid: MP5-C base + CORR · large · not default)";
     case "mp5c":
       return "MP5-C (experimental / lab · may hiss · not for listening)";
+    case "mp5c2":
+      return "MP5-C vNext (hybrid quiet-lossless · lab/advanced · not default)";
     case "pcm":
       return "PCM (reference / debug · uncompressed)";
   }
