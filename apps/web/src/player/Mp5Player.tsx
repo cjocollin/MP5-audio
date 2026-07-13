@@ -59,7 +59,7 @@ import {
 } from "../lib/playback/stemMixerAssert";
 import { NowPlayingView } from "./NowPlayingView";
 import { LibraryPanel } from "./LibraryPanel";
-import { ingestMp5Files, trackDurationSec, type IngestResult } from "./playlistUtils";
+import { ingestMp5Files, trackDurationSec, findSimilarTrackIndex, similarTrackAvailable, type IngestResult } from "./playlistUtils";
 import { useActivePlaybackClock } from "./useActivePlaybackClock";
 import {
   ingestStageLabel,
@@ -1734,6 +1734,18 @@ export function Mp5Player() {
     playPrevious();
   };
 
+  const canPlaySimilar = useMemo(
+    () => similarTrackAvailable(tracks, currentIndex),
+    [tracks, currentIndex],
+  );
+
+  const handlePlaySimilar = () => {
+    const nextIndex = findSimilarTrackIndex(tracks, currentIndex);
+    if (nextIndex == null) return;
+    setCurrentIndex(nextIndex, { keepPlaying: true });
+    setPlaying(true);
+  };
+
   const embeddedHydratingTrackId = embeddedLoading ? embeddedHydratingTrackIdRef.current : null;
   const isEnded =
     duration > 0 &&
@@ -1871,6 +1883,8 @@ export function Mp5Player() {
             duration={duration}
             embeddedHydrating={embeddedHydratingTrackId === track?.id}
             integrity={integrity}
+            canPlaySimilar={canPlaySimilar}
+            onPlaySimilar={handlePlaySimilar}
           />
         </div>
         <WaveformView

@@ -1,6 +1,6 @@
 # MP5 Limitations
 
-**Version:** MP5 Audio v0.20.0-beta  
+**Version:** MP5 Audio v0.25.0-beta  
 **Status:** Public Beta technical notes
 
 MP5 is experimental and browser-based. It is not production-ready for archival, legal, rights, or untrusted ingestion workflows.
@@ -18,10 +18,13 @@ For the current public list, see [MP5_KNOWN_ISSUES.md](MP5_KNOWN_ISSUES.md). For
 
 | Codec | Limitation |
 |-------|------------|
-| MP5-L v3 | Recommended lossless path, bit-exact, but not claimed to beat FLAC. Reference material remains around 0.95x PCM in existing benchmarks. |
-| MP5-C | Lab-only; known hiss/artifact risk on music material; not for normal listening or distribution claims. |
-| MP5-H | Experimental hybrid mode; correction layers can produce large files; not default. |
+| MP5-L v3 | Recommended lossless path, bit-exact (verified across the Audio Quality Lab fixtures), but not claimed to beat FLAC. Reference material remains around 0.95x PCM in existing benchmarks. |
+| MP5-C | Lab-only; quiet-passage hiss is now measured (quiet-window SNR ~2.6–5.7 dB on decaying material even where full-song SNR looks fine); not for normal listening or distribution claims. |
+| MP5-C vNext | Experimental lab prototype only (`mp5c2-lab`), default OFF, never written to `.mp5`; lossless quiet-frame fallback, not a shipping codec. |
+| MP5-H | Experimental hybrid mode; correction layers can produce large files (averages >1× PCM); not default. |
 | PCM | Reference/debug fallback; large files. |
+
+For lab methodology and how to reproduce these numbers, see [MP5_AUDIO_QUALITY_LAB.md](MP5_AUDIO_QUALITY_LAB.md) and [MP5_CODEC_STATUS.md](MP5_CODEC_STATUS.md). Full-song SNR alone is misleading; quiet-window SNR and silence residual are the honest measures.
 
 ## Browser Limits
 
@@ -33,7 +36,9 @@ For the current public list, see [MP5_KNOWN_ISSUES.md](MP5_KNOWN_ISSUES.md). For
 
 - Optional chunks are display/tooling metadata; playback must continue without them.
 - Content guidance, mood/vibe, credits, rights, and identifiers are informational only.
-- The reference converter does not generate lyrics, warnings, stems, or AI-enriched metadata.
+- The reference converter does not generate lyrics, warnings, or stems automatically.
+- **Opt-in AI metadata suggestions** (Settings → enable, optional BYOK API key): local BPM estimate plus optional cloud features — BPM/key (audio), song structure (SECT), lyrics (LYRC), content warnings (EXPL/SAFE), mood/vibe/summary. All suggestions require user review before export; provenance is stored in chunk `source` fields (`ai-local`, `ai-cloud`, `user`). Cloud lyrics transcribe audio verbatim (Gemini/OpenAI only); text-only providers are rejected because they tend to invent lyrics from song title/artist.
+- **No AI stem separation.**
 
 ## Security Model
 

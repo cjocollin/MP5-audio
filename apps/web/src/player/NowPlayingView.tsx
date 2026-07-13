@@ -26,6 +26,8 @@ interface Props {
   duration: number;
   embeddedHydrating?: boolean;
   integrity?: IntegrityCheckResult | null;
+  canPlaySimilar?: boolean;
+  onPlaySimilar?: () => void;
 }
 
 function coverFromParsed(parsed?: Mp5File) {
@@ -49,6 +51,8 @@ export function NowPlayingView({
   duration,
   embeddedHydrating = false,
   integrity,
+  canPlaySimilar = false,
+  onPlaySimilar,
 }: Props) {
   const cover = coverFromParsed(parsed);
   const coverUrl = useCoverObjectUrl(cover);
@@ -232,6 +236,16 @@ export function NowPlayingView({
               </span>
             ))}
           </div>
+        )}
+        {canPlaySimilar && onPlaySimilar && (
+          <button
+            type="button"
+            onClick={onPlaySimilar}
+            className="text-[10px] px-2 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-gray-300 mt-1"
+            data-testid="play-similar-mood-button"
+          >
+            Play similar mood
+          </button>
         )}
       </div>
 

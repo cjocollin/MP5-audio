@@ -10,6 +10,10 @@ import {
   encodeSens,
   encodeVibe,
   encodeVisu,
+  encodeBeat,
+  encodeSumm,
+  type BeatPayload,
+  type SummPayload,
   encodeCrdt,
   encodeLicn,
   encodeIden,
@@ -53,6 +57,8 @@ export interface UserMetadataOverrides {
   sens?: SensPayload;
   mood?: MoodPayload;
   vibe?: VibePayload;
+  beat?: BeatPayload;
+  summ?: SummPayload;
   visu?: VisuPayload | null;
   crdt?: CrdtPayload | null;
   licn?: LicnPayload | null;
@@ -134,6 +140,12 @@ export function buildExportMetadataBundle(
   }
   if (overrides?.vibe?.tags?.length) {
     optional.set("VIBE", encodeVibe(overrides.vibe));
+  }
+  if (overrides?.beat?.bpm != null) {
+    optional.set("BEAT", encodeBeat(overrides.beat));
+  }
+  if (overrides?.summ?.text) {
+    optional.set("SUMM", encodeSumm(overrides.summ));
   }
   if (overrides && "visu" in overrides) {
     if (overrides.visu) {

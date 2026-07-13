@@ -58,6 +58,8 @@ function normalizeSavedTrack(
     stemCount: s.stemCount,
     hasCoverArt: s.hasCoverArt,
     hasLyrics: s.hasLyrics,
+    moodTags: s.moodTags,
+    vibeTags: s.vibeTags,
   };
 }
 

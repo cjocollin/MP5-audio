@@ -1,6 +1,6 @@
 # MP5 Install And Share Guide
 
-**Version:** MP5 Audio v0.20.0-beta  
+**Version:** MP5 Audio v0.25.0-beta  
 **Status:** Public Beta
 
 MP5 is a browser-based experimental audio app. The recommended way to share it is the hosted HTTPS demo:

@@ -58,12 +58,29 @@ function sortKey(item: UnifiedLibraryItem, sort: UnifiedLibraryFilters["sort"]):
   }
 }
 
+export function matchesUnifiedLibraryMoodVibe(
+  item: UnifiedLibraryItem,
+  moodTag: string,
+  vibeTag: string,
+): boolean {
+  if (moodTag && !(item.moodTags ?? []).some((t) => t.toLowerCase() === moodTag.toLowerCase())) {
+    return false;
+  }
+  if (vibeTag && !(item.vibeTags ?? []).some((t) => t.toLowerCase() === vibeTag.toLowerCase())) {
+    return false;
+  }
+  return true;
+}
+
 export function filterAndSortUnifiedLibraryItems(
   items: UnifiedLibraryItem[],
   filters: UnifiedLibraryFilters,
 ): UnifiedLibraryItem[] {
   const filtered = items.filter(
-    (item) => matchesUnifiedLibraryQuery(item, filters.query) && matchesUnifiedLibraryKind(item, filters.kind),
+    (item) =>
+      matchesUnifiedLibraryQuery(item, filters.query) &&
+      matchesUnifiedLibraryKind(item, filters.kind) &&
+      matchesUnifiedLibraryMoodVibe(item, filters.moodTag, filters.vibeTag),
   );
   const descSorts = new Set(["added-desc", "opened-desc", "size-desc", "duration-desc"]);
   const desc = descSorts.has(filters.sort);

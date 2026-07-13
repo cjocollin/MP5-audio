@@ -103,6 +103,24 @@ export { isSha256Hex, normalizeSha256Hex } from "./sha256Hex.js";
 
 export type WarningSource = "artist" | "user" | "ai" | "unknown";
 
+export type MetadataSource = "user" | "ai-local" | "ai-cloud" | "embedded" | "unknown";
+
+export interface BeatPayload {
+  bpm?: number;
+  key?: string;
+  timeSignature?: string;
+  confidence?: number;
+  source?: MetadataSource | string;
+  analyzer?: string;
+}
+
+export interface SummPayload {
+  text?: string;
+  source?: MetadataSource | string;
+  model?: string;
+  generatedAt?: string;
+}
+
 export interface ExplPayload {
   explicit?: boolean;
   cleanVersionAvailable?: boolean;
@@ -176,6 +194,18 @@ function clampConfidence(n: unknown): number | undefined {
 function parseWarningSource(s: unknown): WarningSource | undefined {
   if (s === "artist" || s === "user" || s === "ai" || s === "unknown") return s;
   return undefined;
+}
+
+function parseMetadataSource(s: unknown): MetadataSource | undefined {
+  if (s === "user" || s === "ai-local" || s === "ai-cloud" || s === "embedded" || s === "unknown") {
+    return s;
+  }
+  return undefined;
+}
+
+function parsePositiveNumber(n: unknown): number | undefined {
+  if (typeof n !== "number" || Number.isNaN(n) || n <= 0) return undefined;
+  return n;
 }
 
 export function encodeExpl(p: ExplPayload): Uint8Array {
@@ -292,6 +322,44 @@ export function decodeVibe(data?: Uint8Array): VibePayload | null {
   return { tags, source: sanitizeJsonString(raw.source, 64) };
 }
 
+export function encodeBeat(p: BeatPayload): Uint8Array {
+  return encodeJsonChunk(p);
+}
+
+export function decodeBeat(data?: Uint8Array): BeatPayload | null {
+  const raw = decodeJsonChunk<Record<string, unknown>>(data, "BEAT");
+  if (!raw) return null;
+  const bpm = parsePositiveNumber(raw.bpm);
+  const key = sanitizeJsonString(raw.key, 32);
+  const timeSignature = sanitizeJsonString(raw.timeSignature, 16);
+  if (bpm === undefined && !key && !timeSignature) return null;
+  return {
+    bpm,
+    key: key || undefined,
+    timeSignature: timeSignature || undefined,
+    confidence: clampConfidence(raw.confidence),
+    source: parseMetadataSource(raw.source) ?? sanitizeJsonString(raw.source, 64),
+    analyzer: sanitizeJsonString(raw.analyzer, 64),
+  };
+}
+
+export function encodeSumm(p: SummPayload): Uint8Array {
+  return encodeJsonChunk(p);
+}
+
+export function decodeSumm(data?: Uint8Array): SummPayload | null {
+  const raw = decodeJsonChunk<Record<string, unknown>>(data, "SUMM");
+  if (!raw) return null;
+  const text = sanitizeJsonString(raw.text, 2048);
+  if (!text) return null;
+  return {
+    text,
+    source: parseMetadataSource(raw.source) ?? sanitizeJsonString(raw.source, 64),
+    model: sanitizeJsonString(raw.model, 64),
+    generatedAt: sanitizeJsonString(raw.generatedAt, 64),
+  };
+}
+
 /** Parse all optional metadata chunks from a map (safe — never throws on bad JSON). */
 export function parseOptionalMetadata(optional: Map<string, Uint8Array>) {
   try {
@@ -303,6 +371,8 @@ export function parseOptionalMetadata(optional: Map<string, Uint8Array>) {
       sens: decodeSens(optional.get("SENS")),
       mood: decodeMood(optional.get("MOOD")),
       vibe: decodeVibe(optional.get("VIBE")),
+      beat: decodeBeat(optional.get("BEAT")),
+      summ: decodeSumm(optional.get("SUMM")),
       stems: decodeStemManifest(optional.get("STEM")),
       sect: decodeSect(optional.get("SECT")),
       hook: decodeHook(optional.get("HOOK")),
@@ -323,6 +393,8 @@ export function parseOptionalMetadata(optional: Map<string, Uint8Array>) {
       sens: null,
       mood: null,
       vibe: null,
+      beat: null,
+      summ: null,
       stems: null,
       sect: null,
       hook: null,

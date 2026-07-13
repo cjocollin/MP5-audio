@@ -10,6 +10,7 @@ import { LocalLibraryPanel } from "./components/LocalLibraryPanel";
 import { PerformanceDiagnosticsPanel } from "./components/PerformanceDiagnosticsPanel";
 import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
 import { BetaFeedbackPanel } from "./components/BetaFeedbackPanel";
+import { AiSettingsSection } from "./components/AiSettingsSection";
 
 export default function App() {
   const { activeTab, setActiveTab, theme, setTheme, useFileThemes, setUseFileThemes } =
@@ -102,6 +103,7 @@ export default function App() {
               <p>Local library uses browser storage (IndexedDB) on this device only.</p>
             </div>
             <BetaFeedbackPanel />
+            <AiSettingsSection />
             <PerformanceDiagnosticsPanel />
           </div>
         )}

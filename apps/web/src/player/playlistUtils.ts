@@ -143,6 +143,40 @@ export function matchesSearch(track: PlaylistTrack, query: string): boolean {
   return haystack.includes(q);
 }
 
+function sharedMoodVibeTagCount(a: string[], b: string[]): number {
+  const setB = new Set(b.map((t) => t.toLowerCase()));
+  return a.filter((t) => setB.has(t.toLowerCase())).length;
+}
+
+/** Pick the next playlist track sharing at least one mood or vibe tag. */
+export function findSimilarTrackIndex(tracks: PlaylistTrack[], currentIndex: number): number | null {
+  if (tracks.length < 2 || currentIndex < 0 || currentIndex >= tracks.length) return null;
+
+  const current = trackDisplayInfo(tracks[currentIndex]!);
+  if (!current.moodTags.length && !current.vibeTags.length) return null;
+
+  let bestIndex: number | null = null;
+  let bestScore = 0;
+
+  for (let i = 0; i < tracks.length; i++) {
+    if (i === currentIndex) continue;
+    const info = trackDisplayInfo(tracks[i]!);
+    const score =
+      sharedMoodVibeTagCount(current.moodTags, info.moodTags) +
+      sharedMoodVibeTagCount(current.vibeTags, info.vibeTags);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+    }
+  }
+
+  return bestScore > 0 ? bestIndex : null;
+}
+
+export function similarTrackAvailable(tracks: PlaylistTrack[], currentIndex: number): boolean {
+  return findSimilarTrackIndex(tracks, currentIndex) != null;
+}
+
 export type SkipReason = "not-mp5" | "unreadable";
 
 export interface IngestResult {

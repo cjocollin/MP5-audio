@@ -39,6 +39,8 @@ export interface UnifiedLibraryItem {
   stemCount?: number;
   hasCoverArt?: boolean;
   hasLyrics?: boolean;
+  moodTags?: string[];
+  vibeTags?: string[];
 }
 
 export type LibraryKindFilter =
@@ -61,6 +63,8 @@ export interface UnifiedLibraryFilters {
   query: string;
   kind: LibraryKindFilter;
   sort: LibrarySortOption;
+  moodTag: string;
+  vibeTag: string;
 }
 
 export interface LibraryStorageStats {

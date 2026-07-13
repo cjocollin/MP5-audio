@@ -66,6 +66,8 @@ export function MetadataDetailsPanel({
       sens: null,
       mood: null,
       vibe: null,
+      beat: null,
+      summ: null,
       stems: null,
       sect: null,
       hook: null,
@@ -320,6 +322,50 @@ export function MetadataDetailsPanel({
           <p className="text-[10px] text-gray-600">
             Source: {mood?.source ?? vibe?.source} — display only, not verified
           </p>
+        )}
+      </div>
+
+      <div
+        className="rounded-xl bg-surface-elevated p-4 text-sm space-y-2"
+        data-testid="metadata-beat-panel"
+      >
+        <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Beat (BEAT)</p>
+        {chunks.beat?.bpm != null ? (
+          <>
+            <p className="text-gray-200">
+              {chunks.beat.bpm} BPM
+              {chunks.beat.key ? ` · ${chunks.beat.key}` : ""}
+              {chunks.beat.timeSignature ? ` · ${chunks.beat.timeSignature}` : ""}
+            </p>
+            {chunks.beat.confidence != null && (
+              <p className="text-xs text-gray-500">Confidence: {Math.round(chunks.beat.confidence * 100)}%</p>
+            )}
+            {chunks.beat.source && (
+              <p className="text-[10px] text-gray-600">Source: {chunks.beat.source}</p>
+            )}
+          </>
+        ) : (
+          <EmptyNote>No beat metadata</EmptyNote>
+        )}
+      </div>
+
+      <div
+        className="rounded-xl bg-surface-elevated p-4 text-sm space-y-2"
+        data-testid="metadata-summary-panel"
+      >
+        <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Summary (SUMM)</p>
+        {chunks.summ?.text ? (
+          <>
+            <p className="text-gray-300 text-sm leading-relaxed">{chunks.summ.text}</p>
+            {(chunks.summ.source || chunks.summ.model) && (
+              <p className="text-[10px] text-gray-600">
+                {chunks.summ.source ? `Source: ${chunks.summ.source}` : ""}
+                {chunks.summ.model ? ` · ${chunks.summ.model}` : ""}
+              </p>
+            )}
+          </>
+        ) : (
+          <EmptyNote>No track summary</EmptyNote>
         )}
       </div>
 

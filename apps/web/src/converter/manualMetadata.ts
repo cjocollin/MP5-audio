@@ -88,6 +88,14 @@ export interface ManualMetadataEdits {
   };
   moodTags: string;
   vibeTags: string;
+  moodSource: string;
+  vibeSource: string;
+  beatBpm: string;
+  beatKey: string;
+  beatTimeSignature: string;
+  beatSource: string;
+  trackSummary: string;
+  summSource: string;
   visualTheme: ManualVisualThemeEdits;
   credits: ManualCrdtEdits;
   rights: ManualLicnEdits;
@@ -228,6 +236,14 @@ export function manualEditsFromSource(source: SourceMetadata): ManualMetadataEdi
     },
     moodTags: "",
     vibeTags: "",
+    moodSource: "",
+    vibeSource: "",
+    beatBpm: "",
+    beatKey: "",
+    beatTimeSignature: "",
+    beatSource: "",
+    trackSummary: "",
+    summSource: "",
     visualTheme: { ...EMPTY_VISUAL_THEME },
     credits: { ...emptyCrdtEdits() },
     rights: { ...emptyLicnEdits() },
@@ -407,12 +423,36 @@ export function buildOverridesFromEdits(edits: ManualMetadataEdits): UserMetadat
 
   const moodTags = parseTagInput(edits.moodTags);
   if (moodTags.length) {
-    overrides.mood = { tags: moodTags, source: "user" };
+    overrides.mood = {
+      tags: moodTags,
+      source: edits.moodSource.trim() || "user",
+    };
   }
 
   const vibeTags = parseTagInput(edits.vibeTags);
   if (vibeTags.length) {
-    overrides.vibe = { tags: vibeTags, source: "user" };
+    overrides.vibe = {
+      tags: vibeTags,
+      source: edits.vibeSource.trim() || "user",
+    };
+  }
+
+  const beatBpm = Number.parseFloat(edits.beatBpm.trim());
+  if (Number.isFinite(beatBpm) && beatBpm > 0) {
+    overrides.beat = {
+      bpm: beatBpm,
+      key: edits.beatKey.trim() || undefined,
+      timeSignature: edits.beatTimeSignature.trim() || undefined,
+      source: edits.beatSource.trim() || "user",
+    };
+  }
+
+  const summary = edits.trackSummary.trim();
+  if (summary) {
+    overrides.summ = {
+      text: summary,
+      source: edits.summSource.trim() || "user",
+    };
   }
 
   const visu = visuPayloadFromEdits(edits.visualTheme);

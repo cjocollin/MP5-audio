@@ -93,11 +93,29 @@ export function LocalLibraryPanel() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<LibraryKindFilter>("all");
   const [sort, setSort] = useState<LibrarySortOption>("added-desc");
+  const [moodTag, setMoodTag] = useState("");
+  const [vibeTag, setVibeTag] = useState("");
   const [storageGuardrails, setStorageGuardrails] = useState<GuardrailMessage[]>([]);
 
+  const moodTagOptions = useMemo(() => {
+    const tags = new Set<string>();
+    for (const item of items) {
+      for (const t of item.moodTags ?? []) tags.add(t);
+    }
+    return [...tags].sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
+  const vibeTagOptions = useMemo(() => {
+    const tags = new Set<string>();
+    for (const item of items) {
+      for (const t of item.vibeTags ?? []) tags.add(t);
+    }
+    return [...tags].sort((a, b) => a.localeCompare(b));
+  }, [items]);
+
   const filtered = useMemo(
-    () => filterAndSortUnifiedLibraryItems(items, { query, kind, sort }),
-    [items, query, kind, sort],
+    () => filterAndSortUnifiedLibraryItems(items, { query, kind, sort, moodTag, vibeTag }),
+    [items, query, kind, sort, moodTag, vibeTag],
   );
   const grouped = useMemo(() => groupUnifiedLibraryItems(filtered), [filtered]);
   const savedCount = useMemo(
@@ -335,6 +353,34 @@ export function LocalLibraryPanel() {
           <option value="artist-asc">Artist A–Z</option>
           <option value="size-desc">Largest size</option>
           <option value="duration-desc">Longest duration</option>
+        </select>
+        <select
+          value={moodTag}
+          onChange={(e) => setMoodTag(e.target.value)}
+          className="bg-surface rounded-lg px-2 py-2 text-xs border border-white/5 min-h-[40px]"
+          aria-label="Mood tag filter"
+          data-testid="library-mood-filter"
+        >
+          <option value="">All moods</option>
+          {moodTagOptions.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
+            </option>
+          ))}
+        </select>
+        <select
+          value={vibeTag}
+          onChange={(e) => setVibeTag(e.target.value)}
+          className="bg-surface rounded-lg px-2 py-2 text-xs border border-white/5 min-h-[40px]"
+          aria-label="Vibe tag filter"
+          data-testid="library-vibe-filter"
+        >
+          <option value="">All vibes</option>
+          {vibeTagOptions.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
+            </option>
+          ))}
         </select>
       </div>
 

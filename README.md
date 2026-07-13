@@ -3,12 +3,12 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.20.0--beta-blue)](CHANGELOG.md#0200-beta---2026-06)
+[![Version](https://img.shields.io/badge/version-v0.25.0--beta-blue)](CHANGELOG.md#0250-beta---2026-06)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
-**Version:** MP5 Audio **v0.20.0-beta** (Public Beta)  
+**Version:** MP5 Audio **v0.25.0-beta** (Public Beta)  
 **Live demo:** https://mp5-audio.vercel.app  
 **GitHub:** https://github.com/cjocollin/MP5-audio
 
@@ -28,15 +28,22 @@ Single-track `.mp5` remains the core format. Album packages use `.mp5p` in eithe
 |------|--------|
 | Overall | Public Beta / experimental; not production-ready for archival or legal use |
 | MP5-L v3 | Recommended lossless path; bit-exact roundtrip |
-| MP5-C | Lab-only; known hiss/artifact risk |
-| MP5-H | Experimental hybrid; large; not default |
+| MP5-C | Lab-only; quiet-passage hiss is measured (see codec status) |
+| MP5-C vNext | Lab prototypes only (`mp5c2-*`: block / sub-block / per-band), default OFF, never written to `.mp5` |
+| MP5-H | Experimental hybrid; large (avg >1× PCM); not default |
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
 | Public claims | No beat-codec, DRM, legal-proof, telemetry, upload, or cloud-sync claims |
 
-## v0.20.0-beta Focus
+## v0.25.0-beta Focus
 
-v0.20.0-beta is a **spec / developer toolkit polish** milestone. It updates developer-facing docs, compatibility guidance, fixture cataloging, CLI help, validation tests, and public wording. It does **not** add features or change playback transport, codec policy, MP5/STDF/MP5P semantics, converter encoding behavior, telemetry, or cloud behavior.
+v0.25.0-beta ports the winning **vNext "smooth"** engine (sub-block + per-band + hysteresis lossless fallback) into the **native Rust codec** (`mp5c2`), exposed via additive WASM `encode_mp5c_vnext` / `decode_mp5c_vnext`. It is **bit-identical to the JS prototype** (parity SNR = ∞), reaches `reverb_tail` hiss risk **low**, and runs at native speed. Done **safely and additively**: the existing **MP5-C (v5.1) is byte-identical** (untouched; full JS+Rust suites pass against the rebuilt WASM), and the vNext stream uses a distinct `0x43 0x34` magic with **no public `CodecId`** — **not in the Converter, never written into `.mp5`**, still lab-only/default OFF. No change to MP5-L's default policy, MP5/STDF/MP5P semantics, or telemetry/AI/DRM. See [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md) and [MP5C_VNEXT_PLAN.md](docs/MP5C_VNEXT_PLAN.md).
+
+```bash
+pnpm audio:hiss-report                       # hiss matrix + Hiss Risk + protected % (git-ignored)
+pnpm audio:export-listening:vnext            # PCM + MP5-L + MP5-C + vNext (smooth/native/...) WAVs
+cargo test -p mp5-codec --release            # native codec tests (incl. mp5c2 + MP5-C-unchanged)
+```
 
 ## Developer Toolkit
 
@@ -47,6 +54,11 @@ v0.20.0-beta is a **spec / developer toolkit polish** milestone. It updates deve
 - [Format spec](docs/MP5_FORMAT_SPEC.md)
 - [Container spec](docs/MP5_CONTAINER_SPEC.md)
 - [Metadata spec](docs/MP5_METADATA_SPEC.md)
+- [Audio quality lab](docs/MP5_AUDIO_QUALITY_LAB.md)
+- [Codec status](docs/MP5_CODEC_STATUS.md)
+- [MP5-C hiss audit](docs/MP5C_HISS_AUDIT.md)
+- [MP5-C vNext plan](docs/MP5C_VNEXT_PLAN.md)
+- [MP5-C vNext results](docs/MP5C_VNEXT_RESULTS.md)
 - [Known issues](docs/MP5_KNOWN_ISSUES.md)
 
 CLI tools:
@@ -81,6 +93,14 @@ CI=1 pnpm alpha:check
 CI=1 pnpm beta:check
 pnpm build
 pnpm deploy:check
+```
+
+Audio quality lab (synthetic fixtures; no copyrighted audio, no telemetry):
+
+```bash
+pnpm audio:gates            # codec quality gates (also part of pnpm test)
+pnpm audio:bench            # full bench → benchmarks/audio-quality/ (git-ignored output)
+pnpm audio:quality-report
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup, fixture rules, and PR expectations.
@@ -136,6 +156,8 @@ MP5 parses binary container and audio data in the browser and CLI tools. Treat u
 | `apps/web/` | Player, converter, library, demo, settings |
 | `packages/mp5-container/` | `.mp5` / `.mp5p` parser, writer, compatibility reports |
 | `rust/mp5-codec/` | MP5-L / MP5-C / MP5-H codec work |
+| `tools/audio-lab/` | Audio quality lab: fixtures, metrics, null test, listening export |
+| `benchmarks/audio-quality/` | Generated lab reports (git-ignored output) |
 | `test-fixtures/` | Synthetic demo and compatibility fixtures |
 | `docs/` | Specs, toolkit docs, deployment notes, release readiness |
 

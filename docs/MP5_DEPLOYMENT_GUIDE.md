@@ -1,6 +1,6 @@
 # MP5 Web Demo Deployment Guide
 
-**Version:** MP5 Audio v0.20.0-beta  
+**Version:** MP5 Audio v0.25.0-beta  
 **Canonical production URL:** https://mp5-audio.vercel.app
 
 Deploy the Public Beta web demo as a static site. The production artifact is `apps/web/dist` after `pnpm build` or `node scripts/vercel-build.mjs`.

@@ -12,6 +12,8 @@ import {
   ingestMp5Files,
   matchesSearch,
   resolvePlaylistTrackDurationSec,
+  findSimilarTrackIndex,
+  similarTrackAvailable,
   trackDisplayInfo,
 } from "../apps/web/src/player/playlistUtils";
 import { usePlayerStore } from "../apps/web/src/store/playerStore";
@@ -230,6 +232,23 @@ describe("player store queue", () => {
     usePlayerStore.getState().toggleShuffle();
     expect(usePlayerStore.getState().shuffle).toBe(true);
     expect(usePlayerStore.getState().shuffleOrder.length).toBe(3);
+  });
+
+  it("findSimilarTrackIndex picks a track with shared mood tags", async () => {
+    const optionalA = new Map([["MOOD", encodeMood({ tags: ["calm"], source: "user" })]]);
+    const optionalB = new Map([["VIBE", encodeVibe({ tags: ["focus"], source: "user" })]]);
+    const optionalC = new Map([
+      ["MOOD", encodeMood({ tags: ["calm"], source: "user" })],
+      ["VIBE", encodeVibe({ tags: ["sleep"], source: "user" })],
+    ]);
+    const tracks = await ingestMp5Files([
+      new File([minimalMp5({ optional: optionalA })], "a.mp5"),
+      new File([minimalMp5({ optional: optionalB })], "b.mp5"),
+      new File([minimalMp5({ optional: optionalC })], "c.mp5"),
+    ]);
+    expect(similarTrackAvailable(tracks.tracks, 0)).toBe(true);
+    expect(findSimilarTrackIndex(tracks.tracks, 0)).toBe(2);
+    expect(similarTrackAvailable(tracks.tracks, 1)).toBe(false);
   });
 });
 

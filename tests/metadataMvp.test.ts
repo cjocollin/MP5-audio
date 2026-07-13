@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   CodecId,
   encodeCover,
@@ -9,11 +9,15 @@ import {
   encodeSafe,
   encodeSens,
   encodeVibe,
+  encodeBeat,
+  encodeSumm,
   decodeCover,
   decodeExpl,
   decodeLyrc,
   decodeMood,
   decodeVibe,
+  decodeBeat,
+  decodeSumm,
   getMetaValue,
   metaFieldsFromRecord,
   parseMp5,
@@ -154,6 +158,48 @@ describe("metadata MVP", () => {
     expect(decodeVibe(p.optional.get("VIBE"))?.tags).toEqual(["focus", "sleep"]);
   });
 
+  it("BEAT and SUMM roundtrip with provenance", () => {
+    const optional = new Map([
+      [
+        "BEAT",
+        encodeBeat({
+          bpm: 128.4,
+          key: "Am",
+          timeSignature: "4/4",
+          confidence: 0.82,
+          source: "ai-local",
+          analyzer: "mp5-beat",
+        }),
+      ],
+      [
+        "SUMM",
+        encodeSumm({
+          text: "Melancholic indie track with sparse guitar.",
+          source: "ai-cloud",
+          model: "gpt-4o-mini",
+          generatedAt: "2026-06-16T12:00:00Z",
+        }),
+      ],
+    ]);
+    const buf = minimalMp5({ optional });
+    const chunks = parseOptionalMetadata(parseMp5(buf).optional);
+    expect(chunks.beat?.bpm).toBe(128.4);
+    expect(chunks.beat?.key).toBe("Am");
+    expect(chunks.beat?.source).toBe("ai-local");
+    expect(chunks.summ?.text).toContain("Melancholic");
+    expect(chunks.summ?.source).toBe("ai-cloud");
+  });
+
+  it("MOOD and VIBE accept ai-cloud source", () => {
+    const optional = new Map([
+      ["MOOD", encodeMood({ tags: ["melancholic"], source: "ai-cloud", intensity: 0.6 })],
+      ["VIBE", encodeVibe({ tags: ["late-night"], source: "ai-cloud" })],
+    ]);
+    const chunks = parseOptionalMetadata(optional);
+    expect(chunks.mood?.source).toBe("ai-cloud");
+    expect(chunks.vibe?.source).toBe("ai-cloud");
+  });
+
   it("WAVE chunk roundtrip with peak/RMS in META", () => {
     const waveform = [0, 0.25, 0.5, 0.75, 1];
     const meta = metaFieldsFromRecord({
@@ -201,5 +247,190 @@ describe("metadata MVP", () => {
     const huge = new Uint8Array(128 * 1024);
     const optional = new Map([["LYRC", huge]]);
     expect(() => parseOptionalMetadata(optional)).not.toThrow();
+  });
+});
+
+describe("AI feature helpers", () => {
+  it("BEAT decode rejects empty payload", async () => {
+    const { decodeBeat } = await import("@mp5/container");
+    expect(decodeBeat(new TextEncoder().encode("{}"))).toBeNull();
+  });
+
+  it("local beat analyzer estimates BPM from synthetic click track", async () => {
+    const { analyzeBeatFromPcm } = await import("../apps/web/src/lib/ai/providers/localBeat");
+    const sampleRate = 44100;
+    const frames = Math.floor(sampleRate * 8);
+    const pcm = new Int16Array(frames);
+    const interval = (60 / 120) * sampleRate;
+    for (let i = 0; i < frames; i++) {
+      pcm[i] = i % interval < interval * 0.02 ? 20000 : 0;
+    }
+    const beat = analyzeBeatFromPcm(pcm, sampleRate, 1);
+    expect(beat?.bpm).toBeGreaterThan(100);
+    expect(beat?.bpm).toBeLessThan(140);
+    expect(beat?.source).toBe("ai-local");
+  });
+
+  it("local beat analyzer stays close to slow tempos", async () => {
+    const { analyzeBeatFromPcm } = await import("../apps/web/src/lib/ai/providers/localBeat");
+    const sampleRate = 44100;
+    const targetBpm = 82;
+    const frames = Math.floor(sampleRate * 12);
+    const pcm = new Int16Array(frames);
+    const interval = (60 / targetBpm) * sampleRate;
+    for (let i = 0; i < frames; i++) {
+      pcm[i] = i % interval < interval * 0.02 ? 20000 : 0;
+    }
+    const beat = analyzeBeatFromPcm(pcm, sampleRate, 1);
+    expect(beat?.bpm).toBeGreaterThan(80.5);
+    expect(beat?.bpm).toBeLessThan(83.5);
+  });
+
+  it("local beat analyzer handles kick/snare/hat pattern near 82 BPM", async () => {
+    const { analyzeBeatFromPcm } = await import("../apps/web/src/lib/ai/providers/localBeat");
+    const sampleRate = 44100;
+    const targetBpm = 82;
+    const frames = Math.floor(sampleRate * 16);
+    const pcm = new Int16Array(frames);
+    const beatInterval = (60 / targetBpm) * sampleRate;
+    const eighthInterval = beatInterval / 2;
+    for (let i = 0; i < frames; i++) {
+      const beatPhase = i % beatInterval;
+      const beatNum = Math.floor(i / beatInterval);
+      const beatInBar = beatNum % 4;
+      const isKick = beatPhase < beatInterval * 0.02;
+      const isSnare = (beatInBar === 1 || beatInBar === 3) && beatPhase < beatInterval * 0.018;
+      const isHat = i % eighthInterval < eighthInterval * 0.012;
+      let amp = 0;
+      if (isKick) amp = 20000;
+      else if (isSnare) amp = 15000;
+      else if (isHat) amp = 3500;
+      pcm[i] = amp;
+    }
+    const beat = analyzeBeatFromPcm(pcm, sampleRate, 1);
+    expect(beat?.bpm).toBeGreaterThan(80.5);
+    expect(beat?.bpm).toBeLessThan(83.5);
+  });
+
+  it("local beat analyzer resists half-time collapse on fast hi-hats", async () => {
+    const { analyzeBeatFromPcm } = await import("../apps/web/src/lib/ai/providers/localBeat");
+    const sampleRate = 44100;
+    const targetBpm = 82;
+    const frames = Math.floor(sampleRate * 20);
+    const pcm = new Int16Array(frames);
+    const beatInterval = (60 / targetBpm) * sampleRate;
+    const sixteenthInterval = beatInterval / 4;
+    for (let i = 0; i < frames; i++) {
+      const beatPhase = i % beatInterval;
+      const beatNum = Math.floor(i / beatInterval);
+      const beatInBar = beatNum % 4;
+      const isKick = beatPhase < beatInterval * 0.015;
+      const isSnare = (beatInBar === 1 || beatInBar === 3) && beatPhase < beatInterval * 0.012;
+      const isHat = i % sixteenthInterval < sixteenthInterval * 0.01;
+      let amp = 0;
+      if (isKick) amp = 12000;
+      else if (isSnare) amp = 9000;
+      else if (isHat) amp = 6000;
+      pcm[i] = amp;
+    }
+    const beat = analyzeBeatFromPcm(pcm, sampleRate, 1);
+    expect(beat?.bpm).toBeGreaterThan(78);
+    expect(beat?.bpm).toBeLessThan(86);
+  });
+
+  it.skipIf(!process.env.MP5_BEAT_FIXTURE_FLAC)("local beat analyzer handles fast hi-hat rock tracks near 82 BPM", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const { spawnSync } = await import("node:child_process");
+    const ffmpegPath = (await import("ffmpeg-static")).default as string;
+    const { analyzeBeatFromPcm } = await import("../apps/web/src/lib/ai/providers/localBeat");
+
+    const fixture = process.env.MP5_BEAT_FIXTURE_FLAC!;
+    const tmpPcm = path.join(process.cwd(), ".tmp-beat-fixture.pcm");
+    const proc = spawnSync(
+      ffmpegPath,
+      ["-i", fixture, "-vn", "-f", "s16le", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", "-t", "90", tmpPcm, "-y"],
+      { encoding: "utf8" },
+    );
+    if (proc.status !== 0) throw new Error(proc.stderr || "ffmpeg failed");
+
+    try {
+      const bytes = fs.readFileSync(tmpPcm);
+      const samples = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
+      const beat = analyzeBeatFromPcm(samples, 44100, 2);
+      expect(beat?.bpm).toBeGreaterThan(78);
+      expect(beat?.bpm).toBeLessThan(88);
+    } finally {
+      fs.unlinkSync(tmpPcm);
+    }
+  });
+
+  it("AI model presets resolve known and custom models", async () => {
+    const { modelPresetIdForProvider, modelFromProviderPreset, AI_MODEL_CUSTOM_ID, inferProviderId } =
+      await import("../apps/web/src/lib/ai/aiSettings");
+    expect(modelPresetIdForProvider("openai", "gpt-5.4-nano")).toBe("gpt-5.4-nano");
+    expect(modelPresetIdForProvider("openai", "unknown-model")).toBe(AI_MODEL_CUSTOM_ID);
+    expect(modelFromProviderPreset("anthropic", "claude-haiku-4-5-20251001")).toBe(
+      "claude-haiku-4-5-20251001",
+    );
+    expect(inferProviderId("https://api.anthropic.com/v1", "claude-haiku-4-5-20251001")).toBe(
+      "anthropic",
+    );
+    expect(inferProviderId("https://api.deepseek.com", "deepseek-v4-flash")).toBe("deepseek");
+    expect(inferProviderId("https://api.mistral.ai/v1", "ministral-3b-latest")).toBe("mistral");
+    expect(inferProviderId("https://api.groq.com/openai/v1", "llama-3.1-8b-instant")).toBe("groq");
+    expect(inferProviderId("https://openrouter.ai/api/v1", "openrouter/auto")).toBe("openrouter");
+    expect(inferProviderId("https://api.x.ai/v1", "grok-4.3")).toBe("xai");
+  });
+
+  it("AI model settings migrate retired saved defaults", async () => {
+    const saved = JSON.stringify({
+      enabled: true,
+      localBeat: true,
+      cloudMoodVibe: true,
+      cloudSummary: true,
+      providerId: "gemini",
+      apiKey: "test-key",
+      apiBaseUrl: "https://generativelanguage.googleapis.com/v1",
+      model: "gemini-2.0-flash",
+    });
+    const store = new Map<string, string>([["mp5-ai-settings-v2", saved]]);
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+    });
+
+    try {
+      const { loadAiSettings } = await import("../apps/web/src/lib/ai/aiSettings");
+      const settings = loadAiSettings();
+      expect(settings.apiBaseUrl).toBe("https://generativelanguage.googleapis.com/v1beta");
+      expect(settings.model).toBe("gemini-3.5-flash");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("applyProviderSwitch updates base URL and default model", async () => {
+    const { applyProviderSwitch, DEFAULT_AI_SETTINGS } = await import("../apps/web/src/lib/ai/aiSettings");
+    const next = applyProviderSwitch(DEFAULT_AI_SETTINGS, "gemini");
+    expect(next.providerId).toBe("gemini");
+    expect(next.apiBaseUrl).toBe("https://generativelanguage.googleapis.com/v1beta");
+    expect(next.model).toBe("gemini-3.1-flash-lite");
+  });
+
+  it("pcmToWavClip encodes a valid WAV header", async () => {
+    const { pcmToWavClip } = await import("../apps/web/src/lib/ai/pcmToWavClip");
+    const samples = new Int16Array(4410);
+    for (let i = 0; i < samples.length; i++) samples[i] = i % 2 === 0 ? 1000 : -1000;
+    const wav = pcmToWavClip(samples, 44100, 1, 0.05);
+    expect(wav.length).toBeGreaterThan(44);
+    expect(String.fromCharCode(wav[0]!, wav[1]!, wav[2]!, wav[3]!)).toBe("RIFF");
+    expect(String.fromCharCode(wav[8]!, wav[9]!, wav[10]!, wav[11]!)).toBe("WAVE");
+  });
+
+  it("default AI settings include cloudBeat opt-in off", async () => {
+    const { DEFAULT_AI_SETTINGS } = await import("../apps/web/src/lib/ai/aiSettings");
+    expect(DEFAULT_AI_SETTINGS.cloudBeat).toBe(false);
   });
 });

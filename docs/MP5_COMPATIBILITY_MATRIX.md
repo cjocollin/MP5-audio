@@ -1,6 +1,6 @@
 # MP5 Compatibility Matrix
 
-**Version:** MP5 Audio v0.20.0-beta
+**Version:** MP5 Audio v0.25.0-beta
 
 This matrix describes current Public Beta support. It does not change MP5, STDF, MP5P, LYRC, VISU, or metadata semantics.
 

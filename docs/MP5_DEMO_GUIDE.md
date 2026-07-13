@@ -1,13 +1,13 @@
 # MP5 Demo Guide
 
-**Version:** MP5 Audio v0.20.0-beta  
+**Version:** MP5 Audio v0.25.0-beta  
 **Hosted demo:** https://mp5-audio.vercel.app
 
 Use synthetic fixtures for public demos. Do not use copyrighted/private local audio in a deploy, recording, or release gate.
 
 ## Demo Goals
 
-- Show that the hosted app loads and the badge reads `MP5 Public Beta - v0.20.0-beta`.
+- Show that the hosted app loads and the badge reads `MP5 Public Beta - v0.25.0-beta`.
 - Show MP5-L v3 as the recommended lossless path.
 - Show optional metadata and package features without implying they are required for playback.
 - Keep public claims honest: experimental Public Beta, no beat-codec/DRM/legal-proof/telemetry/upload/cloud-sync claims.

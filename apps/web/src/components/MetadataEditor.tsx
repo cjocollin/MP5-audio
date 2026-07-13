@@ -517,18 +517,61 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
           <TagField
             label="Mood (comma-separated)"
             value={edits.moodTags}
-            onChange={(v) => onChange({ ...edits, moodTags: v })}
+            onChange={(v) => onChange({ ...edits, moodTags: v, moodSource: v.trim() ? edits.moodSource || "user" : "" })}
             suggestions={MOOD_TAG_SUGGESTIONS}
             testId="mood-tags"
           />
           <TagField
             label="Vibe / use case (comma-separated)"
             value={edits.vibeTags}
-            onChange={(v) => onChange({ ...edits, vibeTags: v })}
+            onChange={(v) => onChange({ ...edits, vibeTags: v, vibeSource: v.trim() ? edits.vibeSource || "user" : "" })}
             suggestions={VIBE_TAG_SUGGESTIONS}
             testId="vibe-tags"
           />
         </div>
+        {(edits.moodSource || edits.vibeSource) && (
+          <p className="text-[10px] text-gray-600" data-testid="mood-vibe-provenance">
+            Provenance: mood={edits.moodSource || "user"}, vibe={edits.vibeSource || "user"}
+          </p>
+        )}
+      </section>
+
+      <section className="space-y-3" data-testid="section-beat-summary">
+        <SectionHeader
+          title="Beat & summary"
+          hint="Optional BEAT/SUMM chunks — BPM from local analysis or manual entry; summary from cloud AI or manual text."
+        />
+        <div className="grid sm:grid-cols-3 gap-3">
+          <Field
+            label="BPM"
+            value={edits.beatBpm}
+            onChange={(v) => onChange({ ...edits, beatBpm: v })}
+            testId="beat-bpm"
+          />
+          <Field
+            label="Key (optional)"
+            value={edits.beatKey}
+            onChange={(v) => onChange({ ...edits, beatKey: v })}
+            testId="beat-key"
+          />
+          <Field
+            label="Time signature"
+            value={edits.beatTimeSignature}
+            onChange={(v) => onChange({ ...edits, beatTimeSignature: v })}
+            testId="beat-time-signature"
+          />
+        </div>
+        <Field
+          label="Track summary (one line)"
+          value={edits.trackSummary}
+          onChange={(v) => onChange({ ...edits, trackSummary: v })}
+          testId="track-summary"
+        />
+        {(edits.beatSource || edits.summSource) && (
+          <p className="text-[10px] text-gray-600" data-testid="beat-summary-provenance">
+            Provenance: beat={edits.beatSource || "user"}, summary={edits.summSource || "user"}
+          </p>
+        )}
       </section>
 
       <section className="space-y-3" data-testid="section-visual-theme">
