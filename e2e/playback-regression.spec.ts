@@ -234,11 +234,17 @@ test.describe("playback regression — pity party class", () => {
     });
 
     await loadPityClass(page);
-    await page.evaluate(() => window.scrollTo(0, 900));
-    const scrollY0 = await page.evaluate(() => window.scrollY);
-    expect(scrollY0).toBeGreaterThan(400);
-
     await page.getByTestId("play-pause").click();
+    await expect(page.getByTestId("player-playback-status")).toContainText("Playing", {
+      timeout: 20_000,
+    });
+
+    await page.evaluate(() => window.scrollTo(0, 900));
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY), { timeout: 5_000 })
+      .toBeGreaterThan(400);
+    const scrollY0 = await page.evaluate(() => window.scrollY);
+
     await page.waitForTimeout(2500);
 
     const scrollY1 = await page.evaluate(() => window.scrollY);
