@@ -25,14 +25,45 @@ const MAGIC1: u8 = 0x34; // '4' — native vNext container (lab JS uses 0x33)
 const HEADER_LEN: usize = 10;
 
 const SUB_BLOCK: usize = 1024; // ~23 ms at 44.1 kHz
-const QUIET_PEAK: f64 = 0.02; // broadband peak below this -> lossless (~ -34 dBFS)
-const FRAGILE_RMS_MAX: f64 = 0.04; // per-band escalation only inside low-level sub-blocks
 const HF_CUTOFF_HZ: f64 = 3600.0; // high band for fragile-tail detection (mirrors mp5c bands)
-const HF_FRAGILE_MAX: f64 = 0.02; // HF peak below this (but present) = quiet-but-present tail
 const HF_PRESENT_MIN: f64 = 0.0005; // ignore true HF silence
-const TAIL_RMS_MAX: f64 = 0.06; // hysteresis: enter a decaying tail below this (~ -24 dBFS)
-const TAIL_EXIT_PEAK: f64 = 0.06; // a sub-block peaking above this breaks the tail latch
-const LOOKAHEAD: usize = 8; // a low-level sub-block whose next N stay quiet = a fade/tail
+
+/// Thresholds controlling how aggressively quiet/fragile/tail content goes lossless.
+#[derive(Debug, Clone, Copy)]
+pub struct ProtectParams {
+    pub quiet_peak: f64,
+    pub fragile_rms_max: f64,
+    pub hf_fragile_max: f64,
+    pub tail_rms_max: f64,
+    pub tail_exit_peak: f64,
+    pub lookahead: usize,
+}
+
+impl ProtectParams {
+    /// Default vNext "smooth" thresholds (synthetic hiss risk low).
+    pub const DEFAULT: Self = Self {
+        quiet_peak: 0.02,
+        fragile_rms_max: 0.04,
+        hf_fragile_max: 0.02,
+        tail_rms_max: 0.06,
+        tail_exit_peak: 0.06,
+        lookahead: 8,
+    };
+
+    /// Widen lossless protection by `scale` (≥1.0). Used for the Phase 4.4
+    /// real-track ≥40 dB experiment. Does not change the bitstream format.
+    pub fn widened(scale: f64) -> Self {
+        let s = scale.max(1.0);
+        Self {
+            quiet_peak: Self::DEFAULT.quiet_peak * s,
+            fragile_rms_max: Self::DEFAULT.fragile_rms_max * s,
+            hf_fragile_max: Self::DEFAULT.hf_fragile_max * s,
+            tail_rms_max: Self::DEFAULT.tail_rms_max * s,
+            tail_exit_peak: Self::DEFAULT.tail_exit_peak * s,
+            lookahead: ((Self::DEFAULT.lookahead as f64) * s).round() as usize,
+        }
+    }
+}
 
 const TAG_LOSSLESS: u8 = 0x4c; // 'L' broadband-quiet
 const TAG_BAND: u8 = 0x42; // 'B' per-band / decaying tail
@@ -80,9 +111,9 @@ fn sub_stats(slice: &[i16], channels: usize, alpha: f64) -> SubStats {
     }
 }
 
-fn future_max_peak(stats: &[SubStats], i: usize) -> f64 {
+fn future_max_peak(stats: &[SubStats], i: usize, lookahead: usize) -> f64 {
     let mut m = 0f64;
-    let end = (i + LOOKAHEAD).min(stats.len());
+    let end = (i + lookahead).min(stats.len());
     for s in &stats[i..end] {
         if s.peak > m {
             m = s.peak;
@@ -91,20 +122,23 @@ fn future_max_peak(stats: &[SubStats], i: usize) -> f64 {
     m
 }
 
-fn decide_tags(stats: &[SubStats]) -> Vec<u8> {
+fn decide_tags(stats: &[SubStats], p: &ProtectParams) -> Vec<u8> {
     let mut tags = Vec::with_capacity(stats.len());
     let mut in_tail = false;
     for i in 0..stats.len() {
         let st = &stats[i];
-        if st.peak >= TAIL_EXIT_PEAK {
+        if st.peak >= p.tail_exit_peak {
             in_tail = false;
         }
-        let tag = if st.peak < QUIET_PEAK {
+        let tag = if st.peak < p.quiet_peak {
             in_tail = true;
             TAG_LOSSLESS
-        } else if (st.rms < FRAGILE_RMS_MAX && st.hf_peak > HF_PRESENT_MIN && st.hf_peak < HF_FRAGILE_MAX)
-            || (st.rms < TAIL_RMS_MAX && future_max_peak(stats, i) < TAIL_EXIT_PEAK)
-            || (in_tail && st.peak < TAIL_EXIT_PEAK)
+        } else if (st.rms < p.fragile_rms_max
+            && st.hf_peak > HF_PRESENT_MIN
+            && st.hf_peak < p.hf_fragile_max)
+            || (st.rms < p.tail_rms_max
+                && future_max_peak(stats, i, p.lookahead) < p.tail_exit_peak)
+            || (in_tail && st.peak < p.tail_exit_peak)
         {
             in_tail = true;
             TAG_BAND
@@ -130,6 +164,17 @@ fn push_unit(out: &mut Vec<u8>, tag: u8, n: usize, payload: &[u8]) {
 /// Consecutive lossy sub-blocks are coalesced into a single MP5-C encode so the
 /// 2048-frame pad is paid once per run instead of once per 1024-frame unit.
 pub fn encode(samples: &[i16], channels: u8, preset: Preset) -> Vec<u8> {
+    // Phase 4.4: protect_scale 1.5 reaches real-track hiss risk low (bit-exact tails).
+    encode_with_protect(samples, channels, preset, ProtectParams::widened(1.5))
+}
+
+/// Same as [`encode`] but with explicit quiet/tail protection thresholds.
+pub fn encode_with_protect(
+    samples: &[i16],
+    channels: u8,
+    preset: Preset,
+    protect: ProtectParams,
+) -> Vec<u8> {
     let ch = channels.max(1) as usize;
     let frames = samples.len() / ch;
     let alpha = alpha_for_cutoff(HF_CUTOFF_HZ, 44100.0);
@@ -144,7 +189,7 @@ pub fn encode(samples: &[i16], channels: u8, preset: Preset) -> Vec<u8> {
         f = e;
     }
 
-    let tags = decide_tags(&stats);
+    let tags = decide_tags(&stats, &protect);
 
     let mut out = vec![MAGIC0, MAGIC1, ch as u8, preset as u8];
     out.extend(&(SUB_BLOCK as u16).to_le_bytes());

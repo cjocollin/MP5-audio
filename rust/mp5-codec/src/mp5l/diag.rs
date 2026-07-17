@@ -1,8 +1,10 @@
 //! MP5-L compression diagnostics.
 
-use super::block::{FLAG_CONST, FLAG_DELTA, FLAG_RAW, FLAG_RICE, FLAG_SILENCE};
+use super::block::{
+    FLAG_CONST, FLAG_DELTA, FLAG_RAW, FLAG_RICE, FLAG_RICE_PACKED, FLAG_SILENCE,
+};
 use super::predict::residuals;
-use super::rice::{estimate_k, rice_estimate_bits, PARTITIONS};
+use super::rice::{estimate_k, rice_estimate_bits};
 
 pub const VERSION_V2: u8 = 2;
 pub const VERSION_V3: u8 = 3;
@@ -34,6 +36,7 @@ pub struct Mp5lDiagnostics {
     pub silence_blocks: usize,
     pub const_blocks: usize,
     pub rice_blocks: usize,
+    pub rice_packed_blocks: usize,
     pub delta_blocks: usize,
     pub raw_blocks: usize,
     pub rice_block_pct: f64,
@@ -92,7 +95,10 @@ pub fn analyze_bitstream(data: &[u8], channels: u8) -> Result<Mp5lDiagnostics, S
 
     let pcm_bytes = total_samples * ch * 2;
     let file_bytes = data.len();
-    let rice_blocks: Vec<_> = blocks.iter().filter(|b| b.flag == FLAG_RICE).collect();
+    let rice_blocks: Vec<_> = blocks
+        .iter()
+        .filter(|b| (b.flag & 0x3f) == FLAG_RICE || (b.flag & 0x3f) == FLAG_RICE_PACKED)
+        .collect();
     let avg_k = if rice_blocks.is_empty() {
         0.0
     } else {
@@ -130,9 +136,13 @@ pub fn analyze_bitstream(data: &[u8], channels: u8) -> Result<Mp5lDiagnostics, S
         block_overhead_pct,
         silence_blocks: blocks.iter().filter(|b| b.flag == FLAG_SILENCE).count(),
         const_blocks: blocks.iter().filter(|b| b.flag == FLAG_CONST).count(),
-        rice_blocks: blocks.iter().filter(|b| b.flag == FLAG_RICE).count(),
-        delta_blocks: blocks.iter().filter(|b| b.flag == FLAG_DELTA).count(),
-        raw_blocks: blocks.iter().filter(|b| b.flag == FLAG_RAW).count(),
+        rice_blocks: blocks.iter().filter(|b| (b.flag & 0x3f) == FLAG_RICE).count(),
+        rice_packed_blocks: blocks
+            .iter()
+            .filter(|b| (b.flag & 0x3f) == FLAG_RICE_PACKED)
+            .count(),
+        delta_blocks: blocks.iter().filter(|b| (b.flag & 0x3f) == FLAG_DELTA).count(),
+        raw_blocks: blocks.iter().filter(|b| (b.flag & 0x3f) == FLAG_RAW).count(),
         rice_block_pct: 100.0 * rice_blocks.len() as f64 / blocks.len().max(1) as f64,
         avg_rice_k: avg_k,
         avg_predictor_order: avg_order,
@@ -144,15 +154,27 @@ pub fn analyze_bitstream(data: &[u8], channels: u8) -> Result<Mp5lDiagnostics, S
 }
 
 fn parse_rice_meta(flag: u8, payload: &[u8]) -> (u8, u8) {
-    if flag != FLAG_RICE || payload.len() < 5 {
+    let flag = flag & 0x3f;
+    if (flag != FLAG_RICE && flag != FLAG_RICE_PACKED) || payload.len() < 5 {
         return (0, 0);
     }
     let order = payload[0];
-    (order, 0)
+    let k = if flag == FLAG_RICE_PACKED && payload.len() >= 7 {
+        payload[6] // first partition k
+    } else {
+        0
+    };
+    (order, k)
 }
 
 fn estimate_entropy_bps(blocks: &[BlockStat]) -> f64 {
-    let rice: Vec<_> = blocks.iter().filter(|b| b.flag == FLAG_RICE).collect();
+    let rice: Vec<_> = blocks
+        .iter()
+        .filter(|b| {
+            let f = b.flag & 0x3f;
+            f == FLAG_RICE || f == FLAG_RICE_PACKED
+        })
+        .collect();
     if rice.is_empty() {
         return 0.0;
     }
@@ -167,11 +189,12 @@ pub fn residual_entropy_estimate(samples: &[i16], order: u8) -> f64 {
 }
 
 pub fn flag_name(flag: u8) -> &'static str {
-    let flag = flag & 0x7f;
+    let flag = flag & 0x3f;
     match flag {
         FLAG_SILENCE => "silence",
         FLAG_CONST => "const",
         FLAG_RICE => "lpc+varint",
+        FLAG_RICE_PACKED => "lpc+rice",
         FLAG_DELTA => "delta+varint",
         FLAG_RAW => "raw",
         _ => "unknown",

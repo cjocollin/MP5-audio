@@ -1,4 +1,4 @@
-//! Lossless FLAC-style mid/side stereo.
+//! Lossless FLAC-style stereo modes: independent, mid/side, left-side, right-side.
 
 pub fn encode_ms(left: &[i16], right: &[i16]) -> (Vec<i16>, Vec<i16>) {
     let n = left.len().min(right.len());
@@ -29,6 +29,44 @@ pub fn decode_ms(mid: &[i16], side: &[i16]) -> (Vec<i16>, Vec<i16>) {
     (left, right)
 }
 
+/// Left-side: keep left; side = left - right. Reconstruct: right = left - side.
+pub fn encode_ls(left: &[i16], right: &[i16]) -> (Vec<i16>, Vec<i16>) {
+    let n = left.len().min(right.len());
+    let mut side = Vec::with_capacity(n);
+    for i in 0..n {
+        side.push((left[i] as i32 - right[i] as i32) as i16);
+    }
+    (left[..n].to_vec(), side)
+}
+
+pub fn decode_ls(left: &[i16], side: &[i16]) -> (Vec<i16>, Vec<i16>) {
+    let n = left.len().min(side.len());
+    let mut right = Vec::with_capacity(n);
+    for i in 0..n {
+        right.push((left[i] as i32 - side[i] as i32) as i16);
+    }
+    (left[..n].to_vec(), right)
+}
+
+/// Right-side: keep right; side = left - right. Reconstruct: left = right + side.
+pub fn encode_rs(left: &[i16], right: &[i16]) -> (Vec<i16>, Vec<i16>) {
+    let n = left.len().min(right.len());
+    let mut side = Vec::with_capacity(n);
+    for i in 0..n {
+        side.push((left[i] as i32 - right[i] as i32) as i16);
+    }
+    (right[..n].to_vec(), side)
+}
+
+pub fn decode_rs(right: &[i16], side: &[i16]) -> (Vec<i16>, Vec<i16>) {
+    let n = right.len().min(side.len());
+    let mut left = Vec::with_capacity(n);
+    for i in 0..n {
+        left.push((right[i] as i32 + side[i] as i32) as i16);
+    }
+    (left, right[..n].to_vec())
+}
+
 pub fn ms_worth_try(left: &[i16], right: &[i16]) -> bool {
     let n = left.len().min(right.len());
     if n < 2 {
@@ -43,8 +81,6 @@ pub fn ms_worth_try(left: &[i16], right: &[i16]) -> bool {
     if lr == 0 {
         return false;
     }
-    // Prefer M/S when mid+side energy is clearly lower, or channels are correlated
-    // enough that side is cheap even if variance is close.
     let energy_win = m_var + s_var < lr;
     let corr = correlation_i16(left, right);
     let corr_win = corr.abs() >= 0.35 && s_var < (r_var.max(l_var) / 2).max(1);
@@ -104,11 +140,26 @@ mod tests {
     }
 
     #[test]
+    fn ls_rs_lossless_roundtrip() {
+        let left: Vec<i16> = (0..256).map(|i| (i * 5 % 2000) as i16 - 1000).collect();
+        let right: Vec<i16> = (0..256).map(|i| (i * 3 % 1800) as i16 - 900).collect();
+        let (l, s) = encode_ls(&left, &right);
+        let (l2, r2) = decode_ls(&l, &s);
+        assert_eq!(left, l2);
+        assert_eq!(right, r2);
+        let (r, s2) = encode_rs(&left, &right);
+        let (l3, r3) = decode_rs(&r, &s2);
+        assert_eq!(left, l3);
+        assert_eq!(right, r3);
+    }
+
+    #[test]
     fn ms_skips_non_lossless_extremes() {
         let left = vec![32767i16, -32768];
         let right = vec![-32768i16, 32767];
         let (mid, side) = encode_ms(&left, &right);
         let (l2, r2) = decode_ms(&mid, &side);
         assert_ne!(left, l2, "extreme L/R may not round-trip; encoder must verify");
+        let _ = r2;
     }
 }

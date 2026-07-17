@@ -99,6 +99,24 @@ export function encode_mp5c_vnext(samples, channels, preset) {
 }
 
 /**
+ * Lab-only: encode vNext with widened quiet/tail protection (`protect_scale` ≥ 1.0).
+ * Used by the Phase 4.4 real-track ≥40 dB experiment. Default encode uses scale 1.0.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @param {number} protect_scale
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c_vnext_protect(samples, channels, preset, protect_scale) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c_vnext_protect(ptr0, len0, channels, preset, protect_scale);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
  * @param {Int16Array} samples
  * @param {number} channels
  * @param {number} preset

@@ -71,7 +71,22 @@ pub fn decode_mp5h(data: &[u8], enhanced: bool) -> Result<Vec<i16>, JsValue> {
 #[wasm_bindgen]
 pub fn encode_mp5c_vnext(samples: &[i16], channels: u8, preset: u8) -> Vec<u8> {
     let p = Preset::from_u8(preset).unwrap_or(Preset::Extreme);
+    // Uses protect_scale 1.5 (Phase 4.4 green). A/B via encode_mp5c_vnext_protect.
     mp5c2::encode(samples, channels, p)
+}
+
+/// Lab-only: encode vNext with widened quiet/tail protection (`protect_scale` ≥ 1.0).
+/// Used by the Phase 4.4 real-track ≥40 dB experiment. Default encode uses scale 1.0.
+#[wasm_bindgen]
+pub fn encode_mp5c_vnext_protect(
+    samples: &[i16],
+    channels: u8,
+    preset: u8,
+    protect_scale: f64,
+) -> Vec<u8> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::Extreme);
+    let protect = mp5c2::ProtectParams::widened(protect_scale);
+    mp5c2::encode_with_protect(samples, channels, p, protect)
 }
 
 #[wasm_bindgen]

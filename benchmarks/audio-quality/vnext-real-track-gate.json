@@ -1,7 +1,66 @@
 {
-  "hissRisk": "medium",
-  "fullSnrDb": 39.52325918668364,
-  "quietWindowSnrDb": null,
-  "tailSnrDb": 32.6,
-  "contentBitExact": false
+  "reachedLow": true,
+  "best": {
+    "protectScale": 1.25,
+    "hissRisk": "medium",
+    "fullSnrDb": 39.5254696239857,
+    "quietWindowSnrDb": null,
+    "tailSnrDb": 35.7,
+    "contentBitExact": false,
+    "ratioVsPcm": 0.9775903314255923,
+    "bytes": 32281941
+  },
+  "trials": [
+    {
+      "protectScale": 1,
+      "hissRisk": "medium",
+      "fullSnrDb": 39.52325918668364,
+      "quietWindowSnrDb": null,
+      "tailSnrDb": 32.6,
+      "contentBitExact": false,
+      "ratioVsPcm": 0.9777439262221688,
+      "bytes": 32287013
+    },
+    {
+      "protectScale": 1.25,
+      "hissRisk": "medium",
+      "fullSnrDb": 39.5254696239857,
+      "quietWindowSnrDb": null,
+      "tailSnrDb": 35.7,
+      "contentBitExact": false,
+      "ratioVsPcm": 0.9775903314255923,
+      "bytes": 32281941
+    },
+    {
+      "protectScale": 1.5,
+      "hissRisk": "low",
+      "fullSnrDb": 39.52826559007082,
+      "quietWindowSnrDb": null,
+      "tailSnrDb": "inf",
+      "contentBitExact": false,
+      "ratioVsPcm": 0.9774124800375217,
+      "bytes": 32276068
+    },
+    {
+      "protectScale": 2,
+      "hissRisk": "low",
+      "fullSnrDb": 39.53563544665389,
+      "quietWindowSnrDb": null,
+      "tailSnrDb": "inf",
+      "contentBitExact": false,
+      "ratioVsPcm": 0.976525978839773,
+      "bytes": 32246794
+    },
+    {
+      "protectScale": 3,
+      "hissRisk": "low",
+      "fullSnrDb": 39.58943438808094,
+      "quietWindowSnrDb": null,
+      "tailSnrDb": "inf",
+      "contentBitExact": false,
+      "ratioVsPcm": 0.9706144264276079,
+      "bytes": 32051583
+    }
+  ],
+  "verdict": "green: real-track tail >=40 dB / hiss risk low"
 }

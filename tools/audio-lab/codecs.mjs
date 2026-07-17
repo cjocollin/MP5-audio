@@ -108,15 +108,16 @@ function concat(parts) {
 
 export const VNEXT_PARAMS = {
   subBlockFrames: 1024, // ~23 ms at 44.1 kHz
-  quietPeak: 0.02, // broadband peak below this → lossless (≈ -34 dBFS)
-  fragileRmsMax: 0.04, // only escalate per-band inside low-level sub-blocks (≈ -28 dBFS)
+  // Phase 4.4: protect_scale 1.5 (was 0.02/0.04/0.02/0.06/0.06/8) — real-track hiss risk low
+  quietPeak: 0.03, // broadband peak below this → lossless
+  fragileRmsMax: 0.06, // only escalate per-band inside low-level sub-blocks
   hfCutoffHz: 3600, // high band for fragile-tail detection (mirrors mp5c bands.rs)
-  hfFragileMax: 0.02, // HF peak below this (but above silence) = quiet-but-present tail
+  hfFragileMax: 0.03, // HF peak below this (but above silence) = quiet-but-present tail
   hfPresentMin: 0.0005, // ignore true HF silence
-  // hysteresis + lookahead tail protection (v0.24)
-  tailRmsMax: 0.06, // low-level threshold to enter a decaying tail (≈ -24 dBFS)
-  tailExitPeak: 0.06, // a sub-block peaking above this breaks the tail latch
-  lookaheadSubBlocks: 8, // a low-level sub-block whose next N stay quiet = a fade/tail
+  // hysteresis + lookahead tail protection
+  tailRmsMax: 0.09, // low-level threshold to enter a decaying tail
+  tailExitPeak: 0.09, // a sub-block peaking above this breaks the tail latch
+  lookaheadSubBlocks: 12, // a low-level sub-block whose next N stay quiet = a fade/tail
   // noise-shaped quantization experiment (v0.24, lossy sub-blocks only)
   emphasisA: 0.5, // pre/de-emphasis coefficient (first-order)
   shapeMaxPeak: 0.6, // only shape lossy sub-blocks with headroom (avoid pre-emphasis clipping)

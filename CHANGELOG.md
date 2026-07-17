@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Milestone - MP5-L packed Rice + 4-mode stereo; vNext protect experiment
+
+**Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
+No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
+
+- **MP5-L `FLAG_RICE_PACKED` (6):** wires the existing bit-packed Rice codec into the payload path
+  (legacy `FLAG_RICE` stays LPC+varint for compat). Per-block try-all-flags + roundtrip verify.
+  Phase 4.0 go/no-go on synthetic corpus: **~46% payload savings** vs varint on LPC residuals.
+- **Rice-cost-aware order selection** (`best_order_rice`) and **FLAC-style 4-mode stereo**
+  (L/R, M/S, L/S, R/S) with verify-before-commit. Decoder accepts legacy varint + packed Rice;
+  garbage Rice input never panics.
+- **vNext protect-scale experiment — green:** trials 1.0–3.0 on a local commercial reference;
+  **protect ≥ 1.5 → hiss risk low / bit-exact tails at ~0.97× PCM**. Shipping
+  `encode_mp5c_vnext` and JS smooth params adopt the 1.5-widened thresholds;
+  `encode_mp5c_vnext_protect` remains for A/B.
+
 ### Milestone - Hiss fix coalesce + MP5-C vNext lab export + Converter UX
 
 **Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.

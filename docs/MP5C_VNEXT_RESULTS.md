@@ -9,6 +9,26 @@
 > better than MP5-C Extreme (~25.6), not yet the ≥40 dB low gate. MP5-L stays default. No claim vs
 > MP3/AAC/Opus/FLAC/WAV.
 
+## Phase 4.4 — protect-scale experiment (timeboxed) — **GREEN**
+
+`encode_mp5c_vnext_protect(samples, ch, preset, protect_scale)` widens quiet/fragile/tail
+thresholds by `protect_scale` (≥1.0) without changing the bitstream format.
+`pnpm audio:validate-vnext-ref` ran scales **1.0 / 1.25 / 1.5 / 2.0 / 3.0** on the local
+commercial reference:
+
+| protect | Tail SNR | Hiss risk | ×PCM |
+|--------:|---------:|:---------:|-----:|
+| 1.0 | 32.6 dB | medium | 0.978 |
+| 1.25 | 35.7 dB | medium | 0.978 |
+| **1.5** | **∞ (bit-exact tail)** | **low** | **0.977** |
+| 2.0 | ∞ | low | 0.977 |
+| 3.0 | ∞ | low | 0.971 |
+
+**Verdict: green at protect_scale ≥ 1.5** — real-track hiss risk **low** without approaching 1× PCM
+(size stayed ~0.97×). Shipping `encode_mp5c_vnext` / native `mp5c2::encode` and JS smooth
+`VNEXT_PARAMS` now use the 1.5-widened thresholds. Scale 1.0 remains measurable via
+`encode_mp5c_vnext_protect(..., 1.0)`.
+
 ## v0.26 — lossy coalescing
 
 | Mode | ×PCM (reverb_tail) | ×PCM (dense_music) | Hiss risk (reverb) |

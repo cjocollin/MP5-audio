@@ -21,8 +21,9 @@ Adjacent lossy sub-blocks are **coalesced** into one MP5-C encode (Rust `mp5c2` 
 | dense_music | **smooth Extreme + coalesce** | **0.971** | — | — | n/a |
 
 Native Rust matches JS coalesce ratios. **Public `CodecId.MP5C2`** wires Converter/player for
-lab/advanced export (gated UI). Real commercial reference (local, not committed): vNext Extreme
-tail SNR **~32.6 dB → medium** (MP5-C Extreme was ~25.6) — improved, not yet the ≥40 dB low gate.
+lab/advanced export (gated UI). Phase 4.4 protect-scale **1.5** takes the same local commercial
+reference to hiss risk **low** (bit-exact tails) at ~0.97× PCM; shipping thresholds adopt 1.5.
+**MP5-L packed Rice** (`FLAG_RICE_PACKED`) lands ~46% residual-payload savings vs legacy varint.
 **MP5-L stays default.**
 
 ## v0.25.0-beta native Rust vNext (new)
@@ -86,9 +87,13 @@ detection leaves decaying tails partly lossy — still lab-only. See
 - **Bit-exact on every fixture** (samples *and* length); null test = digital silence.
 - No introduced hiss, no clipping, no duration drift.
 - Sizes range from 0.002× PCM (silence) to ~0.75× (dense music); average ~0.50×.
-- **Decision: MP5-L remains the recommended default.** Compression experiments
-  (partitioned Rice, adaptive block size, better stereo decorrelation, LPC
-  selection, RLE) are allowed only if they keep every bit-exact gate green.
+- **Packed Rice (landed):** `FLAG_RICE_PACKED = 6` encodes LPC residuals with bit-packed
+  partitioned Rice; legacy `FLAG_RICE = 3` remains LPC+**varint** for older files. Encoder
+  picks the smaller verified payload. Go/no-go corpus: ~46% residual-payload savings vs varint.
+  Also: rice-cost-aware LPC order selection and FLAC-style 4-mode stereo (L/R, M/S, L/S, R/S).
+- **Decision: MP5-L remains the recommended default.** Further compression experiments
+  (adaptive block size, LPC selection, RLE) are allowed only if they keep every bit-exact
+  gate green.
 
 ## MP5-C (lab-only, lossy) — why it still hisses
 

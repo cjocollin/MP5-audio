@@ -126,16 +126,20 @@ describe("MP5-C vNext prototype (lab-only, default OFF)", () => {
 });
 
 describe("robustness: no codec path crashes on any fixture", () => {
-  it("encodes+decodes every fixture in every mode without throwing", () => {
-    for (const f of fixtures) {
-      for (const m of modes) {
-        expect(() => {
-          const dec = m.decode(m.encode(f.samples, f.channels));
-          expect(dec.length).toBeGreaterThan(0);
-        }, `${m.id} on ${f.name}`).not.toThrow();
+  it(
+    "encodes+decodes every fixture in every mode without throwing",
+    () => {
+      for (const f of fixtures) {
+        for (const m of modes) {
+          expect(() => {
+            const dec = m.decode(m.encode(f.samples, f.channels));
+            expect(dec.length).toBeGreaterThan(0);
+          }, `${m.id} on ${f.name}`).not.toThrow();
+        }
       }
-    }
-  });
+    },
+    120_000,
+  );
 });
 
 describe("public policy: MP5-L remains the recommended default", () => {

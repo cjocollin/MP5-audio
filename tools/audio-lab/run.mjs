@@ -310,38 +310,74 @@ async function cmdValidateVnextRef(args) {
   const frames = Number(parsed.head.totalSamples);
   const sr = parsed.head.sampleRate;
   console.error(`decoded ${pcm.length} samples, ${ch} ch, ${frames} frames from ${ref.split(/[\\/]/).pop()}`);
-  const vnext = codec.encode_mp5c_vnext(pcm, ch, 3);
+  // Phase 4.4: timeboxed protect-scale experiment (default + widened).
+  const scales = [1.0, 1.25, 1.5, 2.0, 3.0];
+  const hasProtect = typeof codec.encode_mp5c_vnext_protect === "function";
   mkdirSync(join(args.out, "local"), { recursive: true });
-  const outPath = join(args.out, "local", "IS_THIS_A_CULT_mp5c2_vnext_extreme.mp5");
-  const bytes = writeMp5({
-    head: {
-      codecId: CodecId.MP5C2,
-      channels: ch,
-      bitsPerSample: 16,
-      presetId: 3,
-      sampleRate: sr,
-      totalSamples: BigInt(frames),
-      encoderVersion: 1,
-    },
-    meta: [],
-    audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: vnext }],
-    seek: [{ sampleOffset: 0n, byteOffset: 0n }],
-    waveform: [],
-    info: [{ key: "encoder", value: "mp5c2-vnext-extreme" }],
-  });
-  writeFileSync(outPath, bytes);
-  console.error(
-    `wrote ${outPath} (${bytes.length} bytes, ${(bytes.length / (pcm.length * 2)).toFixed(3)}x PCM)`,
+  const trials = [];
+  for (const scale of scales) {
+    const vnext = hasProtect
+      ? codec.encode_mp5c_vnext_protect(pcm, ch, 3, scale)
+      : codec.encode_mp5c_vnext(pcm, ch, 3);
+    const outPath = join(
+      args.out,
+      "local",
+      `vnext_extreme_protect_${String(scale).replace(".", "p")}.mp5`,
+    );
+    const bytes = writeMp5({
+      head: {
+        codecId: CodecId.MP5C2,
+        channels: ch,
+        bitsPerSample: 16,
+        presetId: 3,
+        sampleRate: sr,
+        totalSamples: BigInt(frames),
+        encoderVersion: 1,
+      },
+      meta: [],
+      audioFrames: [{ frameIndex: 0, chunkType: 0, flags: 0, data: vnext }],
+      seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+      waveform: [],
+      info: [{ key: "encoder", value: `mp5c2-vnext-extreme-protect-${scale}` }],
+    });
+    writeFileSync(outPath, bytes);
+    const ratio = bytes.length / (pcm.length * 2);
+    const result = compareFiles(codec, ref, [outPath]);
+    const c = result.candidates[0];
+    const trial = {
+      protectScale: scale,
+      hissRisk: c.hissRisk,
+      fullSnrDb: c.metrics?.fullSnrDb,
+      quietWindowSnrDb: c.metrics?.quietWindowSnrDb,
+      tailSnrDb: c.hiss?.tailSnrDb,
+      contentBitExact: c.metrics?.contentBitExact,
+      ratioVsPcm: ratio,
+      bytes: bytes.length,
+      error: c.error,
+    };
+    trials.push(trial);
+    console.error(
+      `  protect=${scale}: tail=${num(trial.tailSnrDb, 1)} dB risk=${trial.hissRisk} size=${ratio.toFixed(3)}x PCM`,
+    );
+    if (!hasProtect) break;
+  }
+  const tailScore = (t) => {
+    if (t.hissRisk === "low") return 1e9;
+    const v = t.tailSnrDb;
+    if (v === "inf" || v === Infinity) return 1e8;
+    return typeof v === "number" ? v : -1;
+  };
+  const best = [...trials].sort((a, b) => tailScore(b) - tailScore(a))[0];
+  const reachedLow = trials.some(
+    (t) => t.hissRisk === "low" || t.tailSnrDb === "inf" || (typeof t.tailSnrDb === "number" && t.tailSnrDb >= 40),
   );
-  const result = compareFiles(codec, ref, [outPath]);
-  const c = result.candidates[0];
   const summary = {
-    hissRisk: c.hissRisk,
-    fullSnrDb: c.metrics?.fullSnrDb,
-    quietWindowSnrDb: c.metrics?.quietWindowSnrDb,
-    tailSnrDb: c.hiss?.tailSnrDb,
-    contentBitExact: c.metrics?.contentBitExact,
-    error: c.error,
+    reachedLow,
+    best,
+    trials,
+    verdict: reachedLow
+      ? "green: real-track tail >=40 dB / hiss risk low"
+      : "wall: cannot reach >=40 dB tail SNR without documenting size cost; stop size-tuning until redesign",
   };
   console.log(JSON.stringify(summary, null, 2));
   writeJson(join(args.out, "vnext-real-track-gate.json"), summary);

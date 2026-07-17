@@ -18,6 +18,12 @@ export function encode_mp5c(samples: Int16Array, channels: number, preset: numbe
  */
 export function encode_mp5c_vnext(samples: Int16Array, channels: number, preset: number): Uint8Array;
 
+/**
+ * Lab-only: encode vNext with widened quiet/tail protection (`protect_scale` ≥ 1.0).
+ * Used by the Phase 4.4 real-track ≥40 dB experiment. Default encode uses scale 1.0.
+ */
+export function encode_mp5c_vnext_protect(samples: Int16Array, channels: number, preset: number, protect_scale: number): Uint8Array;
+
 export function encode_mp5h(samples: Int16Array, channels: number, preset: number): Uint8Array;
 
 export function encode_mp5l(samples: Int16Array, channels: number): Uint8Array;
@@ -34,6 +40,7 @@ export interface InitOutput {
     readonly decode_mp5l: (a: number, b: number) => [number, number, number, number];
     readonly encode_mp5c: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5c_vnext: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly encode_mp5c_vnext_protect: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly encode_mp5h: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5l: (a: number, b: number, c: number) => [number, number];
     readonly snr_db_wasm: (a: number, b: number, c: number, d: number) => number;

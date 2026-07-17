@@ -12,8 +12,12 @@ pub mod varint;
 
 use block::{decode_block_payload, encode_block_payload, FLAG_RAW};
 
-/// Left-channel block used mid/side; clear before decode_block_payload.
-const MS_HINT: u8 = 0x80;
+/// Stereo transform hints in the high bits of the left-channel flag byte.
+/// Clear with `STEREO_MASK` before `decode_block_payload`.
+const STEREO_MASK: u8 = 0xC0;
+const STEREO_MS: u8 = 0x80;
+const STEREO_LS: u8 = 0x40;
+const STEREO_RS: u8 = 0xC0;
 use diag::{VERSION_V2, VERSION_V3};
 
 const BLOCK_SIZE: usize = 4096;
@@ -100,26 +104,9 @@ fn encode_stereo_channels(
         }
         let lb = &left[start..block_end];
         let rb = &right[start..block_end];
-        if stereo::ms_worth_try(lb, rb) {
-            let (mid, side) = stereo::encode_ms(lb, rb);
-            let (mf, mp) = encode_block_payload(&mid);
-            let (sf, sp) = encode_block_payload(&side);
-            let (l2, r2) = stereo::decode_ms(&mid, &side);
-            if l2 == lb
-                && r2 == rb
-                && payload_roundtrips(mf, &mp, &mid)
-                && payload_roundtrips(sf, &sp, &side)
-            {
-                ch0_blocks.push(wrap_block(&mid, mf | MS_HINT, &mp));
-                ch1_blocks.push(wrap_block(&side, sf, &sp));
-                start = block_end;
-                continue;
-            }
-        }
-        let (lf, lp) = encode_block_payload(lb);
-        ch0_blocks.push(wrap_block(lb, lf, &lp));
-        let (rf, rp) = encode_block_payload(rb);
-        ch1_blocks.push(wrap_block(rb, rf, &rp));
+        let (c0, c1) = encode_stereo_block_best(lb, rb);
+        ch0_blocks.push(c0);
+        ch1_blocks.push(c1);
         start = block_end;
     }
     for b in ch0_blocks {
@@ -128,6 +115,77 @@ fn encode_stereo_channels(
     for b in ch1_blocks {
         out.extend(b);
     }
+}
+
+/// Try independent L/R, mid/side, left-side, right-side; pick smallest verified.
+fn encode_stereo_block_best(lb: &[i16], rb: &[i16]) -> (Vec<u8>, Vec<u8>) {
+    let (lf, lp) = encode_block_payload(lb);
+    let (rf, rp) = encode_block_payload(rb);
+    let mut best0 = wrap_block(lb, lf, &lp);
+    let mut best1 = wrap_block(rb, rf, &rp);
+    let mut best_len = best0.len() + best1.len();
+
+    let try_pair = |a: &[i16],
+                    b: &[i16],
+                    hint: u8,
+                    verify: &dyn Fn(&[i16], &[i16]) -> bool|
+     -> Option<(Vec<u8>, Vec<u8>)> {
+        let (af, ap) = encode_block_payload(a);
+        let (bf, bp) = encode_block_payload(b);
+        if !payload_roundtrips(af, &ap, a) || !payload_roundtrips(bf, &bp, b) {
+            return None;
+        }
+        if !verify(a, b) {
+            return None;
+        }
+        Some((wrap_block(a, af | hint, &ap), wrap_block(b, bf, &bp)))
+    };
+
+    {
+        let (mid, side) = stereo::encode_ms(lb, rb);
+        if let Some((c0, c1)) = try_pair(&mid, &side, STEREO_MS, &|m, s| {
+            let (l2, r2) = stereo::decode_ms(m, s);
+            l2 == lb && r2 == rb
+        }) {
+            let n = c0.len() + c1.len();
+            if n < best_len {
+                best_len = n;
+                best0 = c0;
+                best1 = c1;
+            }
+        }
+    }
+    {
+        let (lkeep, side) = stereo::encode_ls(lb, rb);
+        if let Some((c0, c1)) = try_pair(&lkeep, &side, STEREO_LS, &|l, s| {
+            let (l2, r2) = stereo::decode_ls(l, s);
+            l2 == lb && r2 == rb
+        }) {
+            let n = c0.len() + c1.len();
+            if n < best_len {
+                best_len = n;
+                best0 = c0;
+                best1 = c1;
+            }
+        }
+    }
+    {
+        let (rkeep, side) = stereo::encode_rs(lb, rb);
+        if let Some((c0, c1)) = try_pair(&rkeep, &side, STEREO_RS, &|r, s| {
+            let (l2, r2) = stereo::decode_rs(r, s);
+            l2 == lb && r2 == rb
+        }) {
+            let n = c0.len() + c1.len();
+            if n < best_len {
+                best_len = n;
+                best0 = c0;
+                best1 = c1;
+            }
+        }
+    }
+
+    let _ = best_len;
+    (best0, best1)
 }
 
 fn payload_roundtrips(flag: u8, payload: &[u8], samples: &[i16]) -> bool {
@@ -266,7 +324,8 @@ pub fn decode(data: &[u8]) -> Result<Vec<i16>, String> {
     let mut channels: Vec<Vec<i16>> = vec![vec![]; ch];
 
     let mut block_idx = 0usize;
-    let mut ms_meta: Vec<(usize, usize, bool)> = Vec::new();
+    // (start, len, stereo_hint) recorded from channel 0; applied when ch1 arrives.
+    let mut stereo_meta: Vec<(usize, usize, u8)> = Vec::new();
     for c in 0..ch {
         let mut bi = 0usize;
         for _ in 0..frames_per_ch {
@@ -275,8 +334,8 @@ pub fn decode(data: &[u8]) -> Result<Vec<i16>, String> {
             }
             let len = u32::from_le_bytes(data[pos..pos + 4].try_into().unwrap()) as usize;
             let mut flag = data[pos + 4];
-            let ms = c == 0 && flag & MS_HINT != 0;
-            flag &= !MS_HINT;
+            let stereo_hint = if c == 0 { flag & STEREO_MASK } else { 0 };
+            flag &= !STEREO_MASK;
             let crc_expected = u32::from_le_bytes(data[pos + 5..pos + 9].try_into().unwrap());
             let enc_len = u32::from_le_bytes(data[pos + 9..pos + 13].try_into().unwrap()) as usize;
             let block_len = 13 + enc_len;
@@ -295,14 +354,19 @@ pub fn decode(data: &[u8]) -> Result<Vec<i16>, String> {
             let start = channels[c].len();
             channels[c].extend(block);
             if c == 0 {
-                ms_meta.push((start, len, ms));
-            } else if ch >= 2 && bi < ms_meta.len() {
-                let (start0, blen, ms_flag) = ms_meta[bi];
-                if ms_flag && blen == len {
+                stereo_meta.push((start, len, stereo_hint));
+            } else if ch >= 2 && bi < stereo_meta.len() {
+                let (start0, blen, hint) = stereo_meta[bi];
+                if hint != 0 && blen == len {
                     let start1 = start;
-                    let mid = channels[0][start0..start0 + blen].to_vec();
-                    let side = channels[1][start1..start1 + blen].to_vec();
-                    let (l, r) = stereo::decode_ms(&mid, &side);
+                    let a = channels[0][start0..start0 + blen].to_vec();
+                    let b = channels[1][start1..start1 + blen].to_vec();
+                    let (l, r) = match hint {
+                        STEREO_MS => stereo::decode_ms(&a, &b),
+                        STEREO_LS => stereo::decode_ls(&a, &b),
+                        STEREO_RS => stereo::decode_rs(&a, &b),
+                        _ => (a, b),
+                    };
                     channels[0][start0..start0 + blen].copy_from_slice(&l);
                     channels[1][start1..start1 + blen].copy_from_slice(&r);
                 }

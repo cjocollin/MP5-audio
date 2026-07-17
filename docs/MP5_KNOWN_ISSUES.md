@@ -23,7 +23,7 @@ MP5 is experimental and browser-based. This document lists honest limitations, n
 ## Formats And Conversion
 
 - **MP5-C hiss** - known hiss/artifact risk on music material; it remains lab-only. The Audio Quality Lab measures the cause: on decaying/quiet passages MP5-C's quiet-window SNR drops to ~2.6–5.7 dB even when full-song SNR looks fine. See [MP5_CODEC_STATUS.md](MP5_CODEC_STATUS.md).
-- **MP5-C vNext (`CodecId` MP5C2)** — hybrid quiet-lossless + coalesced lossy loud blocks. Synthetic `reverb_tail` reaches hiss risk **low**; a local commercial reference measured **~32.6 dB tail SNR (medium)** — improved vs MP5-C but not yet headphone-clean on all material. Available only under Converter **Show lab / advanced codecs**; MP5-L remains the default. See [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md).
+- **MP5-C vNext (`CodecId` MP5C2)** — hybrid quiet-lossless + coalesced lossy loud blocks. With protect-scale **1.5** thresholds (Phase 4.4), synthetic and a local commercial reference reach hiss risk **low** (bit-exact tails) at ~0.97× PCM. Available only under Converter **Show lab / advanced codecs**; MP5-L remains the default. See [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md).
 - MP5-H is large/experimental and not default. With CORR it is sample-exact content but averages >1× PCM.
 - `.mp5p` is experimental and not a universal interchange standard.
 - FFmpeg WASM handles non-WAV browser conversion paths and may fail to load on restrictive networks/devices.
