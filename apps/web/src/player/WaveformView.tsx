@@ -31,6 +31,17 @@ interface Props {
   disabled?: boolean;
 }
 
+function densifyPeaks(peaks: number[], targetLength = 192) {
+  if (peaks.length >= targetLength || peaks.length < 2) return peaks;
+  return Array.from({ length: targetLength }, (_, index) => {
+    const position = (index / (targetLength - 1)) * (peaks.length - 1);
+    const leftIndex = Math.floor(position);
+    const rightIndex = Math.min(peaks.length - 1, leftIndex + 1);
+    const mix = position - leftIndex;
+    return peaks[leftIndex]! * (1 - mix) + peaks[rightIndex]! * mix;
+  });
+}
+
 export function WaveformView({
   peaks,
   progress,
@@ -48,7 +59,7 @@ export function WaveformView({
   if (!peaks.length) {
     return (
       <div
-        className="h-20 rounded-xl bg-surface-elevated/80 border border-white/5 flex items-center justify-center text-xs text-gray-600"
+        className="mp5-waveform-shell flex h-12 items-center justify-center text-xs text-gray-600 sm:h-14"
         data-testid="waveform-empty"
       >
         Waveform preview unavailable
@@ -56,12 +67,14 @@ export function WaveformView({
     );
   }
 
-  const w = peaks.length;
+  const displayPeaks = densifyPeaks(peaks);
+  const w = displayPeaks.length;
+  const peakMax = displayPeaks.reduce((max, peak) => Math.max(max, peak), 0.001);
 
   return (
-    <div className="relative rounded-xl bg-surface-elevated border border-white/5 overflow-hidden">
+    <div className="mp5-waveform-shell">
       <svg
-        className={`w-full h-20 ${disabled || !onSeek ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+        className={`h-12 w-full sm:h-14 ${disabled || !onSeek ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
         data-testid="waveform"
         viewBox={`0 0 ${w} 32`}
         preserveAspectRatio="none"
@@ -91,20 +104,30 @@ export function WaveformView({
           data-testid="waveform-loop-range"
         />
       )}
-      {peaks.map((p, i) => {
-        const h = Math.max(1, p * 28);
+      {displayPeaks.map((p, i) => {
+        const h = Math.max(1, (p / peakMax) * 28);
         const played = i / w <= progress;
         return (
           <rect
             key={i}
-            x={i}
+            x={i + 0.15}
             y={16 - h / 2}
-            width={1}
+            width={0.7}
             height={h}
-            fill={played ? (playedFill ?? "#8b5cf6") : (unplayedFill ?? "#4b5563")}
+            fill={played ? (playedFill ?? "#c084fc") : (unplayedFill ?? "#8b5cf6")}
           />
         );
       })}
+      <line
+        x1={Math.max(0.25, progress * w)}
+        x2={Math.max(0.25, progress * w)}
+        y1={1}
+        y2={31}
+        stroke="#f8fafc"
+        strokeWidth={0.45}
+        strokeOpacity={0.9}
+        aria-hidden
+      />
       {durationSec > 0 &&
         sectionMarkers.map((m, i) => {
           const x = (m.startMs / 1000 / durationSec) * w;

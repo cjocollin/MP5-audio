@@ -2,70 +2,879 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/dm-sans-400.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/dm-sans-600.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Sans";
+  src: url("/fonts/dm-sans-700.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --mp5-page: #070b12;
+  --mp5-surface: #0c111b;
+  --mp5-surface-raised: #101722;
+  --mp5-surface-soft: #151d2a;
+  --mp5-border: rgba(148, 163, 184, 0.14);
+  --mp5-border-strong: rgba(148, 163, 184, 0.24);
+  --mp5-accent: #8b5cf6;
+  --mp5-accent-bright: #a970ff;
+  --mp5-verified: #22d3ee;
+  --mp5-nav-height: 68px;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  background: var(--mp5-page);
+}
+
 body {
-  @apply bg-surface text-gray-100 font-sans antialiased min-h-screen;
+  @apply min-h-screen font-sans text-gray-100 antialiased;
+  margin: 0;
+  background: var(--mp5-page);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+label,
+input[type="range"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input[type="range"] {
+  accent-color: var(--mp5-accent);
 }
 
 @layer components {
+  .mp5-app-shell {
+    @apply mx-auto w-full px-3 sm:px-5 lg:px-7;
+    max-width: 1480px;
+    min-height: 100vh;
+    padding-top: 2px;
+    padding-bottom: 104px;
+  }
+
+  .mp5-app-main {
+    @apply space-y-5;
+  }
+
+  .mp5-shell-header {
+    @apply sticky top-0 z-40 mb-3 flex min-h-[68px] items-center gap-4 rounded-2xl border px-4;
+    border-color: var(--mp5-border);
+    background: rgba(7, 11, 18, 0.94);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(18px);
+  }
+
+  .mp5-shell-brand {
+    @apply flex min-w-max flex-col items-start rounded-lg px-1 py-1 text-left;
+  }
+
+  .mp5-shell-wordmark {
+    @apply text-xl font-bold tracking-[-0.03em] sm:text-2xl;
+    background: linear-gradient(90deg, #b37aff 0%, #9f73ff 48%, #62c9ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .mp5-shell-version {
+    @apply text-[10px] font-medium text-gray-500;
+  }
+
+  .mp5-shell-nav {
+    @apply ml-auto flex h-full items-center justify-center gap-1;
+  }
+
+  .mp5-shell-actions {
+    @apply ml-auto flex items-center gap-2;
+  }
+
+  .mp5-shell-open {
+    @apply inline-flex min-h-11 items-center gap-2 whitespace-nowrap px-4;
+  }
+
+  .mp5-shell-menu-button {
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border text-gray-300;
+    border-color: var(--mp5-border);
+    background: var(--mp5-surface-raised);
+  }
+
+  .mp5-shell-mobile-menu {
+    @apply absolute right-3 top-[62px] z-50 grid min-w-44 gap-1 rounded-xl border p-2 shadow-2xl;
+    border-color: var(--mp5-border-strong);
+    background: #0d1420;
+  }
+
+  .mp5-shell-mobile-menu button,
+  .mp5-shell-mobile-menu a {
+    @apply flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-gray-300 hover:bg-white/5;
+  }
+
+  .mp5-beta-notice {
+    @apply relative mb-4 flex min-h-[42px] items-center gap-3 rounded-xl border px-4 py-1.5 text-xs text-gray-400;
+    height: 42px;
+    border-color: rgba(148, 163, 184, 0.1);
+    background: rgba(16, 23, 34, 0.75);
+  }
+
+  .mp5-beta-notice > svg {
+    @apply shrink-0 text-gray-300;
+  }
+
+  .mp5-beta-notice strong {
+    @apply font-medium text-gray-200;
+  }
+
+  .mp5-beta-notice > button:not(.mp5-beta-dismiss) {
+    @apply shrink-0 font-medium text-violet-400 hover:text-violet-300;
+  }
+
+  .mp5-beta-dismiss {
+    @apply ml-auto inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-white/5 hover:text-gray-200;
+  }
+
   .mp5-card {
-    @apply rounded-2xl border border-white/[0.06] bg-surface-elevated/80 shadow-lg shadow-black/25;
+    @apply rounded-2xl border;
+    border-color: var(--mp5-border);
+    background: rgba(16, 23, 34, 0.82);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
   }
 
   .mp5-focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#12121a];
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-2;
+    --tw-ring-offset-color: var(--mp5-page);
   }
 
   .mp5-btn-primary {
-    @apply px-4 py-2 min-h-[40px] rounded-xl bg-accent text-black font-semibold hover:opacity-90 disabled:opacity-40 mp5-focus-ring transition-opacity;
+    @apply min-h-11 rounded-xl px-4 py-2 font-semibold text-white transition;
+    background: linear-gradient(135deg, #7c3aed 0%, #9b63f7 100%);
+    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.24);
+  }
+
+  .mp5-btn-primary:hover {
+    filter: brightness(1.08);
+  }
+
+  .mp5-btn-primary:disabled {
+    @apply cursor-not-allowed opacity-40;
   }
 
   .mp5-btn-secondary {
-    @apply px-4 py-2 min-h-[40px] rounded-xl border border-white/10 text-gray-300 hover:bg-white/5 disabled:opacity-40 mp5-focus-ring transition-colors;
+    @apply min-h-11 rounded-xl border px-4 py-2 text-gray-300 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40;
+    border-color: var(--mp5-border-strong);
   }
 
   .mp5-tab {
-    @apply px-4 py-2 min-h-[40px] rounded-full text-sm font-medium transition-colors mp5-focus-ring;
+    @apply relative inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors;
+  }
+
+  .mp5-tab svg {
+    @apply hidden;
+  }
+
+  .mp5-tab::after {
+    content: "";
+    @apply absolute inset-x-3 bottom-0 h-0.5 origin-center scale-x-0 rounded-full bg-violet-400 transition-transform;
   }
 
   .mp5-tab-active {
-    @apply bg-accent text-white;
+    @apply text-violet-300;
+  }
+
+  .mp5-tab-active::after {
+    @apply scale-x-100;
   }
 
   .mp5-tab-inactive {
-    @apply bg-surface-elevated/80 text-gray-400 hover:text-white;
+    @apply text-gray-400 hover:text-white;
   }
 
-  /** Active player column when VISU file theme is applied (vars set inline). */
+  .mp5-eyebrow {
+    @apply mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500;
+  }
+
+  .mp5-mini-badge {
+    @apply inline-flex items-center rounded-md border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-300;
+  }
+
+  .mp5-verified-label {
+    @apply text-[10px] font-medium text-cyan-300;
+  }
+
+  .mp5-quality-badge {
+    @apply inline-flex items-center rounded-md border border-cyan-500/40 bg-cyan-500/5 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300;
+  }
+
+  .mp5-import-summary {
+    @apply fixed right-5 top-24 z-[70] max-w-sm shadow-2xl;
+    border-color: var(--mp5-border-strong);
+  }
+
+  .mp5-player-layout {
+    display: grid;
+    grid-template-areas: "workspace sidebar";
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 294px);
+    gap: 14px;
+    align-items: start;
+  }
+
+  .mp5-player-workspace {
+    grid-area: workspace;
+    @apply min-w-0 overflow-hidden rounded-2xl border;
+    border-color: var(--mp5-border);
+    background: rgba(12, 17, 27, 0.88);
+  }
+
+  .mp5-player-primary {
+    @apply min-w-0 overflow-hidden;
+  }
+
+  .mp5-player-sidebar {
+    grid-area: sidebar;
+    @apply sticky flex flex-col space-y-3 rounded-2xl border p-3;
+    align-self: start;
+    height: min(756px, calc(100vh - 242px));
+    overflow-y: auto;
+    top: 98px;
+    border-color: var(--mp5-border);
+    background: rgba(12, 17, 27, 0.88);
+  }
+
+  .mp5-player-inspector {
+    @apply min-w-0 overflow-hidden border-t;
+    border-color: var(--mp5-border);
+  }
+
+  .mp5-inspector-tabs {
+    @apply sticky top-[86px] z-20 flex gap-1 overflow-x-auto border-b px-3 pt-2;
+    position: static;
+    border-color: var(--mp5-border);
+    background: rgba(12, 17, 27, 0.96);
+    scrollbar-width: none;
+  }
+
+  .mp5-inspector-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mp5-inspector-tab {
+    @apply relative min-h-11 shrink-0 px-3 text-xs font-medium text-gray-400 hover:text-gray-100;
+  }
+
+  .mp5-inspector-tab[aria-current="true"] {
+    @apply text-violet-300;
+  }
+
+  .mp5-inspector-tab[aria-current="true"]::after {
+    content: "";
+    @apply absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-violet-400;
+  }
+
+  .mp5-inspector-section {
+    @apply scroll-mt-32 border-b p-4 sm:p-5;
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .mp5-inspector-section:last-child {
+    @apply border-b-0;
+  }
+
+  .mp5-track-identity {
+    @apply grid min-w-0 items-center gap-4 p-5;
+    align-items: start;
+    grid-template-columns: 220px minmax(0, 1fr) 160px;
+    column-gap: 32px;
+    padding: 20px 26px 14px;
+  }
+
+  .mp5-track-cover {
+    @apply relative aspect-square w-full overflow-hidden rounded-xl border;
+    border-color: var(--mp5-border);
+    background: #090d16;
+  }
+
+  .mp5-track-details {
+    @apply min-w-0 space-y-2;
+    padding-top: 10px;
+  }
+
+  .mp5-track-technical-summary {
+    @apply pt-1 text-xs text-gray-500;
+  }
+
+  .mp5-track-facts {
+    @apply grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-xs;
+    padding-top: 6px;
+  }
+
+  .mp5-track-facts dt {
+    @apply text-gray-500;
+  }
+
+  .mp5-track-facts dd {
+    @apply text-right font-medium text-gray-200;
+  }
+
+  .mp5-player-waveform {
+    @apply border-y px-5 py-3 sm:px-6;
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+
+  .mp5-waveform-shell {
+    @apply relative overflow-hidden rounded-lg;
+    background: transparent;
+  }
+
+  .mp5-player-controls-wrap {
+    @apply px-5 pb-4 sm:px-6;
+  }
+
+  .mp5-overview-grid {
+    @apply grid gap-8 md:grid-cols-2;
+  }
+
+  .mp5-overview-table {
+    @apply divide-y divide-white/5;
+  }
+
+  .mp5-overview-table > div {
+    @apply grid grid-cols-[minmax(90px,0.65fr)_minmax(0,1.35fr)] gap-4 py-2 text-xs;
+  }
+
+  .mp5-overview-table dt {
+    @apply text-gray-500;
+  }
+
+  .mp5-overview-table dd {
+    @apply text-gray-300;
+  }
+
+  .mp5-transport-actions {
+    @apply flex items-center justify-center gap-3 sm:gap-5;
+  }
+
+  .mp5-player-controls {
+    @apply relative grid gap-2 pt-2;
+  }
+
+  .mp5-seek-slider {
+    @apply absolute inset-x-0 top-0 block h-2 appearance-none bg-transparent;
+  }
+
+  .mp5-seek-slider::-webkit-slider-runnable-track {
+    height: 2px;
+    background: transparent;
+  }
+
+  .mp5-seek-slider::-webkit-slider-thumb {
+    width: 2px;
+    height: 2px;
+    appearance: none;
+    background: transparent;
+  }
+
+  .mp5-seek-slider::-moz-range-track,
+  .mp5-seek-slider::-moz-range-progress {
+    height: 2px;
+    background: transparent;
+  }
+
+  .mp5-seek-slider::-moz-range-thumb {
+    width: 2px;
+    height: 2px;
+    border: 0;
+    background: transparent;
+  }
+
+  .mp5-timeline-labels {
+    @apply flex items-center justify-between gap-3 font-mono text-[11px] text-gray-500;
+  }
+
+  .mp5-transport-button {
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30;
+  }
+
+  .mp5-transport-play {
+    @apply inline-flex min-h-14 min-w-14 items-center justify-center rounded-full text-white transition-transform hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-40;
+    background: linear-gradient(135deg, #7c3aed 0%, #a970ff 100%);
+    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.32);
+  }
+
+  .mp5-volume-control {
+    @apply mx-auto hidden max-w-56 items-center gap-2 text-gray-500;
+  }
+
+  .mp5-file-drop-zone {
+    @apply flex min-h-[210px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-5 transition-colors;
+    border-color: rgba(148, 163, 184, 0.2);
+    background: rgba(8, 12, 20, 0.42);
+  }
+
+  .mp5-file-drop-zone:not(.cursor-not-allowed):hover {
+    border-color: rgba(139, 92, 246, 0.52);
+    background: rgba(139, 92, 246, 0.05);
+  }
+
+  .mp5-file-drop-icon {
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-400;
+    background: rgba(148, 163, 184, 0.08);
+  }
+
+  .mp5-file-drop-button {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-medium text-gray-300;
+    border-color: var(--mp5-border-strong);
+    background: rgba(16, 23, 34, 0.9);
+  }
+
+  .mp5-queue-row {
+    @apply flex items-center gap-2 rounded-lg border px-2 py-2 transition-colors;
+  }
+
+  .mp5-queue-action {
+    @apply inline-flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 text-gray-500 hover:bg-white/5 hover:text-white disabled:opacity-30;
+  }
+
+  .mp5-queue-toggle {
+    @apply inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-xs;
+  }
+
+  .mp5-queue-compact-duration {
+    @apply hidden;
+  }
+
+  .mp5-library-compact .mp5-eyebrow,
+  .mp5-library-compact .mp5-queue-toggles,
+  .mp5-library-compact .mp5-queue-technical,
+  .mp5-library-compact [data-testid="playlist-item-status"] {
+    @apply hidden;
+  }
+
+  .mp5-library-compact .mp5-queue-compact-duration {
+    @apply ml-auto block shrink-0;
+  }
+
+  .mp5-library-compact .mp5-queue-row {
+    @apply relative border-white/5 bg-surface/40 px-2 py-2 ring-0;
+  }
+
+  .mp5-library-compact .mp5-queue-row > button:first-child > span:first-child {
+    @apply h-10 w-10;
+  }
+
+  .mp5-library-compact [data-testid="playlist-item-title"] {
+    @apply text-xs;
+  }
+
+  .mp5-queue-compact-more {
+    @apply hidden;
+  }
+
+  .mp5-library-compact .mp5-queue-compact-more {
+    @apply absolute right-1 top-1/2 block -translate-y-1/2 text-gray-500 transition-opacity;
+  }
+
+  .mp5-library-compact .mp5-queue-row > button:first-child {
+    @apply pr-5;
+  }
+
+  .mp5-library-compact .mp5-queue-row .mp5-queue-action {
+    @apply absolute top-1/2 z-10 -translate-y-1/2 opacity-0 transition-opacity;
+  }
+
+  .mp5-library-compact .mp5-queue-row [data-testid="playlist-item-save-library"] {
+    right: 78px;
+  }
+
+  .mp5-library-compact .mp5-queue-row [data-testid="playlist-item-play"] {
+    right: 42px;
+  }
+
+  .mp5-library-compact .mp5-queue-row [data-testid="playlist-item-remove"] {
+    right: 6px;
+  }
+
+  .mp5-library-compact .mp5-queue-row:hover .mp5-queue-action,
+  .mp5-library-compact .mp5-queue-row:focus-within .mp5-queue-action {
+    @apply opacity-100;
+  }
+
+  .mp5-library-compact .mp5-queue-row:hover .mp5-queue-compact-more,
+  .mp5-library-compact .mp5-queue-row:focus-within .mp5-queue-compact-more {
+    @apply opacity-0;
+  }
+
+  .mp5-library-compact .mp5-queue-header-actions {
+    @apply opacity-0 transition-opacity;
+  }
+
+  .mp5-library-compact .mp5-queue-header:hover .mp5-queue-header-actions,
+  .mp5-library-compact .mp5-queue-header:focus-within .mp5-queue-header-actions {
+    @apply opacity-100;
+  }
+
+  .mp5-experimental-card {
+    @apply flex gap-3 rounded-xl border p-4 text-xs leading-relaxed text-gray-500;
+    border-color: var(--mp5-border);
+    background: rgba(16, 23, 34, 0.56);
+  }
+
+  .mp5-experimental-card > svg {
+    @apply mt-0.5 shrink-0 text-gray-300;
+  }
+
+  .mp5-experimental-card button {
+    @apply mt-3 font-medium text-violet-400 hover:text-violet-300;
+  }
+
+  .mp5-player-sidebar > .mp5-experimental-card {
+    @apply min-h-[180px];
+    margin-top: 50px !important;
+  }
+
+  .mp5-player-sidebar > .mp5-file-drop-zone {
+    margin-top: auto !important;
+  }
+
+  .mp5-player-sidebar .mp5-sidebar-album-creator [data-testid="create-album-hint"] {
+    @apply hidden;
+  }
+
+  .mp5-format-summary > div:first-child,
+  [data-testid="metadata-details-panel"] > div,
+  [data-testid="song-map-panel"],
+  [data-testid="lyrics-panel"],
+  [data-testid="stems-panel"] {
+    @apply rounded-xl border;
+    border-color: rgba(148, 163, 184, 0.1);
+    background: rgba(16, 23, 34, 0.54);
+  }
+
+  .mp5-persistent-transport {
+    @apply fixed bottom-0 left-1/2 z-50 grid min-h-[102px] -translate-x-1/2 items-center gap-4 border px-4 sm:px-5;
+    grid-template-columns: minmax(200px, 1.2fr) auto minmax(220px, 1fr) minmax(120px, 0.55fr) 44px;
+    width: min(calc(100% - 4px), 1440px);
+    border-color: var(--mp5-border-strong);
+    border-radius: 18px 18px 0 0;
+    background: rgba(9, 14, 23, 0.97);
+    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(20px);
+  }
+
+  .mp5-persistent-track {
+    @apply flex min-w-0 items-center gap-3;
+  }
+
+  .mp5-persistent-cover {
+    @apply h-12 w-12 shrink-0 rounded-lg object-cover;
+  }
+
+  .mp5-persistent-controls {
+    @apply flex items-center justify-center gap-1;
+  }
+
+  .mp5-persistent-controls > button,
+  .mp5-persistent-queue {
+    @apply inline-flex min-h-10 min-w-10 items-center justify-center rounded-full text-gray-400 hover:bg-white/5 hover:text-white disabled:opacity-30;
+  }
+
+  .mp5-persistent-controls .mp5-persistent-play {
+    @apply min-h-12 min-w-12 bg-violet-600 text-white hover:bg-violet-500;
+  }
+
+  .mp5-persistent-timeline,
+  .mp5-persistent-volume {
+    @apply flex items-center gap-2 text-[10px] font-mono text-gray-500;
+  }
+
+  .mp5-persistent-timeline input,
+  .mp5-persistent-volume input {
+    @apply min-w-0 flex-1;
+  }
+
   .mp5-player-themed {
     @apply transition-[border-color,box-shadow] duration-300;
     contain: layout paint;
   }
 
-  /** Cover art card — keeps absolute cover img clipped to the card on all viewports. */
   .mp5-now-playing-cover-card {
     @apply relative overflow-hidden isolate;
     contain: paint;
   }
 
   .mp5-album-badge {
-    @apply inline-block px-1.5 py-0.5 rounded text-[9px] font-medium bg-white/5 text-gray-400 border border-white/10;
+    @apply inline-block rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-medium text-gray-400;
   }
 
   .mp5-album-badge-warn {
-    @apply text-amber-200/90 border-amber-900/40 bg-amber-950/30;
+    @apply border-amber-900/40 bg-amber-950/30 text-amber-200/90;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mp5-app-shell {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
-  .mp5-album-package .mp5-album-actions {
-    @apply gap-2;
+  .mp5-shell-header {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 23px;
+    padding-right: 23px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .mp5-shell-header {
+    @apply gap-2 px-3;
   }
 
-  @media (max-width: 640px) {
-    .mp5-album-package {
-      overflow-x: hidden;
-    }
-    .mp5-card {
-      @apply p-3;
-    }
+  .mp5-shell-nav {
+    @apply gap-0;
+  }
+
+  .mp5-tab {
+    @apply px-2 text-xs;
+  }
+
+  .mp5-player-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 290px);
+  }
+
+  .mp5-track-identity {
+    grid-template-columns: 168px minmax(0, 1fr);
+  }
+
+  .mp5-track-facts {
+    @apply col-span-2 grid-cols-[auto_1fr_auto_1fr] border-t pt-4;
+    border-color: rgba(148, 163, 184, 0.08);
+  }
+}
+
+@media (max-width: 767px) {
+  .mp5-app-shell {
+    @apply px-2.5;
+    padding-top: 2px;
+    padding-bottom: 150px;
+  }
+
+  .mp5-shell-header {
+    @apply mb-1 min-h-[58px] rounded-xl px-3;
+    background: #070b12;
+    backdrop-filter: none;
+  }
+
+  .mp5-shell-wordmark {
+    @apply text-lg;
+  }
+
+  .mp5-shell-version {
+    @apply hidden;
+  }
+
+  .mp5-shell-nav {
+    @apply fixed inset-x-0 bottom-0 z-[60] m-0 grid h-auto border-t px-1 pb-[max(6px,env(safe-area-inset-bottom))] pt-1;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: var(--mp5-nav-height);
+    border-color: var(--mp5-border-strong);
+    background: rgba(8, 13, 21, 0.98);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(20px);
+  }
+
+  .mp5-tab {
+    @apply min-h-14 flex-col gap-0.5 rounded-lg px-1 py-1 text-[10px];
+  }
+
+  .mp5-tab svg {
+    @apply block;
+  }
+
+  .mp5-tab::after {
+    @apply inset-x-4 top-0 bottom-auto;
+  }
+
+  .mp5-tab[data-mobile-tab="false"] {
+    @apply hidden;
+  }
+
+  .mp5-shell-actions {
+    @apply ml-auto gap-1;
+  }
+
+  .mp5-shell-open {
+    @apply min-h-10 rounded-lg px-3 text-sm;
+  }
+
+  .mp5-shell-open > svg {
+    @apply hidden;
+  }
+
+  .mp5-beta-notice {
+    @apply mb-1.5 gap-2 px-3 py-1.5 text-[11px] leading-[1.35];
+  }
+
+  .mp5-beta-notice > button:not(.mp5-beta-dismiss) {
+    @apply hidden;
+  }
+
+  .mp5-player-layout {
+    display: grid;
+    grid-template-areas:
+      "workspace"
+      "sidebar";
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .mp5-player-sidebar {
+    @apply static p-3;
+    height: auto;
+    overflow: visible;
+  }
+
+  .mp5-track-identity {
+    @apply gap-1.5 p-2;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mp5-track-cover {
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+  }
+
+  .mp5-track-details h1 {
+    @apply text-lg;
+  }
+
+  .mp5-track-details {
+    @apply space-y-1 px-1.5;
+    padding-top: 0;
+  }
+
+  .mp5-track-details > p:not(.mp5-track-technical-summary) {
+    @apply text-xs;
+  }
+
+  .mp5-track-technical-summary {
+    @apply hidden;
+  }
+
+  .mp5-track-facts {
+    @apply hidden;
+  }
+
+  .mp5-player-waveform {
+    @apply px-3 py-2;
+  }
+
+  .mp5-player-controls-wrap {
+    @apply px-3 pb-3;
+  }
+
+  .mp5-player-controls {
+    @apply gap-1.5 pt-1;
+  }
+
+  .mp5-player-controls .mp5-volume-control {
+    @apply flex;
+  }
+
+  .mp5-inspector-tabs {
+    @apply px-1 pt-0;
+  }
+
+  .mp5-inspector-tab {
+    @apply min-h-10 px-2 text-[11px];
+  }
+
+  .mp5-inspector-tab[data-inspector-id="integrity"] {
+    @apply hidden;
+  }
+
+  .mp5-inspector-section {
+    @apply p-2;
+  }
+
+  .mp5-inspector-section[data-active="false"] {
+    @apply hidden;
+  }
+
+  .mp5-overview-grid {
+    @apply gap-0;
+  }
+
+  .mp5-overview-grid > .mp5-overview-table:first-child {
+    @apply hidden;
+  }
+
+  .mp5-overview-table > div {
+    @apply py-0.5;
+  }
+
+  .mp5-player-sidebar > .mp5-file-drop-zone,
+  .mp5-player-sidebar > .mp5-experimental-card,
+  .mp5-player-sidebar > .mp5-sidebar-album-creator {
+    @apply hidden;
+  }
+
+  .mp5-persistent-transport {
+    @apply left-0 z-[55] min-h-[64px] translate-x-0 gap-2 rounded-none border-x-0 px-2.5;
+    bottom: var(--mp5-nav-height);
+    grid-template-columns: minmax(0, 1fr) auto 42px;
+    width: 100%;
+  }
+
+  .mp5-persistent-cover {
+    @apply h-10 w-10;
+  }
+
+  .mp5-persistent-controls > button:not(.mp5-persistent-play),
+  .mp5-persistent-timeline,
+  .mp5-persistent-volume {
+    @apply hidden;
+  }
+
+  .mp5-persistent-controls .mp5-persistent-play {
+    @apply min-h-10 min-w-10;
+  }
+
+  .mp5-persistent-queue {
+    @apply min-h-10 min-w-10;
+  }
+
+  .mp5-card {
+    @apply rounded-xl;
+  }
+
+  .mp5-album-package {
+    overflow-x: hidden;
   }
 }
 
@@ -75,6 +884,7 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
 }

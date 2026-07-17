@@ -51,12 +51,16 @@ describe("public landing", () => {
     expect(src).toContain("loadLandingAboutExpanded");
   });
 
-  it("App places main nav after compact landing", () => {
-    const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
-    const landingIdx = src.indexOf("<PublicLanding />");
-    const navIdx = src.indexOf('data-testid="app-main-nav"');
-    expect(landingIdx).toBeGreaterThan(-1);
-    expect(navIdx).toBeGreaterThan(landingIdx);
+  it("App mounts the responsive shell and its main nav", () => {
+    const appSrc = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
+    const shellSrc = readFileSync(
+      join(root, "apps/web/src/components/AppShell.tsx"),
+      "utf8",
+    );
+    expect(appSrc).toContain("<AppShell");
+    expect(appSrc).toContain("<PublicLanding />");
+    expect(shellSrc).toContain('data-testid="app-main-nav"');
+    expect(shellSrc).toContain('data-testid={`app-tab-${id}`}');
   });
 
   it("landing About prefs roundtrip via localStorage", () => {

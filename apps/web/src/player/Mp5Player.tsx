@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { TestTube } from "@phosphor-icons/react/TestTube";
 import {
   clockModeForTransport,
   type PlaybackClockDiagnostics,
@@ -59,6 +61,9 @@ import {
 } from "../lib/playback/stemMixerAssert";
 import { NowPlayingView } from "./NowPlayingView";
 import { LibraryPanel } from "./LibraryPanel";
+import { PersistentTransport } from "./PersistentTransport";
+import { PlayerInspectorOverview } from "./PlayerInspectorOverview";
+import { TrackMetadata } from "./TrackMetadata";
 import { ingestMp5Files, trackDurationSec, findSimilarTrackIndex, similarTrackAvailable, type IngestResult } from "./playlistUtils";
 import { useActivePlaybackClock } from "./useActivePlaybackClock";
 import {
@@ -128,6 +133,17 @@ import type { PlaylistTrack } from "../store/playerStore";
 import { themeRootStyle } from "../lib/visualTheme/applyVisualTheme";
 import { resolveThemeForFile } from "../lib/visualTheme/themeApplication";
 
+type InspectorSection = "overview" | "format" | "lyrics" | "stems" | "metadata" | "integrity";
+
+const INSPECTOR_TABS: { id: InspectorSection; label: string; target: InspectorSection }[] = [
+  { id: "overview", label: "Overview", target: "overview" },
+  { id: "format", label: "Format", target: "format" },
+  { id: "lyrics", label: "Lyrics", target: "lyrics" },
+  { id: "stems", label: "Stems", target: "stems" },
+  { id: "metadata", label: "Metadata", target: "metadata" },
+  { id: "integrity", label: "Integrity", target: "metadata" },
+];
+
 export function Mp5Player() {
   const store = usePlayerStore();
   const {
@@ -196,6 +212,7 @@ export function Mp5Player() {
   const [integrity, setIntegrity] = useState<IntegrityCheckResult | null>(null);
   const [ingestStage, setIngestStage] = useState<IngestLoadStage>("idle");
   const [ingestStageDetail, setIngestStageDetail] = useState("");
+  const [inspectorSection, setInspectorSection] = useState<InspectorSection>("overview");
   useEffect(() => {
     const pending = consumePendingAlbumPackage();
     if (pending) {
@@ -203,6 +220,19 @@ export function Mp5Player() {
       setAlbumManifestError("");
     }
   }, [consumePendingAlbumPackage]);
+
+  useEffect(() => {
+    if (
+      !lastDropSummary ||
+      lastDropSummary.skippedCount > 0 ||
+      lastDropSummary.unreadableCount > 0 ||
+      lastDropSummary.dropErrors.length > 0
+    ) {
+      return;
+    }
+    const timer = window.setTimeout(() => setLastDropSummary(null), 1800);
+    return () => window.clearTimeout(timer);
+  }, [lastDropSummary]);
 
   const playWhenReadyRef = useRef(false);
   const playWhenReadyKaraokeRef = useRef(false);
@@ -1753,30 +1783,34 @@ export function Mp5Player() {
     currentTime >= Math.max(0, duration - 0.05) &&
     playbackSnapshot.readiness !== "error";
 
+  const jumpToInspector = (section: InspectorSection, target: InspectorSection = section) => {
+    setInspectorSection(section);
+    document.getElementById(`mp5-inspector-${target}`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   return (
     <div className="space-y-6" data-testid="mp5-player">
       {tracks.length === 0 && <PlayerEmptyState />}
 
-      <DemoFixtureActions
-        testIdPrefix="player"
-        onLoaded={async (file, playFirst) => {
-          dismissOnboarding();
-          const start = tracks.length;
-          const result = await ingestMp5Files([file]);
-          if (result.tracks.length) appendTracks(result.tracks);
-          setLastDropSummary(result);
-          if (playFirst && result.addedCount > 0) {
-            playWhenReadyRef.current = true;
-            setCurrentIndex(start);
-          }
-        }}
-      />
-
-      <FileDropZone
-        testId="player-file-input"
-        label="Drop .mp5 or .mp5p album manifest files to build a playlist"
-        onFiles={(files) => void handleFiles(files)}
-      />
+      {tracks.length === 0 && (
+        <DemoFixtureActions
+          testIdPrefix="player"
+          onLoaded={async (file, playFirst) => {
+            dismissOnboarding();
+            const start = tracks.length;
+            const result = await ingestMp5Files([file]);
+            if (result.tracks.length) appendTracks(result.tracks);
+            setLastDropSummary(result);
+            if (playFirst && result.addedCount > 0) {
+              playWhenReadyRef.current = true;
+              setCurrentIndex(start);
+            }
+          }}
+        />
+      )}
 
       {ingestStage !== "idle" && ingestStage !== "ready" && (
         <p
@@ -1835,163 +1869,283 @@ export function Mp5Player() {
         </p>
       )}
 
-      <div className="grid lg:grid-cols-[minmax(280px,360px)_1fr] gap-6">
-        <div className="space-y-4 order-2 lg:order-1">
-        <LibraryPanel
-          tracks={tracks}
-          currentIndex={currentIndex}
-          isPlaying={isPlaying}
-          dropErrors={dropErrors}
-          repeatMode={repeatMode}
-          shuffle={shuffle}
-          onSelect={(index) => {
-            autoAdvanceRef.current = false;
-            setCurrentIndex(index);
-          }}
-          onPlay={handlePlayIndex}
-          onRemove={removeTrack}
-          onClear={handleClear}
-          onToggleShuffle={toggleShuffle}
-          onCycleRepeat={cycleRepeatMode}
-          onSaveToLibrary={(t) => void handleSaveToLibrary(t)}
-          librarySaveBusy={librarySaveBusy}
-          album={activeAlbum}
-          hydratingTrackId={embeddedHydratingTrackId}
-        />
-        <CreateAlbumPackagePanel tracks={tracks} />
+      <div className="mp5-player-layout">
+        <div className="mp5-player-workspace">
+          <section className="mp5-player-primary" aria-label="Player">
+            <div
+              className={playerTheme ? "mp5-player-themed" : undefined}
+              style={themeRootStyle(playerTheme)}
+              data-testid="player-theme-root"
+              data-theme-active={playerTheme ? "true" : "false"}
+            >
+              <NowPlayingView
+                track={track}
+                parsed={parsed}
+                loading={loading}
+                loadError={loadError}
+                playerTheme={playerTheme}
+                albumContext={albumCtx}
+                currentTime={currentTime}
+                duration={duration}
+                embeddedHydrating={embeddedHydratingTrackId === track?.id}
+                integrity={integrity}
+                canPlaySimilar={canPlaySimilar}
+                onPlaySimilar={handlePlaySimilar}
+              />
+            </div>
+
+            <div className="mp5-player-waveform">
+              <WaveformView
+                peaks={parsed?.waveform ?? []}
+                progress={progress}
+                durationSec={duration}
+                sectionMarkers={waveformSectionMarkers}
+                highlightMarkers={waveformHighlightMarkers}
+                activeLoopRange={waveformLoopRange}
+                playedFill={playerTheme?.waveformPlayedFill}
+                unplayedFill={playerTheme?.waveformUnplayedFill}
+                onSeek={handleWaveformSeek}
+                disabled={loading || duration <= 0}
+              />
+            </div>
+
+            <div className="mp5-player-controls-wrap">
+              <PlayerControls
+                isPlaying={isPlaying}
+                onPlayPause={handlePlayPause}
+                playbackStatus={playbackSnapshot.playState}
+                playbackReadiness={playbackSnapshot.readiness}
+                hasTrack={!!track}
+                isEnded={isEnded}
+                playbackStatusDetail={
+                  playbackSnapshot.playState === "preparing"
+                    ? karaokePreparing
+                      ? "Preparing karaoke…"
+                      : ingestStageDetail || "Preparing audio…"
+                    : karaokeFallback
+                      ? "Karaoke audio unavailable — playing full mix with synced lyrics"
+                      : loadError || undefined
+                }
+                onPrev={handlePlayerPrev}
+                onNext={handlePlayerNext}
+                canPrev={canPrev}
+                canNext={canNext}
+                repeatMode={repeatMode}
+                shuffle={shuffle}
+                onToggleShuffle={toggleShuffle}
+                onCycleRepeat={cycleRepeatMode}
+                currentTime={currentTime}
+                duration={duration}
+                onSeek={seek}
+                volume={volume}
+                onVolume={setVolume}
+              />
+            </div>
+          </section>
+
+          <section className="mp5-player-inspector" aria-label="Track inspector">
+            <nav className="mp5-inspector-tabs" aria-label="Track details">
+              {INSPECTOR_TABS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="mp5-inspector-tab"
+                  aria-current={inspectorSection === item.id ? "true" : undefined}
+                  data-inspector-id={item.id}
+                  onClick={() => jumpToInspector(item.id, item.target)}
+                >
+                  {item.id === "metadata" ? (
+                    <>
+                      <span className="hidden sm:inline">{item.label}</span>
+                      <span className="inline-flex items-center gap-1 sm:hidden">
+                        More <CaretDown size={12} />
+                      </span>
+                    </>
+                  ) : (
+                    item.label
+                  )}
+                </button>
+              ))}
+            </nav>
+
+            <div
+              className="mp5-inspector-section"
+              id="mp5-inspector-overview"
+              data-inspector-section="overview"
+              data-active={inspectorSection === "overview" ? "true" : "false"}
+            >
+              <PlayerInspectorOverview
+                track={track}
+                parsed={parsed}
+                duration={duration}
+                integrity={integrity}
+              />
+            </div>
+
+            <div
+              className="mp5-inspector-section space-y-4"
+              id="mp5-inspector-format"
+              data-inspector-section="format"
+              data-active={inspectorSection === "format" ? "true" : "false"}
+            >
+              <TrackMetadata
+                parsed={parsed}
+                title={track?.name}
+                decodePath={decodePath}
+                mp5h={mp5hInfo}
+                fileBytes={track?.file?.size}
+                hideTrackTitles
+              />
+              <CodecModesHelper />
+              <SongMapPanel
+                parsed={parsed}
+                currentTime={currentTime}
+                duration={duration}
+                activeRange={activePlaybackRange}
+                onSeek={seek}
+                onPlay={() => setPlaying(true)}
+                onPlayHighlight={handlePlayHighlight}
+                onPreviewHighlight={handlePreviewHighlight}
+                onLoopSection={handleLoopSection}
+                onLoopHook={handleLoopHook}
+                onStopLoop={() => setActivePlaybackRange(null)}
+              />
+            </div>
+
+            <div
+              className="mp5-inspector-section"
+              id="mp5-inspector-lyrics"
+              data-inspector-section="lyrics"
+              data-active={inspectorSection === "lyrics" ? "true" : "false"}
+            >
+              <LyricsPanel
+                parsed={parsed}
+                currentTime={currentTime}
+                getPlaybackTime={getPlaybackTime}
+                duration={duration}
+                isPlaying={isPlaying}
+                onSeek={seek}
+                karaokeMode={karaokeMode}
+                onKaraokeModeChange={(on) => {
+                  tracePlayback("karaoke", on ? "mode on" : "mode off");
+                  if (!on) setKaraokeStemPrepFailed(false);
+                  setKaraokeMode(on);
+                }}
+                onKaraokePrepare={(req) => {
+                  setKaraokeStemPrepFailed(false);
+                  setKaraokePrepareRequest(req);
+                }}
+              />
+            </div>
+
+            <div
+              className="mp5-inspector-section"
+              id="mp5-inspector-stems"
+              data-inspector-section="stems"
+              data-active={inspectorSection === "stems" ? "true" : "false"}
+            >
+              <StemsPanel
+                parsed={parsed}
+                stemMixActive={stemMixActive}
+                onStemMixActiveChange={setStemMixActive}
+                onStemMixEnable={handleStemMixEnable}
+                onStemMixSeamlessOp={handleStemMixSeamlessOp}
+                onRestartStemMix={handleRestartStemMix}
+                onReturnToFullMix={handleReturnToFullMix}
+                getPlaybackTime={getPlaybackTime}
+                getStemGraphGeneration={() => stemGraphGenRef.current}
+                activeStemSourceIds={activeStemSourceIds}
+                transportDiagnostics={transportDiagLine}
+                clockDiagnostics={clockDiagLine}
+                stemInsertDeferredId={stemInsertDeferredId}
+                onClearStemInsertDeferred={() => setStemInsertDeferredId(null)}
+                onMixModeChange={setTransportMode}
+                isPlaying={isPlaying}
+                loading={loading}
+                karaokePrepareRequest={karaokePrepareRequest}
+                onKaraokePrepareDone={() => setKaraokePrepareRequest(null)}
+                onKaraokePrepareFailed={() => setKaraokeStemPrepFailed(true)}
+              />
+            </div>
+
+            <div
+              className="mp5-inspector-section"
+              id="mp5-inspector-metadata"
+              data-inspector-section="metadata"
+              data-active={inspectorSection === "metadata" || inspectorSection === "integrity" ? "true" : "false"}
+            >
+              <MetadataDetailsPanel
+                parsed={parsed}
+                integrity={integrity}
+                useFileThemes={useFileThemes}
+                themeStatus={themeStatus}
+                playerTheme={playerTheme}
+              />
+            </div>
+          </section>
         </div>
 
-      <div className="space-y-4 order-1 lg:order-2">
-        <div
-          className={`rounded-2xl p-3 sm:p-4 border overflow-hidden ${
-            playerTheme ? "mp5-player-themed" : "border-transparent"
-          }`}
-          style={themeRootStyle(playerTheme)}
-          data-testid="player-theme-root"
-          data-theme-active={playerTheme ? "true" : "false"}
-        >
-          <NowPlayingView
-            track={track}
-            parsed={parsed}
-            loading={loading}
-            loadError={loadError}
-            decodePath={decodePath}
-            mp5h={mp5hInfo}
-            playerTheme={playerTheme}
-            albumContext={albumCtx}
-            currentTime={currentTime}
-            duration={duration}
-            embeddedHydrating={embeddedHydratingTrackId === track?.id}
-            integrity={integrity}
-            canPlaySimilar={canPlaySimilar}
-            onPlaySimilar={handlePlaySimilar}
-          />
-        </div>
-        <WaveformView
-            peaks={parsed?.waveform ?? []}
-            progress={progress}
-            durationSec={duration}
-            sectionMarkers={waveformSectionMarkers}
-            highlightMarkers={waveformHighlightMarkers}
-            activeLoopRange={waveformLoopRange}
-            playedFill={playerTheme?.waveformPlayedFill}
-            unplayedFill={playerTheme?.waveformUnplayedFill}
-            onSeek={handleWaveformSeek}
-            disabled={loading || duration <= 0}
-          />
-          <PlayerControls
+        <aside className="mp5-player-sidebar" id="mp5-player-queue">
+          <LibraryPanel
+            compact
+            tracks={tracks}
+            currentIndex={currentIndex}
             isPlaying={isPlaying}
-            onPlayPause={handlePlayPause}
-            playbackStatus={playbackSnapshot.playState}
-            playbackReadiness={playbackSnapshot.readiness}
-            hasTrack={!!track}
-            isEnded={isEnded}
-            playbackStatusDetail={
-              playbackSnapshot.playState === "preparing"
-                ? karaokePreparing
-                  ? "Preparing karaoke…"
-                  : ingestStageDetail || "Preparing audio…"
-                : karaokeFallback
-                  ? "Karaoke audio unavailable — playing full mix with synced lyrics"
-                  : loadError || undefined
-            }
-            onPrev={handlePlayerPrev}
-            onNext={handlePlayerNext}
-            canPrev={canPrev}
-            canNext={canNext}
+            dropErrors={dropErrors}
             repeatMode={repeatMode}
             shuffle={shuffle}
+            onSelect={(index) => {
+              autoAdvanceRef.current = false;
+              setCurrentIndex(index);
+            }}
+            onPlay={handlePlayIndex}
+            onRemove={removeTrack}
+            onClear={handleClear}
             onToggleShuffle={toggleShuffle}
             onCycleRepeat={cycleRepeatMode}
-            currentTime={currentTime}
-            duration={duration}
-            onSeek={seek}
-            volume={volume}
-            onVolume={setVolume}
+            onSaveToLibrary={(item) => void handleSaveToLibrary(item)}
+            librarySaveBusy={librarySaveBusy}
+            album={activeAlbum}
+            hydratingTrackId={embeddedHydratingTrackId}
           />
-        </div>
+          <FileDropZone
+            testId="player-file-input"
+            label="Drag MP5 or .mp5p files here"
+            onFiles={(files) => void handleFiles(files)}
+          />
+          <div className="mp5-experimental-card">
+            <TestTube size={22} aria-hidden />
+            <div>
+              <p className="font-medium text-gray-200">MP5 is experimental</p>
+              <p>Verify important playback. Use at your own risk.</p>
+              <button type="button" onClick={() => jumpToInspector("metadata")}>
+                Learn more
+              </button>
+            </div>
+          </div>
+          <div className="mp5-sidebar-album-creator">
+            <CreateAlbumPackagePanel tracks={tracks} />
+          </div>
+        </aside>
       </div>
 
-      <CodecModesHelper />
-      <SongMapPanel
+      <PersistentTransport
+        track={track}
         parsed={parsed}
+        isPlaying={isPlaying}
+        onPlayPause={handlePlayPause}
+        onPrevious={handlePlayerPrev}
+        onNext={handlePlayerNext}
+        onShuffle={toggleShuffle}
+        onRepeat={cycleRepeatMode}
+        canPrevious={canPrev}
+        canNext={canNext}
         currentTime={currentTime}
         duration={duration}
-        activeRange={activePlaybackRange}
+        volume={volume}
         onSeek={seek}
-        onPlay={() => setPlaying(true)}
-        onPlayHighlight={handlePlayHighlight}
-        onPreviewHighlight={handlePreviewHighlight}
-        onLoopSection={handleLoopSection}
-        onLoopHook={handleLoopHook}
-        onStopLoop={() => setActivePlaybackRange(null)}
-      />
-      <LyricsPanel
-        parsed={parsed}
-        currentTime={currentTime}
-        getPlaybackTime={getPlaybackTime}
-        duration={duration}
-        isPlaying={isPlaying}
-        onSeek={seek}
-        karaokeMode={karaokeMode}
-        onKaraokeModeChange={(on) => {
-          tracePlayback("karaoke", on ? "mode on" : "mode off");
-          if (!on) setKaraokeStemPrepFailed(false);
-          setKaraokeMode(on);
-        }}
-        onKaraokePrepare={(req) => {
-          setKaraokeStemPrepFailed(false);
-          setKaraokePrepareRequest(req);
-        }}
-      />
-      <StemsPanel
-        parsed={parsed}
-        stemMixActive={stemMixActive}
-        onStemMixActiveChange={setStemMixActive}
-        onStemMixEnable={handleStemMixEnable}
-        onStemMixSeamlessOp={handleStemMixSeamlessOp}
-        onRestartStemMix={handleRestartStemMix}
-        onReturnToFullMix={handleReturnToFullMix}
-        getPlaybackTime={getPlaybackTime}
-        getStemGraphGeneration={() => stemGraphGenRef.current}
-        activeStemSourceIds={activeStemSourceIds}
-        transportDiagnostics={transportDiagLine}
-        clockDiagnostics={clockDiagLine}
-        stemInsertDeferredId={stemInsertDeferredId}
-        onClearStemInsertDeferred={() => setStemInsertDeferredId(null)}
-        onMixModeChange={setTransportMode}
-        isPlaying={isPlaying}
-        loading={loading}
-        karaokePrepareRequest={karaokePrepareRequest}
-        onKaraokePrepareDone={() => setKaraokePrepareRequest(null)}
-        onKaraokePrepareFailed={() => setKaraokeStemPrepFailed(true)}
-      />
-      <MetadataDetailsPanel
-        parsed={parsed}
-        integrity={integrity}
-        useFileThemes={useFileThemes}
-        themeStatus={themeStatus}
-        playerTheme={playerTheme}
+        onVolume={setVolume}
+        onQueue={() => document.getElementById("mp5-player-queue")?.scrollIntoView({ behavior: "smooth" })}
       />
     </div>
   );

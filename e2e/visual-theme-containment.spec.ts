@@ -103,9 +103,12 @@ test.describe("VISU / cover mobile containment", () => {
       timeout: 15_000,
     });
 
-    for (const tab of ["Converter", "Library", "About"]) {
+    for (const tab of ["Converter", "Library", "Settings"]) {
       await expect(page.getByRole("button", { name: tab, exact: true })).toBeVisible();
     }
+
+    await page.getByTestId("shell-mobile-menu-toggle").click();
+    await expect(page.getByRole("button", { name: "About MP5", exact: true })).toBeVisible();
 
     const playerTab = page.getByRole("button", { name: "Player", exact: true });
     await expect(playerTab).toHaveCSS("background-color", /./);
