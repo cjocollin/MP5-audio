@@ -20,7 +20,7 @@ For the current public list, see [MP5_KNOWN_ISSUES.md](MP5_KNOWN_ISSUES.md). For
 |-------|------------|
 | MP5-L v3 | Recommended lossless path, bit-exact (verified across the Audio Quality Lab fixtures), but not claimed to beat FLAC. Reference material remains around 0.95x PCM in existing benchmarks. |
 | MP5-C | Lab-only; quiet-passage hiss is now measured (quiet-window SNR ~2.6–5.7 dB on decaying material even where full-song SNR looks fine); not for normal listening or distribution claims. |
-| MP5-C vNext | Experimental lab prototype only (`mp5c2-lab`), default OFF, never written to `.mp5`; lossless quiet-frame fallback, not a shipping codec. |
+| MP5-C vNext (MP5C2) | Lab/advanced hybrid (CodecId 5, AUDI `0x43 0x34`); Converter gated; batch stays MP5-L. Quiet→lossless, loud→MP5-C. Not the default. |
 | MP5-H | Experimental hybrid mode; correction layers can produce large files (averages >1× PCM); not default. |
 | PCM | Reference/debug fallback; large files. |
 

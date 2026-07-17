@@ -314,7 +314,10 @@ export function LibraryPanel({
           No matching tracks.
         </p>
       ) : (
-        <ul className="space-y-1.5 max-h-80 overflow-y-auto" data-testid="playlist-list">
+        <ul
+          className="space-y-1.5 max-h-[min(40vh,16rem)] sm:max-h-80 overflow-y-auto overscroll-contain"
+          data-testid="playlist-list"
+        >
           {filteredIndices.map((index) => {
             const track = tracks[index]!;
             return (

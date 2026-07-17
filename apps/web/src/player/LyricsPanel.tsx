@@ -127,20 +127,25 @@ export function LyricsPanel({
         </div>
       </div>
 
-      <div
-        className="text-xs text-gray-500 space-y-1 leading-relaxed border border-white/5 rounded-lg p-3 bg-surface/50"
+      <details
+        className="text-xs text-gray-500 border border-white/5 rounded-lg bg-surface/50"
         data-testid="lyrics-panel-help"
       >
-        <p>
-          Lyrics are optional and manually provided — no AI lyric generation. Synced lines follow
-          the audio playback clock.
-        </p>
-        <p>
-          Karaoke mode uses synced lyrics plus optional stems. With an instrumental stem, only that
-          stem is decoded. Otherwise non-vocal stems may be prepared — this can take time on large
-          files.
-        </p>
-      </div>
+        <summary className="cursor-pointer select-none px-3 py-2 text-gray-400 hover:text-gray-300">
+          How lyrics & karaoke work
+        </summary>
+        <div className="space-y-1 leading-relaxed px-3 pb-3 border-t border-white/5 pt-2">
+          <p>
+            Lyrics are optional and manually provided — no AI lyric generation. Synced lines follow
+            the audio playback clock.
+          </p>
+          <p>
+            Karaoke mode uses synced lyrics plus optional stems. With an instrumental stem, only that
+            stem is decoded. Otherwise non-vocal stems may be prepared — this can take time on large
+            files.
+          </p>
+        </div>
+      </details>
 
       {!hasAnyLyrics ? (
         <div
@@ -202,7 +207,7 @@ export function LyricsPanel({
             (useSynced ? (
               <div
                 ref={scrollRef}
-                className="max-h-64 overflow-y-auto rounded-xl border border-white/5 bg-surface/30 p-2 sm:p-3"
+                className="max-h-[min(42vh,14rem)] sm:max-h-64 overflow-y-auto overscroll-contain rounded-xl border border-white/5 bg-surface/30 p-2 sm:p-3"
                 data-testid="lyrics-synced-view"
               >
                 <ul className="space-y-1.5">
@@ -243,7 +248,7 @@ export function LyricsPanel({
               </div>
             ) : (
               <pre
-                className="text-sm text-gray-300 whitespace-pre-wrap font-sans max-h-48 overflow-y-auto rounded-lg border border-white/5 bg-surface/30 p-3"
+                className="text-sm text-gray-300 whitespace-pre-wrap font-sans max-h-[min(36vh,12rem)] sm:max-h-48 overflow-y-auto overscroll-contain rounded-lg border border-white/5 bg-surface/30 p-3"
                 data-testid="lyrics-unsynced-view"
               >
                 {lyrc?.unsynced}

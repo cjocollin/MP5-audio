@@ -12,10 +12,11 @@
 //! Quality results (synthetic `reverb_tail`): hiss risk low — quiet and tail
 //! windows bit-exact. See docs/MP5C_VNEXT_RESULTS.md.
 //!
-//! Adjacent lossy sub-blocks are **coalesced** into one MP5-C encode so we do not
-//! pay the 2048-frame pad cost on every 1024-frame unit. Size on loud material can
-//! still exceed 1x PCM in edge cases; this stays lab-only / default OFF until a
-//! public CodecId is assigned.
+//! Adjacent **lossy** sub-blocks are coalesced into one MP5-C encode (avoids paying
+//! the 2048-frame pad per 1024-frame unit). Adjacent **lossless** L/B sub-blocks are
+//! likewise coalesced into one MP5-L encode (fewer unit headers; better Rice packing).
+//! Shipping protect thresholds use scale 1.5. Lab/advanced `CodecId` MP5C2 is gated;
+//! default and batch export remain MP5-L.
 
 use crate::mp5c::{self, Preset};
 use crate::mp5l;
@@ -161,8 +162,8 @@ fn push_unit(out: &mut Vec<u8>, tag: u8, n: usize, payload: &[u8]) {
 /// lossy fallback used on loud sub-blocks; quiet/fragile/tail sub-blocks are
 /// always lossless regardless of preset.
 ///
-/// Consecutive lossy sub-blocks are coalesced into a single MP5-C encode so the
-/// 2048-frame pad is paid once per run instead of once per 1024-frame unit.
+/// Consecutive lossy sub-blocks coalesce into one MP5-C encode; consecutive L/B
+/// (lossless) sub-blocks coalesce into one MP5-L encode.
 pub fn encode(samples: &[i16], channels: u8, preset: Preset) -> Vec<u8> {
     // Phase 4.4: protect_scale 1.5 reaches real-track hiss risk low (bit-exact tails).
     encode_with_protect(samples, channels, preset, ProtectParams::widened(1.5))
@@ -199,27 +200,33 @@ pub fn encode_with_protect(
     let mut i = 0;
     while i < bounds.len() {
         let tag = tags[i];
+        let start = i;
+        let mut end = i + 1;
+        let mut out_tag = tag;
         if tag == TAG_LOSSY {
-            let start = i;
-            let mut end = i + 1;
             while end < bounds.len() && tags[end] == TAG_LOSSY {
                 end += 1;
             }
-            let s = bounds[start].0;
-            let e = bounds[end - 1].1;
-            let n = e - s;
-            let slice = &samples[s * ch..e * ch];
-            let payload = mp5c::encode(slice, ch as u8, preset);
-            push_unit(&mut out, TAG_LOSSY, n, &payload);
-            i = end;
         } else {
-            let (s, e) = bounds[i];
-            let n = e - s;
-            let slice = &samples[s * ch..e * ch];
-            let payload = mp5l::encode(slice, ch as u8);
-            push_unit(&mut out, tag, n, &payload);
-            i += 1;
+            // Coalesce any consecutive lossless L/B run into one MP5-L payload.
+            while end < bounds.len() && tags[end] != TAG_LOSSY {
+                if tags[end] == TAG_BAND {
+                    out_tag = TAG_BAND;
+                }
+                end += 1;
+            }
         }
+        let s = bounds[start].0;
+        let e = bounds[end - 1].1;
+        let n = e - s;
+        let slice = &samples[s * ch..e * ch];
+        let payload = if out_tag == TAG_LOSSY {
+            mp5c::encode(slice, ch as u8, preset)
+        } else {
+            mp5l::encode(slice, ch as u8)
+        };
+        push_unit(&mut out, out_tag, n, &payload);
+        i = end;
     }
     out
 }
@@ -351,6 +358,17 @@ mod tests {
         let enc = encode(&s, 2, Preset::Extreme);
         assert_eq!(unit_count(&enc), 1, "lossy runs must coalesce into one MP5-C encode");
         assert_eq!(decode(&enc).unwrap().len(), s.len());
+    }
+
+    #[test]
+    fn adjacent_lossless_sub_blocks_are_coalesced() {
+        // Four consecutive quiet sub-blocks → one coalesced MP5-L unit (not four).
+        let n = SUB_BLOCK * 4;
+        let s = interleave(n, 2, |i, _| ((i as f64 * 0.01).sin() * 40.0) as i16);
+        let enc = encode(&s, 2, Preset::Extreme);
+        assert_eq!(unit_count(&enc), 1, "lossless L/B runs must coalesce into one MP5-L encode");
+        let dec = decode(&enc).unwrap();
+        assert_eq!(dec, s, "coalesced lossless must stay bit-exact");
     }
 
     #[test]

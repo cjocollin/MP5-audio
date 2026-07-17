@@ -410,7 +410,10 @@ export function AlbumPackagePanel({
         )}
       </div>
 
-      <ol className="space-y-1.5 max-h-80 overflow-y-auto mp5-album-tracklist" data-testid="album-track-list">
+      <ol
+        className="space-y-1.5 max-h-[min(40vh,16rem)] sm:max-h-80 overflow-y-auto overscroll-contain mp5-album-tracklist"
+        data-testid="album-track-list"
+      >
         {tracks.map((t, index) => {
           const badges = badgesForAlbumTrack(t, isEmbedded);
           const isCurrent =

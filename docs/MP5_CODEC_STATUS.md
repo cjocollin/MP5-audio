@@ -36,10 +36,12 @@ silence/quiet bit-exact — now at native speed. Done safely and additively:
 
 - The existing **MP5-C (v5.1) encode/decode is byte-identical** — `mp5c` was not modified, and
   the full JS + Rust suites pass against the rebuilt WASM (regression proof).
-- The vNext stream uses a **distinct `0x43 0x34` magic**, is **not** a valid MP5-C stream, has
-  **no public `CodecId`**, is **not wired into the Converter**, and is **not written into normal
-  `.mp5` exports**. The MP5-C and vNext decoders reject each other's containers.
-- It remains **lab-only, default OFF**; size on loud material can still exceed 1× PCM.
+- The vNext stream uses a **distinct `0x43 0x34` magic**, is **not** a valid MP5-C stream, and
+  the MP5-C / vNext decoders reject each other's containers.
+- **`CodecId.MP5C2 = 5`** is assigned for gated Converter lab/advanced export + player decode;
+  default and batch export remain MP5-L. Protect-scale **1.5** is the shipping threshold set
+  (real-track hiss risk **low** at ~0.97× PCM; see [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md)).
+- It remains **lab-only, default OFF**; further size cuts must keep hiss risk low.
 
 ## v0.24 vNext hysteresis/lookahead
 
@@ -79,7 +81,7 @@ detection leaves decaying tails partly lossy — still lab-only. See
 | **MP5-L v3** | **Default / recommended** | **Bit-exact (13/13)** | ~0.50× | ✅ Clean, default |
 | MP5-C (Standard/High/Extreme) | Lab / research | No (lossy) | ~0.52–0.61× | ⚠️ Lab-only — hiss |
 | MP5-H High + CORR | Hybrid | Sample-exact content (13/13) | ~1.13× (often >1×) | Optional, large, not default |
-| **MP5-C vNext (`CodecId` 5)** | **Lab/advanced export** | Quiet/fragile bit-exact | ~0.62–0.97× | 🧪 Gated in Converter; synthetic hiss low; real-track tail medium |
+| **MP5-C vNext (`CodecId` 5)** | **Lab/advanced export** | Quiet/fragile bit-exact | ~0.42–0.97× | 🧪 Gated; hiss risk low @ protect 1.5; L/B+lossy coalesce |
 | PCM | Reference / debug | Bit-exact | 1.00× | Reference |
 
 ## MP5-L (default, lossless)

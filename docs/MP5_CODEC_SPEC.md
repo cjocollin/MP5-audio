@@ -1,29 +1,45 @@
 # MP5 Codec Specification (v0.1)
 
-## MP5-L (lossless)
+Authoritative bitstream details live in `rust/mp5-codec` and the per-codec docs below.
+This page is a short public summary.
 
-- Block size: 4096 samples/channel (configurable)
-- Stereo: M/S decorrelation
-- LPC order 4–8, Rice-coded residuals
+## MP5-L (lossless) — default
+
+- Block size: up to 4096 samples/channel (silence-aware planning may split earlier)
+- Stereo: try L/R, mid/side, left-side, right-side; keep smallest verified
+- Predictors: fixed orders 0–4 (higher LPC not used — overflow-safe)
+- Residuals: zigzag-varint (`FLAG_RICE` = 3, legacy name) and/or **bit-packed Rice**
+  (`FLAG_RICE_PACKED` = 6); encoder picks the smaller round-tripping payload
 - CRC32 per block
 - **Guarantee:** bit-exact roundtrip
 
-## MP5-C (lossy)
+See [MP5L.md](MP5L.md).
 
-- Frame: 1152 samples (default)
-- MDCT + simplified masking + uniform quantization
-- Huffman entropy (fixed tables v0.1)
-- Overlap-add decode
-- Presets: Low 64k, Standard 128k, High 192k, Extreme 256k (target bitrates)
+## MP5-C (lossy) — lab-only
 
-**Not competitive with AAC/Opus in v0.1.**
+- Time-domain quantization with full-scale-relative step (not MDCT in the shipping pack)
+- Known quiet-passage hiss — see [MP5C_HISS_AUDIT.md](MP5C_HISS_AUDIT.md)
+- Presets: Low / Standard / High / Extreme
+- AUDI payload magic `0x43` + version `0x02`…`0x06`
+
+**Not competitive with AAC/Opus.** Not the default export.
+
+## MP5-C2 / vNext (hybrid) — lab/advanced
+
+- Quiet/fragile/tail sub-blocks → MP5-L; loud → MP5-C (coalesced lossy runs)
+- Distinct AUDI magic `0x43 0x34`; CodecId **5**
+- Converter: gated behind **Show lab / advanced codecs**; batch stays MP5-L
+- Shipping protect-scale **1.5** (real-track hiss risk low at ~0.97× PCM)
+
+See [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md).
 
 ## MP5-H (hybrid)
 
 - Base: MP5-C in AUDI
-- CORR: compressed residual (i16 deltas + rice)
+- CORR: compressed residual
 - Modes: `base_only`, `enhanced`
+- Often large (>1× PCM); not default
 
 ## Frame bitstream (codec-internal)
 
-Documented in `rust/mp5-codec` module headers. Version byte `0x01` per codec sub-stream.
+Documented in `rust/mp5-codec` module headers. Container framing is in [MP5_CONTAINER_SPEC.md](MP5_CONTAINER_SPEC.md).

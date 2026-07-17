@@ -180,7 +180,10 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
 
       <div className="space-y-1">
         <p className="text-xs text-gray-500 font-medium">Track order (playlist → package)</p>
-        <ol className="space-y-1 max-h-40 overflow-y-auto" data-testid="create-album-track-order">
+        <ol
+          className="space-y-1 max-h-[min(32vh,10rem)] sm:max-h-40 overflow-y-auto overscroll-contain"
+          data-testid="create-album-track-order"
+        >
           {ordered.map((t, index) => {
             const info = trackDisplayInfo(t);
             return (

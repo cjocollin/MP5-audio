@@ -2,7 +2,7 @@
 
 **Version:** MP5 Audio v0.22.0-beta  
 **Principle:** **quality before compression.** No size target is set until the quality
-gates below pass. vNext is **lab-only, default OFF, never written to `.mp5`**.
+gates below pass. vNext is **lab-only, default OFF**, gated behind Converter advanced codecs.
 
 See the root-cause analysis in [MP5C_HISS_AUDIT.md](MP5C_HISS_AUDIT.md).
 
@@ -59,14 +59,15 @@ content outright (lossless), and roughly doubles reverb-tail quiet SNR. But it i
 5. **Native Rust port — DONE (v0.25).** The `smooth` engine is now `rust/mp5-codec/src/mp5c2.rs`,
    exposed via `encode_mp5c_vnext`/`decode_mp5c_vnext`, **bit-identical to the JS prototype** and
    at native speed. MP5-C (v5.1) is byte-identical (untouched); the vNext stream uses a distinct
-   `0x43 0x34` magic, has no public `CodecId`, and is not written into `.mp5`. This is the
-   foundation for eventually deciding whether vNext earns a real format version — **not yet**.
-6. **Still open:** further quiet-threshold / band tuning so real commercial tails reach ≥40 dB
-   tail SNR (currently ~32.6 dB / medium on one local reference); only then consider promoting
-   vNext out of lab/advanced. Coalescing adjacent lossy sub-blocks is **DONE** (dense_music
-   ~1.17× → ~0.97× PCM without regressing synthetic hiss risk low).
-7. Keep measuring with `pnpm audio:hiss-report` and `node tools/audio-lab/run.mjs validate-vnext-ref`;
-   do not chase size over quality.
+   `0x43 0x34` magic.
+6. **Gated CodecId + protect 1.5 — DONE.** `CodecId.MP5C2 = 5` is available under Converter
+   **Show lab / advanced codecs** (not default; batch stays MP5-L). Protect-scale **1.5** shipping
+   thresholds take a local commercial reference to hiss risk **low** (bit-exact tails) at ~0.97× PCM.
+   Coalescing adjacent lossy sub-blocks is **DONE** (dense_music ~1.17× → ~0.97× PCM).
+7. **Lossless L/B coalesce — DONE.** Adjacent L/B units share one MP5-L encode (`reverb_tail`
+   ~0.68× → **~0.42× PCM**; hiss risk still **low**). **Still open:** loud-path size (High vs
+   Extreme A/B, residual 2048 pad) while keeping hiss risk **low** — no MDCT redesign in this
+   track. Keep measuring with `pnpm audio:hiss-report` and `validate-vnext-ref`.
 
 ## Medium-term (codec redesign — proposal, not yet built)
 
@@ -81,8 +82,8 @@ content outright (lossless), and roughly doubles reverb-tail quiet SNR. But it i
 ## What NOT to do
 
 - Do **not** set a compression target before the quality gates pass.
-- Do **not** wire vNext into the converter or write it to `.mp5`.
-- Do **not** make MP5-C or vNext the default; MP5-L stays default/bit-exact.
+- Do **not** make MP5-C or vNext the default, or write vNext from batch export; MP5-L stays default/bit-exact.
+- Do **not** expose vNext outside the Converter lab/advanced gate.
 - Do **not** claim transparency from full-song SNR — only quiet/tail metrics count.
 - Do **not** weaken the lab's honesty gates to make vNext look better.
 

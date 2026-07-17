@@ -23,6 +23,7 @@ MP5 is an experimental Public Beta. This policy defines how the reference parser
 |-------|------|
 | MP5-L v3 | Default/recommended lossless path |
 | MP5-C | Lab-only; may hiss; not a distribution default |
+| MP5-C2 (vNext) | Lab/advanced only (CodecId 5); quiet-lossless hybrid; not default |
 | MP5-H | Experimental hybrid; large; not default |
 | PCM | Reference/debug fallback |
 
@@ -40,7 +41,7 @@ Profiles are compatibility hints, not legal, rights, or archival certification.
 
 ## Public Claims
 
-Allowed: Public Beta, experimental, browser-based, MP5-L v3 recommended, MP5-C lab-only, MP5-H large/experimental, `.mp5p` experimental.
+Allowed: Public Beta, experimental, browser-based, MP5-L v3 recommended, MP5-C lab-only, MP5-C2 lab/advanced, MP5-H large/experimental, `.mp5p` experimental.
 
 Not allowed: production-ready, beats MP3/AAC/Opus/FLAC, DRM enforcement, legal proof, AI stem separation, telemetry/upload/cloud-sync claims.
 

@@ -13,6 +13,7 @@ MP5 is an experimental, browser-based music format and player stack. The hosted 
 |--------|------|
 | MP5-L v3 | Default and recommended for playback/export |
 | MP5-C | Lab/research only; may hiss; not default |
+| MP5-C2 (vNext) | Lab/advanced hybrid (`CodecId` 5, AUDI `0x43 0x34`); gated; not default |
 | MP5-H | Large/experimental hybrid; not default |
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
@@ -22,8 +23,9 @@ MP5 is an experimental, browser-based music format and player stack. The hosted 
 v0.25.0-beta ports the winning **vNext "smooth"** engine into the **native Rust codec** ([MP5C_VNEXT_RESULTS.md](./MP5C_VNEXT_RESULTS.md)):
 
 - New `rust/mp5-codec/src/mp5c2.rs` (sub-block + per-band + hysteresis lossless fallback), exposed via additive WASM `encode_mp5c_vnext` / `decode_mp5c_vnext`. It is **bit-identical to the JS prototype** (parity SNR = ∞), reaches `reverb_tail` hiss risk **low**, and runs at native speed (lab mode `mp5c2-native-extreme`).
-- **Done safely:** the existing **MP5-C (v5.1) is byte-identical** (the `mp5c` module was not modified; full JS + Rust suites pass against the rebuilt WASM). The vNext stream uses a distinct `0x43 0x34` magic, has **no public `CodecId`**, is **not in the Converter**, and is **never written into `.mp5`** — still lab-only / default OFF.
-- **No change** to MP5-L default/recommended policy, MP5-C public behavior, MP5/MP5P semantics, or the playback harness.
+- **Done safely:** the existing **MP5-C (v5.1) is byte-identical** (the `mp5c` module was not modified; full JS + Rust suites pass against the rebuilt WASM). The vNext stream uses a distinct `0x43 0x34` magic.
+- **Landed since:** public `CodecId.MP5C2 = 5` for gated Converter lab/advanced export + player decode; protect-scale **1.5** shipping thresholds (real-track hiss risk **low** at ~0.97× PCM); MP5-L packed Rice + 4-mode stereo. MP5-L remains the default; batch export stays MP5-L-only.
+- **No change** to MP5-L default/recommended policy, MP5-C public quant behavior, or MP5/MP5P core semantics.
 
 ## v0.24.0-beta Milestone (previous)
 

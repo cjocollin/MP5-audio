@@ -3,11 +3,10 @@
 **Version:** MP5 Audio v0.26.0-beta  
 **Reproduce:** `pnpm audio:hiss-report` (synthetic + optional local reference).
 
-> **TL;DR (v0.26).** **Coalescing adjacent lossy sub-blocks** keeps synthetic `reverb_tail` hiss risk
-> **low** while cutting loud size (`dense_music` ~1.17× → **~0.97× PCM**). `CodecId.MP5C2` is a
-> Converter **lab/advanced** export. Local commercial reference: **~32.6 dB tail SNR (medium)** —
-> better than MP5-C Extreme (~25.6), not yet the ≥40 dB low gate. MP5-L stays default. No claim vs
-> MP3/AAC/Opus/FLAC/WAV.
+> **TL;DR.** Lossy coalesce + protect **1.5** keep hiss risk **low** (synthetic + real-track tails
+> bit-exact). **Lossless L/B coalesce** further cuts protected material (`reverb_tail` ~0.68× →
+> **~0.42× PCM**); loud `dense_music` stays ~**0.97×**. `CodecId.MP5C2` is Converter lab/advanced
+> only. MP5-L stays default. No claim vs MP3/AAC/Opus/FLAC/WAV.
 
 ## Phase 4.4 — protect-scale experiment (timeboxed) — **GREEN**
 
@@ -29,13 +28,28 @@ commercial reference:
 `VNEXT_PARAMS` now use the 1.5-widened thresholds. Scale 1.0 remains measurable via
 `encode_mp5c_vnext_protect(..., 1.0)`.
 
+## Lossless L/B coalescing (size-at-fixed-quality)
+
+Adjacent quiet/fragile **L/B** sub-blocks now encode as one MP5-L unit (same protect decisions;
+decode still trims by `n`). Measured with `pnpm audio:hiss-report` after protect 1.5:
+
+| Mode | ×PCM (reverb_tail) | ×PCM (dense_music) | ×PCM (quiet_sine) | Hiss risk (reverb) |
+|------|-------------------:|-------------------:|------------------:|:------------------:|
+| smooth Extreme no-coalesce | 0.503 | 1.167 | 0.100 | low |
+| lossy-only coalesce (prior) | ~0.676 | 0.971 | — | low |
+| **lossy + L/B coalesce** | **0.420** | **0.971** | **0.084** | **low** |
+| native Extreme (same) | 0.420 | 0.971 | 0.084 | low |
+
+**Verdict:** go — hiss risk unchanged **low**; quiet/tail SNR still ∞; largest win on heavily
+protected material. Loud path unchanged (already lossy-coalesced).
+
 ## v0.26 — lossy coalescing
 
 | Mode | ×PCM (reverb_tail) | ×PCM (dense_music) | Hiss risk (reverb) |
 |------|-------------------:|-------------------:|:------------------:|
 | smooth Extreme no-coalesce | 0.749 | 1.167 | low |
-| **smooth Extreme + coalesce** | **0.676** | **0.971** | **low** |
-| native Extreme (coalesce) | 0.676 | 0.971 | low |
+| **smooth Extreme + lossy coalesce** | **0.676** | **0.971** | **low** |
+| native Extreme (lossy coalesce) | 0.676 | 0.971 | low |
 | MP5-L | 0.655 | 0.751 | low |
 
 ## v0.24 — hysteresis/lookahead + noise-shaping experiment

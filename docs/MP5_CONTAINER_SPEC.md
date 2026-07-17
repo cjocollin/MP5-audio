@@ -68,6 +68,18 @@ The `HEAD` payload is 32 bytes.
 | `flags` | `u8` |
 | `data` | `byte[byte_length]` |
 
+The `data` bytes are a **codec-specific bitstream**. Interpreters must use `HEAD.codec_id`:
+
+| CodecId | Typical `data` magic (first bytes) | Notes |
+|---------|--------------------------------------|-------|
+| MP5-L (2) | `0x4c` + version | See [MP5L.md](MP5L.md) |
+| MP5-C (1) | `0x43` + `0x02`…`0x06` | Public MP5-C pack versions |
+| MP5-C2 (5) | `0x43 0x34` | vNext hybrid; **not** a valid MP5-C stream |
+| MP5-H (3) | wrapper `0x48` + base/CORR | See [MP5H.md](MP5H.md) |
+| PCM (0) | raw i16 LE | Debug/reference |
+
+Cross-decoding MP5-C ↔ MP5-C2 must fail closed (distinct magic).
+
 ## Common Optional Payloads
 
 | Chunk | Payload |

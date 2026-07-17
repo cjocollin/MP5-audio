@@ -26,7 +26,10 @@ This document is descriptive of the current reference implementation. v0.25.0-be
 | 2 | MP5-L | Recommended lossless mode; v3 is the default |
 | 3 | MP5-H | Experimental hybrid mode; large; not default |
 | 4 | External passthrough | Registry value; not a normal export target |
+| 5 | MP5-C2 (vNext) | Lab/advanced hybrid (quiet→MP5-L, loud→MP5-C). AUDI payload magic `0x43 0x34`. Not default; gated in Converter |
 | 255 | Private/experimental | Not a public interoperability target |
+
+MP5-C public streams use AUDI payload magics `0x43 0x02`–`0x06`. **MP5-C2 vNext is a distinct stream** (`0x43 0x34`) and must not be decoded as MP5-C (and vice versa).
 
 ## Core Chunks
 

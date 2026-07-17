@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Milestone - Docs sync, mobile density, vNext L/B coalesce
+
+**Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
+No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
+
+- **Docs/compat:** `FLAG_RICE_PACKED`, AUDI `0x43 0x34`, CodecId MP5C2, and protect-1.5 status
+  synced across format/container/codec/feature/compat docs (stale “no CodecId” notes cleared).
+- **Mobile density (Phase 3.4):** capped scroll regions for stems/lyrics/playlist/album lists;
+  collapsible stems help/diagnostics; sticky stem-prep progress bar with overall %.
+- **vNext lossless L/B coalesce:** adjacent quiet/fragile units share one MP5-L encode (Rust + JS).
+  `reverb_tail` ~0.68× → **~0.42× PCM**; hiss risk still **low**; `dense_music` unchanged ~0.97×.
+
 ### Milestone - MP5-L packed Rice + 4-mode stereo; vNext protect experiment
 
 **Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.

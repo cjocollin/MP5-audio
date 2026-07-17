@@ -627,6 +627,12 @@ export function StemsPanel({
           : prepareProgress.phase === "ready"
             ? "ready"
             : "preparing";
+  const prepareOverallPercent = (() => {
+    const total = Math.max(1, prepareProgress.total);
+    const idx = Math.max(0, prepareProgress.currentIndex - 1);
+    const within = Math.min(100, Math.max(0, prepareProgress.percent ?? 0)) / 100;
+    return Math.min(100, Math.round(((idx + within) / total) * 100));
+  })();
 
   const activeStemIds = new Set(
     stemMixActive && mixMode !== "full_mix"
@@ -647,65 +653,75 @@ export function StemsPanel({
         </span>
       </div>
 
-      <div
-        className="text-xs text-gray-500 space-y-1.5 leading-relaxed border border-white/5 rounded-lg p-3 bg-surface/50"
+      <p className="text-xs text-gray-500" data-testid="stems-selection-help">
+        Selecting a stem prepares it for stem mix. It will not interrupt full mix playback.
+      </p>
+      {fileTier?.large && (
+        <p className="text-xs text-amber-200/80" data-testid="stems-large-adaptive-notice">
+          Large embedded stems — full mix is ready; load only the stems you need.
+        </p>
+      )}
+      <details
+        className="text-xs text-gray-500 border border-white/5 rounded-lg bg-surface/50"
         data-testid="stems-panel-help"
       >
-        <p>
-          <strong className="text-gray-400 font-normal">Full mix</strong> in AUDI is always ready — play
-          normally below. Stems are optional; load only what you need.
-        </p>
-        <p data-testid="stems-selection-help">
-          Selecting a stem prepares it for stem mix. It will not interrupt full mix playback.
-        </p>
-        {fileTier?.large && (
-          <p data-testid="stems-large-adaptive-notice">
-            This file has large embedded stems. Full mix playback is ready. Choose which stems to load,
-            solo, or prepare a stem mix. Large mixes may take time and memory.
+        <summary className="cursor-pointer select-none px-3 py-2 text-gray-400 hover:text-gray-300">
+          How stems work
+        </summary>
+        <div className="space-y-1.5 leading-relaxed px-3 pb-3 border-t border-white/5 pt-2">
+          <p>
+            <strong className="text-gray-400 font-normal">Full mix</strong> in AUDI is always ready — play
+            normally below. Stems are optional; load only what you need.
           </p>
-        )}
-        <p>
-          No AI stem separation — stems were provided manually at export. Third-party players can ignore
-          STEM/STDA/STDF.
-        </p>
-      </div>
+          <p>
+            No AI stem separation — stems were provided manually at export. Third-party players can ignore
+            STEM/STDA/STDF.
+          </p>
+        </div>
+      </details>
 
-      <div
-        className="text-[10px] text-gray-600 font-mono space-y-0.5 border border-white/5 rounded-lg p-2"
+      <details
+        className="text-[10px] text-gray-600 font-mono border border-white/5 rounded-lg"
         data-testid="stems-diagnostics"
       >
-        <p>
-          Storage: {parsedStems.storageMode}
-          {parsedStems.storageMode === "stdf-v1"
-            ? ` · ${parsedStems.stdfIndexGrouped?.size ?? parsedStems.stdfGrouped.size} stem fragment group(s)${
-                parsedStems.lazyFile ? " · lazy index" : ""
-              }`
-            : ""}
-        </p>
-        <p>Embedded stem data: ~{Math.round(parsedStems.totalEmbeddedBytes / (1024 * 1024))} MB</p>
-        <p>
-          Loaded: {cacheStats.loadedCount} · RAM ~{Math.round(cacheStats.decodedRamBytes / (1024 * 1024))}{" "}
-          MB
-          {selectedCount > 0
-            ? ` · Selected estimate ~${Math.round(selectedEstimate / (1024 * 1024))} MB`
-            : ""}
-        </p>
-        <p data-testid="stems-worker-diagnostics">
-          Worker: {workerDiag.workerAvailable ? "yes" : "no"} · status {workerDiag.workerStatus} ·
-          phase {workerDiag.taskPhase}
-          {workerDiag.queuedStemIds.length ? ` · queued ${workerDiag.queuedStemIds.join(", ")}` : ""}
-          {workerDiag.fallbackMode ? " · fallback" : ""}
-          {workerDiag.lastError ? ` · err ${workerDiag.lastError}` : ""}
-        </p>
-        {transportDiagnostics && (
-          <p data-testid="stems-transport-diagnostics">{transportDiagnostics}</p>
-        )}
-        {clockDiagnostics && (
-          <p data-testid="stems-clock-diagnostics" className="text-[10px] text-gray-600 font-mono">
-            {clockDiagnostics}
+        <summary className="cursor-pointer select-none px-2 py-1.5 text-gray-500 hover:text-gray-400">
+          Diagnostics · loaded {cacheStats.loadedCount} · RAM ~
+          {Math.round(cacheStats.decodedRamBytes / (1024 * 1024))} MB
+        </summary>
+        <div className="space-y-0.5 px-2 pb-2 border-t border-white/5 pt-1.5">
+          <p>
+            Storage: {parsedStems.storageMode}
+            {parsedStems.storageMode === "stdf-v1"
+              ? ` · ${parsedStems.stdfIndexGrouped?.size ?? parsedStems.stdfGrouped.size} stem fragment group(s)${
+                  parsedStems.lazyFile ? " · lazy index" : ""
+                }`
+              : ""}
           </p>
-        )}
-      </div>
+          <p>Embedded stem data: ~{Math.round(parsedStems.totalEmbeddedBytes / (1024 * 1024))} MB</p>
+          <p>
+            Loaded: {cacheStats.loadedCount} · RAM ~{Math.round(cacheStats.decodedRamBytes / (1024 * 1024))}{" "}
+            MB
+            {selectedCount > 0
+              ? ` · Selected estimate ~${Math.round(selectedEstimate / (1024 * 1024))} MB`
+              : ""}
+          </p>
+          <p data-testid="stems-worker-diagnostics">
+            Worker: {workerDiag.workerAvailable ? "yes" : "no"} · status {workerDiag.workerStatus} ·
+            phase {workerDiag.taskPhase}
+            {workerDiag.queuedStemIds.length ? ` · queued ${workerDiag.queuedStemIds.join(", ")}` : ""}
+            {workerDiag.fallbackMode ? " · fallback" : ""}
+            {workerDiag.lastError ? ` · err ${workerDiag.lastError}` : ""}
+          </p>
+          {transportDiagnostics && (
+            <p data-testid="stems-transport-diagnostics">{transportDiagnostics}</p>
+          )}
+          {clockDiagnostics && (
+            <p data-testid="stems-clock-diagnostics" className="text-[10px] text-gray-600 font-mono">
+              {clockDiagnostics}
+            </p>
+          )}
+        </div>
+      </details>
 
       {workerDiag.fallbackMode && (
         <p className="text-xs text-amber-200/70" data-testid="stems-worker-fallback-warning">
@@ -720,20 +736,48 @@ export function StemsPanel({
       )}
 
       {preparing && (
-        <div className="text-xs text-gray-400 space-y-2" data-testid="stems-prepare-progress">
-          <p>
-            {phaseLabel}: {prepareProgress.currentStemName ?? "stem"} (
-            {prepareProgress.currentIndex}/{prepareProgress.total})
-            {prepareProgress.percent != null ? ` · ${prepareProgress.percent}%` : ""}…
-          </p>
-          <button
-            type="button"
-            className="px-2 py-1 rounded border border-white/10 text-gray-400 hover:text-gray-200"
-            onClick={cancelPrepare}
-            data-testid="stems-prepare-cancel"
+        <div
+          className="sticky top-2 z-10 rounded-lg border border-accent/30 bg-surface-elevated/95 backdrop-blur-sm p-3 space-y-2 shadow-lg shadow-black/20"
+          data-testid="stems-prepare-progress"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-300">
+            <p className="min-w-0">
+              <span className="text-accent/90 font-medium">Preparing stems</span>
+              {" · "}
+              {phaseLabel}: {prepareProgress.currentStemName ?? "stem"} (
+              {prepareProgress.currentIndex}/{prepareProgress.total})
+            </p>
+            <span className="tabular-nums text-gray-400 shrink-0" data-testid="stems-prepare-percent">
+              {prepareOverallPercent}%
+            </span>
+          </div>
+          <div
+            className="h-1.5 rounded-full bg-white/10 overflow-hidden"
+            data-testid="stems-prepare-bar"
           >
-            Cancel preparation
-          </button>
+            <div
+              className="h-full rounded-full bg-accent/80 transition-[width] duration-200 ease-out"
+              style={{ width: `${prepareOverallPercent}%` }}
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] text-gray-500">
+              RAM ~{Math.round(prepareProgress.decodedRamBytes / (1024 * 1024))} MB decoded
+              {prepareProgress.percent != null
+                ? ` · current stem ${prepareProgress.percent}%`
+                : ""}
+            </p>
+            <button
+              type="button"
+              className="px-2 py-1 min-h-8 rounded border border-white/10 text-gray-400 hover:text-gray-200 text-xs"
+              onClick={cancelPrepare}
+              data-testid="stems-prepare-cancel"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -796,7 +840,10 @@ export function StemsPanel({
         </button>
       </div>
 
-      <ul className="space-y-2" data-testid="stems-list">
+      <ul
+        className="space-y-2 max-h-[min(50vh,22rem)] sm:max-h-[min(60vh,28rem)] overflow-y-auto overscroll-contain pr-0.5"
+        data-testid="stems-list"
+      >
         {parsedStems.stems.map((stem, index) => {
           const ui = uiState.find((u) => u.id === stem.stemId);
           const loaded = cacheRef.current.has(stem.stemId);

@@ -12,7 +12,8 @@ MP5 is experimental and browser-based. This document lists honest limitations, n
 - Decoding stems in workers takes time; solo/mute during preparation is best-effort.
 - Complex seek/loop/stem transitions can be heavy on slow devices; the playback regression suite monitors common cases.
 - Tracks without waveform data show a fallback; playback and seek still use the main timeline.
-- Dense lyrics, stems, and package views may require vertical scrolling on small phones.
+- Dense lyrics, stems, and package views use capped scroll regions on small phones; long stem
+  lists and album tracklists scroll inside the panel rather than stretching the whole page.
 
 ## Hosted Demo
 

@@ -196,7 +196,8 @@ function subBlockStats(slice, channels, alpha) {
  *   bandQuiet  — per-band fragile-HF-tail escalation to lossless.
  *   hysteresis — lookahead + latch so a whole decaying tail/fade stays lossless (v0.24).
  *   shaped     — noise-shaped (pre/de-emphasis) quantization on lossy sub-blocks (v0.24).
- *   coalesce   — merge adjacent lossy sub-blocks into one MP5-C encode (avoids 2048 pad per unit).
+ *   coalesce   — merge adjacent lossy sub-blocks into one MP5-C encode (avoids 2048 pad per unit)
+ *                and merge adjacent lossless L/B runs into one MP5-L encode.
  */
 function encodeMp5c2V2(codec, samples, channels, preset, opts) {
   const o = typeof opts === "boolean" ? { bandQuiet: opts } : opts || {};
@@ -271,6 +272,21 @@ function encodeMp5c2V2(codec, samples, channels, preset, opts) {
       const n = fEnd - f;
       const slice = samples.subarray(f * channels, fEnd * channels);
       pushUnit(0x43, n, codec.encode_mp5c(slice, channels, preset));
+      i = end;
+      continue;
+    }
+    if (coalesce && (tag === 0x4c || tag === 0x42) && !shaped) {
+      let end = i + 1;
+      let outTag = tag;
+      while (end < starts.length && tags[end] !== 0x43) {
+        if (tags[end] === 0x42) outTag = 0x42;
+        end++;
+      }
+      const f = starts[i][0];
+      const fEnd = starts[end - 1][1];
+      const n = fEnd - f;
+      const slice = samples.subarray(f * channels, fEnd * channels);
+      pushUnit(outTag, n, codec.encode_mp5l(slice, channels));
       i = end;
       continue;
     }
