@@ -125,7 +125,7 @@ export function WaveformView({
         />
       )}
       {visualProfile === "default-demo" ? (
-        <polygon points={demoWaveformPoints} fill="#8b5cf6" fillOpacity={0.82} />
+        <polygon points={demoWaveformPoints} fill="var(--mp5-accent)" fillOpacity={0.92} />
       ) : (
         displayPeaks.map((p, i) => {
           const h = Math.max(1, (p / peakMax) * 28);
@@ -137,7 +137,7 @@ export function WaveformView({
               y={16 - h / 2}
               width={0.34}
               height={h}
-              fill={played ? (playedFill ?? "#c084fc") : (unplayedFill ?? "#8b5cf6")}
+              fill={played ? (playedFill ?? "var(--mp5-accent-bright)") : (unplayedFill ?? "var(--mp5-accent)")}
             />
           );
         })

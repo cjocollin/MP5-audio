@@ -28,15 +28,17 @@
 
 :root {
   color-scheme: dark;
-  --mp5-page: #070b12;
-  --mp5-surface: #0c111b;
-  --mp5-surface-raised: #101722;
-  --mp5-surface-soft: #151d2a;
-  --mp5-border: rgba(148, 163, 184, 0.14);
-  --mp5-border-strong: rgba(148, 163, 184, 0.24);
-  --mp5-accent: #8b5cf6;
-  --mp5-accent-bright: #a970ff;
-  --mp5-verified: #22d3ee;
+  --mp5-page: #111214;
+  --mp5-surface: #121416;
+  --mp5-surface-raised: #1a1b1d;
+  --mp5-surface-soft: #202123;
+  --mp5-border: #2d2d30;
+  --mp5-border-strong: #3e4042;
+  --mp5-accent: #704db8;
+  --mp5-accent-bright: #9a6dd7;
+  --mp5-primary-control: #5e3c67;
+  --mp5-primary-control-hover: #6b4974;
+  --mp5-verified: #5dd6dc;
   --mp5-nav-height: 68px;
 }
 
@@ -56,7 +58,7 @@ body {
   margin: 0;
   padding-top: 1px;
   overflow-x: hidden;
-  background: #02050a;
+  background: #0e0f10;
 }
 
 button,
@@ -128,10 +130,8 @@ input[type="range"] {
     padding-top: 0;
     padding-bottom: 104px;
     border: 1px solid var(--mp5-border-strong);
-    border-radius: 18px;
-    background:
-      radial-gradient(circle at 32% 16%, rgba(38, 55, 78, 0.15), transparent 38%),
-      var(--mp5-page);
+    border-radius: 8px;
+    background: var(--mp5-page);
   }
 
   .mp5-app-main {
@@ -141,10 +141,10 @@ input[type="range"] {
   .mp5-shell-header {
     @apply sticky top-0 z-40 mb-3 flex min-h-[68px] items-center gap-4 px-4;
     border: 0;
-    border-radius: 17px 17px 0 0;
-    background: rgba(7, 11, 18, 0.94);
+    border-radius: 7px 7px 0 0;
+    background: var(--mp5-page);
     box-shadow: none;
-    backdrop-filter: blur(18px);
+    backdrop-filter: none;
   }
 
   .mp5-shell-brand {
@@ -153,14 +153,16 @@ input[type="range"] {
 
   .mp5-shell-wordmark {
     @apply text-xl font-bold tracking-[-0.03em] sm:text-2xl;
-    background: linear-gradient(90deg, #b37aff 0%, #9f73ff 48%, #62c9ff 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #b8b2bf;
+  }
+
+  .mp5-shell-wordmark-accent {
+    color: #a575e6;
   }
 
   .mp5-shell-version {
     @apply text-[10px] font-medium text-gray-500;
+    color: #85868a;
   }
 
   .mp5-shell-nav {
@@ -180,19 +182,20 @@ input[type="range"] {
   }
 
   .mp5-shell-open-caret {
-    @apply text-violet-100;
+    color: #d7c8df;
   }
 
   .mp5-shell-menu-button {
-    @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border text-gray-300;
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border text-gray-300;
     border-color: var(--mp5-border);
     background: var(--mp5-surface-raised);
   }
 
   .mp5-shell-mobile-menu {
-    @apply absolute right-3 top-[62px] z-50 grid min-w-44 gap-1 rounded-xl border p-2 shadow-2xl;
+    @apply absolute right-3 top-[62px] z-50 grid min-w-44 gap-1 rounded-lg border p-2;
     border-color: var(--mp5-border-strong);
-    background: #0d1420;
+    background: var(--mp5-surface-raised);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.32);
   }
 
   .mp5-shell-mobile-menu button,
@@ -201,10 +204,10 @@ input[type="range"] {
   }
 
   .mp5-beta-notice {
-    @apply relative mb-4 flex min-h-[42px] items-center gap-3 rounded-xl border px-4 py-1.5 text-xs text-gray-400;
+    @apply relative mb-4 flex min-h-[42px] items-center gap-3 rounded-md border px-4 py-1.5 text-xs text-gray-400;
     height: 42px;
-    border-color: rgba(148, 163, 184, 0.1);
-    background: rgba(16, 23, 34, 0.75);
+    border-color: var(--mp5-border);
+    background: var(--mp5-surface);
   }
 
   .mp5-beta-notice > svg {
@@ -216,7 +219,12 @@ input[type="range"] {
   }
 
   .mp5-beta-notice > button:not(.mp5-beta-dismiss) {
-    @apply shrink-0 font-medium text-violet-400 hover:text-violet-300;
+    @apply shrink-0 font-medium;
+    color: var(--mp5-accent-bright);
+  }
+
+  .mp5-beta-notice > button:not(.mp5-beta-dismiss):hover {
+    color: #b991e5;
   }
 
   .mp5-beta-dismiss {
@@ -224,25 +232,27 @@ input[type="range"] {
   }
 
   .mp5-card {
-    @apply rounded-2xl border;
+    @apply rounded-lg border;
     border-color: var(--mp5-border);
-    background: rgba(16, 23, 34, 0.82);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+    background: var(--mp5-surface);
+    box-shadow: none;
   }
 
   .mp5-focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/70 focus-visible:ring-offset-2;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    --tw-ring-color: rgba(154, 109, 215, 0.72);
     --tw-ring-offset-color: var(--mp5-page);
   }
 
   .mp5-btn-primary {
-    @apply min-h-11 rounded-xl px-4 py-2 font-semibold text-white transition;
-    background: linear-gradient(135deg, #7c3aed 0%, #9b63f7 100%);
-    box-shadow: 0 8px 24px rgba(124, 58, 237, 0.24);
+    @apply min-h-11 rounded-lg border px-4 py-2 font-semibold text-white transition-colors;
+    border-color: rgba(255, 255, 255, 0.08);
+    background: var(--mp5-primary-control);
+    box-shadow: none;
   }
 
   .mp5-btn-primary:hover {
-    filter: brightness(1.08);
+    background: var(--mp5-primary-control-hover);
   }
 
   .mp5-btn-primary:disabled {
@@ -250,7 +260,7 @@ input[type="range"] {
   }
 
   .mp5-btn-secondary {
-    @apply min-h-11 rounded-xl border px-4 py-2 text-gray-300 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40;
+    @apply min-h-11 rounded-lg border px-4 py-2 text-gray-300 transition-colors hover:bg-white/5 hover:text-white disabled:opacity-40;
     border-color: var(--mp5-border-strong);
   }
 
@@ -264,11 +274,12 @@ input[type="range"] {
 
   .mp5-tab::after {
     content: "";
-    @apply absolute inset-x-3 bottom-0 h-0.5 origin-center scale-x-0 rounded-full bg-violet-400 transition-transform;
+    @apply absolute inset-x-3 bottom-0 h-0.5 origin-center scale-x-0 rounded-full transition-transform;
+    background: var(--mp5-accent-bright);
   }
 
   .mp5-tab-active {
-    @apply text-violet-300;
+    color: #b991e5;
   }
 
   .mp5-tab-active::after {
@@ -284,15 +295,22 @@ input[type="range"] {
   }
 
   .mp5-mini-badge {
-    @apply inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-300;
+    @apply inline-flex shrink-0 items-center whitespace-nowrap rounded border px-2 py-1 text-[12px] font-medium leading-none;
+    color: #b991e5;
+    border-color: rgba(140, 97, 207, 0.86);
+    background: rgba(112, 77, 184, 0.08);
   }
 
   .mp5-verified-label {
-    @apply text-[10px] font-medium text-cyan-300;
+    @apply text-[10px] font-medium;
+    color: var(--mp5-verified);
   }
 
   .mp5-quality-badge {
-    @apply inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-cyan-500/40 bg-cyan-500/5 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300;
+    @apply inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded border px-2 py-1 text-[12px] font-medium leading-none;
+    color: var(--mp5-verified);
+    border-color: rgba(35, 139, 148, 0.94);
+    background: rgba(24, 100, 107, 0.08);
   }
 
   .mp5-import-summary {
@@ -310,11 +328,9 @@ input[type="range"] {
 
   .mp5-player-workspace {
     grid-area: workspace;
-    @apply min-w-0 overflow-hidden rounded-2xl border;
+    @apply min-w-0 overflow-hidden rounded-lg border;
     border-color: var(--mp5-border);
-    background:
-      radial-gradient(circle at 30% 18%, rgba(38, 55, 78, 0.18), transparent 42%),
-      rgba(12, 17, 27, 0.94);
+    background: var(--mp5-surface);
   }
 
   .mp5-player-primary {
@@ -323,15 +339,13 @@ input[type="range"] {
 
   .mp5-player-sidebar {
     grid-area: sidebar;
-    @apply sticky flex flex-col space-y-3 rounded-2xl border p-3;
+    @apply sticky flex flex-col space-y-3 rounded-lg border p-3;
     align-self: stretch;
     height: auto;
     overflow-y: auto;
     top: 98px;
     border-color: var(--mp5-border);
-    background:
-      linear-gradient(160deg, rgba(20, 30, 44, 0.7), rgba(10, 15, 24, 0.96) 44%),
-      rgba(12, 17, 27, 0.94);
+    background: var(--mp5-surface);
   }
 
   .mp5-player-inspector {
@@ -343,7 +357,7 @@ input[type="range"] {
     @apply sticky top-[86px] z-20 flex gap-1 overflow-x-auto border-b px-3 pt-2;
     position: static;
     border-color: var(--mp5-border);
-    background: rgba(12, 17, 27, 0.96);
+    background: var(--mp5-surface);
     scrollbar-width: none;
   }
 
@@ -356,18 +370,19 @@ input[type="range"] {
   }
 
   .mp5-inspector-tab[aria-current="true"] {
-    @apply text-violet-300;
+    color: #b991e5;
   }
 
   .mp5-inspector-tab[aria-current="true"]::after {
     content: "";
-    @apply absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-violet-400;
+    @apply absolute inset-x-2 bottom-0 h-0.5 rounded-full;
+    background: var(--mp5-accent-bright);
   }
 
   .mp5-inspector-section {
     @apply scroll-mt-32 border-b p-4 sm:p-5;
     padding-bottom: 34px;
-    border-color: rgba(148, 163, 184, 0.08);
+    border-color: var(--mp5-border);
   }
 
   .mp5-inspector-section:last-child {
@@ -387,9 +402,9 @@ input[type="range"] {
   }
 
   .mp5-track-cover {
-    @apply relative aspect-square w-full overflow-hidden rounded-xl border;
+    @apply relative aspect-square w-full overflow-hidden rounded-lg border;
     border-color: var(--mp5-border);
-    background: #090d16;
+    background: var(--mp5-page);
   }
 
   .mp5-track-details {
@@ -398,12 +413,13 @@ input[type="range"] {
   }
 
   .mp5-track-details h1 {
-    font-size: 22px;
+    font-size: 24px;
     line-height: 1.25;
   }
 
   .mp5-track-technical-summary {
     @apply pt-1 text-xs text-gray-500;
+    color: #85868a;
   }
 
   .mp5-track-facts {
@@ -413,6 +429,7 @@ input[type="range"] {
 
   .mp5-track-facts dt {
     @apply text-gray-500;
+    color: #85868a;
   }
 
   .mp5-track-facts dd {
@@ -420,12 +437,13 @@ input[type="range"] {
   }
 
   .mp5-integrity-value {
-    @apply inline-flex items-center justify-end gap-1 text-cyan-300;
+    @apply inline-flex items-center justify-end gap-1;
+    color: var(--mp5-verified);
   }
 
   .mp5-player-waveform {
     @apply border-y px-5 py-3 sm:px-6;
-    border-color: rgba(148, 163, 184, 0.08);
+    border-color: var(--mp5-border);
   }
 
   .mp5-waveform-shell {
@@ -455,6 +473,7 @@ input[type="range"] {
 
   .mp5-overview-table dt {
     @apply text-gray-500;
+    color: #85868a;
   }
 
   .mp5-overview-table dd {
@@ -500,6 +519,7 @@ input[type="range"] {
 
   .mp5-timeline-labels {
     @apply flex items-center justify-between gap-3 font-mono text-[11px] text-gray-500;
+    color: #85868a;
   }
 
   .mp5-transport-button {
@@ -510,10 +530,19 @@ input[type="range"] {
     opacity: 0.68;
   }
 
+  .mp5-transport-button-active {
+    color: #c6a1e8;
+    background: rgba(112, 77, 184, 0.16);
+  }
+
   .mp5-transport-play {
     @apply inline-flex min-h-14 min-w-14 items-center justify-center rounded-full text-white transition-transform hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-40;
-    background: linear-gradient(135deg, #7c3aed 0%, #a970ff 100%);
-    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.32);
+    background: var(--mp5-primary-control);
+    box-shadow: none;
+  }
+
+  .mp5-transport-play:hover {
+    background: var(--mp5-primary-control-hover);
   }
 
   .mp5-volume-control {
@@ -521,25 +550,26 @@ input[type="range"] {
   }
 
   .mp5-file-drop-zone {
-    @apply flex min-h-[210px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-5 transition-colors;
-    border-color: rgba(148, 163, 184, 0.2);
-    background: rgba(8, 12, 20, 0.42);
+    @apply flex min-h-[210px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-5 transition-colors;
+    border-color: var(--mp5-border-strong);
+    background: #101214;
   }
 
   .mp5-file-drop-zone:not(.cursor-not-allowed):hover {
-    border-color: rgba(139, 92, 246, 0.52);
-    background: rgba(139, 92, 246, 0.05);
+    border-color: rgba(154, 109, 215, 0.66);
+    background: rgba(112, 77, 184, 0.05);
   }
 
   .mp5-file-drop-icon {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-400;
-    background: rgba(148, 163, 184, 0.08);
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-lg border text-gray-400;
+    border-color: var(--mp5-border);
+    background: var(--mp5-surface-raised);
   }
 
   .mp5-file-drop-button {
     @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-medium text-gray-300;
     border-color: var(--mp5-border-strong);
-    background: rgba(16, 23, 34, 0.9);
+    background: var(--mp5-surface-raised);
   }
 
   .mp5-queue-row {
@@ -547,10 +577,9 @@ input[type="range"] {
   }
 
   .mp5-waveform-tile {
-    @apply inline-flex items-center justify-center text-violet-400;
-    background:
-      radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.2), transparent 68%),
-      #0d1020;
+    @apply inline-flex items-center justify-center;
+    color: var(--mp5-accent-bright);
+    background: var(--mp5-surface-raised);
   }
 
   .mp5-queue-action {
@@ -577,7 +606,9 @@ input[type="range"] {
   }
 
   .mp5-library-compact .mp5-queue-row {
-    @apply relative border-white/5 bg-surface/40 px-2 py-2 ring-0;
+    @apply relative px-2 py-2 ring-0;
+    border-color: var(--mp5-border);
+    background: var(--mp5-surface-raised);
   }
 
   .mp5-library-compact .mp5-queue-row > button:first-child > span:first-child {
@@ -648,9 +679,10 @@ input[type="range"] {
   }
 
   .mp5-experimental-card {
-    @apply flex gap-3 rounded-xl border p-4 text-xs leading-relaxed text-gray-500;
+    @apply flex gap-3 rounded-lg border p-4 text-xs leading-relaxed text-gray-500;
+    color: #85868a;
     border-color: var(--mp5-border);
-    background: linear-gradient(150deg, rgba(21, 31, 46, 0.78), rgba(12, 18, 28, 0.82));
+    background: var(--mp5-surface-raised);
   }
 
   .mp5-experimental-card > svg {
@@ -658,7 +690,12 @@ input[type="range"] {
   }
 
   .mp5-experimental-card button {
-    @apply mt-3 font-medium text-violet-400 hover:text-violet-300;
+    @apply mt-3 font-medium;
+    color: var(--mp5-accent-bright);
+  }
+
+  .mp5-experimental-card button:hover {
+    color: #b991e5;
   }
 
   .mp5-player-sidebar > .mp5-experimental-card {
@@ -687,9 +724,9 @@ input[type="range"] {
   [data-testid="song-map-panel"],
   [data-testid="lyrics-panel"],
   [data-testid="stems-panel"] {
-    @apply rounded-xl border;
-    border-color: rgba(148, 163, 184, 0.1);
-    background: rgba(16, 23, 34, 0.54);
+    @apply rounded-lg border;
+    border-color: var(--mp5-border);
+    background: var(--mp5-surface-raised);
   }
 
   .mp5-persistent-transport {
@@ -697,12 +734,10 @@ input[type="range"] {
     grid-template-columns: minmax(200px, 1.2fr) auto minmax(220px, 1fr) minmax(120px, 0.55fr) 88px;
     width: min(calc(100% - 4px), 1168px);
     border-color: var(--mp5-border-strong);
-    border-radius: 0 0 17px 17px;
-    background:
-      linear-gradient(100deg, rgba(14, 21, 34, 0.99), rgba(9, 14, 23, 0.98)),
-      rgba(9, 14, 23, 0.98);
-    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.38);
-    backdrop-filter: blur(20px);
+    border-radius: 0 0 7px 7px;
+    background: var(--mp5-surface-raised);
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .mp5-persistent-track {
@@ -727,7 +762,12 @@ input[type="range"] {
   }
 
   .mp5-persistent-controls .mp5-persistent-play {
-    @apply min-h-12 min-w-12 bg-violet-600 text-white hover:bg-violet-500;
+    @apply min-h-12 min-w-12 text-white;
+    background: var(--mp5-primary-control);
+  }
+
+  .mp5-persistent-controls .mp5-persistent-play:hover {
+    background: var(--mp5-primary-control-hover);
   }
 
   .mp5-persistent-queue-group {
@@ -824,7 +864,7 @@ input[type="range"] {
 
   .mp5-track-facts {
     @apply col-span-2 grid-cols-[auto_1fr_auto_1fr] border-t pt-4;
-    border-color: rgba(148, 163, 184, 0.08);
+    border-color: var(--mp5-border);
   }
 }
 
@@ -837,15 +877,15 @@ input[type="range"] {
     @apply px-2.5;
     padding-top: 0;
     padding-bottom: 150px;
-    border-radius: 16px;
+    border-radius: 8px;
   }
 
   .mp5-shell-header {
     @apply mb-1 min-h-[60px] px-3;
     margin-left: -10px;
     margin-right: -10px;
-    border-radius: 15px 15px 0 0;
-    background: #070b12;
+    border-radius: 7px 7px 0 0;
+    background: var(--mp5-page);
     backdrop-filter: none;
   }
 
@@ -866,9 +906,9 @@ input[type="range"] {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     min-height: var(--mp5-nav-height);
     border-color: var(--mp5-border-strong);
-    background: rgba(8, 13, 21, 0.98);
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.38);
-    backdrop-filter: blur(20px);
+    background: var(--mp5-surface-raised);
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .mp5-tab {
@@ -1094,7 +1134,7 @@ input[type="range"] {
   }
 
   .mp5-card {
-    @apply rounded-xl;
+    @apply rounded-lg;
   }
 
   .mp5-album-package {

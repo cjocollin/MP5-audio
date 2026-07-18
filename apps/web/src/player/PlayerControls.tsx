@@ -109,7 +109,7 @@ export function PlayerControls({
         <button
           type="button"
           onClick={onToggleShuffle}
-          className={`mp5-transport-button ${shuffle ? "bg-violet-500/15 text-violet-300" : ""}`}
+          className={`mp5-transport-button ${shuffle ? "mp5-transport-button-active" : ""}`}
           aria-label={shuffle ? "Turn shuffle off" : "Turn shuffle on"}
           aria-pressed={shuffle}
           data-testid="player-shuffle"
@@ -149,7 +149,7 @@ export function PlayerControls({
         <button
           type="button"
           onClick={onCycleRepeat}
-          className={`mp5-transport-button ${repeatMode !== "off" ? "bg-violet-500/15 text-violet-300" : ""}`}
+          className={`mp5-transport-button ${repeatMode !== "off" ? "mp5-transport-button-active" : ""}`}
           aria-label={repeatModeLabel(repeatMode)}
           data-testid="player-repeat"
           data-repeat-mode={repeatMode}
@@ -170,7 +170,7 @@ export function PlayerControls({
           onChange={(event) => onVolume(Number(event.target.value))}
           className="mp5-volume-slider h-7 min-w-0 flex-1"
           style={{
-            backgroundImage: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${volume * 100}%, rgba(148, 163, 184, 0.22) ${volume * 100}%, rgba(148, 163, 184, 0.22) 100%)`,
+            backgroundImage: `linear-gradient(to right, var(--mp5-accent) 0%, var(--mp5-accent) ${volume * 100}%, rgba(148, 148, 152, 0.24) ${volume * 100}%, rgba(148, 148, 152, 0.24) 100%)`,
           }}
           data-testid="volume-slider"
           aria-label="Volume"

@@ -141,7 +141,7 @@ export function PersistentTransport({
           onChange={(event) => onVolume(Number(event.target.value))}
           className="mp5-volume-slider"
           style={{
-            backgroundImage: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${volume * 100}%, rgba(148, 163, 184, 0.22) ${volume * 100}%, rgba(148, 163, 184, 0.22) 100%)`,
+            backgroundImage: `linear-gradient(to right, var(--mp5-accent) 0%, var(--mp5-accent) ${volume * 100}%, rgba(148, 148, 152, 0.24) ${volume * 100}%, rgba(148, 148, 152, 0.24) 100%)`,
           }}
           aria-label="Persistent volume"
         />

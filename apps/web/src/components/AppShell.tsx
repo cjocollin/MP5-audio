@@ -62,7 +62,7 @@ export function AppShell({ activeTab, onTabChange }: Props) {
           onClick={() => changeTab("player")}
           aria-label="Open MP5 Player"
         >
-          <span className="mp5-shell-wordmark">MP5 Audio</span>
+          <span className="mp5-shell-wordmark"><span className="mp5-shell-wordmark-accent">MP5</span> Audio</span>
           <span className="mp5-shell-version">Public Beta · v{APP_VERSION}</span>
         </button>
 
