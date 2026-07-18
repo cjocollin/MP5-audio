@@ -902,13 +902,14 @@ input[type="range"] {
 
 @media (max-width: 767px) {
   :root {
-    --mp5-nav-height: 76px;
+    --mp5-safe-bottom: max(6px, env(safe-area-inset-bottom));
+    --mp5-nav-height: calc(70px + var(--mp5-safe-bottom));
   }
 
   .mp5-app-shell {
     @apply px-2.5;
     padding-top: 0;
-    padding-bottom: 150px;
+    padding-bottom: calc(var(--mp5-nav-height) + 74px);
     border-radius: 8px;
   }
 
@@ -934,9 +935,12 @@ input[type="range"] {
   }
 
   .mp5-shell-nav {
-    @apply fixed inset-x-0 bottom-0 z-[60] m-0 grid h-auto border-t px-1 pb-[max(6px,env(safe-area-inset-bottom))] pt-1;
+    @apply fixed inset-x-0 bottom-0 z-[60] m-0 grid border-t px-1 pt-1;
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    box-sizing: border-box;
+    height: var(--mp5-nav-height);
     min-height: var(--mp5-nav-height);
+    padding-bottom: var(--mp5-safe-bottom);
     border-color: var(--mp5-border-strong);
     background: var(--mp5-surface-raised);
     box-shadow: none;
