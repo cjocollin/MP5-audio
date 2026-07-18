@@ -1,4 +1,15 @@
 import { useMemo, useState } from "react";
+import { FloppyDisk } from "@phosphor-icons/react/FloppyDisk";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { MagnifyingGlass } from "@phosphor-icons/react/MagnifyingGlass";
+import { MusicNotes } from "@phosphor-icons/react/MusicNotes";
+import { DotsThreeVertical } from "@phosphor-icons/react/DotsThreeVertical";
+import { Play } from "@phosphor-icons/react/Play";
+import { Repeat } from "@phosphor-icons/react/Repeat";
+import { Shuffle } from "@phosphor-icons/react/Shuffle";
+import { Trash } from "@phosphor-icons/react/Trash";
+import { X } from "@phosphor-icons/react/X";
+import { Waveform } from "@phosphor-icons/react/Waveform";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import { codecLabel } from "../lib/codecDisplay";
 import type { PlaylistTrack, RepeatMode } from "../store/playerStore";
@@ -57,7 +68,7 @@ function PlaylistRow({
 
   return (
     <li
-      className={`flex items-center gap-2 rounded-lg border px-2 py-2 transition-colors ${
+      className={`mp5-queue-row ${
         isCurrent
           ? "border-accent/50 bg-accent/15 ring-1 ring-accent/20"
           : "border-white/5 bg-surface/40 hover:bg-white/5"
@@ -74,22 +85,24 @@ function PlaylistRow({
         data-testid="playlist-item-select"
         aria-current={isCurrent ? "true" : undefined}
       >
-        <span className="relative w-10 h-10 shrink-0 rounded-md bg-surface-elevated overflow-hidden flex items-center justify-center">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-elevated">
           {coverUrl ? (
             <img src={coverUrl} alt="" className="w-full h-full object-cover" />
           ) : summary.metadataPending ? (
-            <span className="text-[10px] text-gray-500 animate-pulse" data-testid="playlist-item-cover-pending">
-              …
+            <span className="animate-pulse text-gray-500" data-testid="playlist-item-cover-pending">
+              <MusicNotes size={18} />
             </span>
           ) : (
-            <span className="text-sm opacity-40">♪</span>
+            <span className="mp5-waveform-tile" aria-hidden>
+              <Waveform size={22} weight="bold" />
+            </span>
           )}
           {isPlayingNow && (
             <span
               className="absolute inset-0 flex items-center justify-center bg-black/50 text-accent text-xs"
               data-testid="playlist-item-now-playing"
             >
-              ▶
+              <Play size={16} weight="fill" />
             </span>
           )}
         </span>
@@ -106,6 +119,9 @@ function PlaylistRow({
                 {summary.statusLabel}
               </span>
             )}
+            <span className="mp5-queue-compact-duration font-mono text-[10px] text-gray-500">
+              {summary.durationLabel}
+            </span>
           </span>
           <span className="block text-xs text-gray-500 truncate">
             {summary.artist}
@@ -119,7 +135,7 @@ function PlaylistRow({
               {summary.albumContextLabel}
             </span>
           )}
-          <span className="flex flex-wrap items-center gap-1.5 mt-0.5">
+          <span className="mp5-queue-technical mt-0.5 flex flex-wrap items-center gap-1.5">
             <span
               className="text-[10px] px-1.5 py-0 rounded border border-white/10 text-gray-500"
               data-testid="playlist-item-source-badge"
@@ -149,35 +165,38 @@ function PlaylistRow({
           </span>
         </span>
       </button>
+      <span className="mp5-queue-compact-more" aria-hidden>
+        <DotsThreeVertical size={17} weight="bold" />
+      </span>
       {onSaveToLibrary && track.file && (
         <button
           type="button"
-          className="shrink-0 px-2 py-1 rounded text-[10px] text-gray-400 hover:text-accent border border-white/10 disabled:opacity-30"
+          className="mp5-queue-action"
           onClick={onSaveToLibrary}
           disabled={saveBusy}
           data-testid="playlist-item-save-library"
         >
-          Save
+          <FloppyDisk size={15} />
         </button>
       )}
       <button
         type="button"
-        className="shrink-0 px-2 py-1.5 rounded text-xs text-gray-300 hover:text-white hover:bg-white/10 disabled:opacity-30 border border-white/10"
+        className="mp5-queue-action"
         onClick={onPlay}
         disabled={failed}
         aria-label={`Play ${summary.title}`}
         data-testid="playlist-item-play"
       >
-        Play
+        <Play size={16} weight="fill" />
       </button>
       <button
         type="button"
-        className="shrink-0 p-1.5 rounded text-gray-500 hover:text-red-300 hover:bg-white/10"
+        className="mp5-queue-action hover:text-red-300"
         onClick={onRemove}
         aria-label="Remove from queue"
         data-testid="playlist-item-remove"
       >
-        ✕
+        <X size={16} />
       </button>
     </li>
   );
@@ -200,6 +219,7 @@ interface Props {
   librarySaveBusy?: boolean;
   album?: ResolvedAlbumPackage | null;
   hydratingTrackId?: string | null;
+  compact?: boolean;
 }
 
 export function LibraryPanel({
@@ -219,8 +239,10 @@ export function LibraryPanel({
   librarySaveBusy,
   album,
   hydratingTrackId,
+  compact = false,
 }: Props) {
   const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
 
   const filteredIndices = useMemo(() => {
     return tracks
@@ -230,67 +252,93 @@ export function LibraryPanel({
   }, [tracks, search]);
 
   return (
-    <section className="space-y-3" data-testid="library-panel">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-gray-300">Playlist</p>
-        <div className="flex items-center gap-2">
+    <section
+      className={`space-y-3 ${compact ? "mp5-library-compact" : ""}`}
+      data-testid="library-panel"
+      data-collapsed={collapsed ? "true" : "false"}
+    >
+      <div className="mp5-queue-header flex items-center justify-between gap-2">
+        <div>
+          <p className="mp5-eyebrow">Up next</p>
+          <h2 className="text-sm font-semibold text-gray-200">
+            Queue <span className="font-normal text-gray-600">· {tracks.length} {tracks.length === 1 ? "track" : "tracks"}</span>
+          </h2>
+        </div>
+        <div className="mp5-queue-header-actions flex items-center gap-2">
           {tracks.length > 0 && onSaveToLibrary && tracks[currentIndex]?.file && (
             <button
               type="button"
-              className="text-xs text-gray-400 hover:text-accent disabled:opacity-40"
+              className="mp5-queue-action"
               onClick={() => onSaveToLibrary(tracks[currentIndex]!)}
               disabled={librarySaveBusy}
               data-testid="playlist-save-current-library"
+              aria-label="Save current track to library"
             >
-              Save current to library
+              <FloppyDisk size={16} />
             </button>
           )}
           {tracks.length > 0 && (
             <button
               type="button"
-              className="text-xs text-gray-500 hover:text-red-300"
+              className="mp5-queue-action hover:text-red-300"
               onClick={onClear}
               data-testid="playlist-clear"
+              aria-label="Clear queue"
             >
-              Clear queue
+              <Trash size={16} />
+            </button>
+          )}
+          {compact && (
+            <button
+              type="button"
+              className="mp5-queue-collapse mp5-focus-ring"
+              onClick={() => setCollapsed((value) => !value)}
+              aria-label={collapsed ? "Expand queue" : "Collapse queue"}
+              aria-expanded={!collapsed}
+            >
+              <CaretDown size={15} weight="bold" aria-hidden />
             </button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="mp5-queue-toggles flex flex-wrap gap-2">
         <button
           type="button"
           onClick={onToggleShuffle}
-          className={`px-2 py-1 rounded text-xs border ${
+          className={`mp5-queue-toggle ${
             shuffle ? "border-accent/50 bg-accent/15 text-accent" : "border-white/10 text-gray-500"
           }`}
           data-testid="library-shuffle"
         >
-          Shuffle {shuffle ? "on" : "off"}
+          <Shuffle size={15} /> Shuffle {shuffle ? "on" : "off"}
         </button>
         <button
           type="button"
           onClick={onCycleRepeat}
-          className={`px-2 py-1 rounded text-xs border ${
+          className={`mp5-queue-toggle ${
             repeatMode !== "off" ? "border-accent/50 bg-accent/15 text-accent" : "border-white/10 text-gray-500"
           }`}
           data-testid="library-repeat"
           data-repeat-mode={repeatMode}
         >
-          {repeatModeLabel(repeatMode)}
+          <Repeat size={15} /> {repeatModeLabel(repeatMode)}
         </button>
       </div>
 
-      <input
-        type="search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search title, artist, album, genre, mood, vibe…"
-        className="w-full bg-surface rounded-lg px-3 py-2 text-sm text-gray-200 border border-white/5"
-        data-testid="library-search"
-        disabled={!tracks.length}
-      />
+      {tracks.length > 1 && (
+        <label className="relative block">
+          <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search queue…"
+            className="w-full rounded-lg border border-white/5 bg-surface py-2 pl-9 pr-3 text-sm text-gray-200"
+            data-testid="library-search"
+          />
+        </label>
+      )}
 
       {dropErrors.length > 0 && (
         <ul className="text-xs text-amber-200/80 space-y-1" data-testid="drop-errors">
@@ -304,7 +352,7 @@ export function LibraryPanel({
 
       {!tracks.length ? (
         <div className="py-4 px-2 text-center sm:text-left" data-testid="library-empty">
-          <p className="text-sm text-gray-500">No tracks yet — drop .mp5 or .mp5p files above.</p>
+          <p className="text-sm text-gray-500">No tracks yet — drop or open an .mp5 or .mp5p file below.</p>
           <p className="text-xs text-gray-600 mt-2 leading-relaxed">
             Search by title, artist, album, genre, or mood/vibe once tracks are loaded.
           </p>

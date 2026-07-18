@@ -13,6 +13,7 @@ import {
   estimateSourceDurationSec,
   PERF_THRESHOLDS,
 } from "../lib/performance/thresholds";
+import { createRandomId } from "../lib/randomId";
 
 /** Extensions decoded via the same path as converter sources (WAV native, rest FFmpeg). */
 export const STEM_IMPORT_EXTENSIONS = [
@@ -119,7 +120,7 @@ export function createPendingStemFromPcm(
   const stemType = guessStemTypeFromFilename(file.name);
   const name = defaultStemNameFromFile(file.name);
   return {
-    id: crypto.randomUUID(),
+    id: createRandomId(),
     name,
     stemType,
     fileName: file.name,

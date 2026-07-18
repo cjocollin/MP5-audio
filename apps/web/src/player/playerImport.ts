@@ -1,4 +1,4 @@
-import { usePlayerStore } from "../store/playerStore";
+import { usePlayerStore, withoutDefaultDemoTracks } from "../store/playerStore";
 import { ingestAlbumPackageFiles } from "../lib/album/ingestAlbumPackage";
 import { recordRecentFileOpen } from "../lib/localLibrary/recentLibrary";
 import { ingestMp5Files, type IngestResult } from "./playlistUtils";
@@ -10,7 +10,7 @@ export async function importMp5ToPlayer(
 ): Promise<IngestResult> {
   const result = await ingestMp5Files(files);
   const store = usePlayerStore.getState();
-  const prevLen = store.tracks.length;
+  const prevLen = withoutDefaultDemoTracks(store.tracks).length;
 
   if (result.tracks.length > 0) {
     store.appendTracks(result.tracks);
@@ -19,7 +19,11 @@ export async function importMp5ToPlayer(
       recordRecentFileOpen(file);
     }
     if (opts?.playFirst) {
-      const firstNew = prevLen;
+      const currentTracks = usePlayerStore.getState().tracks;
+      const firstNewId = result.tracks[0]?.id;
+      const firstNew = firstNewId
+        ? currentTracks.findIndex((track) => track.id === firstNewId)
+        : prevLen;
       store.setCurrentIndex(firstNew);
       store.setPlaying(true);
     }
@@ -33,7 +37,7 @@ export async function importMp5ToPlayer(
 export async function importAlbumPackageToPlayer(file: File): Promise<void> {
   const store = usePlayerStore.getState();
   recordRecentFileOpen(file);
-  const ingest = await ingestAlbumPackageFiles([file], store.tracks);
+  const ingest = await ingestAlbumPackageFiles([file], withoutDefaultDemoTracks(store.tracks));
   if (ingest.album) {
     store.setPendingAlbumPackage(ingest.album);
   }

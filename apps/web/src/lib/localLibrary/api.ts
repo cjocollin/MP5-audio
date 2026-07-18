@@ -7,6 +7,7 @@ import { deleteSavedAlbum, listSavedAlbums } from "./albumLibrary";
 import { deleteSavedEmbeddedAlbum, listSavedEmbeddedAlbums } from "./embeddedAlbumLibrary";
 import { clearRecentLibrary } from "./recentLibrary";
 import type { LocalLibraryEntry, LocalLibraryRecord, StorageQuotaInfo } from "./types";
+import { createRandomId } from "../randomId";
 
 export interface SaveToLibraryResult {
   record: LocalLibraryRecord;
@@ -88,7 +89,7 @@ export async function saveMp5ToLibrary(
     };
   }
 
-  const id = crypto.randomUUID();
+  const id = createRandomId();
   const entry = buildEntry(id, filename, data, parsed);
   try {
     await store.putEntry(entry);

@@ -26,6 +26,33 @@ test.describe("Mobile smoke", () => {
     await expect(page.getByTestId("demo-path-a")).toBeVisible();
   });
 
+  test("bottom navigation keeps the same geometry across tabs", async ({ page }) => {
+    await page.goto("/");
+    const nav = page.getByTestId("app-main-nav");
+    await expect(nav).toBeVisible();
+
+    const playerBox = await nav.boundingBox();
+    expect(playerBox).not.toBeNull();
+    expect(playerBox?.height).toBeCloseTo(76, 1);
+
+    const transport = page.getByTestId("persistent-transport");
+    await expect(transport).toBeVisible();
+    const transportBox = await transport.boundingBox();
+    expect(transportBox).not.toBeNull();
+    expect((transportBox?.y ?? 0) + (transportBox?.height ?? 0)).toBeCloseTo(
+      playerBox?.y ?? 0,
+      1,
+    );
+
+    await page.getByTestId("app-tab-converter").click();
+    await expect(page.getByTestId("app-tab-converter")).toHaveAttribute("aria-current", "page");
+
+    const converterBox = await nav.boundingBox();
+    expect(converterBox).not.toBeNull();
+    expect(converterBox?.height).toBeCloseTo(playerBox?.height ?? 0, 1);
+    expect(converterBox?.y).toBeCloseTo(playerBox?.y ?? 0, 1);
+  });
+
   test("player controls stay reachable without horizontal overflow", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("app-tab-player").click();

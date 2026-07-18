@@ -2,6 +2,7 @@ import type { AlbmPackageManifest } from "@mp5/container";
 import { indexEmbeddedAlbumPackage } from "@mp5/container";
 import { getLibraryStore } from "./store";
 import type { LocalLibraryEntry } from "./types";
+import { createRandomId } from "../randomId";
 
 const METADATA_KEY = "mp5-saved-embedded-albums-v1";
 
@@ -51,7 +52,7 @@ export async function saveEmbeddedAlbumPackage(
   manifest: AlbmPackageManifest,
 ): Promise<SavedEmbeddedAlbumPackage> {
   const data = await file.arrayBuffer();
-  const id = crypto.randomUUID();
+  const id = createRandomId();
   const entry: LocalLibraryEntry = {
     id,
     filename: file.name,
@@ -79,7 +80,7 @@ export async function saveEmbeddedAlbumPackage(
   await getLibraryStore().putEntry(entry);
   const albums = readMeta();
   const saved: SavedEmbeddedAlbumPackage = {
-    id: crypto.randomUUID(),
+    id: createRandomId(),
     name: file.name,
     importedAt: Date.now(),
     fileSize: data.byteLength,

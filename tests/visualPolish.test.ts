@@ -16,8 +16,9 @@ import {
 describe("visual polish copy", () => {
   it("documents all codec modes honestly", () => {
     const ids = CODEC_MODE_HELP.map((m) => m.id);
-    expect(ids).toEqual(["mp5l", "mp5c", "mp5h", "pcm"]);
+    expect(ids).toEqual(["mp5l", "mp5c2", "mp5c", "mp5h", "pcm"]);
     expect(CODEC_MODE_HELP.find((m) => m.id === "mp5l")?.tagline).toMatch(/recommended/i);
+    expect(CODEC_MODE_HELP.find((m) => m.id === "mp5c2")?.tagline).toMatch(/lab|advanced/i);
     expect(CODEC_MODE_HELP.find((m) => m.id === "mp5c")?.tagline).toMatch(/experimental/i);
     expect(CODEC_MODE_HELP.find((m) => m.id === "mp5h")?.tagline).toMatch(/hybrid/i);
     expect(MP5_HONEST_LIMIT).toMatch(/does not claim/i);

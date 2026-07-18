@@ -8,6 +8,7 @@ import {
 } from "./batchTypes";
 import { formatLabelForExtension } from "./supportedSources";
 import type { ManualMetadataEdits } from "./manualMetadata";
+import { createRandomId } from "../lib/randomId";
 
 export function isBatchSourceSupported(filename: string): boolean {
   return !!formatLabelForExtension(filename);
@@ -20,7 +21,7 @@ export function createBatchItemsFromFiles(files: File[]): {
   const items: BatchQueueItem[] = [];
   const skipped: BatchQueueItem[] = [];
   for (const file of files) {
-    const id = crypto.randomUUID();
+    const id = createRandomId();
     const base: Omit<BatchQueueItem, "status"> = {
       id,
       sourceName: file.name,

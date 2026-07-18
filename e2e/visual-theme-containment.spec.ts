@@ -12,7 +12,7 @@ const COVER_FIXTURE = path.join(
 async function assertNoGlobalCoverBackground(page: import("@playwright/test").Page) {
   const bgChecks = await page.evaluate(() => {
     const targets = [document.body, document.documentElement];
-    const appRoot = document.querySelector(".min-h-screen.max-w-5xl");
+    const appRoot = document.querySelector(".mp5-app-shell");
     if (appRoot) targets.push(appRoot);
     return targets.map((el) => {
       const style = getComputedStyle(el!);
@@ -92,7 +92,9 @@ test.describe("VISU / cover mobile containment", () => {
     const viewport = page.viewportSize();
     expect(cardBox).toBeTruthy();
     if (!cardBox || !viewport) return;
-    expect(cardBox.width).toBeLessThanOrEqual(viewport.width * 0.55);
+    expect(cardBox.x).toBeGreaterThanOrEqual(0);
+    expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(viewport.width + 2);
+    expect(cardBox.width).toBeGreaterThanOrEqual(viewport.width * 0.8);
   });
 
   test("main tabs remain readable after loading themed track", async ({ page }) => {
@@ -103,9 +105,12 @@ test.describe("VISU / cover mobile containment", () => {
       timeout: 15_000,
     });
 
-    for (const tab of ["Converter", "Library", "About"]) {
+    for (const tab of ["Converter", "Library", "Settings"]) {
       await expect(page.getByRole("button", { name: tab, exact: true })).toBeVisible();
     }
+
+    await page.getByTestId("shell-mobile-menu-toggle").click();
+    await expect(page.getByRole("button", { name: "About MP5", exact: true })).toBeVisible();
 
     const playerTab = page.getByRole("button", { name: "Player", exact: true });
     await expect(playerTab).toHaveCSS("background-color", /./);
