@@ -88,7 +88,11 @@ export default function App() {
       </div>
 
       <main className="mp5-app-main">
-        {activeTab === "player" && <Mp5Player defaultDemoLoading={defaultDemoLoading} />}
+        <Mp5Player
+          defaultDemoLoading={defaultDemoLoading}
+          panelVisible={activeTab === "player"}
+          onRequestPlayer={() => setActiveTab("player")}
+        />
         {activeTab === "converter" && <ConverterPanel />}
         {activeTab === "library" && <LocalLibraryPanel />}
         {activeTab === "demo" && <DemoModePanel />}

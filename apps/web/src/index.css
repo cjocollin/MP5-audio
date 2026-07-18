@@ -138,6 +138,10 @@ input[type="range"] {
     @apply space-y-5;
   }
 
+  .mp5-app-main > .mp5-persistent-transport + * {
+    margin-top: 0 !important;
+  }
+
   .mp5-shell-header {
     @apply sticky top-0 z-40 mb-3 flex min-h-[68px] items-center gap-4 px-4;
     border: 0;
@@ -902,8 +906,10 @@ input[type="range"] {
 
 @media (max-width: 767px) {
   :root {
-    --mp5-safe-bottom: max(6px, env(safe-area-inset-bottom));
-    --mp5-nav-height: calc(70px + var(--mp5-safe-bottom));
+    --mp5-safe-bottom: 6px;
+    --mp5-safe-bottom: max(6px, min(34px, env(safe-area-inset-bottom)));
+    --mp5-nav-row-height: 65px;
+    --mp5-nav-height: 104px;
   }
 
   .mp5-app-shell {
@@ -915,6 +921,8 @@ input[type="range"] {
 
   .mp5-shell-header {
     @apply mb-1 min-h-[60px] px-3;
+    position: relative;
+    z-index: auto;
     margin-left: -10px;
     margin-right: -10px;
     border-radius: 7px 7px 0 0;
@@ -937,9 +945,12 @@ input[type="range"] {
   .mp5-shell-nav {
     @apply fixed inset-x-0 bottom-0 z-[60] m-0 grid border-t px-1 pt-1;
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: var(--mp5-nav-row-height);
+    align-content: start;
     box-sizing: border-box;
     height: var(--mp5-nav-height);
     min-height: var(--mp5-nav-height);
+    max-height: var(--mp5-nav-height);
     padding-bottom: var(--mp5-safe-bottom);
     border-color: var(--mp5-border-strong);
     background: var(--mp5-surface-raised);
@@ -948,7 +959,7 @@ input[type="range"] {
   }
 
   .mp5-tab {
-    @apply min-h-14 flex-col gap-0.5 rounded-lg px-1 py-1 text-[10px];
+    @apply h-full min-h-0 flex-col gap-0.5 rounded-lg px-1 py-1 text-[10px];
   }
 
   .mp5-tab svg {

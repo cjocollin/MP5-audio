@@ -11,7 +11,7 @@ const embeddedFixture = path.join(
 const hasEmbedded = fs.existsSync(embeddedFixture);
 
 test.describe("Mobile smoke", () => {
-  test.use({ viewport: MOBILE });
+  test.use({ viewport: MOBILE, isMobile: true, hasTouch: true });
 
   test.beforeEach(async ({ page }) => {
     await dismissWelcomeOnboarding(page);
@@ -33,7 +33,7 @@ test.describe("Mobile smoke", () => {
 
     const playerBox = await nav.boundingBox();
     expect(playerBox).not.toBeNull();
-    expect(playerBox?.height).toBeCloseTo(76, 1);
+    expect(playerBox?.height).toBeCloseTo(104, 1);
 
     const transport = page.getByTestId("persistent-transport");
     await expect(transport).toBeVisible();
@@ -44,13 +44,34 @@ test.describe("Mobile smoke", () => {
       1,
     );
 
-    await page.getByTestId("app-tab-converter").click();
-    await expect(page.getByTestId("app-tab-converter")).toHaveAttribute("aria-current", "page");
+    for (let pass = 0; pass < 3; pass += 1) {
+      await page.getByTestId("app-tab-converter").click();
+      await expect(page.getByTestId("app-tab-converter")).toHaveAttribute("aria-current", "page");
+      await expect(page.getByTestId("converter-panel")).toBeVisible();
+      await expect(transport).toBeVisible();
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }));
 
-    const converterBox = await nav.boundingBox();
-    expect(converterBox).not.toBeNull();
-    expect(converterBox?.height).toBeCloseTo(playerBox?.height ?? 0, 1);
-    expect(converterBox?.y).toBeCloseTo(playerBox?.y ?? 0, 1);
+      const converterBox = await nav.boundingBox();
+      const converterTransportBox = await transport.boundingBox();
+      expect(converterBox).not.toBeNull();
+      expect(converterTransportBox).not.toBeNull();
+      expect(converterBox?.height).toBeCloseTo(playerBox?.height ?? 0, 1);
+      expect(converterBox?.y).toBeCloseTo(playerBox?.y ?? 0, 1);
+      expect(
+        (converterTransportBox?.y ?? 0) + (converterTransportBox?.height ?? 0),
+      ).toBeCloseTo(converterBox?.y ?? 0, 1);
+
+      await page.getByTestId("app-tab-player").click();
+      await expect(page.getByTestId("mp5-player")).toBeVisible();
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }));
+      const restoredPlayerBox = await nav.boundingBox();
+      expect(restoredPlayerBox?.height).toBeCloseTo(playerBox?.height ?? 0, 1);
+      expect(restoredPlayerBox?.y).toBeCloseTo(playerBox?.y ?? 0, 1);
+    }
   });
 
   test("player controls stay reachable without horizontal overflow", async ({ page }) => {

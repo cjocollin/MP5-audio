@@ -151,9 +151,15 @@ const INSPECTOR_TABS: { id: InspectorSection; label: string; target: InspectorSe
 
 interface Mp5PlayerProps {
   defaultDemoLoading?: boolean;
+  panelVisible?: boolean;
+  onRequestPlayer?: () => void;
 }
 
-export function Mp5Player({ defaultDemoLoading = false }: Mp5PlayerProps) {
+export function Mp5Player({
+  defaultDemoLoading = false,
+  panelVisible = true,
+  onRequestPlayer,
+}: Mp5PlayerProps) {
   const store = usePlayerStore();
   const {
     tracks,
@@ -1828,25 +1834,27 @@ export function Mp5Player({ defaultDemoLoading = false }: Mp5PlayerProps) {
   };
 
   return (
-    <div className="space-y-6" data-testid="mp5-player">
-      {tracks.length === 0 && !defaultDemoLoading && <PlayerEmptyState />}
+    <>
+      {panelVisible && (
+        <div className="space-y-6" data-testid="mp5-player">
+          {tracks.length === 0 && !defaultDemoLoading && <PlayerEmptyState />}
 
-      {tracks.length === 0 && !defaultDemoLoading && (
-        <DemoFixtureActions
-          testIdPrefix="player"
-          onLoaded={async (file, playFirst) => {
-            dismissOnboarding();
-            const start = tracks.length;
-            const result = await ingestMp5Files([file]);
-            if (result.tracks.length) appendTracks(result.tracks);
-            setLastDropSummary(result);
-            if (playFirst && result.addedCount > 0) {
-              playWhenReadyRef.current = true;
-              setCurrentIndex(start);
-            }
-          }}
-        />
-      )}
+          {tracks.length === 0 && !defaultDemoLoading && (
+            <DemoFixtureActions
+              testIdPrefix="player"
+              onLoaded={async (file, playFirst) => {
+                dismissOnboarding();
+                const start = tracks.length;
+                const result = await ingestMp5Files([file]);
+                if (result.tracks.length) appendTracks(result.tracks);
+                setLastDropSummary(result);
+                if (playFirst && result.addedCount > 0) {
+                  playWhenReadyRef.current = true;
+                  setCurrentIndex(start);
+                }
+              }}
+            />
+          )}
 
       {ingestStage !== "idle" && ingestStage !== "ready" && (
         <p
@@ -2122,7 +2130,7 @@ export function Mp5Player({ defaultDemoLoading = false }: Mp5PlayerProps) {
           </section>
         </div>
 
-        <aside className="mp5-player-sidebar" id="mp5-player-queue">
+        <aside className="mp5-player-sidebar" id="mp5-player-queue" tabIndex={-1}>
           <LibraryPanel
             compact
             tracks={tracks}
@@ -2164,7 +2172,10 @@ export function Mp5Player({ defaultDemoLoading = false }: Mp5PlayerProps) {
             <CreateAlbumPackagePanel tracks={tracks} />
           </div>
         </aside>
-      </div>
+          </div>
+
+        </div>
+      )}
 
       <PersistentTransport
         track={track}
@@ -2182,8 +2193,20 @@ export function Mp5Player({ defaultDemoLoading = false }: Mp5PlayerProps) {
         volume={volume}
         onSeek={seek}
         onVolume={setVolume}
-        onQueue={() => document.getElementById("mp5-player-queue")?.scrollIntoView({ behavior: "smooth" })}
+        onQueue={() => {
+          const revealQueue = () => {
+            const queue = document.getElementById("mp5-player-queue");
+            queue?.scrollIntoView({ behavior: "smooth" });
+            queue?.focus({ preventScroll: true });
+          };
+          if (!panelVisible) {
+            onRequestPlayer?.();
+            window.setTimeout(revealQueue, 0);
+            return;
+          }
+          revealQueue();
+        }}
       />
-    </div>
+    </>
   );
 }
