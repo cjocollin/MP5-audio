@@ -85,15 +85,21 @@ function LandingAboutDetails() {
       <section className="mp5-card p-4 space-y-2" data-testid="landing-what-works">
         <SectionTitle>What works today (Public Beta)</SectionTitle>
         <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside leading-relaxed">
-          <li>Convert FLAC/WAV/MP3/etc. to .mp5 (MP5-L v3 default)</li>
-          <li>Play single .mp5 with metadata, lyrics, VISU, stems, karaoke</li>
-          <li>Import manifest or embedded .mp5p album packages</li>
-          <li>Batch album export from the Converter</li>
-          <li>Local library on this device (browser storage)</li>
+          <li>Convert FLAC/WAV/MP3/etc. to .mp5 — <strong className="text-gray-300 font-normal">MP5-L v3</strong> is the default</li>
+          <li>Play single .mp5 with metadata, cover art, lyrics, waveform/seek, and VISU themes</li>
+          <li>
+            Experimental: user/artist-provided stems, batch stem import, karaoke (when stems + synced
+            lyrics are present)
+          </li>
+          <li>Experimental: manifest or embedded .mp5p album packages</li>
+          <li>Batch album export from the Converter (batch stays MP5-L)</li>
+          <li>Local library on this device (browser storage only)</li>
+          <li>Optional lab/advanced codecs in Converter behind an explicit gate</li>
         </ul>
         <p className="text-[10px] text-gray-600">
-          No DRM, no legal verification, no AI stem separation. Large files and embedded albums can be
-          slow or heavy in the browser.
+          No DRM, no legal verification, and <strong className="text-gray-500 font-normal">no AI stem
+          separation</strong>. Large files, stems, and embedded albums can be slow or heavy in the
+          browser.
         </p>
       </section>
 
@@ -113,12 +119,23 @@ function LandingAboutDetails() {
 
       <section className="space-y-3" data-testid="landing-codec-modes">
         <SectionTitle>Current codec modes</SectionTitle>
-        <div className="grid sm:grid-cols-3 gap-2">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
           <CodecCard
             testId="landing-codec-mp5l"
             title="MP5-L"
             accent="default"
-            items={["Recommended default", "Lossless", "Bit-exact", "Clean listening mode"]}
+            items={["Recommended default", "Lossless / bit-exact", "Packed Rice + stereo modes", "Clean listening export"]}
+          />
+          <CodecCard
+            testId="landing-codec-mp5c2"
+            title="MP5-C2 (vNext)"
+            accent="hybrid"
+            items={[
+              "Lab / advanced only",
+              "Quiet/fragile → lossless",
+              "Loud → lossy (protect 1.5)",
+              "Not default; batch stays MP5-L",
+            ]}
           />
           <CodecCard
             testId="landing-codec-mp5c"
@@ -126,9 +143,9 @@ function LandingAboutDetails() {
             accent="lab"
             items={[
               "Experimental lab codec",
-              "Compressed research mode",
+              "Time-domain lossy research",
               "May add hiss",
-              "Not for normal listening yet",
+              "Not for normal listening",
             ]}
           />
           <CodecCard
@@ -136,15 +153,17 @@ function LandingAboutDetails() {
             title="MP5-H"
             accent="hybrid"
             items={[
-              "Hybrid mode",
-              "MP5-C base + CORR correction",
-              "Clean when CORR is present",
-              "Large files, not default",
+              "Hybrid + CORR layer",
+              "Clean when CORR present",
+              "Large files",
+              "Not default",
             ]}
           />
         </div>
         <p className="text-xs text-gray-500">
-          <strong className="text-gray-400 font-normal">PCM</strong> is reference/debug only.
+          <strong className="text-gray-400 font-normal">PCM</strong> is reference/debug only. An opt-in{" "}
+          <strong className="text-gray-400 font-normal">MDCT loud path</strong> exists in the audio lab
+          for vNext size research — not a public default.
         </p>
       </section>
 
@@ -156,13 +175,13 @@ function LandingAboutDetails() {
               Works now
             </h3>
             <ul className="text-gray-400 space-y-0.5 text-[11px] list-disc list-inside">
-              <li>Smart metadata (title, artist, album)</li>
-              <li>Cover art</li>
-              <li>Lyrics</li>
-              <li>Waveform / seek data</li>
-              <li>Content guidance (optional)</li>
-              <li>Mood / vibe tags</li>
               <li>MP5-L v3 convert &amp; play</li>
+              <li>Smart metadata, cover art, lyrics</li>
+              <li>Waveform / seek data</li>
+              <li>VISU themes (player visuals)</li>
+              <li>Content guidance (optional)</li>
+              <li>Local library (this device)</li>
+              <li>Browser-local processing</li>
             </ul>
           </div>
           <div>
@@ -170,9 +189,12 @@ function LandingAboutDetails() {
               Experimental
             </h3>
             <ul className="text-gray-400 space-y-0.5 text-[11px] list-disc list-inside">
-              <li>MP5-C lab codec (may hiss)</li>
+              <li>User-provided stems + batch stem import</li>
+              <li>Karaoke (stems + synced lyrics)</li>
+              <li>Album packages (.mp5p)</li>
               <li>MP5-H hybrid (large)</li>
-              <li>Specialized app metadata profiles</li>
+              <li>MP5-C2 vNext + MP5-C (lab/advanced gate)</li>
+              <li>MDCT loud path (lab measure only)</li>
             </ul>
           </div>
           <div>
@@ -180,10 +202,10 @@ function LandingAboutDetails() {
               Future roadmap
             </h3>
             <ul className="text-gray-400 space-y-0.5 text-[11px] list-disc list-inside">
-              <li>Stems / interactive audio research</li>
-              <li>Better compression tuning</li>
-              <li>Library persistence</li>
-              <li>Offline &amp; packaging polish</li>
+              <li>Further size/quality tuning (lab)</li>
+              <li>Desktop / mobile packaging polish</li>
+              <li>Stronger offline conversion</li>
+              <li>Deeper interactive audio research</li>
             </ul>
           </div>
         </div>
@@ -257,7 +279,11 @@ function LandingAboutDetails() {
           <li>MP5 is experimental Public Beta software — not a finished product codec.</li>
           <li>
             <strong className="text-gray-300 font-normal">MP5-L v3</strong> is the recommended
-            working mode for listening.
+            working mode for listening and batch export.
+          </li>
+          <li>
+            <strong className="text-gray-300 font-normal">MP5-C2 (vNext)</strong> is gated
+            lab/advanced: quieter passages stay lossless; loud passages stay lossy. Not default.
           </li>
           <li>
             <strong className="text-gray-300 font-normal">MP5-C</strong> is research/lab-only
@@ -267,8 +293,12 @@ function LandingAboutDetails() {
             <strong className="text-gray-300 font-normal">MP5-H</strong> can be clean with CORR
             applied but files stay large.
           </li>
+          <li>
+            Stems are <strong className="text-gray-300 font-normal">user/artist-provided only</strong> —
+            there is <strong className="text-gray-300 font-normal">no AI stem separation</strong>.
+          </li>
           <li>Large WASM/FFmpeg assets may take time to load on first visit.</li>
-          <li>Browser conversion is CPU- and memory-intensive for long files.</li>
+          <li>Browser conversion is CPU- and memory-intensive for long files, stems, and .mp5p packages.</li>
         </ul>
         <p className="text-sm text-gray-500" data-testid="landing-honesty-claim">
           {HONESTY_NO_BEAT_CLAIM}
@@ -280,12 +310,12 @@ function LandingAboutDetails() {
         <ul className="text-xs text-gray-500 flex flex-wrap gap-1.5">
           {[
             "Metadata polish",
-            "Better MP5-L compression",
-            "MP5-C redesign",
-            "Stems / interactive audio research",
+            "Further MP5-L size tuning",
+            "vNext / MDCT lab quality polish",
+            "Stem / karaoke UX polish",
             "Desktop / mobile packaging",
-            "Offline improvements",
-            "Library persistence",
+            "Stronger offline conversion",
+            "Deeper interactive audio research",
           ].map((item) => (
             <li
               key={item}

@@ -5,7 +5,9 @@
 
 ## Short Description
 
-MP5 Audio is an experimental browser-based audio format, converter, and player. MP5-L v3 is the recommended lossless path; MP5-C and MP5-H are research modes.
+MP5 Audio is an experimental browser-based audio format, converter, and player. MP5-L v3 is the recommended lossless path; MP5-C, MP5-C2 (vNext), and MP5-H are lab/research modes (not default).
+
+Public Beta also includes metadata/cover/lyrics, VISU themes, a local library on this device, and experimental user-provided stems (including batch stem import and karaoke when stems + synced lyrics are present). Album packages (`.mp5p`) are experimental. There is no AI stem separation.
 
 ## Honesty Copy
 

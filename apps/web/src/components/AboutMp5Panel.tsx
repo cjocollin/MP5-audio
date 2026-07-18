@@ -18,8 +18,19 @@ export function AboutMp5Panel() {
         <h3 className="font-semibold text-accent">MP5-L v3 — default</h3>
         <p className="text-gray-400 text-xs leading-relaxed">
           <strong className="text-gray-200">Lossless, bit-exact</strong> export. Decoded PCM matches
-          the source sample-for-sample. Modest compression vs raw PCM. This is the{" "}
-          <strong className="text-gray-200">recommended</strong> mode for listening and demos.
+          the source sample-for-sample. Packed Rice + multi-mode stereo give modest compression vs
+          raw PCM. This is the <strong className="text-gray-200">recommended</strong> mode for
+          listening, demos, and batch export.
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-sky-500/20 bg-sky-950/20 p-4 space-y-2">
+        <h3 className="font-semibold text-sky-200">MP5-C2 (vNext) — lab / advanced</h3>
+        <p className="text-gray-400 text-xs leading-relaxed">
+          Hybrid path: quiet/fragile/tail passages stay <strong className="text-gray-200">MP5-L</strong>;
+          loud passages use a lossy loud codec. Available only under Converter{" "}
+          <strong className="text-gray-200">Show lab / advanced codecs</strong>. Not the default;
+          batch export stays MP5-L. An opt-in MDCT loud path exists for lab measurement only.
         </p>
       </section>
 
@@ -49,6 +60,20 @@ export function AboutMp5Panel() {
         </p>
       </section>
 
+      <section className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 space-y-2">
+        <h3 className="font-semibold text-emerald-200">Player features (Public Beta)</h3>
+        <p className="text-gray-400 text-xs leading-relaxed">
+          Metadata, cover art, lyrics, waveform/seek, VISU themes, and a{" "}
+          <strong className="text-gray-200">local library</strong> stored in this browser only.
+        </p>
+        <p className="text-gray-400 text-xs leading-relaxed">
+          <strong className="text-gray-200">Experimental:</strong> user/artist-provided stems, batch
+          stem import, karaoke when stems + synced lyrics are present, and manifest/embedded{" "}
+          <code className="text-accent">.mp5p</code> album packages. There is{" "}
+          <strong className="text-gray-200">no AI stem separation</strong>.
+        </p>
+      </section>
+
       <section className="rounded-xl bg-surface-elevated p-4 space-y-2">
         <h3 className="font-semibold text-gray-200">Install &amp; share (Public Beta)</h3>
         <p className="text-gray-400 text-xs leading-relaxed">
@@ -69,7 +94,8 @@ export function AboutMp5Panel() {
       <section className="rounded-xl bg-surface-elevated p-4 space-y-1 text-xs text-gray-500">
         <p>
           Docs: <code className="text-accent">docs/MP5_DEMO_GUIDE.md</code>,{" "}
-          <code className="text-accent">docs/MP5_BETA_READINESS.md</code>
+          <code className="text-accent">docs/MP5_BETA_READINESS.md</code>,{" "}
+          <code className="text-accent">docs/MP5_CODEC_STATUS.md</code>
         </p>
         <p>Verify: <code className="text-accent">pnpm beta:check</code></p>
       </section>

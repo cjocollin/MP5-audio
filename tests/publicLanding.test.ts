@@ -44,6 +44,8 @@ describe("public landing", () => {
     expect(src).toContain('data-testid="landing-about-toggle"');
     expect(src).toContain('data-testid="landing-about-details"');
     expect(src).toContain("landing-codec-mp5l");
+    expect(src).toContain("landing-codec-mp5c2");
+    expect(src).toContain("MP5-C2 (vNext)");
     expect(src).toContain('data-testid="landing-github-link"');
     expect(src).toContain('data-testid="landing-honesty-claim"');
     expect(src).toContain('data-testid="landing-screenshot-scroll"');
@@ -90,5 +92,31 @@ describe("public landing", () => {
 
   it("public demo copy doc exists", () => {
     expect(existsSync(join(root, "docs/MP5_PUBLIC_DEMO_COPY.md"))).toBe(true);
+  });
+
+  it("Learn More lists current stems and no AI stem separation", () => {
+    const src = readFileSync(
+      join(root, "apps/web/src/components/PublicLanding.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("user/artist-provided stems");
+    expect(src).toContain("batch stem import");
+    expect(src).toMatch(/no AI stem separation/i);
+    expect(src).toContain("Local library (this device)");
+    expect(src).not.toContain("Stems / interactive audio research");
+    expect(src).not.toContain("Library persistence");
+  });
+
+  it("About panel and demo copy mention stems without AI separation", () => {
+    const about = readFileSync(
+      join(root, "apps/web/src/components/AboutMp5Panel.tsx"),
+      "utf8",
+    );
+    const demo = readFileSync(join(root, "docs/MP5_PUBLIC_DEMO_COPY.md"), "utf8");
+    expect(about).toContain("user/artist-provided stems");
+    expect(about).toMatch(/no AI stem separation/i);
+    expect(about).toContain("local library");
+    expect(demo).toContain("user-provided stems");
+    expect(demo).toMatch(/no AI stem separation/i);
   });
 });
