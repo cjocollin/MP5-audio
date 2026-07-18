@@ -313,6 +313,15 @@ input[type="range"] {
     background: rgba(24, 100, 107, 0.08);
   }
 
+  .mp5-now-playing-badges {
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .mp5-now-playing-badges::-webkit-scrollbar {
+    display: none;
+  }
+
   .mp5-import-summary {
     @apply fixed right-5 top-24 z-[70] max-w-sm shadow-2xl;
     border-color: var(--mp5-border-strong);

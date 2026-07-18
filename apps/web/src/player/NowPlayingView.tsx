@@ -149,7 +149,7 @@ export function NowPlayingView({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2 pt-1" data-testid="now-playing-badges">
+          <div className="mp5-now-playing-badges flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 pt-1" data-testid="now-playing-badges">
             <span className="mp5-mini-badge" data-testid="now-playing-source-badge">
               <span aria-hidden>{primaryBadgeLabel}</span>
               {showCodecAsPrimaryBadge && <span className="sr-only">{summary.sourceLabel}</span>}
