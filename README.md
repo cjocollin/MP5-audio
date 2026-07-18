@@ -29,18 +29,24 @@ Single-track `.mp5` remains the core format. Album packages use `.mp5p` in eithe
 | Overall | Public Beta / experimental; not production-ready for archival or legal use |
 | MP5-L v3 | Recommended lossless path; bit-exact roundtrip |
 | MP5-C | Lab-only; quiet-passage hiss is measured (see codec status) |
-| MP5-C vNext | Lab prototypes only (`mp5c2-*`: block / sub-block / per-band), default OFF, never written to `.mp5` |
+| MP5-C vNext (MP5C2) | Lab/advanced gated export (`CodecId` 5, AUDI `0x43 0x34`); protect 1.5; prefer High preset; not default |
 | MP5-H | Experimental hybrid; large (avg >1× PCM); not default |
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
 | Public claims | No beat-codec, DRM, legal-proof, telemetry, upload, or cloud-sync claims |
 
-## v0.25.0-beta Focus
+## Recent focus (post v0.25)
 
-v0.25.0-beta ports the winning **vNext "smooth"** engine (sub-block + per-band + hysteresis lossless fallback) into the **native Rust codec** (`mp5c2`), exposed via additive WASM `encode_mp5c_vnext` / `decode_mp5c_vnext`. It is **bit-identical to the JS prototype** (parity SNR = ∞), reaches `reverb_tail` hiss risk **low**, and runs at native speed. Done **safely and additively**: the existing **MP5-C (v5.1) is byte-identical** (untouched; full JS+Rust suites pass against the rebuilt WASM), and the vNext stream uses a distinct `0x43 0x34` magic with **no public `CodecId`** — **not in the Converter, never written into `.mp5`**, still lab-only/default OFF. No change to MP5-L's default policy, MP5/STDF/MP5P semantics, or telemetry/AI/DRM. See [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md) and [MP5C_VNEXT_PLAN.md](docs/MP5C_VNEXT_PLAN.md).
+Native **vNext** (`mp5c2`) is bit-identical to the JS smooth engine, uses AUDI magic `0x43 0x34`,
+and ships as gated **`CodecId.MP5C2`** under Converter **Show lab / advanced codecs** (batch stays
+MP5-L). Protect-scale **1.5**, lossy + lossless L/B coalesce, and **High** as the preferred loud
+preset keep hiss risk **low** (~0.42× on protected `reverb_tail`, ~0.94× on `dense_music`).
+**MP5-L** remains default/recommended (packed Rice + 4-mode stereo). MP5-C v5.1 quant is unchanged.
+See [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md) and [MP5_CODEC_STATUS.md](docs/MP5_CODEC_STATUS.md).
 
 ```bash
 pnpm audio:hiss-report                       # hiss matrix + Hiss Risk + protected % (git-ignored)
+pnpm audio:validate-vnext-ref                # real-track protect-scale gate (needs lab.config)
 pnpm audio:export-listening:vnext            # PCM + MP5-L + MP5-C + vNext (smooth/native/...) WAVs
 cargo test -p mp5-codec --release            # native codec tests (incl. mp5c2 + MP5-C-unchanged)
 ```

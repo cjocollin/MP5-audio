@@ -213,22 +213,27 @@ export function AlbumPackagePanel({
         </div>
       </div>
 
-      <div
-        className="rounded-lg border border-violet-900/30 bg-violet-950/20 px-3 py-2 text-xs text-gray-300 leading-relaxed"
+      <details
+        className="rounded-lg border border-violet-900/30 bg-violet-950/20 text-xs text-gray-300"
         data-testid="album-import-explainer"
       >
-        {isEmbedded ? (
-          <p>
-            <strong className="text-violet-200 font-medium">Embedded album package</strong> — self-contained
-            album; tracks load on demand when you play or select them.
-          </p>
-        ) : (
-          <p>
-            <strong className="text-violet-200 font-medium">Manifest album package</strong> —{" "}
-            {MANIFEST_SIDECAR_NOTE}
-          </p>
-        )}
-      </div>
+        <summary className="cursor-pointer select-none px-3 py-2 text-violet-200/90 hover:text-violet-100">
+          {isEmbedded ? "About embedded packages" : "About manifest packages"}
+        </summary>
+        <div className="px-3 pb-2 leading-relaxed border-t border-violet-900/30 pt-2">
+          {isEmbedded ? (
+            <p>
+              <strong className="text-violet-200 font-medium">Embedded album package</strong> — self-contained
+              album; tracks load on demand when you play or select them.
+            </p>
+          ) : (
+            <p>
+              <strong className="text-violet-200 font-medium">Manifest album package</strong> —{" "}
+              {MANIFEST_SIDECAR_NOTE}
+            </p>
+          )}
+        </div>
+      </details>
 
       {sizeWarning && (
         <p className="text-xs text-amber-200/90 bg-amber-950/25 rounded-lg px-3 py-2" data-testid="album-size-warning">

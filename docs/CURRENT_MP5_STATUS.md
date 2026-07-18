@@ -1,7 +1,7 @@
 # Current MP5 Status
 
 **Version:** MP5 Audio v0.25.0-beta (Public Beta)  
-**Last updated:** 2026-06-16
+**Last updated:** 2026-07-17
 
 ## What MP5 Is Today
 

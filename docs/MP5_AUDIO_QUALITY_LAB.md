@@ -78,18 +78,19 @@ so the bare commands work without typing local paths.
 | MP5-C vNext sub-block High | `mp5c2-subblock` | `mp5c_vnext_subblock_high.wav` | **No (prototype)** | yes | experimental | sub-block detection |
 | MP5-C vNext sub-block+band High | `mp5c2-bandquiet` | `mp5c_vnext_bandquiet_high.wav` | **No (prototype)** | yes | experimental | v0.23 |
 | MP5-C vNext sub-block+band Extreme | `mp5c2-bandquiet-extreme` | `mp5c_vnext_bandquiet_extreme.wav` | **No (prototype)** | yes | experimental | v0.23 |
-| MP5-C vNext smooth High | `mp5c2-smooth` | `mp5c_vnext_smooth_high.wav` | **No (prototype)** | yes | experimental | +hysteresis |
-| MP5-C vNext smooth Extreme | `mp5c2-smooth-extreme` | `mp5c_vnext_smooth_extreme.wav` | **No (prototype)** | yes | experimental | **best (reverb_tail → low)** |
-| MP5-C vNext shaped Extreme | `mp5c2-shaped-extreme` | `mp5c_vnext_shaped_extreme.wav` | **No (prototype)** | yes | experimental | noise-shaping experiment (rejected) |
-| MP5-C vNext native Extreme | `mp5c2-native-extreme` | `mp5c_vnext_native_extreme.wav` | **No (prototype)** | yes | experimental | **native Rust port of smooth** (`encode_mp5c_vnext`) |
+| MP5-C vNext smooth High | `mp5c2-smooth` | `mp5c_vnext_smooth_high.wav` | **No (lab)** | yes | experimental | preferred size preset |
+| MP5-C vNext smooth Extreme | `mp5c2-smooth-extreme` | `mp5c_vnext_smooth_extreme.wav` | **No (lab)** | yes | experimental | finest loud path |
+| MP5-C vNext shaped Extreme | `mp5c2-shaped-extreme` | `mp5c_vnext_shaped_extreme.wav` | **No (lab)** | yes | experimental | noise-shaping experiment (rejected) |
+| MP5-C vNext native High | `mp5c2-native-high` | `mp5c_vnext_native_high.wav` | **No (lab)** | yes | experimental | native + preferred size |
+| MP5-C vNext native Extreme | `mp5c2-native-extreme` | `mp5c_vnext_native_extreme.wav` | **No (lab)** | yes | experimental | native Rust port of smooth |
 | MP5-H High | `mp5h-high` | `mp5h_high.wav` | Yes | yes | yes | optional, large |
 | MP5-H Extreme | `mp5h-extreme` | `mp5h_extreme.wav` | Yes | yes | yes | optional, large |
 
-**MP5-C vNext is not a normal MP5 export mode.** It is the lab modes `mp5c2-*`, which emit
-**WAV listening previews only — never `.mp5`** — and are not in the Converter. They exist to
-test future MP5-C ideas (block → sub-block → per-band quiet protection) before any real format
-version is chosen. See [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md),
-[MP5C_HISS_AUDIT.md](MP5C_HISS_AUDIT.md), [MP5C_VNEXT_PLAN.md](MP5C_VNEXT_PLAN.md).
+**MP5-C vNext lab modes** (`mp5c2-*`) still emit WAV listening previews here. Separately,
+gated Converter export can write `.mp5` with **`CodecId.MP5C2`** (AUDI `0x43 0x34`) under
+**Show lab / advanced codecs** — never the default; batch stays MP5-L. See
+[MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md), [MP5C_HISS_AUDIT.md](MP5C_HISS_AUDIT.md),
+[MP5C_VNEXT_PLAN.md](MP5C_VNEXT_PLAN.md).
 
 ## How to hear vNext
 
@@ -154,8 +155,8 @@ silence. Expectations:
 ## Safety guarantees
 
 - MP5-L stays the default and bit-exact; the gates fail loudly if that regresses.
-- The MP5-C vNext prototype is **lab-only, default OFF**, and **never written to
-  `.mp5`** — it composes existing encoders inside this harness only.
+- MP5-C vNext remains **lab/advanced, default OFF**; Converter export is gated and batch
+  stays MP5-L. Lab harness modes still compose existing encoders for measurement.
 - No mainstream-codec comparison claims are produced.
 - No copyrighted audio, no telemetry.
 

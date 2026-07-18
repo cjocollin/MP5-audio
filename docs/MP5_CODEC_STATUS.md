@@ -8,23 +8,21 @@ No copyrighted audio, no telemetry.
 > Numbers below are from synthetic fixtures and are **not** a claim that MP5 beats
 > MP3, AAC, Opus, FLAC, or WAV.
 
-## v0.26 coalesce + lab CodecId (new)
+## Current vNext size stack (new)
 
-Adjacent lossy sub-blocks are **coalesced** into one MP5-C encode (Rust `mp5c2` + JS smooth
-`coalesce`). Measured on synthetic fixtures (`pnpm audio:hiss-report`):
+Protect **1.5** + lossy coalesce + lossless L/B coalesce + preferred **High** loud preset.
+Measured with `pnpm audio:hiss-report` (synthetic) and real-track A/B:
 
-| Fixture | Mode | ×PCM | Quiet SNR | Tail SNR | Hiss risk |
-|---------|------|-----:|----------:|---------:|:---------:|
-| reverb_tail | smooth Extreme (no coalesce) | 0.749 | ∞ | ∞ | low |
-| reverb_tail | **smooth Extreme + coalesce** | **0.676** | ∞ | ∞ | **low** |
-| dense_music | smooth Extreme (no coalesce) | 1.167 | — | — | n/a |
-| dense_music | **smooth Extreme + coalesce** | **0.971** | — | — | n/a |
+| Fixture | Mode | ×PCM | Quiet/tail | Hiss risk |
+|---------|------|-----:|:----------:|:---------:|
+| reverb_tail | no-coalesce Extreme | 0.503 | ∞ / ∞ | low |
+| reverb_tail | **L/B+lossy coalesce High/Extreme** | **0.420** | ∞ / ∞ | **low** |
+| dense_music | Extreme (lossy coalesce) | 0.971 | — | n/a |
+| dense_music | **High (lossy coalesce)** | **0.941** | — | n/a |
 
-Native Rust matches JS coalesce ratios. **Public `CodecId.MP5C2`** wires Converter/player for
-lab/advanced export (gated UI). Phase 4.4 protect-scale **1.5** takes the same local commercial
-reference to hiss risk **low** (bit-exact tails) at ~0.97× PCM; shipping thresholds adopt 1.5.
-**MP5-L packed Rice** (`FLAG_RICE_PACKED`) lands ~46% residual-payload savings vs legacy varint.
-**MP5-L stays default.**
+**Public `CodecId.MP5C2`** is Converter lab/advanced only (batch stays MP5-L). Residual 2048 pad
+after coalesce is ~0.6% → no short-frame trim. **MP5-L packed Rice** (~46% residual-payload
+savings vs varint) + 4-mode stereo remain the default path.
 
 ## v0.25.0-beta native Rust vNext (new)
 

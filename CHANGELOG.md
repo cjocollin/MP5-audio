@@ -20,6 +20,8 @@ No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
 - **vNext loud-path High preferred for size:** at protect 1.5, High keeps hiss risk **low** and
   shrinks `dense_music` ~0.971× → **0.941×** (real track ~0.977× → **0.968×**). Residual 2048
   pad ~0.6% → no short-frame trim. Lab hiss-report includes High + native High modes.
+- **README / lab docs sync:** clear stale “no CodecId / never written to `.mp5`” wording; album
+  package explainer collapses for mobile density.
 
 ### Milestone - MP5-L packed Rice + 4-mode stereo; vNext protect experiment
 
