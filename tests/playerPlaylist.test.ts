@@ -17,6 +17,8 @@ import {
   trackDisplayInfo,
 } from "../apps/web/src/player/playlistUtils";
 import { usePlayerStore } from "../apps/web/src/store/playerStore";
+import { importMp5ToPlayer } from "../apps/web/src/player/playerImport";
+import type { ResolvedAlbumPackage } from "../apps/web/src/lib/album/resolveAlbum";
 
 function minimalMp5(extra?: Parameters<typeof writeMp5>[0]) {
   return writeMp5({
@@ -194,6 +196,8 @@ describe("player store queue", () => {
       repeatMode: "off",
       shuffle: false,
       shuffleOrder: [],
+      defaultDemoDismissed: false,
+      pendingAlbumPackage: null,
     });
   });
 
@@ -214,6 +218,70 @@ describe("player store queue", () => {
     expect(usePlayerStore.getState().tracks).toHaveLength(0);
     expect(usePlayerStore.getState().currentIndex).toBe(0);
     expect(usePlayerStore.getState().duration).toBe(0);
+  });
+
+  it("replaces the first-load demo when real audio is imported", () => {
+    usePlayerStore.getState().appendTracks([
+      { ...mk("demo", "demo_mp5l_v3_tone.mp5"), origin: "default-demo" },
+    ]);
+    usePlayerStore.setState({ isPlaying: true, currentTime: 1, duration: 2 });
+
+    usePlayerStore.getState().appendTracks([mk("user", "my-song.mp5")]);
+
+    const state = usePlayerStore.getState();
+    expect(state.tracks.map((track) => track.id)).toEqual(["user"]);
+    expect(state.currentIndex).toBe(0);
+    expect(state.isPlaying).toBe(false);
+    expect(state.currentTime).toBe(0);
+    expect(state.duration).toBe(0);
+    expect(state.defaultDemoDismissed).toBe(true);
+  });
+
+  it("plays the first imported track when a multi-file import replaces the demo", async () => {
+    usePlayerStore.getState().appendTracks([
+      { ...mk("demo", "demo_mp5l_v3_tone.mp5"), origin: "default-demo" },
+    ]);
+    const first = fileFromBuffer("first.mp5", minimalMp5());
+    const second = fileFromBuffer("second.mp5", minimalMp5());
+
+    await importMp5ToPlayer([first, second], { playFirst: true });
+
+    const state = usePlayerStore.getState();
+    expect(state.tracks.map((track) => track.name)).toEqual(["first.mp5", "second.mp5"]);
+    expect(state.currentIndex).toBe(0);
+    expect(state.isPlaying).toBe(true);
+  });
+
+  it("dismisses the first-load demo when a valid album package is opened", () => {
+    usePlayerStore.getState().appendTracks([
+      { ...mk("demo", "demo_mp5l_v3_tone.mp5"), origin: "default-demo" },
+    ]);
+    usePlayerStore.setState({ isPlaying: true, currentTime: 1, duration: 2 });
+    const album: ResolvedAlbumPackage = {
+      manifest: {
+        format: "mp5-album-manifest-v1",
+        version: 1,
+        album: { title: "User album" },
+        tracks: [],
+      },
+      packageKind: "manifest",
+      tracks: [],
+      missingCount: 0,
+      resolvedCount: 0,
+      foundFiles: [],
+      missingFiles: [],
+      totalDurationMs: null,
+      warnings: [],
+    };
+
+    usePlayerStore.getState().setPendingAlbumPackage(album);
+
+    const state = usePlayerStore.getState();
+    expect(state.tracks).toEqual([]);
+    expect(state.defaultDemoDismissed).toBe(true);
+    expect(state.isPlaying).toBe(false);
+    expect(state.currentTime).toBe(0);
+    expect(state.pendingAlbumPackage).toBe(album);
   });
 
   it("handleTrackEnded advances with repeat all", () => {
@@ -251,4 +319,3 @@ describe("player store queue", () => {
     expect(similarTrackAvailable(tracks.tracks, 1)).toBe(false);
   });
 });
-

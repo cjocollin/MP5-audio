@@ -1,3 +1,6 @@
+import { FolderOpen } from "@phosphor-icons/react/FolderOpen";
+import { UploadSimple } from "@phosphor-icons/react/UploadSimple";
+
 interface Props {
   onFiles: (files: FileList) => void;
   accept?: string;
@@ -15,7 +18,7 @@ export function FileDropZone({
 }: Props) {
   return (
     <label
-      className={`flex flex-col items-center justify-center min-h-[140px] rounded-2xl border-2 border-dashed border-white/10 bg-surface-elevated/40 p-6 sm:p-8 transition-colors mp5-focus-ring ${
+      className={`mp5-file-drop-zone mp5-focus-ring ${
         disabled
           ? "opacity-50 cursor-not-allowed"
           : "cursor-pointer hover:border-accent/40 hover:bg-surface-elevated/60"
@@ -39,7 +42,14 @@ export function FileDropZone({
           if (!disabled && e.target.files) onFiles(e.target.files);
         }}
       />
-      <span className="text-gray-400 text-sm">{label}</span>
+      <span className="mp5-file-drop-icon" aria-hidden>
+        <UploadSimple size={23} weight="bold" />
+      </span>
+      <span className="max-w-xs text-center text-sm font-medium text-gray-300">{label}</span>
+      <span className="text-[11px] text-gray-600">or</span>
+      <span className="mp5-file-drop-button">
+        <FolderOpen size={17} weight="bold" /> Open MP5 / Add files
+      </span>
     </label>
   );
 }

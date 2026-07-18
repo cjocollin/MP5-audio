@@ -38,6 +38,8 @@ export interface EmbeddedAlbumTrackRef {
 export interface PlaylistTrack {
   id: string;
   name: string;
+  /** The concept's first-load demo; replaced atomically when the user imports real audio. */
+  origin?: "default-demo";
   file?: File;
   /** Cached file bytes — eager ingest only (large files use lazy index + File ref). */
   rawBuffer?: ArrayBuffer;
@@ -49,6 +51,15 @@ export interface PlaylistTrack {
   objectUrl?: string;
   /** Queued embedded album track — bytes load when selected/played. */
   embeddedAlbum?: EmbeddedAlbumTrackRef;
+}
+
+export function isDefaultDemoTrack(track: PlaylistTrack | undefined): boolean {
+  return track?.origin === "default-demo";
+}
+
+/** User-owned queues and album resolution must never treat the first-load demo as imported audio. */
+export function withoutDefaultDemoTracks(tracks: readonly PlaylistTrack[]): PlaylistTrack[] {
+  return tracks.filter((track) => !isDefaultDemoTrack(track));
 }
 
 interface PlayerState {
@@ -66,6 +77,8 @@ interface PlayerState {
   useFileThemes: boolean;
   activeTab: "player" | "converter" | "library" | "demo" | "about" | "settings";
   sessionRestored: boolean;
+  /** Prevents a pending demo fetch from reseeding after the user opens their own content. */
+  defaultDemoDismissed: boolean;
   /** Set from Library when opening a saved album; consumed by Mp5Player. */
   pendingAlbumPackage: ResolvedAlbumPackage | null;
   setTracks: (t: PlaylistTrack[]) => void;
@@ -89,6 +102,7 @@ interface PlayerState {
   setUseFileThemes: (v: boolean) => void;
   setActiveTab: (t: PlayerState["activeTab"]) => void;
   setSessionRestored: (v: boolean) => void;
+  dismissDefaultDemo: () => void;
   setPendingAlbumPackage: (album: ResolvedAlbumPackage | null) => void;
   consumePendingAlbumPackage: () => ResolvedAlbumPackage | null;
   syncShuffleOrder: () => void;
@@ -150,6 +164,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   useFileThemes: loadUseFileThemesPref(),
   activeTab: "player",
   sessionRestored: false,
+  defaultDemoDismissed: false,
   pendingAlbumPackage: null,
   navArgs: () => {
     const s = get();
@@ -167,6 +182,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentIndex: clampIndex(s.currentIndex, tracks.length),
       isPlaying: tracks.length ? s.isPlaying : false,
       shuffleOrder: s.shuffle ? rebuildShuffle(tracks, clampIndex(s.currentIndex, tracks.length)) : [],
+      defaultDemoDismissed:
+        s.defaultDemoDismissed || tracks.some((track) => !isDefaultDemoTrack(track)),
     })),
   replacePlaylistTrack: (id, next) =>
     set((s) => {
@@ -179,13 +196,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   appendTracks: (incoming) =>
     set((s) => {
       if (!incoming.length) return s;
-      const tracks = [...s.tracks, ...incoming];
-      const wasEmpty = s.tracks.length === 0;
+      const replaceDefaultDemo =
+        s.tracks.length === 1 &&
+        s.tracks[0]?.origin === "default-demo" &&
+        incoming.some((track) => track.origin !== "default-demo");
+      const tracks = replaceDefaultDemo ? incoming : [...s.tracks, ...incoming];
+      const wasEmpty = s.tracks.length === 0 || replaceDefaultDemo;
       const currentIndex = wasEmpty ? 0 : s.currentIndex;
       return {
         tracks,
         currentIndex,
+        isPlaying: replaceDefaultDemo ? false : s.isPlaying,
+        currentTime: replaceDefaultDemo ? 0 : s.currentTime,
+        duration: replaceDefaultDemo ? 0 : s.duration,
         shuffleOrder: s.shuffle ? rebuildShuffle(tracks, currentIndex) : s.shuffleOrder,
+        defaultDemoDismissed:
+          s.defaultDemoDismissed || incoming.some((track) => !isDefaultDemoTrack(track)),
       };
     }),
   removeTrack: (id) =>
@@ -203,6 +229,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           currentTime: 0,
           duration: 0,
           shuffleOrder: [],
+          defaultDemoDismissed:
+            s.defaultDemoDismissed || isDefaultDemoTrack(removed),
         };
       }
       let currentIndex = s.currentIndex;
@@ -213,6 +241,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         tracks,
         currentIndex,
         shuffleOrder: s.shuffle ? rebuildShuffle(tracks, currentIndex) : [],
+        defaultDemoDismissed:
+          s.defaultDemoDismissed || isDefaultDemoTrack(removed),
       };
     }),
   clearTracks: () =>
@@ -225,6 +255,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         currentTime: 0,
         duration: 0,
         shuffleOrder: [],
+        defaultDemoDismissed: true,
       };
     }),
   setCurrentIndex: (currentIndex, opts) =>
@@ -307,7 +338,35 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   setActiveTab: (activeTab) => set({ activeTab }),
   setSessionRestored: (sessionRestored) => set({ sessionRestored }),
-  setPendingAlbumPackage: (pendingAlbumPackage) => set({ pendingAlbumPackage }),
+  dismissDefaultDemo: () =>
+    set((s) => {
+      const tracks = withoutDefaultDemoTracks(s.tracks);
+      if (tracks.length === s.tracks.length) {
+        return s.defaultDemoDismissed ? s : { defaultDemoDismissed: true };
+      }
+
+      for (const track of s.tracks) {
+        if (isDefaultDemoTrack(track) && track.objectUrl) URL.revokeObjectURL(track.objectUrl);
+      }
+      const currentTrack = s.tracks[s.currentIndex];
+      const currentIndex = currentTrack && !isDefaultDemoTrack(currentTrack)
+        ? Math.max(0, tracks.findIndex((track) => track.id === currentTrack.id))
+        : 0;
+      const resetPlayback = tracks.length === 0 || isDefaultDemoTrack(currentTrack);
+      return {
+        tracks,
+        currentIndex,
+        isPlaying: resetPlayback ? false : s.isPlaying,
+        currentTime: resetPlayback ? 0 : s.currentTime,
+        duration: resetPlayback ? 0 : s.duration,
+        shuffleOrder: s.shuffle ? rebuildShuffle(tracks, currentIndex) : [],
+        defaultDemoDismissed: true,
+      };
+    }),
+  setPendingAlbumPackage: (pendingAlbumPackage) => {
+    if (pendingAlbumPackage) get().dismissDefaultDemo();
+    set({ pendingAlbumPackage });
+  },
   consumePendingAlbumPackage: () => {
     const album = get().pendingAlbumPackage;
     set({ pendingAlbumPackage: null });

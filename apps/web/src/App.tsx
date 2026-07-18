@@ -1,69 +1,108 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { Mp5Player } from "./player/Mp5Player";
 import { ConverterPanel } from "./player/ConverterPanel";
 import { WasmSetupBanner } from "./components/WasmSetupBanner";
 import { AboutMp5Panel } from "./components/AboutMp5Panel";
 import { DemoModePanel } from "./components/DemoModePanel";
-import { PublicLanding } from "./components/PublicLanding";
 import { LocalLibraryPanel } from "./components/LocalLibraryPanel";
 import { PerformanceDiagnosticsPanel } from "./components/PerformanceDiagnosticsPanel";
-import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
 import { BetaFeedbackPanel } from "./components/BetaFeedbackPanel";
 import { AiSettingsSection } from "./components/AiSettingsSection";
+import { AppShell } from "./components/AppShell";
+import { fetchDemoMp5lFixture } from "./lib/demoFixture";
+import { dismissOnboarding } from "./lib/firstRun";
+import { ingestMp5Files } from "./player/playlistUtils";
 
 export default function App() {
-  const { activeTab, setActiveTab, theme, setTheme, useFileThemes, setUseFileThemes } =
-    usePlayerStore();
+  const {
+    activeTab,
+    setActiveTab,
+    theme,
+    setTheme,
+    useFileThemes,
+    setUseFileThemes,
+    tracks,
+    appendTracks,
+    defaultDemoDismissed,
+  } = usePlayerStore();
+  const [defaultDemoLoading, setDefaultDemoLoading] = useState(tracks.length === 0);
+  const defaultDemoLoadStartedRef = useRef(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
   }, [theme]);
 
-  const tabs = [
-    { id: "player" as const, label: "Player" },
-    { id: "converter" as const, label: "Converter" },
-    { id: "library" as const, label: "Library" },
-    { id: "demo" as const, label: "Demo" },
-    { id: "about" as const, label: "About" },
-    { id: "settings" as const, label: "Settings" },
-  ];
+  useEffect(() => {
+    if (tracks.length > 0 || defaultDemoDismissed) {
+      setDefaultDemoLoading(false);
+      return;
+    }
+    if (defaultDemoLoadStartedRef.current) {
+      setDefaultDemoLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    const timer = window.setTimeout(() => {
+      if (defaultDemoLoadStartedRef.current) return;
+      defaultDemoLoadStartedRef.current = true;
+
+      void (async () => {
+        try {
+          const file = await fetchDemoMp5lFixture();
+          const current = usePlayerStore.getState();
+          if (!file || current.tracks.length > 0 || current.defaultDemoDismissed) return;
+
+          const result = await ingestMp5Files([file]);
+          const ready = usePlayerStore.getState();
+          if (
+            result.tracks.length > 0 &&
+            ready.tracks.length === 0 &&
+            !ready.defaultDemoDismissed
+          ) {
+            appendTracks(
+              result.tracks.map((track) => ({ ...track, origin: "default-demo" as const })),
+            );
+            dismissOnboarding();
+          }
+        } finally {
+          if (mounted) setDefaultDemoLoading(false);
+        }
+      })();
+    }, 0);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timer);
+    };
+  }, [appendTracks, defaultDemoDismissed, tracks.length]);
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+    <div className="mp5-app-shell">
+      <AppShell activeTab={activeTab} onTabChange={setActiveTab} />
+
       <div className="mb-3">
         <WasmSetupBanner />
       </div>
 
-      <PublicLanding />
-
-      <WelcomeOnboarding />
-
-      <nav className="flex gap-2 mb-5 flex-wrap sticky top-0 z-10 py-2 -mx-1 px-1 bg-surface/95 backdrop-blur-sm border-b border-white/[0.04]" aria-label="Main" data-testid="app-main-nav">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setActiveTab(t.id)}
-            aria-current={activeTab === t.id ? "page" : undefined}
-            data-testid={`app-tab-${t.id}`}
-            className={`mp5-tab ${activeTab === t.id ? "mp5-tab-active" : "mp5-tab-inactive"}`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
-
-      <main className="space-y-5">
-        {activeTab === "player" && <Mp5Player />}
+      <main className="mp5-app-main">
+        <Mp5Player
+          defaultDemoLoading={defaultDemoLoading}
+          panelVisible={activeTab === "player"}
+          onRequestPlayer={() => setActiveTab("player")}
+        />
         {activeTab === "converter" && <ConverterPanel />}
         {activeTab === "library" && <LocalLibraryPanel />}
         {activeTab === "demo" && <DemoModePanel />}
         {activeTab === "about" && <AboutMp5Panel />}
         {activeTab === "settings" && (
-          <div className="mp5-card p-5 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Settings</h2>
+          <div className="mp5-card p-5 sm:p-6 space-y-5">
+            <div>
+              <p className="mp5-eyebrow">Application</p>
+              <h2 className="text-xl font-semibold text-white">Settings</h2>
+            </div>
             <label className="flex items-center justify-between gap-4 text-sm">
               <span className="text-gray-400">Theme</span>
               <select

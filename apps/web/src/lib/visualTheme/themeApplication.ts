@@ -5,7 +5,7 @@ import { resolvePlayerTheme, type ResolvedPlayerTheme } from "./applyVisualTheme
 import { enrichVisuColors, visuHasExplicitColors } from "./visuStylePresets";
 
 /** Default MP5 app accent (Tailwind `accent`) — used to detect visible theme shift. */
-export const DEFAULT_APP_ACCENT = "#8b5cf6";
+export const DEFAULT_APP_ACCENT = "#704db8";
 
 export type ThemeSourceKind = "visu" | "preset_fallback" | "disabled" | "missing";
 

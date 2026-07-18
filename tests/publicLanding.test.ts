@@ -1,20 +1,16 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   HONESTY_NO_BEAT_CLAIM,
   LANDING_HEADLINE,
   LANDING_SUBHEADLINE,
 } from "../apps/web/src/lib/publicLandingCopy";
-import {
-  loadLandingAboutExpanded,
-  saveLandingAboutExpanded,
-} from "../apps/web/src/lib/landingAboutPrefs";
 import { MP5_DEMO_URL, MP5_GITHUB_URL } from "../apps/web/src/lib/publicLinks";
 
 const root = join(import.meta.dirname, "..");
 
-describe("public landing", () => {
+describe("public experience", () => {
   it("exports canonical public URLs", () => {
     expect(MP5_DEMO_URL).toBe("https://mp5-audio.vercel.app");
     expect(MP5_GITHUB_URL).toBe("https://github.com/cjocollin/MP5-audio");
@@ -28,52 +24,55 @@ describe("public landing", () => {
     expect(HONESTY_NO_BEAT_CLAIM).not.toMatch(/MP5 beats/i);
   });
 
-  it("App mounts WelcomeOnboarding after landing", () => {
+  it("App opens directly into the seeded player workspace", () => {
     const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
-    const landingIdx = src.indexOf("<PublicLanding />");
-    const welcomeIdx = src.indexOf("<WelcomeOnboarding />");
-    expect(welcomeIdx).toBeGreaterThan(landingIdx);
+    expect(src).toContain("fetchDemoMp5lFixture");
+    expect(src).toContain('origin: "default-demo"');
+    expect(src).toContain("defaultDemoLoading={defaultDemoLoading}");
+    expect(src).not.toContain("<PublicLanding />");
+    expect(src).not.toContain("<WelcomeOnboarding />");
   });
 
-  it("PublicLanding uses compact hero and collapsible About", () => {
+  it("About preserves the current Public Beta feature and codec guidance", () => {
     const src = readFileSync(
-      join(root, "apps/web/src/components/PublicLanding.tsx"),
+      join(root, "apps/web/src/components/AboutMp5Panel.tsx"),
       "utf8",
     );
-    expect(src).toContain('data-testid="landing-hero-compact"');
-    expect(src).toContain('data-testid="landing-about-toggle"');
-    expect(src).toContain('data-testid="landing-about-details"');
-    expect(src).toContain("landing-codec-mp5l");
-    expect(src).toContain("landing-codec-mp5c2");
+    expect(src).toContain('data-testid="about-mp5-panel"');
+    expect(src).toContain("MP5-L v3");
     expect(src).toContain("MP5-C2 (vNext)");
-    expect(src).toContain('data-testid="landing-github-link"');
-    expect(src).toContain('data-testid="landing-honesty-claim"');
-    expect(src).toContain('data-testid="landing-screenshot-scroll"');
-    expect(src).toContain("LANDING_SCREENSHOTS");
-    expect(src).toContain("loadLandingAboutExpanded");
+    expect(src).toContain("Packed Rice");
+    expect(src).toContain("local library");
+    expect(src).toContain("user/artist-provided stems");
+    expect(src).toMatch(/batch\s+stem import/);
+    expect(src).toMatch(/no AI stem separation/i);
+    expect(src).toMatch(/does[\s\S]*not[\s\S]*claim to beat/i);
   });
 
-  it("App places main nav after compact landing", () => {
-    const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
-    const landingIdx = src.indexOf("<PublicLanding />");
-    const navIdx = src.indexOf('data-testid="app-main-nav"');
-    expect(landingIdx).toBeGreaterThan(-1);
-    expect(navIdx).toBeGreaterThan(landingIdx);
+  it("App mounts the responsive shell and its main nav", () => {
+    const appSrc = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
+    const shellSrc = readFileSync(
+      join(root, "apps/web/src/components/AppShell.tsx"),
+      "utf8",
+    );
+    expect(appSrc).toContain("<AppShell");
+    expect(appSrc).toContain("<Mp5Player");
+    expect(shellSrc).toContain('data-testid="app-main-nav"');
+    expect(shellSrc).toContain('data-testid={`app-tab-${id}`}');
+    expect(shellSrc).toContain('data-testid="public-beta-notice"');
   });
 
-  it("landing About prefs roundtrip via localStorage", () => {
-    const store = new Map<string, string>();
-    vi.stubGlobal("localStorage", {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => store.set(k, v),
-      removeItem: (k: string) => store.delete(k),
-    });
-    expect(loadLandingAboutExpanded()).toBe(false);
-    saveLandingAboutExpanded(true);
-    expect(loadLandingAboutExpanded()).toBe(true);
-    saveLandingAboutExpanded(false);
-    expect(loadLandingAboutExpanded()).toBe(false);
-    vi.unstubAllGlobals();
+  it("Demo preserves first-user guidance and paths A through E", () => {
+    const src = readFileSync(
+      join(root, "apps/web/src/components/DemoModePanel.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("FIRST_USER_TIPS");
+    expect(src).toContain("DemoFixtureActions");
+    expect(src).toContain('id: "a"');
+    expect(src).toContain('id: "e"');
+    expect(src).toContain('data-testid="demo-load-embedded-album"');
+    expect(src).toContain('data-testid={`demo-path-${path.id}`}');
   });
 
   it("README references live demo, GitHub, and screenshots", () => {
@@ -92,19 +91,6 @@ describe("public landing", () => {
 
   it("public demo copy doc exists", () => {
     expect(existsSync(join(root, "docs/MP5_PUBLIC_DEMO_COPY.md"))).toBe(true);
-  });
-
-  it("Learn More lists current stems and no AI stem separation", () => {
-    const src = readFileSync(
-      join(root, "apps/web/src/components/PublicLanding.tsx"),
-      "utf8",
-    );
-    expect(src).toContain("user/artist-provided stems");
-    expect(src).toContain("batch stem import");
-    expect(src).toMatch(/no AI stem separation/i);
-    expect(src).toContain("Local library (this device)");
-    expect(src).not.toContain("Stems / interactive audio research");
-    expect(src).not.toContain("Library persistence");
   });
 
   it("About panel and demo copy mention stems without AI separation", () => {

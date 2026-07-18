@@ -167,10 +167,15 @@ describe("public claims audit", () => {
     expect(HONESTY_NO_BEAT_CLAIM).toMatch(/does not claim to beat/i);
   });
 
-  it("PublicLanding renders honesty claim test id", () => {
-    const src = scanFile("apps/web/src/components/PublicLanding.tsx");
-    expect(src).toContain("landing-honesty-claim");
-    expect(src).toContain("HONESTY_NO_BEAT_CLAIM");
+  it("the direct-entry shell links to current Public Beta guidance", () => {
+    const shell = scanFile("apps/web/src/components/AppShell.tsx");
+    const about = scanFile("apps/web/src/components/AboutMp5Panel.tsx");
+    expect(shell).toContain('data-testid="public-beta-notice"');
+    expect(shell).toContain('changeTab("about")');
+    expect(about).toMatch(/Public Beta/i);
+    expect(about).toMatch(/does[\s\S]*not[\s\S]*claim to beat/i);
+    expect(about).toContain("MP5-C2 (vNext)");
+    expect(about).toMatch(/no AI stem separation/i);
   });
 });
 
@@ -185,14 +190,22 @@ describe("user-facing error messages", () => {
     expect(USER_ERRORS.stemWorkerUnavailable).toMatch(/Background stem/i);
   });
 
-  it("WelcomeOnboarding is mounted in App", () => {
+  it("App keeps onboarding out of the concept-first player route", () => {
     const app = scanFile("apps/web/src/App.tsx");
-    expect(app).toContain("WelcomeOnboarding");
+    expect(app).toContain("fetchDemoMp5lFixture");
+    expect(app).not.toContain("WelcomeOnboarding");
+    expect(app).not.toContain("PublicLanding");
   });
 
   it("App mounts BetaFeedbackPanel", () => {
     const app = scanFile("apps/web/src/App.tsx");
     expect(app).toContain("BetaFeedbackPanel");
+  });
+
+  it("persistent player observes album packages opened from other tabs", () => {
+    const player = scanFile("apps/web/src/player/Mp5Player.tsx");
+    expect(player).toContain("pendingAlbumPackage,");
+    expect(player).toContain("[consumePendingAlbumPackage, pendingAlbumPackage]");
   });
 
   it("DemoModePanel has first-user tips", () => {
@@ -206,6 +219,24 @@ describe("user-facing error messages", () => {
     expect(demo).toMatch(/demo-path-\$\{path\.id\}/);
     expect(demo).toContain('id: "e"');
     expect(demo).toContain("demo-load-embedded-album");
+    expect(demo).not.toMatch(/â|Â/);
+  });
+
+  it("keeps mobile queue and album package actions reachable", () => {
+    const css = scanFile("apps/web/src/index.css");
+    const mobile = css.slice(css.indexOf("@media (max-width: 767px)"));
+    expect(mobile).not.toMatch(
+      /\.mp5-player-sidebar\s*>\s*\.mp5-sidebar-album-creator[^{]*\{[^}]*@apply\s+hidden/,
+    );
+    expect(mobile).toMatch(
+      /\.mp5-library-compact \.mp5-queue-header-actions > \.mp5-queue-action\s*\{[^}]*@apply\s+inline-flex/,
+    );
+    expect(mobile).toMatch(
+      /\.mp5-library-compact \.mp5-queue-row \.mp5-queue-action\s*\{[^}]*@apply\s+opacity-100/,
+    );
+    expect(mobile).toMatch(
+      /\.mp5-library-compact \.mp5-queue-compact-more\s*\{[^}]*@apply\s+hidden/,
+    );
   });
 
   it("error module is used in converter and playlist paths", () => {

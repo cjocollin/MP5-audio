@@ -12,7 +12,7 @@ const COVER_FIXTURE = path.join(
 async function assertNoGlobalCoverBackground(page: import("@playwright/test").Page) {
   const bgChecks = await page.evaluate(() => {
     const targets = [document.body, document.documentElement];
-    const appRoot = document.querySelector(".min-h-screen.max-w-5xl");
+    const appRoot = document.querySelector(".mp5-app-shell");
     if (appRoot) targets.push(appRoot);
     return targets.map((el) => {
       const style = getComputedStyle(el!);
@@ -42,6 +42,12 @@ async function assertCoverContainedInCard(page: import("@playwright/test").Page)
   expect(coverBox.y).toBeGreaterThanOrEqual(cardBox.y - 2);
 }
 
+async function loadStemsDemo(page: import("@playwright/test").Page) {
+  await page.getByTestId("app-tab-demo").click();
+  await page.getByTestId("demo-load-stems-demo").click();
+  await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");
+}
+
 test.describe("VISU / cover mobile containment", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(MOBILE);
@@ -52,7 +58,7 @@ test.describe("VISU / cover mobile containment", () => {
   test("VISU tints Now Playing only — no global wallpaper on mobile", async ({ page }) => {
     test.skip(!fs.existsSync(STEM_DEMO), "run pnpm fixtures:generate for demo_mp5l_v3_stems.mp5");
 
-    await page.getByTestId("player-load-stems-demo").click();
+    await loadStemsDemo(page);
     await expect(page.getByTestId("player-theme-root")).toHaveAttribute("data-theme-active", "true", {
       timeout: 15_000,
     });
@@ -92,20 +98,25 @@ test.describe("VISU / cover mobile containment", () => {
     const viewport = page.viewportSize();
     expect(cardBox).toBeTruthy();
     if (!cardBox || !viewport) return;
-    expect(cardBox.width).toBeLessThanOrEqual(viewport.width * 0.55);
+    expect(cardBox.x).toBeGreaterThanOrEqual(0);
+    expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(viewport.width + 2);
+    expect(cardBox.width).toBeGreaterThanOrEqual(viewport.width * 0.8);
   });
 
   test("main tabs remain readable after loading themed track", async ({ page }) => {
     test.skip(!fs.existsSync(STEM_DEMO), "run pnpm fixtures:generate for demo_mp5l_v3_stems.mp5");
 
-    await page.getByTestId("player-load-stems-demo").click();
+    await loadStemsDemo(page);
     await expect(page.getByTestId("now-playing-theme-badge")).toContainText("Calm demo", {
       timeout: 15_000,
     });
 
-    for (const tab of ["Converter", "Library", "About"]) {
+    for (const tab of ["Converter", "Library", "Settings"]) {
       await expect(page.getByRole("button", { name: tab, exact: true })).toBeVisible();
     }
+
+    await page.getByTestId("shell-mobile-menu-toggle").click();
+    await expect(page.getByRole("button", { name: "About MP5", exact: true })).toBeVisible();
 
     const playerTab = page.getByRole("button", { name: "Player", exact: true });
     await expect(playerTab).toHaveCSS("background-color", /./);

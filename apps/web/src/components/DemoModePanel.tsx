@@ -40,7 +40,7 @@ const PATHS = [
     id: "d",
     title: "D. Convert audio",
     steps: [
-      "Converter â†’ Single file",
+      "Converter → Single file",
       "Drop FLAC, WAV, MP3, M4A, or OGG",
       "Keep MP5-L v3 default, export, Open in Player",
     ],
@@ -50,7 +50,7 @@ const PATHS = [
     id: "e",
     title: "E. Batch album",
     steps: [
-      "Converter â†’ Batch â†’ enable Batch album export",
+      "Converter → Batch → enable Batch album export",
       "Convert two+ tracks, edit album metadata",
       "Export manifest or embedded .mp5p",
     ],
@@ -142,7 +142,7 @@ export function DemoModePanel() {
               className="text-xs text-accent hover:underline min-h-[32px]"
               data-testid={`demo-path-${path.id}-go`}
             >
-              Go to {path.tab === "converter" ? "Converter" : "Player"} â†’
+              Go to {path.tab === "converter" ? "Converter" : "Player"} →
             </button>
           </section>
         ))}
@@ -158,7 +158,7 @@ export function DemoModePanel() {
         >
           docs/MP5_DEMO_GUIDE.md
         </a>
-        {" Â· Manual QA: "}
+        {" · Manual QA: "}
         <span className="font-mono text-gray-600">docs/MP5_MANUAL_QA_CHECKLIST.md</span>
       </p>
     </div>

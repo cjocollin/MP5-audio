@@ -6,8 +6,8 @@ export default {
     extend: {
       fontFamily: { sans: ["DM Sans", "system-ui", "sans-serif"] },
       colors: {
-        surface: { DEFAULT: "#12121a", elevated: "#1a1a26" },
-        accent: "#8b5cf6",
+        surface: { DEFAULT: "#121416", elevated: "#1a1b1d" },
+        accent: "#704db8",
       },
     },
   },

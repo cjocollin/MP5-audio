@@ -64,7 +64,7 @@ export function useMp5AudioEngine({
     bufferRef.current = pcmToAudioBuffer(ctx, pcmRef.current);
   }, []);
 
-  const ensureContext = useCallback(async () => {
+  const ensureContext = useCallback(async (resume = true) => {
     if (!isContextUsable(ctxRef.current)) {
       ctxRef.current = new AudioContext();
       const gain = ctxRef.current.createGain();
@@ -73,7 +73,7 @@ export function useMp5AudioEngine({
       gainRef.current = gain;
       rebuildBuffer(ctxRef.current);
     }
-    if (ctxRef.current.state === "suspended") {
+    if (resume && ctxRef.current.state === "suspended") {
       await ctxRef.current.resume();
       tracePlayback("audio_context", "resumed", { state: ctxRef.current.state });
     }
@@ -159,7 +159,10 @@ export function useMp5AudioEngine({
     async (pcm: PcmData) => {
       pcmRef.current = pcm;
       stopSource();
-      const ctx = await ensureContext();
+      // Browsers are allowed to keep a new AudioContext suspended until a user
+      // gesture. Building the buffer must not wait for that gesture, otherwise
+      // a first-load track remains stuck in the "Decoding audio" state.
+      const ctx = await ensureContext(false);
       bufferRef.current = pcmToAudioBuffer(ctx, pcm);
       offsetRef.current = 0;
       tracePlayback("main_source", "pcm loaded", {

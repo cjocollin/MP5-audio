@@ -1,5 +1,6 @@
 import type { AlbmPackageManifest } from "@mp5/container";
 import { manifestToJson, parseAlbmPackageJson } from "@mp5/container";
+import { createRandomId } from "../randomId";
 
 const STORAGE_KEY = "mp5-saved-albums-v1";
 
@@ -46,7 +47,7 @@ export function saveAlbumPackage(
 ): SavedAlbumPackage {
   const albums = readAll();
   const entry: SavedAlbumPackage = {
-    id: crypto.randomUUID(),
+    id: createRandomId(),
     name: name || `${manifest.album.title}.mp5p`,
     importedAt: Date.now(),
     manifest,
