@@ -1,11 +1,11 @@
-# MP5 Real-World Compatibility Report (Alpha)
+# MP5 Real-World Compatibility Report (Public Beta)
 
 **Date:** May 2026 · **Version:** MP5 Audio v0.9.0-alpha  
 **Milestones:** Real-World Compatibility Pass · Spec Freeze / Compatibility Toolkit  
 **Automated gates:** `pnpm compatibility:check` · `pnpm fixtures:validate` · `pnpm validate:mp5`  
 **Policy:** [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · MP5-L v3 default · MP5-C lab-only · MP5-H hybrid/large/not default · PCM reference/debug
 
-This report documents how MP5 Alpha behaves with common source formats, metadata edge cases, and player import scenarios. **No copyrighted music is committed to the repository.** Automated tests use synthetic tones in `test-fixtures/compatibility/`.
+This report documents how MP5 Public Beta behaves with common source formats, metadata edge cases, and player import scenarios. **No copyrighted music is committed to the repository.** Automated tests use synthetic tones in `test-fixtures/compatibility/`.
 
 ---
 
@@ -64,7 +64,7 @@ For each **WAV** fixture, automated tests confirm:
 
 **Browser path (manual):** After export, **Open in Player** or drop the `.mp5` — playback, seek bar, and Format panel should match MP5-L v3 defaults.
 
-### Alpha limitation (honest)
+### Public Beta limitation (honest)
 
 | Source path | PCM before encode |
 |-------------|-------------------|
@@ -109,7 +109,7 @@ Metadata from **FFmpeg** depends on source tags; failures fall back to filename 
 
 ---
 
-## 5. Recommended source formats for Alpha
+## 5. Recommended source formats for Public Beta
 
 **Best experience**
 
@@ -150,7 +150,7 @@ pnpm compatibility:fixtures
 pnpm compatibility:check
 
 # Release gate (includes demo fixtures, not compatibility folder)
-pnpm alpha:check
+pnpm beta:check
 ```
 
 Fixture manifest: `test-fixtures/compatibility/manifest.json`
@@ -159,7 +159,7 @@ Fixture manifest: `test-fixtures/compatibility/manifest.json`
 
 ## 8. UI honesty
 
-The Converter tab includes **Supported source formats (Alpha)** with per-format notes, FFmpeg transcode disclaimer, and metadata limits. Decode errors use format-specific hints via `decodeFailureHint()`.
+The Converter tab includes **Supported source formats (Public Beta)** with per-format notes, FFmpeg transcode disclaimer, and metadata limits. Decode errors use format-specific hints via `decodeFailureHint()`.
 
 Codec policy banners are unchanged: MP5-L recommended, MP5-C lab-only, MP5-H hybrid/large.
 

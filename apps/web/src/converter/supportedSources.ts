@@ -7,7 +7,7 @@ export interface SourceFormatInfo {
   note: string;
 }
 
-/** Honest Alpha source-format guidance for the converter UI. */
+/** Honest Public Beta source-format guidance for the converter UI. */
 export const SUPPORTED_SOURCE_FORMATS: SourceFormatInfo[] = [
   {
     ext: ".wav",
@@ -54,7 +54,7 @@ export const SUPPORTED_SOURCE_FORMATS: SourceFormatInfo[] = [
 ];
 
 export const FFMPEG_DECODE_NOTE =
-  "Non-WAV sources are transcoded to 44.1 kHz stereo PCM before MP5-L export (Alpha). WAV keeps native rate and channel layout.";
+  "Non-WAV sources are transcoded to 44.1 kHz stereo PCM before MP5-L export (Public Beta). WAV keeps native rate and channel layout.";
 
 export const METADATA_LIMIT_NOTE =
   "Metadata and cover art come from source tags when FFmpeg can read them. Missing tags can be edited before export. Cover art is limited to 2 MiB.";

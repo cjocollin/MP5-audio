@@ -1,4 +1,4 @@
-# MP5 Alpha screenshots
+# MP5 Public Beta screenshots
 
 Screenshots for README, docs, and the public landing page.
 

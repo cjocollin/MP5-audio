@@ -37,7 +37,7 @@ export function mp5AppVersionPlugin(): Plugin {
       return {
         define: {
           __MP5_APP_VERSION__: JSON.stringify(version),
-          __MP5_BUILD_LABEL__: JSON.stringify("Alpha"),
+          __MP5_BUILD_LABEL__: JSON.stringify("Public Beta"),
         },
       };
     },

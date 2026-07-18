@@ -39,7 +39,7 @@ run("Beta readiness unit tests", "pnpm", [
 
 const wasmPkg = join(root, "apps/web/src/wasm/pkg/mp5_codec_bg.wasm");
 if (!existsSync(wasmPkg)) {
-  console.log("\n(WASM pkg missing - alpha:check will run wasm:build via fixtures:generate)\n");
+  console.log("\n(WASM pkg missing - underlying alpha:check will run wasm:build via fixtures:generate)\n");
 }
 
 run("Full compatibility gate", "pnpm", ["alpha:check"]);

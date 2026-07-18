@@ -1,4 +1,4 @@
-# MP5 Alpha demo fixtures
+# MP5 Public Beta demo fixtures
 
 Small **synthetic** test tones (440 Hz sine, 2 s, mono, 44.1 kHz). No copyrighted music is included in the repository.
 

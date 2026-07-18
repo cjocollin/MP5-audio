@@ -153,7 +153,7 @@ export function resolveCoverCardStyle(
   return { ...theme.cardStyle, ...theme.coverFrameStyle };
 }
 
-/** Alpha guard: VISU must never set document-level or url() backgrounds. */
+/** VISU guard: must never set document-level or url() backgrounds. */
 export function themeUsesGlobalBackgroundImage(theme: ResolvedPlayerTheme | null): boolean {
   if (!theme) return false;
   const check = (style: CSSProperties | undefined) => {

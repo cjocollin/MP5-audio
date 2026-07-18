@@ -23,7 +23,7 @@ export default defineConfig({
         name: "MP5 Player",
         short_name: "MP5",
         description:
-          "Experimental MP5 audio player and converter (Alpha). MP5-L v3 recommended; MP5-C/H lab-only.",
+          "Experimental MP5 audio player and converter (Public Beta). MP5-L v3 recommended; MP5-C/H lab-only.",
         start_url: "/",
         scope: "/",
         theme_color: "#0a0a0f",

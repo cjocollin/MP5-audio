@@ -5,7 +5,7 @@ export function AboutMp5Panel() {
         <h2 className="text-lg font-semibold text-white">What is MP5?</h2>
         <p className="text-gray-400 leading-relaxed">
           <strong className="text-gray-200">MP5</strong> is an experimental smart audio container ({" "}
-          <code className="text-accent">.mp5</code> files) with several codec modes. This Alpha
+          <code className="text-accent">.mp5</code> files) with several codec modes. This Public Beta
           release is a research prototype — not a finished product codec.
         </p>
         <p className="text-xs text-gray-500">
@@ -50,7 +50,7 @@ export function AboutMp5Panel() {
       </section>
 
       <section className="rounded-xl bg-surface-elevated p-4 space-y-2">
-        <h3 className="font-semibold text-gray-200">Install &amp; share (Alpha)</h3>
+        <h3 className="font-semibold text-gray-200">Install &amp; share (Public Beta)</h3>
         <p className="text-gray-400 text-xs leading-relaxed">
           The primary target is a <strong className="text-gray-200">web app / PWA</strong> (install
           from the browser on HTTPS or localhost). Desktop (Tauri) and mobile (Capacitor) are
@@ -69,9 +69,9 @@ export function AboutMp5Panel() {
       <section className="rounded-xl bg-surface-elevated p-4 space-y-1 text-xs text-gray-500">
         <p>
           Docs: <code className="text-accent">docs/MP5_DEMO_GUIDE.md</code>,{" "}
-          <code className="text-accent">docs/MP5_ALPHA_RELEASE_CHECKLIST.md</code>
+          <code className="text-accent">docs/MP5_BETA_READINESS.md</code>
         </p>
-        <p>Verify: <code className="text-accent">pnpm alpha:check</code></p>
+        <p>Verify: <code className="text-accent">pnpm beta:check</code></p>
       </section>
     </div>
   );

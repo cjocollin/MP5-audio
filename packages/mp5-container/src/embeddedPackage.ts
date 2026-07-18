@@ -15,7 +15,7 @@ import {
   type AlbmValidationError,
 } from "./albm.js";
 
-/** Binary `.mp5p` embedded album package (prototype Alpha). */
+/** Binary `.mp5p` embedded album package (prototype Public Beta). */
 export const EMBEDDED_PACKAGE_MAGIC = new Uint8Array([0x4d, 0x50, 0x35, 0x50]); // MP5P
 export const EMBEDDED_PACKAGE_MAGIC_STR = "MP5P";
 export const EMBEDDED_PACKAGE_VERSION = 1;

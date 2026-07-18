@@ -39,7 +39,7 @@ if (steps.length > 0) {
   for (const s of steps) {
     console.log(`  ${s}`);
   }
-  console.log("\nOr run the full gate:  pnpm alpha:check\n");
+  console.log("\nOr run the full gate:  pnpm beta:check\n");
   if (steps.some((s) => s.includes("wasm"))) {
     console.log(
       "Without WASM: the app runs in PCM reference/debug mode only.\n" +

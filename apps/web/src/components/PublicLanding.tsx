@@ -83,7 +83,7 @@ function LandingAboutDetails() {
       </div>
 
       <section className="mp5-card p-4 space-y-2" data-testid="landing-what-works">
-        <SectionTitle>What works today (Alpha)</SectionTitle>
+        <SectionTitle>What works today (Public Beta)</SectionTitle>
         <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside leading-relaxed">
           <li>Convert FLAC/WAV/MP3/etc. to .mp5 (MP5-L v3 default)</li>
           <li>Play single .mp5 with metadata, lyrics, VISU, stems, karaoke</li>
@@ -111,8 +111,8 @@ function LandingAboutDetails() {
         </p>
       </section>
 
-      <section className="space-y-3" data-testid="landing-alpha-modes">
-        <SectionTitle>Current Alpha modes</SectionTitle>
+      <section className="space-y-3" data-testid="landing-codec-modes">
+        <SectionTitle>Current codec modes</SectionTitle>
         <div className="grid sm:grid-cols-3 gap-2">
           <CodecCard
             testId="landing-codec-mp5l"
@@ -190,7 +190,7 @@ function LandingAboutDetails() {
       </section>
 
       <section className="space-y-2" data-testid="landing-screenshots">
-        <SectionTitle>See the Alpha demo</SectionTitle>
+        <SectionTitle>See the Public Beta demo</SectionTitle>
         <p className="text-xs text-gray-500">
           Synthetic demo audio only — no copyrighted album art in repo screenshots.
         </p>
@@ -252,9 +252,9 @@ function LandingAboutDetails() {
         className="rounded-xl border border-white/[0.06] bg-black/20 p-4 space-y-2"
         data-testid="landing-honesty"
       >
-        <SectionTitle>Honest Alpha limitations</SectionTitle>
+        <SectionTitle>Honest Public Beta limitations</SectionTitle>
         <ul className="text-sm text-gray-400 space-y-1.5 list-disc list-inside leading-relaxed">
-          <li>MP5 is experimental Alpha software — not a finished product codec.</li>
+          <li>MP5 is experimental Public Beta software — not a finished product codec.</li>
           <li>
             <strong className="text-gray-300 font-normal">MP5-L v3</strong> is the recommended
             working mode for listening.
@@ -276,7 +276,7 @@ function LandingAboutDetails() {
       </section>
 
       <section className="space-y-2" data-testid="landing-roadmap">
-        <SectionTitle>Alpha roadmap</SectionTitle>
+        <SectionTitle>Public Beta roadmap</SectionTitle>
         <ul className="text-xs text-gray-500 flex flex-wrap gap-1.5">
           {[
             "Metadata polish",
@@ -429,7 +429,7 @@ export function PublicLanding() {
         </button>
         {!aboutExpanded && (
           <span className="text-[10px] text-gray-500" data-testid="landing-about-collapsed-hint">
-            Codec modes, screenshots, and Alpha notes are here.
+            Codec modes, screenshots, and Public Beta notes are here.
           </span>
         )}
       </div>

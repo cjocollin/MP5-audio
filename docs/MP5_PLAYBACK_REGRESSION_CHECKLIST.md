@@ -2,7 +2,7 @@
 
 **Version:** MP5 Audio v0.11.0-alpha  
 **Purpose:** Manual and automated gates before shipping playback/transport changes.  
-**Automated gate:** `pnpm playback:check` · **Full release gate:** `pnpm alpha:check`
+**Automated gate:** `pnpm playback:check` · **Full release gate:** `pnpm beta:check`
 
 ## Synthetic fixture (CI)
 
@@ -95,7 +95,7 @@ Automated gates use `demo_pity_party_class.mp5` (~10 MiB, 12 s, STDF v1). They d
 - Browser-specific autoplay or memory limits on very large files
 - Hosted demo URL verification (`pnpm test:e2e:hosted`)
 
-Run the checklist in this doc against Pity Party after `pnpm playback:check` and `pnpm alpha:check` pass locally.
+Run the checklist in this doc against Pity Party after `pnpm playback:check` and `pnpm beta:check` pass locally.
 
 ---
 

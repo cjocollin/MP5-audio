@@ -1,6 +1,6 @@
-# MP5 Alpha release checklist
+# MP5 Public Beta release checklist
 
-Use this before tagging an alpha release or publishing GitHub release notes. For day-to-day demo prep, see also [`docs/MP5_ALPHA_RELEASE_CHECKLIST.md`](docs/MP5_ALPHA_RELEASE_CHECKLIST.md).
+Use this before tagging a Public Beta release or publishing GitHub release notes. For readiness gates, see also [`docs/MP5_BETA_READINESS.md`](docs/MP5_BETA_READINESS.md).
 
 ## Version and changelog
 
@@ -20,7 +20,7 @@ Use this before tagging an alpha release or publishing GitHub release notes. For
 - [ ] `cargo test -p mp5-codec --release`
 - [ ] `pnpm fixtures:validate`
 - [ ] `pnpm build`
-- [ ] `pnpm alpha:check` (full gate before major tags) or at minimum `pnpm playback:check` + `pnpm test:e2e`
+- [ ] `pnpm beta:check` (full gate before major tags) or at minimum `pnpm playback:check` + `pnpm test:e2e`
 
 ## Demo and codecs
 
@@ -44,7 +44,7 @@ Use this before tagging an alpha release or publishing GitHub release notes. For
 ## Publish
 
 - [ ] All checklist items pass locally (and CI green on `main`)
-- [ ] Git tag created: `vX.Y.Z-alpha`
+- [ ] Git tag created: `vX.Y.Z-beta`
 - [ ] GitHub release drafted using [`docs/GITHUB_RELEASE_v0.13.0-alpha.md`](docs/GITHUB_RELEASE_v0.13.0-alpha.md), link to `CHANGELOG.md`, demo URL https://mp5-audio.vercel.app
 - [ ] Deploy verification if hosting changed: `pnpm deploy:check`, `pnpm vercel:check`
 

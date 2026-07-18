@@ -25,7 +25,7 @@ export function WelcomeOnboarding() {
       <div className="space-y-2">
         <p className="text-xs uppercase tracking-wider text-accent/80 font-medium">Welcome</p>
         <h2 id="welcome-heading" className="text-xl sm:text-2xl font-semibold text-white">
-          Welcome to MP5 Audio (Alpha)
+          Welcome to MP5 Audio (Public Beta)
         </h2>
         <p className="text-sm text-gray-400 leading-relaxed">
           MP5 is an experimental smart audio container — not production-ready.{" "}

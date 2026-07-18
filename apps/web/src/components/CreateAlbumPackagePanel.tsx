@@ -124,7 +124,7 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
           <span>
             <strong className="text-gray-300">Embedded album package</strong> — self-contained{" "}
             <span className="font-mono">.mp5p</span> with all tracks inside one file (experimental
-            Alpha). This can be much larger if tracks include stems.
+            Public Beta). This can be much larger if tracks include stems.
           </span>
         </label>
       </fieldset>
@@ -134,7 +134,7 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
           className="rounded-lg border border-amber-900/25 bg-amber-950/15 px-3 py-2 text-[10px] text-amber-100/80 leading-relaxed"
           data-testid="create-album-embedded-warning"
         >
-          Embedded packages are experimental Alpha prototypes — not a final public spec. Third-party
+          Embedded packages are experimental Public Beta prototypes — not a final public spec. Third-party
           players may ignore <span className="font-mono">.mp5p</span> entirely.
         </div>
       )}

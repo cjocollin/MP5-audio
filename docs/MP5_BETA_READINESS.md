@@ -26,7 +26,7 @@ Target decision: accept **MP5 Audio v0.27.0-beta** as deployed Public Beta if al
 | `pnpm test:compat` | Pending |
 | `CI=1 pnpm test:e2e` | Pending |
 | `pnpm playback:check` | Pending |
-| `CI=1 pnpm alpha:check` | Pending |
+| `CI=1 pnpm beta:check` | Pending |
 | `CI=1 pnpm beta:check` | Pending |
 | `pnpm build` | Pending |
 | `pnpm deploy:check` | Pending |
@@ -62,7 +62,7 @@ pnpm test
 pnpm test:compat
 CI=1 pnpm test:e2e
 pnpm playback:check
-CI=1 pnpm alpha:check
+CI=1 pnpm beta:check
 CI=1 pnpm beta:check
 pnpm build
 pnpm deploy:check

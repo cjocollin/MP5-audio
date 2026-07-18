@@ -10,7 +10,7 @@ We want MP5 Audio to be a welcoming place for contributors, reviewers, and users
 - Give actionable feedback in reviews and issues.
 - Accept good-faith disagreement; focus on technical merit and project goals.
 - Respect boundaries: no harassment, discrimination, personal attacks, or unwanted contact.
-- Keep discussions on-topic and honest about the project's alpha / experimental status.
+- Keep discussions on-topic and honest about the project's Public Beta / experimental status.
 
 ## Unacceptable behavior
 

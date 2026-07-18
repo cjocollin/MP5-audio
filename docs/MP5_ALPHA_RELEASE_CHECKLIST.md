@@ -1,3 +1,5 @@
+> **Note:** MP5 is now **Public Beta**. Use [`MP5_BETA_READINESS.md`](./MP5_BETA_READINESS.md) and [`RELEASE_CHECKLIST.md`](../RELEASE_CHECKLIST.md) for current releases. This Alpha-era checklist is kept for historical reference.
+
 # MP5 Alpha Release Checklist
 
 Use this before sharing the repo, tagging a release, or demoing to someone new.

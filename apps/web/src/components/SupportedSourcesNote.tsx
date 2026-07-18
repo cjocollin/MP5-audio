@@ -11,7 +11,7 @@ export function SupportedSourcesNote() {
       data-testid="supported-sources-panel"
     >
       <summary className="cursor-pointer px-3 py-2 text-gray-400 hover:text-gray-300">
-        Supported source formats (Alpha)
+        Supported source formats (Public Beta)
       </summary>
       <div className="px-3 pb-3 space-y-2">
         <ul className="space-y-1">

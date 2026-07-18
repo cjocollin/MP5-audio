@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Focused playback regression gate — does not replace alpha:check.
+ * Focused playback regression gate — does not replace beta:check (which runs alpha:check).
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";

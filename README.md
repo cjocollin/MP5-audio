@@ -94,7 +94,7 @@ pnpm test
 pnpm test:compat
 CI=1 pnpm test:e2e
 pnpm playback:check
-CI=1 pnpm alpha:check
+CI=1 pnpm beta:check
 CI=1 pnpm beta:check
 pnpm build
 pnpm deploy:check

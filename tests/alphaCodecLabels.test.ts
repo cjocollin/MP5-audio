@@ -8,7 +8,7 @@ import {
   mp5lBitstreamVersion,
 } from "../apps/web/src/lib/codecDisplay";
 
-describe("Alpha codec labels", () => {
+describe("Public Beta codec labels", () => {
   it("labels MP5-L as default lossless export", () => {
     expect(codecLabel(CodecId.MP5L)).toMatch(/lossless/i);
     expect(codecLabel(CodecId.MP5L)).toMatch(/default/i);

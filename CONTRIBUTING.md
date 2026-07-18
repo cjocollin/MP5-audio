@@ -1,6 +1,6 @@
 # Contributing to MP5 Audio
 
-Thank you for your interest in MP5 Audio. This project is an **experimental alpha** research codebase — contributions that improve clarity, validation, and honest documentation are especially welcome.
+Thank you for your interest in MP5 Audio. This project is an **experimental Public Beta** research codebase — contributions that improve clarity, validation, and honest documentation are especially welcome.
 
 ## Project overview
 
@@ -65,8 +65,8 @@ cargo test -p mp5-codec
 # Golden fixture validation
 pnpm fixtures:validate
 
-# Full Alpha gate (fixtures, vitest, Rust, validation, playback, E2E)
-pnpm alpha:check
+# Full Public Beta gate (fixtures, vitest, Rust, validation, playback, E2E)
+pnpm beta:check
 ```
 
 ### Run the web app / demo
@@ -134,7 +134,7 @@ MP5 fixtures live in `test-fixtures/`. **Only commit synthetic or explicitly lic
 6. **Fill out the PR template** checklist.
 7. **Link related issues** when applicable.
 
-We review contributions as time allows. Alpha status means APIs, chunk layouts, and UX may still change.
+We review contributions as time allows. Public Beta status means APIs, chunk layouts, and UX may still change.
 
 ## Security
 

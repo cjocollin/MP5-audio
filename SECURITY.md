@@ -1,15 +1,15 @@
 # Security Policy
 
-MP5 Audio parses binary container files, decompresses audio payloads, and runs Rust/WASM codec code in the browser. Treat untrusted `.mp5` / `.mp5p` files with caution — the project is **alpha / experimental** and not hardened for hostile input in production environments.
+MP5 Audio parses binary container files, decompresses audio payloads, and runs Rust/WASM codec code in the browser. Treat untrusted `.mp5` / `.mp5p` files with caution — the project is **Public Beta / experimental** and not hardened for hostile input in production environments.
 
 ## Supported versions
 
-Security fixes are considered only for the **current development line on `main`** (alpha releases, e.g. `v0.x.x-alpha`). Older tags and forks are unsupported unless explicitly noted in a release.
+Security fixes are considered only for the **current development line on `main`** (Public Beta releases on `main`, e.g. `v0.x.x-beta`). Older tags and forks are unsupported unless explicitly noted in a release.
 
 | Version | Supported |
 |---------|-----------|
-| Latest alpha on `main` | Yes |
-| Older alpha tags | Best effort only |
+| Latest Public Beta on `main` | Yes |
+| Older alpha/beta tags | Best effort only |
 | Pre-release experiments / forks | No |
 
 ## Reporting a vulnerability
@@ -30,11 +30,11 @@ If private advisories are unavailable, contact the repository owner through GitH
 <!-- Maintainer: optionally add a dedicated security email below and enable GitHub security contact settings. -->
 <!-- Security email (optional): security@example.com -->
 
-We aim to acknowledge reports within **7 days** and provide a status update within **30 days**, though alpha maintenance bandwidth may vary.
+We aim to acknowledge reports within **7 days** and provide a status update within **30 days**, though Public Beta maintenance bandwidth may vary.
 
 ## What counts as a security issue
 
-Please report issues where **malicious or malformed MP5 input** could cause harm beyond normal alpha bugs:
+Please report issues where **malicious or malformed MP5 input** could cause harm beyond normal Public Beta bugs:
 
 | Category | Examples |
 |----------|----------|
@@ -55,7 +55,7 @@ These belong in normal [bug reports](https://github.com/cjocollin/MP5-audio/issu
 
 - **Normal audio quality bugs** (clipping, level mismatch, seek inaccuracy)
 - **Known MP5-C hiss / artifact limitations** on music material
-- **Expected alpha instability** (UI glitches, slow decode on large files, missing features)
+- **Expected Public Beta instability** (UI glitches, slow decode on large files, missing features)
 - **Feature requests** or codec tuning without exploit impact
 - **Social engineering** or issues outside this codebase (hosting provider, third-party CDN, user OS)
 
