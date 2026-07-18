@@ -338,6 +338,25 @@ describe("native Rust vNext (encode_mp5c_vnext) — parity with JS, MP5-C untouc
   });
 });
 
+describe("vNext loud-path High preferred for size (protect 1.5)", () => {
+  it("keeps reverb_tail hiss risk low and is smaller than Extreme on dense_music", () => {
+    const modes = buildModes(codec).filter((m: any) =>
+      ["mp5c2-smooth", "mp5c2-smooth-extreme"].includes(m.id),
+    );
+    expect(modes).toHaveLength(2);
+    const reverb = allFixtures().filter((f: any) => f.name === "reverb_tail");
+    const dense = allFixtures().find((f: any) => f.name === "dense_music");
+    const rows = buildHissRows(reverb, modes);
+    for (const r of rows) expect(r.hissRisk).toBe("low");
+    const high = modes.find((m: any) => m.id === "mp5c2-smooth")!;
+    const extreme = modes.find((m: any) => m.id === "mp5c2-smooth-extreme")!;
+    const highBytes = high.encode(dense.samples, dense.channels).length;
+    const extremeBytes = extreme.encode(dense.samples, dense.channels).length;
+    expect(highBytes).toBeLessThan(extremeBytes);
+    expect(highBytes / (dense.samples.length * 2)).toBeLessThan(0.96);
+  });
+});
+
 describe("Hiss Risk thresholds are committed and sane", () => {
   it("uses fixed dB cutoffs and rates bit-exact as low", () => {
     expect(HISS_RISK_THRESHOLDS).toEqual({ lowMinDb: 40, mediumMinDb: 25, highMinDb: 12 });

@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Milestone - Docs sync, mobile density, vNext L/B coalesce
+### Milestone - Docs sync, mobile density, vNext size pass
 
 **Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
 No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
@@ -17,6 +17,9 @@ No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
   collapsible stems help/diagnostics; sticky stem-prep progress bar with overall %.
 - **vNext lossless L/B coalesce:** adjacent quiet/fragile units share one MP5-L encode (Rust + JS).
   `reverb_tail` ~0.68× → **~0.42× PCM**; hiss risk still **low**; `dense_music` unchanged ~0.97×.
+- **vNext loud-path High preferred for size:** at protect 1.5, High keeps hiss risk **low** and
+  shrinks `dense_music` ~0.971× → **0.941×** (real track ~0.977× → **0.968×**). Residual 2048
+  pad ~0.6% → no short-frame trim. Lab hiss-report includes High + native High modes.
 
 ### Milestone - MP5-L packed Rice + 4-mode stereo; vNext protect experiment
 

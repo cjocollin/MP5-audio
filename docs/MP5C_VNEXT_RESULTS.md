@@ -3,10 +3,10 @@
 **Version:** MP5 Audio v0.26.0-beta  
 **Reproduce:** `pnpm audio:hiss-report` (synthetic + optional local reference).
 
-> **TL;DR.** Lossy coalesce + protect **1.5** keep hiss risk **low** (synthetic + real-track tails
-> bit-exact). **Lossless L/B coalesce** further cuts protected material (`reverb_tail` ~0.68× →
-> **~0.42× PCM**); loud `dense_music` stays ~**0.97×**. `CodecId.MP5C2` is Converter lab/advanced
-> only. MP5-L stays default. No claim vs MP3/AAC/Opus/FLAC/WAV.
+> **TL;DR.** Protect **1.5** + lossy/L/B coalesce keep hiss risk **low**. Prefer **High** loud
+> preset for size (`dense_music` **~0.94×**, protected `reverb_tail` **~0.42×**). Extreme is
+> optional. Residual 2048 pad ~0.6% — not worth trim. Lab/advanced only; MP5-L stays default.
+> No claim vs MP3/AAC/Opus/FLAC/WAV.
 
 ## Phase 4.4 — protect-scale experiment (timeboxed) — **GREEN**
 
@@ -42,6 +42,24 @@ decode still trims by `n`). Measured with `pnpm audio:hiss-report` after protect
 
 **Verdict:** go — hiss risk unchanged **low**; quiet/tail SNR still ∞; largest win on heavily
 protected material. Loud path unchanged (already lossy-coalesced).
+
+## Loud-path High vs Extreme (protect 1.5 fixed) — **GO High for size**
+
+Same protect thresholds; only the MP5-C preset on `TAG_LOSSY` units changes.
+
+| Mode | dense_music ×PCM | reverb hiss | real-track hiss | real-track ×PCM |
+|------|-----------------:|:-----------:|:---------------:|----------------:|
+| **smooth/native High** | **0.941** | low (∞ tail) | **low** (∞ tail) | **0.968** |
+| smooth/native Extreme | 0.971 | low (∞ tail) | low (∞ tail) | 0.977 |
+
+Full-song SNR is slightly higher on Extreme (~+1.4 dB dense / ~+1.3 dB real) but hiss risk
+does not improve (tails already bit-exact). Converter default preset **High** is the preferred
+loud-path size choice; Extreme remains available for A/B.
+
+### Residual 2048-frame pad — **no-go for trim**
+
+After lossy coalesce, pad is only the last incomplete MP5-C frame (~1640 samples on
+`dense_music` ≈ **0.6%** of file). Not worth a short-frame MP5-C packing change.
 
 ## v0.26 — lossy coalescing
 

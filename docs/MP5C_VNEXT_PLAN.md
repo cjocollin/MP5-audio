@@ -65,9 +65,11 @@ content outright (lossless), and roughly doubles reverb-tail quiet SNR. But it i
    thresholds take a local commercial reference to hiss risk **low** (bit-exact tails) at ~0.97× PCM.
    Coalescing adjacent lossy sub-blocks is **DONE** (dense_music ~1.17× → ~0.97× PCM).
 7. **Lossless L/B coalesce — DONE.** Adjacent L/B units share one MP5-L encode (`reverb_tail`
-   ~0.68× → **~0.42× PCM**; hiss risk still **low**). **Still open:** loud-path size (High vs
-   Extreme A/B, residual 2048 pad) while keeping hiss risk **low** — no MDCT redesign in this
-   track. Keep measuring with `pnpm audio:hiss-report` and `validate-vnext-ref`.
+   ~0.68× → **~0.42× PCM**; hiss risk still **low**).
+8. **Loud-path High vs Extreme — DONE (prefer High for size).** At protect 1.5, High keeps hiss
+   risk **low** and cuts `dense_music` ~0.971× → **0.941×** (real track ~0.977× → **0.968×**).
+   Residual 2048 pad after coalesce is ~0.6% → **no-go** for short-frame trim. Further size needs
+   an MDCT / quant redesign (medium-term below). Keep measuring with `pnpm audio:hiss-report`.
 
 ## Medium-term (codec redesign — proposal, not yet built)
 

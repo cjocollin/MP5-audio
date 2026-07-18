@@ -518,6 +518,15 @@ export function buildModes(codec) {
     ...(typeof codec.encode_mp5c_vnext === "function"
       ? [
           {
+            id: "mp5c2-native-high",
+            label: "MP5-C vNext native High (Rust smooth+coalesce · preferred size preset · lab · default OFF)",
+            group: "prototype",
+            prototype: true,
+            native: true,
+            encode: (s, ch) => codec.encode_mp5c_vnext(s, ch, 2),
+            decode: (b) => codec.decode_mp5c_vnext(b),
+          },
+          {
             id: "mp5c2-native-extreme",
             label: "MP5-C vNext native Extreme (Rust sub-block+band+hysteresis+coalesce · lab · default OFF)",
             group: "prototype",

@@ -81,7 +81,7 @@ detection leaves decaying tails partly lossy — still lab-only. See
 | **MP5-L v3** | **Default / recommended** | **Bit-exact (13/13)** | ~0.50× | ✅ Clean, default |
 | MP5-C (Standard/High/Extreme) | Lab / research | No (lossy) | ~0.52–0.61× | ⚠️ Lab-only — hiss |
 | MP5-H High + CORR | Hybrid | Sample-exact content (13/13) | ~1.13× (often >1×) | Optional, large, not default |
-| **MP5-C vNext (`CodecId` 5)** | **Lab/advanced export** | Quiet/fragile bit-exact | ~0.42–0.97× | 🧪 Gated; hiss risk low @ protect 1.5; L/B+lossy coalesce |
+| **MP5-C vNext (`CodecId` 5)** | **Lab/advanced export** | Quiet/fragile bit-exact | ~0.42–0.94× (High) | 🧪 Gated; hiss low @ protect 1.5; prefer High preset for size |
 | PCM | Reference / debug | Bit-exact | 1.00× | Reference |
 
 ## MP5-L (default, lossless)

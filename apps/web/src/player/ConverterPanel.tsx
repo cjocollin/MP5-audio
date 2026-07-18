@@ -1024,8 +1024,8 @@ export function ConverterPanel() {
           >
             <option value={0}>Low</option>
             <option value={1}>Standard (smaller / may hiss)</option>
-            <option value={2}>High (balanced)</option>
-            <option value={3}>Extreme (finest MP5-C — still may hiss)</option>
+            <option value={2}>High (balanced · preferred vNext size)</option>
+            <option value={3}>Extreme (finest loud path — still may hiss on MP5-C)</option>
           </select>
         </label>
       </div>

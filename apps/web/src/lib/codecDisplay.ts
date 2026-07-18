@@ -65,6 +65,12 @@ export function presetLabelForCodec(codecId: number, presetId: number): string {
     const base = PRESET_NAMES[presetId] ?? `Preset ${presetId}`;
     return `${base} (MP5-C base layer)`;
   }
+  if (codecId === CodecId.MP5C2) {
+    const base = PRESET_NAMES[presetId] ?? `Preset ${presetId}`;
+    if (presetId === 2) return `${base} (preferred size · protect 1.5)`;
+    if (presetId === 3) return `${base} (finest loud path · protect 1.5)`;
+    return `${base} (lab vNext loud path)`;
+  }
   return presetLabel(presetId);
 }
 
