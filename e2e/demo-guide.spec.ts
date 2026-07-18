@@ -28,12 +28,14 @@ test.describe("demo guide", () => {
   });
 });
 
-test.describe("onboarding", () => {
-  test("welcome card shows on first visit", async ({ page }) => {
+test.describe("first visit", () => {
+  test("opens directly into the seeded Player with Public Beta guidance", async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem("mp5-onboarding-v1"));
     await page.goto("/");
-    await expect(page.getByTestId("welcome-onboarding")).toBeVisible();
-    await page.getByTestId("welcome-dismiss").click();
     await expect(page.getByTestId("welcome-onboarding")).toHaveCount(0);
+    await expect(page.getByTestId("public-beta-notice")).toBeVisible();
+    await expect(page.getByTestId("mp5-player")).toBeVisible();
+    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
   });
 });

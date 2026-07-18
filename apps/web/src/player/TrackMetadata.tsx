@@ -164,13 +164,13 @@ export function TrackMetadata({ parsed, title, decodePath, mp5h, fileBytes, hide
       : undefined;
 
   return (
-    <div className="space-y-3">
+    <div className="mp5-format-summary space-y-3">
       {head ? (
-        <div className="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3">
-          <p className="text-[10px] uppercase tracking-wider text-accent/80 font-semibold mb-1">
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
             Format
           </p>
-          <p className="text-lg font-bold text-accent" data-testid="codec-label">
+          <p className="text-lg font-bold text-violet-300" data-testid="codec-label">
             {codecLabel(head.codecId)}
           </p>
           {mp5lLabels && <Mp5lDetailBlock labels={mp5lLabels} />}

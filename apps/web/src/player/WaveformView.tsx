@@ -29,6 +29,18 @@ interface Props {
   playedFill?: string;
   unplayedFill?: string;
   disabled?: boolean;
+  visualProfile?: "default-demo";
+}
+
+function densifyPeaks(peaks: number[], targetLength = 512) {
+  if (peaks.length >= targetLength || peaks.length < 2) return peaks;
+  return Array.from({ length: targetLength }, (_, index) => {
+    const position = (index / (targetLength - 1)) * (peaks.length - 1);
+    const leftIndex = Math.floor(position);
+    const rightIndex = Math.min(peaks.length - 1, leftIndex + 1);
+    const mix = position - leftIndex;
+    return peaks[leftIndex]! * (1 - mix) + peaks[rightIndex]! * mix;
+  });
 }
 
 export function WaveformView({
@@ -42,13 +54,14 @@ export function WaveformView({
   playedFill,
   unplayedFill,
   disabled = false,
+  visualProfile,
 }: Props) {
   const [previewRatio, setPreviewRatio] = useState<number | null>(null);
 
   if (!peaks.length) {
     return (
       <div
-        className="h-20 rounded-xl bg-surface-elevated/80 border border-white/5 flex items-center justify-center text-xs text-gray-600"
+        className="mp5-waveform-shell flex h-12 items-center justify-center text-xs text-gray-600 sm:h-14"
         data-testid="waveform-empty"
       >
         Waveform preview unavailable
@@ -56,12 +69,32 @@ export function WaveformView({
     );
   }
 
-  const w = peaks.length;
+  const densePeaks = densifyPeaks(peaks);
+  const displayPeaks = visualProfile === "default-demo"
+    ? densePeaks.map((_peak, index) => {
+        const broad = 0.68 + 0.14 * Math.sin(index * 0.031 + 0.6) + 0.09 * Math.sin(index * 0.083);
+        const hash = Math.sin((index + 1) * 12.9898) * 43758.5453;
+        const random = hash - Math.floor(hash);
+        const detail = 0.24 + random * 0.76;
+        return Math.max(0.1, broad * detail);
+      })
+    : densePeaks;
+  const w = displayPeaks.length;
+  const peakMax = displayPeaks.reduce((max, peak) => Math.max(max, peak), 0.001);
+  const playheadX = Math.max(1.5, progress * w);
+  const peakHeightScale = visualProfile === "default-demo" ? 20 : 28;
+  const peakHeights = displayPeaks.map((peak) => Math.max(1, (peak / peakMax) * peakHeightScale));
+  const demoWaveformPoints = [
+    ...peakHeights.map((height, index) => `${index},${16 - height / 2}`),
+    ...peakHeights
+      .map((height, index) => `${index},${16 + height / 2}`)
+      .reverse(),
+  ].join(" ");
 
   return (
-    <div className="relative rounded-xl bg-surface-elevated border border-white/5 overflow-hidden">
+    <div className="mp5-waveform-shell">
       <svg
-        className={`w-full h-20 ${disabled || !onSeek ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+        className={`h-12 w-full sm:h-14 ${disabled || !onSeek ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
         data-testid="waveform"
         viewBox={`0 0 ${w} 32`}
         preserveAspectRatio="none"
@@ -91,20 +124,35 @@ export function WaveformView({
           data-testid="waveform-loop-range"
         />
       )}
-      {peaks.map((p, i) => {
-        const h = Math.max(1, p * 28);
-        const played = i / w <= progress;
-        return (
-          <rect
-            key={i}
-            x={i}
-            y={16 - h / 2}
-            width={1}
-            height={h}
-            fill={played ? (playedFill ?? "#8b5cf6") : (unplayedFill ?? "#4b5563")}
-          />
-        );
-      })}
+      {visualProfile === "default-demo" ? (
+        <polygon points={demoWaveformPoints} fill="var(--mp5-accent)" fillOpacity={0.92} />
+      ) : (
+        displayPeaks.map((p, i) => {
+          const h = Math.max(1, (p / peakMax) * 28);
+          const played = i / w <= progress;
+          return (
+            <rect
+              key={i}
+              x={i + 0.15}
+              y={16 - h / 2}
+              width={0.34}
+              height={h}
+              fill={played ? (playedFill ?? "var(--mp5-accent-bright)") : (unplayedFill ?? "var(--mp5-accent)")}
+            />
+          );
+        })
+      )}
+      <line
+        x1={playheadX}
+        x2={playheadX}
+        y1={1}
+        y2={31}
+        stroke="#f8fafc"
+        strokeWidth={1.2}
+        strokeOpacity={0.96}
+        aria-hidden
+      />
+      <circle cx={playheadX} cy={1.8} r={1.8} fill="#f8fafc" aria-hidden />
       {durationSec > 0 &&
         sectionMarkers.map((m, i) => {
           const x = (m.startMs / 1000 / durationSec) * w;

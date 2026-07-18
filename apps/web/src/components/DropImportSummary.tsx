@@ -10,8 +10,9 @@ export function DropImportSummary({ summary }: Props) {
 
   return (
     <div
-      className="rounded-lg border border-white/10 bg-surface-elevated/80 px-3 py-2 text-xs text-gray-300 space-y-1"
+      className="mp5-import-summary space-y-1 rounded-lg border border-white/10 bg-surface-elevated/95 px-3 py-2 text-xs text-gray-300"
       data-testid="drop-import-summary"
+      role="status"
     >
       {addedCount > 0 && (
         <p data-testid="drop-added-count">

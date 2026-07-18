@@ -1,3 +1,5 @@
+import { createRandomId } from "../lib/randomId";
+
 export type JobStatus = "pending" | "running" | "done" | "error";
 
 export interface ConversionJob {
@@ -13,7 +15,7 @@ export interface ConversionJob {
 
 export function createJob(file: File, codec: ConversionJob["codec"], preset: number): ConversionJob {
   return {
-    id: crypto.randomUUID(),
+    id: createRandomId(),
     file,
     codec,
     preset,

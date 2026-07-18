@@ -1,5 +1,6 @@
 import type { AlbmPackageManifest } from "@mp5/container";
 import type { UnifiedPackageType } from "./unifiedLibraryTypes";
+import { createRandomId } from "../randomId";
 
 const STORAGE_KEY = "mp5-recent-library-v1";
 const MAX_RECENTS = 24;
@@ -77,7 +78,7 @@ function upsert(entry: Omit<RecentLibraryEntry, "id" | "openedAt"> & { id?: stri
     );
   });
   const record: RecentLibraryEntry = {
-    id: entry.id ?? (matchIdx >= 0 ? items[matchIdx]!.id : crypto.randomUUID()),
+    id: entry.id ?? (matchIdx >= 0 ? items[matchIdx]!.id : createRandomId()),
     type: entry.type,
     packageType: entry.packageType,
     title: entry.title,

@@ -60,41 +60,39 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
 
   const cardStyle: CSSProperties = {
     background: cardBackground,
-    borderColor: hexWithAlpha(accent, 0.65),
-    borderWidth: 2,
-    borderStyle: "solid",
-    boxShadow: `0 0 0 1px ${hexWithAlpha(accent, 0.2)}, 0 16px 48px ${hexWithAlpha(accent, 0.28)}, inset 0 0 80px ${hexWithAlpha(background ?? accent, 0.15)}`,
-  };
-
-  /** Now Playing shell only — subtle tint, no full-column wallpaper wash. */
-  const shellStyle: CSSProperties = {
-    borderColor: hexWithAlpha(accent, 0.4),
+    borderColor: "var(--mp5-border)",
     borderWidth: 1,
     borderStyle: "solid",
-    background: background
-      ? `linear-gradient(180deg, ${hexWithAlpha(background, 0.28)} 0%, ${hexWithAlpha(accent, 0.06)} 48%, transparent 100%)`
-      : `linear-gradient(180deg, ${hexWithAlpha(accent, 0.12)} 0%, transparent 62%)`,
-    boxShadow: `inset 0 1px 0 ${hexWithAlpha(accent, 0.1)}`,
+    boxShadow: "none",
+  };
+
+  /** Keep the application chrome neutral; VISU color belongs to artwork and waveform data. */
+  const shellStyle: CSSProperties = {
+    borderColor: "transparent",
+    borderWidth: 0,
+    borderStyle: "solid",
+    background: "transparent",
+    boxShadow: "none",
   };
 
   const coverFrameStyle: CSSProperties = {
-    boxShadow: `0 0 0 3px ${hexWithAlpha(accent, 0.55)}, 0 12px 36px ${hexWithAlpha(accent, 0.25)}`,
+    boxShadow: "none",
   };
 
   const coverOverlayStyle: CSSProperties = {
-    background: `linear-gradient(180deg, ${hexWithAlpha(accent, 0.08)} 0%, transparent 35%, transparent 55%, ${hexWithAlpha(background ?? primary ?? accent, 0.72)} 100%)`,
+    background: "linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0%, transparent 58%, rgba(0, 0, 0, 0.18) 100%)",
     pointerEvents: "none",
   };
 
   const badgeStyle: CSSProperties = {
-    color: accent,
-    borderColor: hexWithAlpha(accent, 0.55),
-    backgroundColor: hexWithAlpha(accent, 0.18),
+    color: "#d8dadd",
+    borderColor: hexWithAlpha(accent, 0.65),
+    backgroundColor: hexWithAlpha(accent, 0.06),
   };
 
   const titleStyle: CSSProperties = {
-    color: text,
-    textShadow: `0 0 24px ${hexWithAlpha(accent, 0.35)}`,
+    color: "#f3f4f6",
+    textShadow: "none",
   };
 
   const vars: Record<string, string> = {
@@ -124,7 +122,7 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
     titleStyle,
     vars,
     waveformPlayedFill: accent,
-    waveformUnplayedFill: hexWithAlpha(secondary ?? accent, 0.35),
+    waveformUnplayedFill: hexWithAlpha(secondary ?? accent, 0.52),
   };
 }
 

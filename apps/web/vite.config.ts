@@ -16,7 +16,7 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 35 * 1024 * 1024,
         navigateFallback: "index.html",
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,wasm}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2,wasm}"],
       },
       manifest: {
         id: "/",
@@ -26,8 +26,8 @@ export default defineConfig({
           "Experimental MP5 audio player and converter (Public Beta). MP5-L v3 recommended; MP5-C/H lab-only.",
         start_url: "/",
         scope: "/",
-        theme_color: "#0a0a0f",
-        background_color: "#0a0a0f",
+        theme_color: "#070b12",
+        background_color: "#070b12",
         display: "standalone",
         orientation: "any",
         categories: ["music", "utilities"],

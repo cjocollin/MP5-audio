@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test";
-import { dismissWelcomeOnboarding } from "./helpers/onboarding";
 import {
   parseDisplayedPlaybackTime,
   waitForPlaybackProgress,
@@ -17,33 +16,36 @@ const MOBILE = { width: 375, height: 812 };
  */
 test.describe("MP5 hosted demo", () => {
   test.beforeEach(async ({ page }) => {
-    await dismissWelcomeOnboarding(page);
     await page.goto("/");
-    await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
-    await expect(page.getByTestId("app-version")).toContainText("MP5 Public Beta");
-    await expect(page.getByTestId("app-version")).toContainText("v0.27.0-beta");
+    const header = page.getByTestId("app-shell-header");
+    await expect(header).toBeVisible();
+    await expect(header).toContainText("MP5 Audio");
+    await expect(header).toContainText("Public Beta");
+    await expect(header).toContainText("v0.27.0-beta");
   });
 
   test("app shell and honest tagline", async ({ page }) => {
-    await page.getByTestId("landing-about-toggle").click();
-    await expect(page.getByTestId("landing-honesty-claim")).toContainText(
-      "does not claim to beat MP3",
-    );
-    await expect(page.getByTestId("landing-demo-url")).toContainText("mp5-audio.vercel.app");
-    await expect(page.getByTestId("landing-codec-mp5c")).toContainText(/lab|experimental/i);
-    await expect(page.getByTestId("landing-honesty-claim")).toContainText("does not claim to beat MP3");
+    await page
+      .getByTestId("public-beta-notice")
+      .getByRole("button", { name: "Learn more", exact: true })
+      .click();
+    const about = page.getByTestId("about-mp5-panel");
+    await expect(about).toContainText(/does not claim to beat/i);
+    await expect(about).toContainText("MP5-C2 (vNext)");
+    await expect(about).toContainText(/lab \/ advanced/i);
+    await expect(about).toContainText("no AI stem separation");
   });
 
-  test("compact landing and format messaging", async ({ page }) => {
-    await expect(page.getByTestId("landing-subheadline")).toContainText("experimental");
-    await expect(page.getByTestId("landing-format-explainer")).toContainText(".mp5");
-    await expect(page.getByTestId("landing-format-explainer")).toContainText(".mp5p");
-    await expect(page.getByTestId("landing-format-explainer")).toContainText("Experimental");
-    await expect(page.getByTestId("landing-about-collapsed-hint")).toBeVisible();
+  test("direct Player entry shows the recommended lossless format", async ({ page }) => {
+    await expect(page.getByTestId("mp5-player")).toBeVisible();
+    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("MP5-L v3");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Bit-exact");
   });
 
   test("loads demo fixture and shows MP5-L v3 format panel", async ({ page }) => {
-    await page.getByTestId("landing-try-demo").click({ timeout: 15_000 });
     await waitForSeekReady(page);
     await expect(page.getByTestId("now-playing-source-badge")).toContainText(".mp5");
     await expect(page.getByTestId("now-playing-duration")).toContainText(/:/);
@@ -60,7 +62,7 @@ test.describe("MP5 hosted demo", () => {
   });
 
   test("demo guide opens with paths A-E", async ({ page }) => {
-    await page.getByTestId("landing-open-demo-guide").click();
+    await page.getByTestId("app-tab-demo").click();
     await expect(page.getByTestId("demo-mode-panel")).toBeVisible();
     for (const id of ["a", "b", "c", "d", "e"]) {
       await expect(page.getByTestId(`demo-path-${id}`)).toBeVisible();
@@ -72,6 +74,7 @@ test.describe("MP5 hosted demo", () => {
     await page.getByTestId("app-tab-demo").click();
     await page.getByTestId("demo-load-stems-demo").click();
     await waitForSeekReady(page);
+    await page.locator('[data-inspector-id="lyrics"]').click();
     await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 30_000 });
     await page.getByTestId("karaoke-mode-toggle").click();
     await expect(page.getByTestId("karaoke-mode-toggle")).toContainText("on");
@@ -139,16 +142,16 @@ test.describe("MP5 hosted demo mobile", () => {
   test.use({ viewport: MOBILE });
 
   test.beforeEach(async ({ page }) => {
-    await dismissWelcomeOnboarding(page);
     await page.goto("/");
   });
 
-  test("landing fits mobile without horizontal overflow", async ({ page }) => {
+  test("direct Player workspace fits mobile without horizontal overflow", async ({ page }) => {
     const scrollW = await page.evaluate(() => document.documentElement.scrollWidth);
     const clientW = await page.evaluate(() => document.documentElement.clientWidth);
     expect(scrollW).toBeLessThanOrEqual(clientW + 2);
-    const box = await page.getByTestId("landing-try-demo").boundingBox();
-    expect(box?.height ?? 0).toBeGreaterThanOrEqual(36);
+    await expect(page.getByTestId("mp5-player")).toBeVisible();
+    const box = await page.getByTestId("app-tab-player").boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
   });
 
   test("tabs tappable on mobile", async ({ page }) => {

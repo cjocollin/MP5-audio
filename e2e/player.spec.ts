@@ -9,10 +9,15 @@ const origamiFixture = path.join(
   "benchmarks/real-music/ORIGAMI_mp5l_v3_alpha.mp5",
 );
 
+async function openFormatInspector(page: import("@playwright/test").Page) {
+  await page.locator('[data-inspector-id="format"]').click();
+}
+
 test.describe("MP5 player playback", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
+    await expect(page.getByTestId("mp5-player")).toBeVisible();
+    await expect(page.getByTestId("player-file-input")).toBeAttached();
   });
 
   async function loadFixture(page: import("@playwright/test").Page, file = pcmFixture) {
@@ -25,23 +30,22 @@ test.describe("MP5 player playback", () => {
     return seek;
   }
 
-  test("shows public landing and codec helper on player tab", async ({ page }) => {
-    await expect(page.getByTestId("public-landing")).toBeVisible();
-    await expect(page.getByTestId("landing-github-link")).toHaveAttribute(
-      "href",
-      "https://github.com/cjocollin/MP5-audio",
-    );
-    await page.getByTestId("landing-open-player").click();
+  test("shows the seeded Player and codec helper on first load", async ({ page }) => {
+    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Bit-exact");
+    await openFormatInspector(page);
     await expect(page.getByTestId("codec-modes-helper")).toBeVisible();
   });
 
-  test("loads demo fixture from fixtures URL when available", async ({ page }) => {
+  test("loads the default demo fixture from the fixtures URL when available", async ({ page }) => {
     const demoPath = path.join(process.cwd(), "test-fixtures", "demo_mp5l_v3_tone.mp5");
     test.skip(!fs.existsSync(demoPath), "run pnpm fixtures:generate first");
-    await page.getByTestId("landing-try-demo").click();
     await expect
       .poll(async () => page.getByTestId("playlist-item").count(), { timeout: 15_000 })
       .toBeGreaterThan(0);
+    await openFormatInspector(page);
     await expect(page.getByTestId("codec-label")).toContainText(/MP5-L/i);
   });
 
@@ -77,6 +81,7 @@ test.describe("MP5 player playback", () => {
 
   test("loads MP5-L v3 fixture and shows format panel", async ({ page }) => {
     await loadFixture(page, mp5lFixture);
+    await openFormatInspector(page);
     await expect(page.getByTestId("now-playing-source-badge")).toContainText(".mp5");
     await expect(page.getByTestId("now-playing-duration")).toContainText(/:/);
     await expect(page.getByTestId("now-playing-visu-fallback")).toContainText("Default visual");
@@ -143,6 +148,7 @@ test.describe("MP5 player playback", () => {
   test("loads ORIGAMI MP5-L v3 export and plays", async ({ page }) => {
     test.skip(!fs.existsSync(origamiFixture), "run pnpm alpha:origami-smoke first");
     await loadFixture(page, origamiFixture);
+    await openFormatInspector(page);
     await expect(page.getByTestId("codec-label")).toContainText(/MP5-L/i);
     await expect(page.getByTestId("mp5l-output-quality")).toContainText(/bit-exact/i);
     await expect(page.getByTestId("decode-path")).toContainText(/MP5-L WASM v3/i);

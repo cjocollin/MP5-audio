@@ -1,5 +1,5 @@
 import { auditAlbmPackageManifest, indexEmbeddedAlbumPackage } from "@mp5/container";
-import { usePlayerStore } from "../../store/playerStore";
+import { usePlayerStore, withoutDefaultDemoTracks } from "../../store/playerStore";
 import { ingestMp5Files } from "../../player/playlistUtils";
 import { enrichResolvedAlbum, resolveAlbumTracks, resolveEmbeddedAlbumPackage } from "./resolveAlbum";
 import type { BatchAlbumExportResult } from "./buildAlbumFromBatchItems";
@@ -32,7 +32,7 @@ export async function openBatchExportInPlayer(result: BatchAlbumExportResult): P
   if (result.exportTarget === "manifest" && result.playableTracks?.length) {
     const mp5Result = await ingestMp5Files(result.playableTracks.map((t) => t.file!).filter(Boolean));
     if (mp5Result.tracks.length) store.appendTracks(mp5Result.tracks);
-    const combined = [...store.tracks];
+    const combined = withoutDefaultDemoTracks(store.tracks);
     for (const t of mp5Result.tracks) {
       if (!combined.some((c) => c.id === t.id)) combined.push(t);
     }

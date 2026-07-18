@@ -35,6 +35,9 @@ importers:
       '@mp5/container':
         specifier: workspace:*
         version: link:../../packages/mp5-container
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       framer-motion:
         specifier: ^11.15.0
         version: 11.18.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -83,6 +86,13 @@ importers:
         version: 5.9.3
 
 packages:
+
+  '@phosphor-icons/react@2.1.10':
+    resolution: {integrity: sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>= 16.8'
+      react-dom: '>= 16.8'
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -2462,6 +2472,11 @@ packages:
         optional: true
 
 snapshots:
+
+  '@phosphor-icons/react@2.1.10(react-dom@19.2.6(react@19.2.6))(react@19.2.6)':
+    dependencies:
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
 
   '@alloc/quick-lru@5.2.0': {}
 

@@ -1,52 +1,59 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("public landing", () => {
+test.describe("direct-entry public experience", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });
 
-  test("compact hero renders and app tabs are reachable without expanding About", async ({ page }) => {
-    await expect(page.getByTestId("landing-hero-compact")).toBeVisible();
-    await expect(page.getByTestId("landing-headline")).toHaveText("MP5 Audio");
-    await expect(page.getByTestId("landing-subheadline")).toBeVisible();
-    await expect(page.getByTestId("landing-format-explainer")).toBeVisible();
-    await expect(page.getByTestId("landing-format-explainer")).toContainText(".mp5p");
-    await expect(page.getByTestId("landing-primary-actions")).toBeVisible();
+  test("opens directly into the seeded Player workspace", async ({ page }) => {
+    await expect(page.getByTestId("app-shell-header")).toBeVisible();
+    await expect(page.getByTestId("public-beta-notice")).toBeVisible();
     await expect(page.getByTestId("app-main-nav")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Player", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Converter", exact: true })).toBeVisible();
+    await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");
+    await expect(page.getByTestId("mp5-player")).toBeVisible();
 
-    await expect(page.getByTestId("landing-about-details")).toHaveCount(0);
-    await expect(page.getByTestId("landing-codec-mp5l")).toHaveCount(0);
+    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("MP5-L v3");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Bit-exact");
   });
 
-  test("expanding About MP5 shows detailed sections and screenshot gallery", async ({ page }) => {
-    await page.getByTestId("landing-about-toggle").click();
-    await expect(page.getByTestId("landing-about-details")).toBeVisible();
-    await expect(page.getByTestId("landing-codec-mp5l")).toContainText("MP5-L");
-    await expect(page.getByTestId("landing-codec-mp5c")).toContainText("hiss");
-    await expect(page.getByTestId("landing-honesty-claim")).not.toContainText(/beats MP3/i);
-    await expect(page.getByTestId("landing-screenshot-scroll")).toBeVisible();
-    await expect(page.getByTestId("landing-screenshot-player")).toBeVisible();
+  test("Learn more opens the current Public Beta guidance", async ({ page }) => {
+    await page
+      .getByTestId("public-beta-notice")
+      .getByRole("button", { name: "Learn more", exact: true })
+      .click();
+
+    const about = page.getByTestId("about-mp5-panel");
+    await expect(about).toBeVisible();
+    await expect(about).toContainText("MP5-C2 (vNext)");
+    await expect(about).toContainText("user/artist-provided stems");
+    await expect(about).toContainText("no AI stem separation");
+    await expect(about).toContainText(/does not claim to beat/i);
   });
 
-  test("primary actions navigate tabs and GitHub link works", async ({ page }) => {
-    await expect(page.getByTestId("landing-github-link")).toHaveAttribute(
-      "href",
-      /github\.com\/cjocollin\/MP5-audio/,
-    );
-    await page.getByTestId("landing-open-converter").click();
+  test("primary workspaces remain reachable from the redesigned shell", async ({ page }) => {
+    await page.getByTestId("app-tab-converter").click();
     await expect(page.getByTestId("converter-panel")).toBeVisible();
-    await page.getByTestId("landing-open-player").click();
-    await expect(page.getByTestId("player-file-input")).toBeAttached();
+
+    await page.getByTestId("app-tab-demo").click();
+    await expect(page.getByTestId("demo-mode-panel")).toBeVisible();
+
+    await page.getByTestId("app-tab-library").click();
+    await expect(page.getByTestId("local-library-panel")).toBeVisible();
+
+    await page.getByTestId("app-tab-settings").click();
+    await expect(page.getByTestId("performance-diagnostics")).toBeVisible();
+
+    await page.getByTestId("app-tab-player").click();
+    await expect(page.getByTestId("mp5-player")).toBeVisible();
   });
 
-  test("Try MP5-L demo opens player without requiring About expansion", async ({ page }) => {
-    await page.getByTestId("landing-try-demo").click();
-    await expect(page.getByRole("button", { name: "Player", exact: true })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-    await expect(page.getByTestId("player-file-input")).toBeAttached();
+  test("shell reports the integrated 0.27.0 Public Beta version", async ({ page }) => {
+    const header = page.getByTestId("app-shell-header");
+    await expect(header).toContainText("MP5 Audio");
+    await expect(header).toContainText("Public Beta");
+    await expect(header).toContainText("v0.27.0-beta");
   });
 });

@@ -17,7 +17,9 @@ describe("packaging MVP", () => {
     const vite = readFileSync(join(webRoot, "vite.config.ts"), "utf8");
     expect(vite).toContain('name: "MP5 Player"');
     expect(vite).toContain('short_name: "MP5"');
-    expect(vite).toContain('theme_color: "#0a0a0f"');
+    expect(vite).toContain('theme_color: "#070b12"');
+    expect(vite).toContain('background_color: "#070b12"');
+    expect(vite).toContain("webp");
     expect(vite).toContain("icons/mp5-192.png");
     expect(vite).toContain("icons/mp5-512.png");
   });
