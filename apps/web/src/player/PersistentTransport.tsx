@@ -81,7 +81,7 @@ export function PersistentTransport({
           <p className="truncate text-sm font-semibold text-gray-100">{info.title}</p>
           <p className="mp5-persistent-artist truncate text-xs text-gray-500">{info.artist}</p>
           <p className="mp5-persistent-mobile-time">{timeline.current} / {timeline.duration}</p>
-          <div className="hidden items-center gap-1.5 sm:flex">
+          <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
             {parsed?.head && (
               <span className="mp5-mini-badge">
                 {codecLabel(parsed.head.codecId).replace(/\s*\(.+\)$/, "")}

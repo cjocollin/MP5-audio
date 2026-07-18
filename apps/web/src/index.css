@@ -284,7 +284,7 @@ input[type="range"] {
   }
 
   .mp5-mini-badge {
-    @apply inline-flex items-center rounded-md border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-300;
+    @apply inline-flex shrink-0 items-center whitespace-nowrap rounded-md border border-violet-500/30 bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-300;
   }
 
   .mp5-verified-label {
@@ -292,7 +292,7 @@ input[type="range"] {
   }
 
   .mp5-quality-badge {
-    @apply inline-flex items-center gap-1 rounded-md border border-cyan-500/40 bg-cyan-500/5 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300;
+    @apply inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-cyan-500/40 bg-cyan-500/5 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300;
   }
 
   .mp5-import-summary {
@@ -662,8 +662,12 @@ input[type="range"] {
   }
 
   .mp5-player-sidebar > .mp5-experimental-card {
-    @apply min-h-[180px];
+    @apply min-h-[180px] items-center justify-center text-center;
     margin-top: 50px !important;
+  }
+
+  .mp5-player-sidebar > .mp5-experimental-card > svg {
+    @apply mt-0;
   }
 
   .mp5-player-sidebar > .mp5-file-drop-zone {
