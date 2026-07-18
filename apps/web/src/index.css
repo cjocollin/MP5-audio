@@ -305,7 +305,7 @@ input[type="range"] {
     grid-template-areas: "workspace sidebar";
     grid-template-columns: minmax(0, 1fr) minmax(270px, 294px);
     gap: 14px;
-    align-items: start;
+    align-items: stretch;
   }
 
   .mp5-player-workspace {
@@ -324,8 +324,8 @@ input[type="range"] {
   .mp5-player-sidebar {
     grid-area: sidebar;
     @apply sticky flex flex-col space-y-3 rounded-2xl border p-3;
-    align-self: start;
-    height: min(756px, calc(100vh - 242px));
+    align-self: stretch;
+    height: auto;
     overflow-y: auto;
     top: 98px;
     border-color: var(--mp5-border);
