@@ -1,9 +1,9 @@
 # MP5 Advanced Features
 
-**Version:** MP5 Audio v0.25.0-beta  
+**Version:** MP5 Audio v0.26.0-beta  
 **Status:** Optional / experimental registry
 
-Advanced chunks are optional. They are never required for playback, and v0.25.0-beta does not add new advanced semantics.
+Advanced chunks are optional. They are never required for playback, and v0.26.0-beta does not add new advanced semantics.
 
 ## Stems
 

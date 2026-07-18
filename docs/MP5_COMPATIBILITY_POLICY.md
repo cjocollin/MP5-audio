@@ -1,6 +1,6 @@
 # MP5 Compatibility Policy
 
-**Version:** MP5 Audio v0.25.0-beta  
+**Version:** MP5 Audio v0.26.0-beta  
 **Scope:** container, chunks, codecs, packages, and toolkit profiles
 
 MP5 is an experimental Public Beta. This policy defines how the reference parser, writer, player, and validation tools treat current files while preserving honest forward compatibility.

@@ -1,6 +1,6 @@
 # Current MP5 Status
 
-**Version:** MP5 Audio v0.25.0-beta (Public Beta)  
+**Version:** MP5 Audio v0.26.0-beta (Public Beta)  
 **Last updated:** 2026-07-17
 
 ## What MP5 Is Today
@@ -18,14 +18,21 @@ MP5 is an experimental, browser-based music format and player stack. The hosted 
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
 
-## v0.25.0-beta Milestone
+## v0.26.0-beta Milestone
 
-v0.25.0-beta ports the winning **vNext "smooth"** engine into the **native Rust codec** ([MP5C_VNEXT_RESULTS.md](./MP5C_VNEXT_RESULTS.md)):
+Quality-preserving compression and vNext size/UX pass ([MP5C_VNEXT_RESULTS.md](./MP5C_VNEXT_RESULTS.md), [MP5_CODEC_STATUS.md](./MP5_CODEC_STATUS.md)):
 
-- New `rust/mp5-codec/src/mp5c2.rs` (sub-block + per-band + hysteresis lossless fallback), exposed via additive WASM `encode_mp5c_vnext` / `decode_mp5c_vnext`. It is **bit-identical to the JS prototype** (parity SNR = ∞), reaches `reverb_tail` hiss risk **low**, and runs at native speed (lab mode `mp5c2-native-extreme`).
-- **Done safely:** the existing **MP5-C (v5.1) is byte-identical** (the `mp5c` module was not modified; full JS + Rust suites pass against the rebuilt WASM). The vNext stream uses a distinct `0x43 0x34` magic.
-- **Landed since:** public `CodecId.MP5C2 = 5` for gated Converter lab/advanced export + player decode; protect-scale **1.5** shipping thresholds (real-track hiss risk **low** at ~0.97× PCM); MP5-L packed Rice + 4-mode stereo. MP5-L remains the default; batch export stays MP5-L-only.
-- **No change** to MP5-L default/recommended policy, MP5-C public quant behavior, or MP5/MP5P core semantics.
+- **MP5-L:** `FLAG_RICE_PACKED`, rice-aware LPC order, FLAC-style 4-mode stereo (~46% residual-payload savings vs varint on the go/no-go corpus).
+- **vNext:** protect-scale **1.5** (real-track hiss risk **low**); lossy + lossless L/B coalesce; prefer **High** loud preset (~0.94× PCM on `dense_music`, ~0.42× on protected `reverb_tail`).
+- **Product:** gated `CodecId.MP5C2` Converter lab export (batch stays MP5-L); mobile density for stems/lyrics/packages; docs/compat sync.
+- **MP5-L stays default.** MP5-C v5.1 quant unchanged. No mainstream-codec claims.
+
+## v0.25.0-beta Milestone (previous)
+
+v0.25.0-beta ported the winning **vNext "smooth"** engine into the **native Rust codec**:
+
+- New `rust/mp5-codec/src/mp5c2.rs`, WASM `encode_mp5c_vnext` / `decode_mp5c_vnext`, bit-identical to the JS prototype; `reverb_tail` hiss risk **low**.
+- **Done safely:** MP5-C (v5.1) byte-identical; distinct AUDI magic `0x43 0x34`.
 
 ## v0.24.0-beta Milestone (previous)
 

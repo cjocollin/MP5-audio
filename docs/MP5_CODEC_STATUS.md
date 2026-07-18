@@ -1,6 +1,6 @@
 # MP5 Codec Status
 
-**Version:** MP5 Audio v0.25.0-beta  
+**Version:** MP5 Audio v0.26.0-beta  
 **Source of numbers:** `pnpm audio:quality-report` / `pnpm audio:hiss-report` over the
 synthetic fixture set (13 fixtures, stereo, 44.1 kHz). Regenerate locally to refresh.
 No copyrighted audio, no telemetry.
@@ -24,7 +24,7 @@ Measured with `pnpm audio:hiss-report` (synthetic) and real-track A/B:
 after coalesce is ~0.6% → no short-frame trim. **MP5-L packed Rice** (~46% residual-payload
 savings vs varint) + 4-mode stereo remain the default path.
 
-## v0.25.0-beta native Rust vNext (new)
+## v0.26.0-beta native Rust vNext (new)
 
 The winning **vNext "smooth"** engine (sub-block + per-band + hysteresis lossless fallback) was
 ported into the **native Rust codec** as `mp5c2` and exposed via additive WASM functions

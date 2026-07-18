@@ -1,6 +1,6 @@
 # MP5 Beta Readiness
 
-**Version:** MP5 Audio v0.25.0-beta  
+**Version:** MP5 Audio v0.26.0-beta  
 **Status:** Public Beta - spec / developer toolkit polish candidate  
 **Last updated:** 2026-06-16
 
@@ -8,7 +8,7 @@
 
 Pending final local gates, production deployment, and hosted verification.
 
-Target decision: accept **MP5 Audio v0.25.0-beta** as deployed Public Beta if all required gates pass and the hosted app at https://mp5-audio.vercel.app shows `MP5 Public Beta - v0.25.0-beta`.
+Target decision: accept **MP5 Audio v0.26.0-beta** as deployed Public Beta if all required gates pass and the hosted app at https://mp5-audio.vercel.app shows `MP5 Public Beta - v0.26.0-beta`.
 
 ## Scope
 
@@ -17,7 +17,7 @@ Target decision: accept **MP5 Audio v0.25.0-beta** as deployed Public Beta if al
 - Tests: version alignment, public claims, toolkit docs, registry limits, and CLI help coverage.
 - No codec work, playback transport rewrite, converter encoding change, MP5/STDF/MP5P/LYRC/VISU/metadata semantic change, telemetry, upload, cloud sync, or private/copyrighted audio.
 
-## Gate Summary (v0.25.0-beta)
+## Gate Summary (v0.26.0-beta)
 
 | Gate | Result |
 |------|--------|

@@ -3,12 +3,12 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.25.0--beta-blue)](CHANGELOG.md#0250-beta---2026-06)
+[![Version](https://img.shields.io/badge/version-v0.26.0--beta-blue)](CHANGELOG.md#0260-beta---2026-07)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
-**Version:** MP5 Audio **v0.25.0-beta** (Public Beta)  
+**Version:** MP5 Audio **v0.26.0-beta** (Public Beta)  
 **Live demo:** https://mp5-audio.vercel.app  
 **GitHub:** https://github.com/cjocollin/MP5-audio
 
@@ -35,7 +35,7 @@ Single-track `.mp5` remains the core format. Album packages use `.mp5p` in eithe
 | `.mp5p` | Experimental album package; browser memory limits apply |
 | Public claims | No beat-codec, DRM, legal-proof, telemetry, upload, or cloud-sync claims |
 
-## Recent focus (post v0.25)
+## v0.26.0-beta Focus
 
 Native **vNext** (`mp5c2`) is bit-identical to the JS smooth engine, uses AUDI magic `0x43 0x34`,
 and ships as gated **`CodecId.MP5C2`** under Converter **Show lab / advanced codecs** (batch stays

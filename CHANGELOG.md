@@ -6,57 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Milestone - Docs sync, mobile density, vNext size pass
+## [0.26.0-beta] - 2026-07
+
+### Milestone - Quality-preserving compression + vNext size/UX
 
 **Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
 No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
 
-- **Docs/compat:** `FLAG_RICE_PACKED`, AUDI `0x43 0x34`, CodecId MP5C2, and protect-1.5 status
-  synced across format/container/codec/feature/compat docs (stale “no CodecId” notes cleared).
-- **Mobile density (Phase 3.4):** capped scroll regions for stems/lyrics/playlist/album lists;
-  collapsible stems help/diagnostics; sticky stem-prep progress bar with overall %.
-- **vNext lossless L/B coalesce:** adjacent quiet/fragile units share one MP5-L encode (Rust + JS).
-  `reverb_tail` ~0.68× → **~0.42× PCM**; hiss risk still **low**; `dense_music` unchanged ~0.97×.
-- **vNext loud-path High preferred for size:** at protect 1.5, High keeps hiss risk **low** and
-  shrinks `dense_music` ~0.971× → **0.941×** (real track ~0.977× → **0.968×**). Residual 2048
-  pad ~0.6% → no short-frame trim. Lab hiss-report includes High + native High modes.
-- **README / lab docs sync:** clear stale “no CodecId / never written to `.mp5`” wording; album
-  package explainer collapses for mobile density.
-
-### Milestone - MP5-L packed Rice + 4-mode stereo; vNext protect experiment
-
-**Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
-No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
-
-- **MP5-L `FLAG_RICE_PACKED` (6):** wires the existing bit-packed Rice codec into the payload path
-  (legacy `FLAG_RICE` stays LPC+varint for compat). Per-block try-all-flags + roundtrip verify.
-  Phase 4.0 go/no-go on synthetic corpus: **~46% payload savings** vs varint on LPC residuals.
-- **Rice-cost-aware order selection** (`best_order_rice`) and **FLAC-style 4-mode stereo**
-  (L/R, M/S, L/S, R/S) with verify-before-commit. Decoder accepts legacy varint + packed Rice;
-  garbage Rice input never panics.
-- **vNext protect-scale experiment — green:** trials 1.0–3.0 on a local commercial reference;
-  **protect ≥ 1.5 → hiss risk low / bit-exact tails at ~0.97× PCM**. Shipping
-  `encode_mp5c_vnext` and JS smooth params adopt the 1.5-widened thresholds;
-  `encode_mp5c_vnext_protect` remains for A/B.
-
-### Milestone - Hiss fix coalesce + MP5-C vNext lab export + Converter UX
-
-**Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
-No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV.
-
-- **Lossy sub-block coalescing (vNext):** adjacent lossy units merge into one MP5-C encode
-  (Rust `mp5c2` + JS `coalesce: true` on smooth modes). Synthetic `reverb_tail` stays hiss risk
-  **low**; `dense_music` size drops ~1.17× → ~0.97× PCM vs no-coalesce. JS/native stay bit-identical.
-- **Real-track gate:** local commercial reference re-encoded with native Extreme → full SNR ~39.5 dB,
-  **tail SNR ~32.6 dB (hiss risk medium)** — better than MP5-C High/Extreme (~24–26 dB) but not yet
-  the ≥40 dB “low” gate. Lab/advanced only; MP5-L stays recommended for sharing.
-- **Public `CodecId.MP5C2` (5):** Converter can export vNext behind **Show lab / advanced codecs**;
-  player decodes via `decode_mp5c_vnext`. Batch export stays MP5-L-only.
-- **MP5-L compression:** silence-aware block planning + stronger stereo M/S correlation heuristic
-  (bit-exact gates green). Higher-order LPC left at max 4 (overflow-safe).
-- **Website:** codec select grouped Recommended / Debug / Lab; stems & AI behind advanced toggle;
-  WASM cold-load progress bar in `WasmSetupBanner`.
-- **Lab:** `validate-vnext-ref` command; hiss-report includes no-coalesce baseline for A/B size.
+- **MP5-L `FLAG_RICE_PACKED` (6):** bit-packed Rice on the payload path (legacy `FLAG_RICE` stays
+  LPC+varint). Per-block try-all-flags + roundtrip verify. Go/no-go corpus: **~46%** residual-payload
+  savings vs varint. Rice-cost-aware LPC order + FLAC-style 4-mode stereo (L/R, M/S, L/S, R/S).
+- **vNext protect 1.5 — green:** real-track hiss risk **low** / bit-exact tails at ~0.97× PCM.
+  Shipping thresholds adopt 1.5; `encode_mp5c_vnext_protect` remains for A/B.
+- **vNext coalesce:** adjacent lossy units + adjacent lossless L/B units share one encode.
+  `reverb_tail` ~0.68× → **~0.42× PCM**; `dense_music` with High **~0.94×** (Extreme ~0.97×).
+  Residual 2048 pad ~0.6% → no short-frame trim. Prefer **High** loud preset for size.
+- **Public `CodecId.MP5C2` (5):** Converter lab/advanced export + player decode; batch stays MP5-L.
+- **Website:** codec hierarchy / lab gate / WASM progress; mobile density for stems/lyrics/packages;
+  sticky stem-prep progress. Docs/compat synced for packed Rice + `0x43 0x34`.
 
 ## [0.25.0-beta] - 2026-06
 

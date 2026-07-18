@@ -1,9 +1,9 @@
 # MP5 Container Specification
 
-**Version:** MP5 Audio v0.25.0-beta  
+**Version:** MP5 Audio v0.26.0-beta  
 **Status:** Public Beta reference spec
 
-This document describes the current `.mp5` container envelope. v0.25.0-beta does not change binary container semantics.
+This document describes the current `.mp5` container envelope. v0.26.0-beta does not change binary container semantics.
 
 ## File Envelope
 
