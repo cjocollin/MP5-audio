@@ -61,7 +61,7 @@ export function resolveAlbumTracks(
   const byName = new Map<string, PlaylistTrack>();
   const byId = new Map<string, PlaylistTrack>();
   for (const t of available) {
-    if (!t.parseError) {
+    if (!t.parseError && t.origin !== "default-demo") {
       byName.set(basenameKey(t.name), t);
       byId.set(t.id, t);
     }

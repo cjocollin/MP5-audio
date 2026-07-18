@@ -2,7 +2,7 @@ import { auditAlbmPackageManifest } from "@mp5/container";
 import { listLibraryRecords, loadLibraryEntry, libraryEntryToFile } from "../localLibrary/api";
 import { albumTrackBasename } from "@mp5/container";
 import type { SavedAlbumPackage } from "../localLibrary/albumLibrary";
-import { usePlayerStore } from "../../store/playerStore";
+import { usePlayerStore, withoutDefaultDemoTracks } from "../../store/playerStore";
 import { ingestMp5Files } from "../../player/playlistUtils";
 import { enrichResolvedAlbum, resolveAlbumTracks } from "./resolveAlbum";
 
@@ -35,7 +35,7 @@ export async function openSavedAlbumInPlayer(saved: SavedAlbumPackage): Promise<
 
   const store = usePlayerStore.getState();
   const mp5Result = await ingestMp5Files(files);
-  const combined = [...store.tracks];
+  const combined = withoutDefaultDemoTracks(store.tracks);
   for (const t of mp5Result.tracks) {
     if (!combined.some((c) => c.id === t.id)) combined.push(t);
   }

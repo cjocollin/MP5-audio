@@ -76,6 +76,30 @@ describe("album package web helpers", () => {
     expect(resolvedTracksInOrder(resolved)).toHaveLength(2);
   });
 
+  it("never resolves a manifest track against the first-load demo", () => {
+    const manifest: AlbmPackageManifest = {
+      format: ALBUM_MANIFEST_FORMAT,
+      version: 1,
+      album: { title: "Imported album" },
+      tracks: [
+        {
+          trackId: "demo-id",
+          file: "demo_mp5l_v3_tone.mp5",
+          trackNumber: 1,
+        },
+      ],
+    };
+    const seed = {
+      ...track("demo_mp5l_v3_tone.mp5", "demo-id"),
+      origin: "default-demo" as const,
+    };
+
+    const resolved = resolveAlbumTracks(manifest, [seed]);
+
+    expect(resolved.resolvedCount).toBe(0);
+    expect(resolved.missingFiles).toEqual(["demo_mp5l_v3_tone.mp5"]);
+  });
+
   it("createAlbumManifestFromTracks preserves order", async () => {
     const manifest = await createAlbumManifestFromTracks(
       [track("one.mp5"), track("two.mp5")],

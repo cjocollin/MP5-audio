@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { FloppyDisk } from "@phosphor-icons/react/FloppyDisk";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { MagnifyingGlass } from "@phosphor-icons/react/MagnifyingGlass";
 import { MusicNotes } from "@phosphor-icons/react/MusicNotes";
 import { DotsThreeVertical } from "@phosphor-icons/react/DotsThreeVertical";
@@ -8,6 +9,7 @@ import { Repeat } from "@phosphor-icons/react/Repeat";
 import { Shuffle } from "@phosphor-icons/react/Shuffle";
 import { Trash } from "@phosphor-icons/react/Trash";
 import { X } from "@phosphor-icons/react/X";
+import { Waveform } from "@phosphor-icons/react/Waveform";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import { codecLabel } from "../lib/codecDisplay";
 import type { PlaylistTrack, RepeatMode } from "../store/playerStore";
@@ -91,7 +93,9 @@ function PlaylistRow({
               <MusicNotes size={18} />
             </span>
           ) : (
-            <img src="/artwork/mp5-default-visu.webp" alt="" className="h-full w-full object-cover opacity-75" />
+            <span className="mp5-waveform-tile" aria-hidden>
+              <Waveform size={22} weight="bold" />
+            </span>
           )}
           {isPlayingNow && (
             <span
@@ -238,6 +242,7 @@ export function LibraryPanel({
   compact = false,
 }: Props) {
   const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
 
   const filteredIndices = useMemo(() => {
     return tracks
@@ -250,6 +255,7 @@ export function LibraryPanel({
     <section
       className={`space-y-3 ${compact ? "mp5-library-compact" : ""}`}
       data-testid="library-panel"
+      data-collapsed={collapsed ? "true" : "false"}
     >
       <div className="mp5-queue-header flex items-center justify-between gap-2">
         <div>
@@ -266,6 +272,7 @@ export function LibraryPanel({
               onClick={() => onSaveToLibrary(tracks[currentIndex]!)}
               disabled={librarySaveBusy}
               data-testid="playlist-save-current-library"
+              aria-label="Save current track to library"
             >
               <FloppyDisk size={16} />
             </button>
@@ -276,8 +283,20 @@ export function LibraryPanel({
               className="mp5-queue-action hover:text-red-300"
               onClick={onClear}
               data-testid="playlist-clear"
+              aria-label="Clear queue"
             >
               <Trash size={16} />
+            </button>
+          )}
+          {compact && (
+            <button
+              type="button"
+              className="mp5-queue-collapse mp5-focus-ring"
+              onClick={() => setCollapsed((value) => !value)}
+              aria-label={collapsed ? "Expand queue" : "Collapse queue"}
+              aria-expanded={!collapsed}
+            >
+              <CaretDown size={15} weight="bold" aria-hidden />
             </button>
           )}
         </div>

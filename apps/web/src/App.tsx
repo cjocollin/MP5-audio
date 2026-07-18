@@ -1,17 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { Mp5Player } from "./player/Mp5Player";
 import { ConverterPanel } from "./player/ConverterPanel";
 import { WasmSetupBanner } from "./components/WasmSetupBanner";
 import { AboutMp5Panel } from "./components/AboutMp5Panel";
 import { DemoModePanel } from "./components/DemoModePanel";
-import { PublicLanding } from "./components/PublicLanding";
 import { LocalLibraryPanel } from "./components/LocalLibraryPanel";
 import { PerformanceDiagnosticsPanel } from "./components/PerformanceDiagnosticsPanel";
-import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
 import { BetaFeedbackPanel } from "./components/BetaFeedbackPanel";
 import { AiSettingsSection } from "./components/AiSettingsSection";
 import { AppShell } from "./components/AppShell";
+import { fetchDemoMp5lFixture } from "./lib/demoFixture";
+import { dismissOnboarding } from "./lib/firstRun";
+import { ingestMp5Files } from "./player/playlistUtils";
 
 export default function App() {
   const {
@@ -22,12 +23,61 @@ export default function App() {
     useFileThemes,
     setUseFileThemes,
     tracks,
+    appendTracks,
+    defaultDemoDismissed,
   } = usePlayerStore();
+  const [defaultDemoLoading, setDefaultDemoLoading] = useState(tracks.length === 0);
+  const defaultDemoLoadStartedRef = useRef(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
   }, [theme]);
+
+  useEffect(() => {
+    if (tracks.length > 0 || defaultDemoDismissed) {
+      setDefaultDemoLoading(false);
+      return;
+    }
+    if (defaultDemoLoadStartedRef.current) {
+      setDefaultDemoLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    const timer = window.setTimeout(() => {
+      if (defaultDemoLoadStartedRef.current) return;
+      defaultDemoLoadStartedRef.current = true;
+
+      void (async () => {
+        try {
+          const file = await fetchDemoMp5lFixture();
+          const current = usePlayerStore.getState();
+          if (!file || current.tracks.length > 0 || current.defaultDemoDismissed) return;
+
+          const result = await ingestMp5Files([file]);
+          const ready = usePlayerStore.getState();
+          if (
+            result.tracks.length > 0 &&
+            ready.tracks.length === 0 &&
+            !ready.defaultDemoDismissed
+          ) {
+            appendTracks(
+              result.tracks.map((track) => ({ ...track, origin: "default-demo" as const })),
+            );
+            dismissOnboarding();
+          }
+        } finally {
+          if (mounted) setDefaultDemoLoading(false);
+        }
+      })();
+    }, 0);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timer);
+    };
+  }, [appendTracks, defaultDemoDismissed, tracks.length]);
 
   return (
     <div className="mp5-app-shell">
@@ -37,12 +87,8 @@ export default function App() {
         <WasmSetupBanner />
       </div>
 
-      {tracks.length === 0 && <PublicLanding />}
-
-      {tracks.length === 0 && <WelcomeOnboarding />}
-
       <main className="mp5-app-main">
-        {activeTab === "player" && <Mp5Player />}
+        {activeTab === "player" && <Mp5Player defaultDemoLoading={defaultDemoLoading} />}
         {activeTab === "converter" && <ConverterPanel />}
         {activeTab === "library" && <LocalLibraryPanel />}
         {activeTab === "demo" && <DemoModePanel />}

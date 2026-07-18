@@ -28,11 +28,13 @@ describe("public landing", () => {
     expect(HONESTY_NO_BEAT_CLAIM).not.toMatch(/MP5 beats/i);
   });
 
-  it("App mounts WelcomeOnboarding after landing", () => {
+  it("App opens directly into the seeded player workspace", () => {
     const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
-    const landingIdx = src.indexOf("<PublicLanding />");
-    const welcomeIdx = src.indexOf("<WelcomeOnboarding />");
-    expect(welcomeIdx).toBeGreaterThan(landingIdx);
+    expect(src).toContain("fetchDemoMp5lFixture");
+    expect(src).toContain('origin: "default-demo"');
+    expect(src).toContain("defaultDemoLoading={defaultDemoLoading}");
+    expect(src).not.toContain("<PublicLanding />");
+    expect(src).not.toContain("<WelcomeOnboarding />");
   });
 
   it("PublicLanding uses compact hero and collapsible About", () => {
@@ -58,7 +60,7 @@ describe("public landing", () => {
       "utf8",
     );
     expect(appSrc).toContain("<AppShell");
-    expect(appSrc).toContain("<PublicLanding />");
+    expect(appSrc).toContain("<Mp5Player");
     expect(shellSrc).toContain('data-testid="app-main-nav"');
     expect(shellSrc).toContain('data-testid={`app-tab-${id}`}');
   });

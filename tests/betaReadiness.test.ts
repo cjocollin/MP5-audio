@@ -185,9 +185,11 @@ describe("user-facing error messages", () => {
     expect(USER_ERRORS.stemWorkerUnavailable).toMatch(/Background stem/i);
   });
 
-  it("WelcomeOnboarding is mounted in App", () => {
+  it("App keeps onboarding out of the concept-first player route", () => {
     const app = scanFile("apps/web/src/App.tsx");
-    expect(app).toContain("WelcomeOnboarding");
+    expect(app).toContain("fetchDemoMp5lFixture");
+    expect(app).not.toContain("WelcomeOnboarding");
+    expect(app).not.toContain("PublicLanding");
   });
 
   it("App mounts BetaFeedbackPanel", () => {

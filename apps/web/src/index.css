@@ -43,13 +43,20 @@
 html {
   min-width: 320px;
   scroll-behavior: smooth;
+  scrollbar-width: none;
   background: var(--mp5-page);
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
 
 body {
   @apply min-h-screen font-sans text-gray-100 antialiased;
   margin: 0;
-  background: var(--mp5-page);
+  padding-top: 1px;
+  overflow-x: hidden;
+  background: #02050a;
 }
 
 button,
@@ -70,13 +77,61 @@ input[type="range"] {
   accent-color: var(--mp5-accent);
 }
 
+.mp5-volume-slider {
+  appearance: none;
+  border-radius: 999px;
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 2px;
+}
+
+.mp5-volume-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: transparent;
+}
+
+.mp5-volume-slider::-webkit-slider-thumb {
+  width: 10px;
+  height: 10px;
+  margin-top: -4px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.mp5-volume-slider::-moz-range-track {
+  height: 2px;
+  background: transparent;
+}
+
+.mp5-volume-slider::-moz-range-progress {
+  height: 2px;
+  background: transparent;
+}
+
+.mp5-volume-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 999px;
+  background: #f8fafc;
+}
+
 @layer components {
   .mp5-app-shell {
     @apply mx-auto w-full px-3 sm:px-5 lg:px-7;
-    max-width: 1480px;
-    min-height: 100vh;
-    padding-top: 2px;
+    max-width: 1170px;
+    min-height: calc(100vh - 1px);
+    padding-top: 0;
     padding-bottom: 104px;
+    border: 1px solid var(--mp5-border-strong);
+    border-radius: 18px;
+    background:
+      radial-gradient(circle at 32% 16%, rgba(38, 55, 78, 0.15), transparent 38%),
+      var(--mp5-page);
   }
 
   .mp5-app-main {
@@ -84,15 +139,16 @@ input[type="range"] {
   }
 
   .mp5-shell-header {
-    @apply sticky top-0 z-40 mb-3 flex min-h-[68px] items-center gap-4 rounded-2xl border px-4;
-    border-color: var(--mp5-border);
+    @apply sticky top-0 z-40 mb-3 flex min-h-[68px] items-center gap-4 px-4;
+    border: 0;
+    border-radius: 17px 17px 0 0;
     background: rgba(7, 11, 18, 0.94);
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.26);
+    box-shadow: none;
     backdrop-filter: blur(18px);
   }
 
   .mp5-shell-brand {
-    @apply flex min-w-max flex-col items-start rounded-lg px-1 py-1 text-left;
+    @apply flex min-w-max items-baseline gap-3 rounded-lg px-1 py-1 text-left;
   }
 
   .mp5-shell-wordmark {
@@ -116,7 +172,15 @@ input[type="range"] {
   }
 
   .mp5-shell-open {
-    @apply inline-flex min-h-11 items-center gap-2 whitespace-nowrap px-4;
+    @apply inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap px-2.5 text-[13px] font-medium;
+  }
+
+  .mp5-shell-open-divider {
+    @apply -my-2 h-8 w-px bg-white/15;
+  }
+
+  .mp5-shell-open-caret {
+    @apply text-violet-100;
   }
 
   .mp5-shell-menu-button {
@@ -228,7 +292,7 @@ input[type="range"] {
   }
 
   .mp5-quality-badge {
-    @apply inline-flex items-center rounded-md border border-cyan-500/40 bg-cyan-500/5 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300;
+    @apply inline-flex items-center gap-1 rounded-md border border-cyan-500/40 bg-cyan-500/5 px-1.5 py-0.5 text-[10px] font-medium text-cyan-300;
   }
 
   .mp5-import-summary {
@@ -248,7 +312,9 @@ input[type="range"] {
     grid-area: workspace;
     @apply min-w-0 overflow-hidden rounded-2xl border;
     border-color: var(--mp5-border);
-    background: rgba(12, 17, 27, 0.88);
+    background:
+      radial-gradient(circle at 30% 18%, rgba(38, 55, 78, 0.18), transparent 42%),
+      rgba(12, 17, 27, 0.94);
   }
 
   .mp5-player-primary {
@@ -263,7 +329,9 @@ input[type="range"] {
     overflow-y: auto;
     top: 98px;
     border-color: var(--mp5-border);
-    background: rgba(12, 17, 27, 0.88);
+    background:
+      linear-gradient(160deg, rgba(20, 30, 44, 0.7), rgba(10, 15, 24, 0.96) 44%),
+      rgba(12, 17, 27, 0.94);
   }
 
   .mp5-player-inspector {
@@ -298,11 +366,16 @@ input[type="range"] {
 
   .mp5-inspector-section {
     @apply scroll-mt-32 border-b p-4 sm:p-5;
+    padding-bottom: 34px;
     border-color: rgba(148, 163, 184, 0.08);
   }
 
   .mp5-inspector-section:last-child {
     @apply border-b-0;
+  }
+
+  .mp5-inspector-section[data-active="false"] {
+    @apply hidden;
   }
 
   .mp5-track-identity {
@@ -324,6 +397,11 @@ input[type="range"] {
     padding-top: 10px;
   }
 
+  .mp5-track-details h1 {
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
   .mp5-track-technical-summary {
     @apply pt-1 text-xs text-gray-500;
   }
@@ -339,6 +417,10 @@ input[type="range"] {
 
   .mp5-track-facts dd {
     @apply text-right font-medium text-gray-200;
+  }
+
+  .mp5-integrity-value {
+    @apply inline-flex items-center justify-end gap-1 text-cyan-300;
   }
 
   .mp5-player-waveform {
@@ -359,12 +441,16 @@ input[type="range"] {
     @apply grid gap-8 md:grid-cols-2;
   }
 
+  .mp5-overview-mobile {
+    @apply hidden;
+  }
+
   .mp5-overview-table {
     @apply divide-y divide-white/5;
   }
 
   .mp5-overview-table > div {
-    @apply grid grid-cols-[minmax(90px,0.65fr)_minmax(0,1.35fr)] gap-4 py-2 text-xs;
+    @apply grid grid-cols-[minmax(90px,0.65fr)_minmax(0,1.35fr)] gap-4 py-1.5 text-xs;
   }
 
   .mp5-overview-table dt {
@@ -420,6 +506,10 @@ input[type="range"] {
     @apply inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30;
   }
 
+  .mp5-transport-button:disabled {
+    opacity: 0.68;
+  }
+
   .mp5-transport-play {
     @apply inline-flex min-h-14 min-w-14 items-center justify-center rounded-full text-white transition-transform hover:scale-[1.04] disabled:cursor-not-allowed disabled:opacity-40;
     background: linear-gradient(135deg, #7c3aed 0%, #a970ff 100%);
@@ -454,6 +544,13 @@ input[type="range"] {
 
   .mp5-queue-row {
     @apply flex items-center gap-2 rounded-lg border px-2 py-2 transition-colors;
+  }
+
+  .mp5-waveform-tile {
+    @apply inline-flex items-center justify-center text-violet-400;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.2), transparent 68%),
+      #0d1020;
   }
 
   .mp5-queue-action {
@@ -533,6 +630,18 @@ input[type="range"] {
     @apply opacity-0 transition-opacity;
   }
 
+  .mp5-queue-collapse {
+    @apply hidden min-h-9 min-w-9 items-center justify-center rounded-lg text-gray-500;
+  }
+
+  .mp5-library-compact[data-collapsed="true"] > :not(.mp5-queue-header) {
+    @apply hidden;
+  }
+
+  .mp5-library-compact[data-collapsed="false"] .mp5-queue-collapse svg {
+    transform: rotate(180deg);
+  }
+
   .mp5-library-compact .mp5-queue-header:hover .mp5-queue-header-actions,
   .mp5-library-compact .mp5-queue-header:focus-within .mp5-queue-header-actions {
     @apply opacity-100;
@@ -541,7 +650,7 @@ input[type="range"] {
   .mp5-experimental-card {
     @apply flex gap-3 rounded-xl border p-4 text-xs leading-relaxed text-gray-500;
     border-color: var(--mp5-border);
-    background: rgba(16, 23, 34, 0.56);
+    background: linear-gradient(150deg, rgba(21, 31, 46, 0.78), rgba(12, 18, 28, 0.82));
   }
 
   .mp5-experimental-card > svg {
@@ -576,12 +685,14 @@ input[type="range"] {
   }
 
   .mp5-persistent-transport {
-    @apply fixed bottom-0 left-1/2 z-50 grid min-h-[102px] -translate-x-1/2 items-center gap-4 border px-4 sm:px-5;
-    grid-template-columns: minmax(200px, 1.2fr) auto minmax(220px, 1fr) minmax(120px, 0.55fr) 44px;
-    width: min(calc(100% - 4px), 1440px);
+    @apply fixed bottom-0 left-1/2 z-50 grid min-h-[106px] -translate-x-1/2 items-center gap-4 border px-4 sm:px-5;
+    grid-template-columns: minmax(200px, 1.2fr) auto minmax(220px, 1fr) minmax(120px, 0.55fr) 88px;
+    width: min(calc(100% - 4px), 1168px);
     border-color: var(--mp5-border-strong);
-    border-radius: 18px 18px 0 0;
-    background: rgba(9, 14, 23, 0.97);
+    border-radius: 0 0 17px 17px;
+    background:
+      linear-gradient(100deg, rgba(14, 21, 34, 0.99), rgba(9, 14, 23, 0.98)),
+      rgba(9, 14, 23, 0.98);
     box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.38);
     backdrop-filter: blur(20px);
   }
@@ -591,7 +702,11 @@ input[type="range"] {
   }
 
   .mp5-persistent-cover {
-    @apply h-12 w-12 shrink-0 rounded-lg object-cover;
+    @apply h-16 w-16 shrink-0 rounded-lg object-cover;
+  }
+
+  .mp5-persistent-mobile-time {
+    @apply hidden text-xs font-mono text-gray-500;
   }
 
   .mp5-persistent-controls {
@@ -605,6 +720,10 @@ input[type="range"] {
 
   .mp5-persistent-controls .mp5-persistent-play {
     @apply min-h-12 min-w-12 bg-violet-600 text-white hover:bg-violet-500;
+  }
+
+  .mp5-persistent-queue-group {
+    @apply flex items-center justify-end;
   }
 
   .mp5-persistent-timeline,
@@ -627,6 +746,10 @@ input[type="range"] {
     contain: paint;
   }
 
+  .mp5-now-playing-cover-card > img {
+    object-position: 40% center;
+  }
+
   .mp5-album-badge {
     @apply inline-block rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-medium text-gray-400;
   }
@@ -643,10 +766,30 @@ input[type="range"] {
   }
 
   .mp5-shell-header {
-    margin-left: -16px;
-    margin-right: -16px;
+    margin-left: -18px;
+    margin-right: -18px;
     padding-left: 23px;
     padding-right: 23px;
+  }
+}
+
+@media (min-width: 1160px) {
+  .mp5-persistent-transport {
+    grid-template-columns: 344px 304px 210px 120px 88px;
+  }
+
+  .mp5-persistent-controls {
+    gap: 18px;
+  }
+
+  .mp5-persistent-controls > button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mp5-persistent-controls .mp5-persistent-play {
+    min-width: 56px;
+    min-height: 56px;
   }
 }
 
@@ -678,14 +821,22 @@ input[type="range"] {
 }
 
 @media (max-width: 767px) {
+  :root {
+    --mp5-nav-height: 76px;
+  }
+
   .mp5-app-shell {
     @apply px-2.5;
-    padding-top: 2px;
+    padding-top: 0;
     padding-bottom: 150px;
+    border-radius: 16px;
   }
 
   .mp5-shell-header {
-    @apply mb-1 min-h-[58px] rounded-xl px-3;
+    @apply mb-1 min-h-[60px] px-3;
+    margin-left: -10px;
+    margin-right: -10px;
+    border-radius: 15px 15px 0 0;
     background: #070b12;
     backdrop-filter: none;
   }
@@ -696,6 +847,10 @@ input[type="range"] {
 
   .mp5-shell-version {
     @apply hidden;
+  }
+
+  .mp5-shell-brand {
+    @apply gap-0;
   }
 
   .mp5-shell-nav {
@@ -736,8 +891,19 @@ input[type="range"] {
     @apply hidden;
   }
 
+  .mp5-shell-open-divider,
+  .mp5-shell-open-caret {
+    @apply hidden;
+  }
+
+  .mp5-shell-menu-button {
+    @apply border-0 bg-transparent text-gray-400;
+  }
+
   .mp5-beta-notice {
     @apply mb-1.5 gap-2 px-3 py-1.5 text-[11px] leading-[1.35];
+    height: auto;
+    min-height: 51px;
   }
 
   .mp5-beta-notice > button:not(.mp5-beta-dismiss) {
@@ -765,7 +931,7 @@ input[type="range"] {
   }
 
   .mp5-track-cover {
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 1.832 / 1;
     border-radius: 8px;
   }
 
@@ -804,6 +970,16 @@ input[type="range"] {
 
   .mp5-player-controls .mp5-volume-control {
     @apply flex;
+    width: 100%;
+    max-width: none;
+  }
+
+  .mp5-player-controls .mp5-volume-control > span:last-child {
+    @apply hidden;
+  }
+
+  .mp5-transport-play {
+    @apply min-h-12 min-w-12;
   }
 
   .mp5-inspector-tabs {
@@ -830,8 +1006,20 @@ input[type="range"] {
     @apply gap-0;
   }
 
-  .mp5-overview-grid > .mp5-overview-table:first-child {
+  .mp5-overview-grid > .mp5-overview-table:not(.mp5-overview-mobile) {
     @apply hidden;
+  }
+
+  .mp5-overview-mobile {
+    @apply block;
+  }
+
+  .mp5-overview-mobile > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .mp5-overview-mobile dd {
+    @apply text-right;
   }
 
   .mp5-overview-table > div {
@@ -844,15 +1032,43 @@ input[type="range"] {
     @apply hidden;
   }
 
+  .mp5-library-compact .mp5-queue-header-actions {
+    @apply opacity-100;
+  }
+
+  .mp5-library-compact .mp5-queue-header-actions > .mp5-queue-action {
+    @apply hidden;
+  }
+
+  .mp5-queue-collapse {
+    @apply inline-flex;
+  }
+
   .mp5-persistent-transport {
-    @apply left-0 z-[55] min-h-[64px] translate-x-0 gap-2 rounded-none border-x-0 px-2.5;
+    @apply left-0 z-[55] min-h-[72px] translate-x-0 gap-2 rounded-none border-x-0 px-2.5;
     bottom: var(--mp5-nav-height);
     grid-template-columns: minmax(0, 1fr) auto 42px;
     width: 100%;
   }
 
+  .mp5-persistent-queue-group {
+    width: 42px;
+  }
+
+  .mp5-persistent-collapse {
+    @apply hidden;
+  }
+
   .mp5-persistent-cover {
     @apply h-10 w-10;
+  }
+
+  .mp5-persistent-artist {
+    @apply hidden;
+  }
+
+  .mp5-persistent-mobile-time {
+    @apply block;
   }
 
   .mp5-persistent-controls > button:not(.mp5-persistent-play),

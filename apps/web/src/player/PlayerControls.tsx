@@ -168,7 +168,10 @@ export function PlayerControls({
           step={0.01}
           value={volume}
           onChange={(event) => onVolume(Number(event.target.value))}
-          className="h-7 min-w-0 flex-1 accent-accent"
+          className="mp5-volume-slider h-7 min-w-0 flex-1"
+          style={{
+            backgroundImage: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${volume * 100}%, rgba(148, 163, 184, 0.22) ${volume * 100}%, rgba(148, 163, 184, 0.22) 100%)`,
+          }}
           data-testid="volume-slider"
           aria-label="Volume"
         />

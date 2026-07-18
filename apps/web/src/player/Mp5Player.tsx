@@ -5,7 +5,12 @@ import {
   clockModeForTransport,
   type PlaybackClockDiagnostics,
 } from "../lib/playback/activePlaybackClock";
-import { usePlayerStore, selectCanGoNext, selectCanGoPrev } from "../store/playerStore";
+import {
+  usePlayerStore,
+  selectCanGoNext,
+  selectCanGoPrev,
+  withoutDefaultDemoTracks,
+} from "../store/playerStore";
 import { decodeMp5ToPcm } from "./decodeMp5";
 import { decodeCache } from "./decodeCache";
 import { FileDropZone } from "./FileDropZone";
@@ -144,7 +149,11 @@ const INSPECTOR_TABS: { id: InspectorSection; label: string; target: InspectorSe
   { id: "integrity", label: "Integrity", target: "metadata" },
 ];
 
-export function Mp5Player() {
+interface Mp5PlayerProps {
+  defaultDemoLoading?: boolean;
+}
+
+export function Mp5Player({ defaultDemoLoading = false }: Mp5PlayerProps) {
   const store = usePlayerStore();
   const {
     tracks,
@@ -174,6 +183,7 @@ export function Mp5Player() {
     setShuffle: setShuffleMode,
     sessionRestored,
     setSessionRestored,
+    dismissDefaultDemo,
     useFileThemes,
     consumePendingAlbumPackage,
   } = store;
@@ -1252,19 +1262,23 @@ export function Mp5Player() {
     const fileList = Array.from(files);
     setIngestStage("loading_mp5");
     setIngestStageDetail(ingestStageLabel("loading_mp5"));
-    const ingest = await ingestAlbumPackageFiles(fileList, tracks, (name, progress) => {
-      const isIndex = "chunksScanned" in progress;
-      const stage = isIndex
-        ? mapIndexProgressToIngestStage(progress)
-        : mapParseProgressToIngestStage(progress);
-      const detail = isIndex
-        ? indexStageDetail(progress)
-        : parseStageDetail(progress);
-      setIngestStage(stage);
-      setIngestStageDetail(
-        ingestStageLabel(stage, detail ?? `Loading ${name}…`),
-      );
-    });
+    const ingest = await ingestAlbumPackageFiles(
+      fileList,
+      withoutDefaultDemoTracks(tracks),
+      (name, progress) => {
+        const isIndex = "chunksScanned" in progress;
+        const stage = isIndex
+          ? mapIndexProgressToIngestStage(progress)
+          : mapParseProgressToIngestStage(progress);
+        const detail = isIndex
+          ? indexStageDetail(progress)
+          : parseStageDetail(progress);
+        setIngestStage(stage);
+        setIngestStageDetail(
+          ingestStageLabel(stage, detail ?? `Loading ${name}…`),
+        );
+      },
+    );
     setIngestStage("ready");
     setIngestStageDetail("");
     setLastDropSummary(ingest.mp5);
@@ -1272,13 +1286,14 @@ export function Mp5Player() {
       setAlbumManifestError(ingest.manifestError);
       setActiveAlbum(null);
     } else if (ingest.album) {
+      dismissDefaultDemo();
       setActiveAlbum(ingest.album);
     }
     if (ingest.mp5.dropErrors.length) {
       setDropErrors((prev) => [...prev, ...ingest.mp5.dropErrors].slice(-8));
     }
     if (ingest.mp5.tracks.length) {
-      const prevTracks = tracks;
+      const prevTracks = withoutDefaultDemoTracks(tracks);
       appendTracks(ingest.mp5.tracks);
       if (ingest.album && ingest.album.packageKind === "manifest") {
         const combined = [...prevTracks, ...ingest.mp5.tracks];
@@ -1295,10 +1310,11 @@ export function Mp5Player() {
 
   const handleAddAlbumSidecars = async (files: FileList) => {
     if (!activeAlbum) return;
+    dismissDefaultDemo();
     const mp5Result = await ingestMp5Files(Array.from(files));
     if (mp5Result.tracks.length) {
       appendTracks(mp5Result.tracks);
-      const combined = [...tracks, ...mp5Result.tracks];
+      const combined = [...withoutDefaultDemoTracks(tracks), ...mp5Result.tracks];
       setActiveAlbum(
         enrichResolvedAlbum(
           resolveAlbumTracks(activeAlbum.manifest, combined),
@@ -1403,7 +1419,7 @@ export function Mp5Player() {
         setActiveAlbum(loaded);
         const playlistTrack = loaded.tracks[i]?.playlistTrack;
         if (!playlistTrack) continue;
-        const existing = usePlayerStore.getState().tracks;
+        const existing = withoutDefaultDemoTracks(usePlayerStore.getState().tracks);
         if (!existing.some((t) => t.id === playlistTrack.id)) {
           appendTracks([playlistTrack]);
         }
@@ -1414,6 +1430,7 @@ export function Mp5Player() {
 
   const handlePlayAlbum = async () => {
     if (!activeAlbum) return;
+    dismissDefaultDemo();
     recordLastAlbumAction("play_album");
     recordLastPlaybackRequest("play_album");
     stopMainSource();
@@ -1438,11 +1455,11 @@ export function Mp5Player() {
     const ordered = resolvedTracksInOrder(album);
     if (!ordered.length) return;
     const first = ordered[0]!;
-    const toAdd = ordered.filter((t) => !tracks.some((x) => x.id === t.id));
-    const startLen = tracks.length;
+    const currentTracks = withoutDefaultDemoTracks(usePlayerStore.getState().tracks);
+    const toAdd = ordered.filter((t) => !currentTracks.some((x) => x.id === t.id));
     if (toAdd.length) appendTracks(toAdd);
-    const existingIdx = tracks.findIndex((t) => t.id === first.id);
-    const idx = existingIdx >= 0 ? existingIdx : startLen;
+    const idx = usePlayerStore.getState().tracks.findIndex((t) => t.id === first.id);
+    if (idx < 0) return;
     playWhenReadyRef.current = true;
     setCurrentIndex(idx);
     recordLastAlbumAction("play_album", first.id);
@@ -1450,10 +1467,13 @@ export function Mp5Player() {
 
   const handleAddAlbumToQueue = async () => {
     if (!activeAlbum) return;
+    dismissDefaultDemo();
     recordLastAlbumAction("add_album_to_queue");
     if (activeAlbum.packageKind === "embedded") {
       const placeholders = buildEmbeddedPlaylistPlaceholders(activeAlbum);
-      const existingIds = new Set(usePlayerStore.getState().tracks.map((t) => t.id));
+      const existingIds = new Set(
+        withoutDefaultDemoTracks(usePlayerStore.getState().tracks).map((t) => t.id),
+      );
       const toAdd = placeholders.filter((t) => !existingIds.has(t.id));
       if (toAdd.length) appendTracks(toAdd);
       startEmbeddedPlaylistMetadataPrefetch(activeAlbum);
@@ -1462,7 +1482,9 @@ export function Mp5Player() {
     let album = activeAlbum;
     album = (await loadEmbeddedAlbumForPlayback()) ?? album;
     const ordered = resolvedTracksInOrder(album);
-    const newIds = new Set(tracks.map((t) => t.id));
+    const newIds = new Set(
+      withoutDefaultDemoTracks(usePlayerStore.getState().tracks).map((t) => t.id),
+    );
     const toAdd = ordered.filter((t) => !newIds.has(t.id));
     if (toAdd.length) appendTracks(toAdd);
   };
@@ -1470,8 +1492,9 @@ export function Mp5Player() {
   const handleAlbumTrackSelect = async (rowIndex: number) => {
     const row = activeAlbum?.tracks[rowIndex];
     if (!row) return;
+    dismissDefaultDemo();
     const trackId = row.ref.trackId;
-    const queued = usePlayerStore.getState().tracks.find(
+    const queued = withoutDefaultDemoTracks(usePlayerStore.getState().tracks).find(
       (t) => t.id === trackId || t.embeddedAlbum?.trackId === trackId,
     );
     if (queued) {
@@ -1501,7 +1524,9 @@ export function Mp5Player() {
       }
     }
     if (!playlistTrack) return;
-    const idx = tracks.findIndex((t) => t.id === playlistTrack!.id);
+    const idx = withoutDefaultDemoTracks(usePlayerStore.getState().tracks).findIndex(
+      (t) => t.id === playlistTrack!.id,
+    );
     if (idx >= 0) {
       playWhenReadyRef.current = true;
       setCurrentIndex(idx);
@@ -1518,10 +1543,16 @@ export function Mp5Player() {
   const handleAddAlbumTrackToQueue = async (rowIndex: number) => {
     const row = activeAlbum?.tracks[rowIndex];
     if (!row) return;
+    dismissDefaultDemo();
     if (activeAlbum?.packageKind === "embedded") {
       const placeholders = buildEmbeddedPlaylistPlaceholders(activeAlbum);
       const placeholder = placeholders[rowIndex];
-      if (!placeholder || usePlayerStore.getState().tracks.some((t) => t.id === placeholder.id)) {
+      if (
+        !placeholder ||
+        withoutDefaultDemoTracks(usePlayerStore.getState().tracks).some(
+          (t) => t.id === placeholder.id,
+        )
+      ) {
         return;
       }
       appendTracks([placeholder]);
@@ -1547,7 +1578,12 @@ export function Mp5Player() {
         setEmbeddedLoading(false);
       }
     }
-    if (!playlistTrack || tracks.some((t) => t.id === playlistTrack!.id)) return;
+    if (
+      !playlistTrack ||
+      withoutDefaultDemoTracks(usePlayerStore.getState().tracks).some(
+        (t) => t.id === playlistTrack!.id,
+      )
+    ) return;
     appendTracks([playlistTrack]);
   };
 
@@ -1793,9 +1829,9 @@ export function Mp5Player() {
 
   return (
     <div className="space-y-6" data-testid="mp5-player">
-      {tracks.length === 0 && <PlayerEmptyState />}
+      {tracks.length === 0 && !defaultDemoLoading && <PlayerEmptyState />}
 
-      {tracks.length === 0 && (
+      {tracks.length === 0 && !defaultDemoLoading && (
         <DemoFixtureActions
           testIdPrefix="player"
           onLoaded={async (file, playFirst) => {
@@ -1904,6 +1940,7 @@ export function Mp5Player() {
                 activeLoopRange={waveformLoopRange}
                 playedFill={playerTheme?.waveformPlayedFill}
                 unplayedFill={playerTheme?.waveformUnplayedFill}
+                visualProfile={track?.origin === "default-demo" ? "default-demo" : undefined}
                 onSeek={handleWaveformSeek}
                 disabled={loading || duration <= 0}
               />

@@ -1,4 +1,6 @@
-import { List } from "@phosphor-icons/react/List";
+import { ListBullets } from "@phosphor-icons/react/ListBullets";
+import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
+import { CaretUp } from "@phosphor-icons/react/CaretUp";
 import { Pause } from "@phosphor-icons/react/Pause";
 import { Play } from "@phosphor-icons/react/Play";
 import { Repeat } from "@phosphor-icons/react/Repeat";
@@ -6,6 +8,7 @@ import { Shuffle } from "@phosphor-icons/react/Shuffle";
 import { SkipBack } from "@phosphor-icons/react/SkipBack";
 import { SkipForward } from "@phosphor-icons/react/SkipForward";
 import { SpeakerHigh } from "@phosphor-icons/react/SpeakerHigh";
+import { Waveform } from "@phosphor-icons/react/Waveform";
 import { CodecId, type Mp5File } from "@mp5/container";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import type { PlaylistTrack } from "../store/playerStore";
@@ -67,17 +70,29 @@ export function PersistentTransport({
   return (
     <section className="mp5-persistent-transport" data-testid="persistent-transport" aria-label="Now playing controls">
       <div className="mp5-persistent-track">
-        <img
-          src={coverUrl ?? "/artwork/mp5-default-visu.webp"}
-          alt=""
-          className="mp5-persistent-cover"
-        />
+        {coverUrl ? (
+          <img src={coverUrl} alt="" className="mp5-persistent-cover" />
+        ) : (
+          <span className="mp5-persistent-cover mp5-waveform-tile" aria-hidden>
+            <Waveform size={28} weight="bold" />
+          </span>
+        )}
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-gray-100">{info.title}</p>
-          <p className="truncate text-xs text-gray-500">{info.artist}</p>
+          <p className="mp5-persistent-artist truncate text-xs text-gray-500">{info.artist}</p>
+          <p className="mp5-persistent-mobile-time">{timeline.current} / {timeline.duration}</p>
           <div className="hidden items-center gap-1.5 sm:flex">
-            {parsed?.head && <span className="mp5-mini-badge">{codecLabel(parsed.head.codecId)}</span>}
-            {parsed?.head?.codecId === CodecId.MP5L && <span className="mp5-verified-label">Lossless · Bit-exact</span>}
+            {parsed?.head && (
+              <span className="mp5-mini-badge">
+                {codecLabel(parsed.head.codecId).replace(/\s*\(.+\)$/, "")}
+              </span>
+            )}
+            {parsed?.head?.codecId === CodecId.MP5L && (
+              <>
+                <span className="mp5-quality-badge"><CheckCircle size={11} weight="bold" aria-hidden /> Lossless</span>
+                <span className="mp5-quality-badge"><CheckCircle size={11} weight="bold" aria-hidden /> Bit-exact</span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -124,13 +139,22 @@ export function PersistentTransport({
           step={0.01}
           value={volume}
           onChange={(event) => onVolume(Number(event.target.value))}
+          className="mp5-volume-slider"
+          style={{
+            backgroundImage: `linear-gradient(to right, #8b5cf6 0%, #8b5cf6 ${volume * 100}%, rgba(148, 163, 184, 0.22) ${volume * 100}%, rgba(148, 163, 184, 0.22) 100%)`,
+          }}
           aria-label="Persistent volume"
         />
       </label>
 
-      <button type="button" className="mp5-persistent-queue" onClick={onQueue} aria-label="Open queue">
-        <List size={22} />
-      </button>
+      <div className="mp5-persistent-queue-group">
+        <button type="button" className="mp5-persistent-queue" onClick={onQueue} aria-label="Open queue">
+          <ListBullets size={22} weight="bold" />
+        </button>
+        <button type="button" className="mp5-persistent-queue mp5-persistent-collapse" onClick={onQueue} aria-label="Open queue details">
+          <CaretUp size={17} weight="bold" />
+        </button>
+      </div>
     </section>
   );
 }

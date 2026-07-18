@@ -1,4 +1,5 @@
 import type { IntegrityCheckResult, Mp5File } from "@mp5/container";
+import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import type { AlbumPlaybackContext } from "../lib/album/albumPlaybackContext";
 import {
@@ -40,8 +41,8 @@ function sampleRateLabel(sampleRate?: number) {
 
 function channelsLabel(channels?: number) {
   if (!channels) return "—";
-  if (channels === 1) return "1 · Mono";
-  if (channels === 2) return "2 · Stereo";
+  if (channels === 1) return "1 (mono)";
+  if (channels === 2) return "2 (stereo)";
   return `${channels} channels`;
 }
 
@@ -162,10 +163,14 @@ export function NowPlayingView({
                 {codecBadgeLabel}
               </span>
             )}
-            {isLossless && <span className="mp5-quality-badge">Lossless</span>}
+            {isLossless && (
+              <span className="mp5-quality-badge">
+                <CheckCircle size={12} weight="bold" aria-hidden /> Lossless
+              </span>
+            )}
             {isBitExact && (
               <span className="mp5-quality-badge" data-testid="now-playing-integrity-badge">
-                Bit-exact
+                <CheckCircle size={12} weight="bold" aria-hidden /> Bit-exact
               </span>
             )}
             {playerTheme?.themeName ? (
@@ -219,7 +224,13 @@ export function NowPlayingView({
           <dt>Mode</dt>
           <dd>{isLossless ? "Lossless" : "Standard"}</dd>
           <dt>Integrity</dt>
-          <dd className={isBitExact ? "text-cyan-300" : undefined}>{isBitExact ? "Bit-exact" : "Not verified"}</dd>
+          <dd className={isBitExact ? "text-cyan-300" : undefined}>
+            {isBitExact ? (
+              <span className="mp5-integrity-value">
+                <CheckCircle size={12} weight="bold" aria-hidden /> Bit-exact
+              </span>
+            ) : "Not verified"}
+          </dd>
           <dt>Duration</dt>
           <dd data-testid="now-playing-duration">{summary.durationLabel}</dd>
           <dt>Channels</dt>

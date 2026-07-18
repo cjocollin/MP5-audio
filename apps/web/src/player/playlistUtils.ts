@@ -26,6 +26,7 @@ import {
   mapParseProgressToIngestStage,
   parseStageDetail,
 } from "../lib/ingest/ingestStages";
+import { createRandomId } from "../lib/randomId";
 
 export interface TrackDisplayInfo {
   title: string;
@@ -252,7 +253,7 @@ export async function ingestMp5Files(
           scanMs: Math.round(performance.now() - scanStart),
         });
         tracks.push({
-          id: crypto.randomUUID(),
+          id: createRandomId(),
           name: file.name,
           file,
           rawBuffer: buf,
@@ -264,7 +265,7 @@ export async function ingestMp5Files(
       }
 
       tracks.push({
-        id: crypto.randomUUID(),
+        id: createRandomId(),
         name: file.name,
         file,
         parsed,
@@ -273,7 +274,7 @@ export async function ingestMp5Files(
       });
     } catch {
       tracks.push({
-        id: crypto.randomUUID(),
+        id: createRandomId(),
         name: file.name,
         file,
         parseError: USER_ERRORS.invalidMp5,
