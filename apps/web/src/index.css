@@ -662,12 +662,16 @@ input[type="range"] {
   }
 
   .mp5-player-sidebar > .mp5-experimental-card {
-    @apply min-h-[180px] items-center justify-center text-center;
+    @apply min-h-[180px] flex-col items-center justify-center gap-2 text-center;
     margin-top: 50px !important;
   }
 
   .mp5-player-sidebar > .mp5-experimental-card > svg {
     @apply mt-0;
+  }
+
+  .mp5-player-sidebar > .mp5-experimental-card > div {
+    @apply flex max-w-[210px] flex-col items-center;
   }
 
   .mp5-player-sidebar > .mp5-file-drop-zone {
