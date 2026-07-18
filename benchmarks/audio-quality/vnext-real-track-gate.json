@@ -1,14 +1,14 @@
 {
   "reachedLow": true,
   "best": {
-    "protectScale": 1.25,
-    "hissRisk": "medium",
-    "fullSnrDb": 39.5254696239857,
+    "protectScale": 1.5,
+    "hissRisk": "low",
+    "fullSnrDb": 39.52826559007082,
     "quietWindowSnrDb": null,
-    "tailSnrDb": 35.7,
+    "tailSnrDb": "inf",
     "contentBitExact": false,
-    "ratioVsPcm": 0.9775903314255923,
-    "bytes": 32281941
+    "ratioVsPcm": 0.9772947098947997,
+    "bytes": 32272179
   },
   "trials": [
     {
@@ -18,8 +18,8 @@
       "quietWindowSnrDb": null,
       "tailSnrDb": 32.6,
       "contentBitExact": false,
-      "ratioVsPcm": 0.9777439262221688,
-      "bytes": 32287013
+      "ratioVsPcm": 0.9776824216811896,
+      "bytes": 32284982
     },
     {
       "protectScale": 1.25,
@@ -28,8 +28,8 @@
       "quietWindowSnrDb": null,
       "tailSnrDb": 35.7,
       "contentBitExact": false,
-      "ratioVsPcm": 0.9775903314255923,
-      "bytes": 32281941
+      "ratioVsPcm": 0.9774992102223393,
+      "bytes": 32278932
     },
     {
       "protectScale": 1.5,
@@ -38,8 +38,8 @@
       "quietWindowSnrDb": null,
       "tailSnrDb": "inf",
       "contentBitExact": false,
-      "ratioVsPcm": 0.9774124800375217,
-      "bytes": 32276068
+      "ratioVsPcm": 0.9772947098947997,
+      "bytes": 32272179
     },
     {
       "protectScale": 2,
@@ -48,8 +48,8 @@
       "quietWindowSnrDb": null,
       "tailSnrDb": "inf",
       "contentBitExact": false,
-      "ratioVsPcm": 0.976525978839773,
-      "bytes": 32246794
+      "ratioVsPcm": 0.9763616639016373,
+      "bytes": 32241368
     },
     {
       "protectScale": 3,
@@ -58,8 +58,34 @@
       "quietWindowSnrDb": null,
       "tailSnrDb": "inf",
       "contentBitExact": false,
-      "ratioVsPcm": 0.9706144264276079,
-      "bytes": 32051583
+      "ratioVsPcm": 0.9702685958722246,
+      "bytes": 32040163
+    }
+  ],
+  "mdctTrials": [
+    {
+      "path": "mdct",
+      "preset": "high",
+      "protectScale": 1.5,
+      "hissRisk": "low",
+      "fullSnrDb": 26.821052505739402,
+      "quietWindowSnrDb": null,
+      "tailSnrDb": "inf",
+      "contentBitExact": false,
+      "ratioVsPcm": 0.21358346714331122,
+      "bytes": 7052943
+    },
+    {
+      "path": "mdct",
+      "preset": "extreme",
+      "protectScale": 1.5,
+      "hissRisk": "low",
+      "fullSnrDb": 30.968565070573266,
+      "quietWindowSnrDb": null,
+      "tailSnrDb": "inf",
+      "contentBitExact": false,
+      "ratioVsPcm": 0.2683193289118705,
+      "bytes": 8860428
     }
   ],
   "verdict": "green: real-track tail >=40 dB / hiss risk low"

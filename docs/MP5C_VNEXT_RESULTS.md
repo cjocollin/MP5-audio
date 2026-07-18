@@ -38,6 +38,23 @@ attacks). Size still ~0.167× on `dense_music` after Phase 1.
 `mp5c2::encode_mdct` writes `TAG_MDCT` payloads via `mp5c3`; decode accepts `TAG_MDCT` and
 legacy `TAG_LOSSY`. Protect path still MP5-L. Lab WASM: `encode_mp5c_vnext_mdct`.
 
+### Fast MDCT (FFT Type-IV) + real-track validate
+
+`mp5c3/mdct.rs` uses a dependency-free radix-2 FFT Type-IV path (fixed N=2048) so WASM lab
+modes are practical. Float OLA interior SNR > 80 dB; `dense_music` size/SNR gate unchanged
+(~0.167× / ~24 dB). Default `encode_mp5c_vnext` still uses legacy MP5-C loud units.
+
+`pnpm audio:validate-vnext-ref` also encodes High + Extreme via `encode_mp5c_vnext_mdct`
+(protect 1.5) when the WASM export exists:
+
+| Mode | Tail SNR | Hiss risk | Full SNR | ×PCM |
+|------|---------:|:---------:|---------:|-----:|
+| vNext Extreme (mp5c loud, protect 1.5) | ∞ | low | ~39.5 dB | 0.977 |
+| **vNext MDCT High** | **∞** | **low** | **~26.8 dB** | **0.214** |
+| **vNext MDCT Extreme** | **∞** | **low** | **~31.0 dB** | **0.268** |
+
+Lab-only; no claim vs MP3/AAC/Opus/FLAC. MDCT remains opt-in (`encode_mp5c_vnext_mdct` /
+`mp5c2-native-mdct-high`).
 
 ## Phase 4.4 — protect-scale experiment (timeboxed) — **GREEN**
 

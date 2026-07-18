@@ -377,6 +377,59 @@ async function cmdValidateVnextRef(args) {
     if (v === "inf" || v === Infinity) return 1e8;
     return typeof v === "number" ? v : -1;
   };
+  // Lab MDCT loud path (encode_mp5c_vnext_mdct): High + Extreme at protect 1.5 (wired in Rust).
+  const mdctTrials = [];
+  const hasMdct = typeof codec.encode_mp5c_vnext_mdct === "function";
+  if (hasMdct) {
+    const mdctPresets = [
+      { name: "high", preset: 2 },
+      { name: "extreme", preset: 3 },
+    ];
+    for (const { name, preset } of mdctPresets) {
+      const vnext = codec.encode_mp5c_vnext_mdct(pcm, ch, preset);
+      const outPath = join(args.out, "local", `vnext_mdct_${name}.mp5`);
+      const bytes = writeMp5({
+        head: {
+          codecId: CodecId.MP5C2,
+          channels: ch,
+          bitsPerSample: 16,
+          presetId: preset,
+          sampleRate: sr,
+          totalSamples: BigInt(frames),
+          encoderVersion: 1,
+        },
+        meta: [],
+        audioFrames: [{ frameIndex: 0, chunkType: 0, flags: 0, data: vnext }],
+        seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+        waveform: [],
+        info: [{ key: "encoder", value: `mp5c2-vnext-mdct-${name}-protect-1.5` }],
+      });
+      writeFileSync(outPath, bytes);
+      const ratio = bytes.length / (pcm.length * 2);
+      const result = compareFiles(codec, ref, [outPath]);
+      const c = result.candidates[0];
+      const trial = {
+        path: "mdct",
+        preset: name,
+        protectScale: 1.5,
+        hissRisk: c.hissRisk,
+        fullSnrDb: c.metrics?.fullSnrDb,
+        quietWindowSnrDb: c.metrics?.quietWindowSnrDb,
+        tailSnrDb: c.hiss?.tailSnrDb,
+        contentBitExact: c.metrics?.contentBitExact,
+        ratioVsPcm: ratio,
+        bytes: bytes.length,
+        error: c.error,
+      };
+      mdctTrials.push(trial);
+      console.error(
+        `  mdct-${name}: tail=${num(trial.tailSnrDb, 1)} dB risk=${trial.hissRisk} size=${ratio.toFixed(3)}x PCM`,
+      );
+    }
+  } else {
+    console.error("  mdct: encode_mp5c_vnext_mdct missing — skip MDCT trials");
+  }
+
   const best = [...trials].sort((a, b) => tailScore(b) - tailScore(a))[0];
   const reachedLow = trials.some(
     (t) => t.hissRisk === "low" || t.tailSnrDb === "inf" || (typeof t.tailSnrDb === "number" && t.tailSnrDb >= 40),
@@ -385,6 +438,7 @@ async function cmdValidateVnextRef(args) {
     reachedLow,
     best,
     trials,
+    mdctTrials,
     verdict: reachedLow
       ? "green: real-track tail >=40 dB / hiss risk low"
       : "wall: cannot reach >=40 dB tail SNR without documenting size cost; stop size-tuning until redesign",

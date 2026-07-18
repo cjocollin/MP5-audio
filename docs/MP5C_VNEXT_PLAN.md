@@ -85,7 +85,8 @@ Measured lab work (not default; MP5-C v5.1 untouched):
 4. **Near-lossless residual sidecar** — still optional / not built (Phase 3).
 
 Keep lab-gated; no default flip. Re-measure with `pnpm audio:hiss-report` after `pnpm wasm:build`
-(note: direct MDCT is O(N²) — native tests are the authoritative size gate for now).
+(FFT Type-IV MDCT in `mdct.rs` — WASM lab practical; real-track MDCT validate via
+`pnpm audio:validate-vnext-ref`, see RESULTS).
 
 ## What NOT to do
 
