@@ -77,12 +77,12 @@ export function PersistentTransport({
             <Waveform size={28} weight="bold" />
           </span>
         )}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-gray-100">{info.title}</p>
           <p className="mp5-persistent-artist truncate text-xs text-gray-500">{info.artist}</p>
           <p className="mp5-persistent-mobile-time">{timeline.current} / {timeline.duration}</p>
           <div
-            className="mp5-persistent-badges hidden min-w-0 max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto min-[1160px]:flex"
+            className="mp5-persistent-badges hidden min-w-0 max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto sm:flex"
             data-testid="persistent-transport-badges"
           >
             {parsed?.head && (
