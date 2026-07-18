@@ -1,11 +1,11 @@
 # MP5 Chunk Registry
 
-**Version:** MP5 Audio v0.26.0-beta  
+**Version:** MP5 Audio v0.27.0-beta  
 **Status:** Public Beta toolkit reference  
 **Format magic:** `MP5A`  
 **Required for playback:** `HEAD` and `AUDI`
 
-This registry lists known MP5 chunks and the current reference-tool support level. It does not add new format semantics in v0.26.0-beta. Unknown optional chunks are skipped safely after size and CRC checks; required chunk failures fail closed.
+This registry lists known MP5 chunks and the current reference-tool support level. It does not add new format semantics in v0.27.0-beta. Unknown optional chunks are skipped safely after size and CRC checks; required chunk failures fail closed.
 
 Status key: **yes** = supported in the reference code; **partial** = supported for the documented subset; **skip** = parser stores or ignores without semantic decode; **registry** = reserved/recognized name only; **n/a** = not applicable.
 
@@ -57,7 +57,7 @@ Status key: **yes** = supported in the reference code; **partial** = supported f
 
 ## Optional Metadata And Playback Enrichment
 
-These chunks are optional. They are manually provided or fixture-generated in the reference app; v0.26.0-beta does not add AI generation.
+These chunks are optional. They are manually provided or fixture-generated in the reference app; v0.27.0-beta does not add AI generation.
 
 | FourCC | Purpose | Ver | Required | Payload | Max | Safe ignore | Parser | Writer | Converter | Player | Tests | Docs |
 |--------|---------|-----|----------|---------|-----|-------------|--------|--------|-----------|--------|-------|------|

@@ -50,8 +50,8 @@ else fail("Commit apps/web/src/wasm/pkg/mp5_codec_bg.wasm for reliable Vercel bu
 const setup = readFileSync(join(root, "docs/MP5_VERCEL_SETUP.md"), "utf8");
 if (setup.includes("mp5-audio")) ok("MP5_VERCEL_SETUP.md references mp5-audio");
 else fail("setup doc missing mp5-audio");
-if (setup.includes("v0.26.0-beta")) ok("setup doc references v0.26.0-beta");
-else fail("setup doc should reference v0.26.0-beta");
+if (setup.includes("v0.27.0-beta")) ok("setup doc references v0.27.0-beta");
+else fail("setup doc should reference v0.27.0-beta");
 if (setup.includes("apps/web/dist")) ok("setup doc references apps/web/dist");
 else fail("setup doc missing apps/web/dist");
 

@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.27.0-beta] - 2026-07
+
+### Milestone - Lab MDCT loud path (FFT) + real-track validate
+
+**Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
+No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV. MDCT stays lab/opt-in — default
+`encode_mp5c_vnext` still uses legacy MP5-C for loud units.
+
+- **`mp5c3` MDCT loud lab:** Type-IV MDCT/IMDCT + signal-relative band quant; vNext unit tag
+  `TAG_MDCT` (`0x4D`) via `encode_mp5c_vnext_mdct` / lab mode `mp5c2-native-mdct-high`.
+- **FFT Type-IV MDCT:** dependency-free radix-2 path in `mdct.rs` (fixed N=2048) for practical WASM.
+  Float OLA >80 dB; `dense_music` gate ~0.167× PCM / ~24 dB SNR.
+- **Real-track MDCT validate:** `pnpm audio:validate-vnext-ref` High/Extreme at protect 1.5 —
+  hiss risk **low**, bit-exact tails; ×PCM **~0.214** (High) / **~0.268** (Extreme) on the local
+  commercial reference. See [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md).
+
 ## [0.26.0-beta] - 2026-07
 
 ### Milestone - Quality-preserving compression + vNext size/UX

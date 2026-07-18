@@ -1,6 +1,6 @@
 # MP5 Album Package
 
-**Version:** MP5 Audio v0.26.0-beta  
+**Version:** MP5 Audio v0.27.0-beta  
 **Status:** Experimental Public Beta package format
 
 Album packaging is optional and does not change the core single-track `.mp5` format. Single-track `.mp5` playback remains the baseline.

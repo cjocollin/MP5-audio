@@ -1,6 +1,6 @@
 # MP5 Known Issues
 
-**Version:** MP5 Audio v0.26.0-beta (Public Beta)  
+**Version:** MP5 Audio v0.27.0-beta (Public Beta)  
 **Last updated:** 2026-07-17
 
 MP5 is experimental and browser-based. This document lists honest limitations, not scheduled promises.

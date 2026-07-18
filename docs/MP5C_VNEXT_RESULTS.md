@@ -1,6 +1,6 @@
 # MP5-C vNext Results — Sub-block / Per-band / Hysteresis Quiet Detection
 
-**Version:** MP5 Audio v0.26.0-beta  
+**Version:** MP5 Audio v0.27.0-beta  
 **Reproduce:** `pnpm audio:hiss-report` (synthetic + optional local reference).
 
 > **TL;DR.** Protect **1.5** + lossy/L/B coalesce keep hiss risk **low**. Prefer **High** loud

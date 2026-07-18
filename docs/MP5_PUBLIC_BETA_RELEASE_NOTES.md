@@ -1,8 +1,8 @@
 # MP5 Public Beta Release Notes
 
-**Current release:** MP5 Audio v0.26.0-beta  
+**Current release:** MP5 Audio v0.27.0-beta  
 **Hosted demo:** https://mp5-audio.vercel.app  
-**Last updated:** 2026-07-17
+**Last updated:** 2026-07-18
 
 ## What Is MP5?
 
@@ -10,13 +10,12 @@ MP5 is an experimental, browser-based open-source audio format, container, codec
 
 MP5 is Public Beta, not production-ready for archival or legal use.
 
-## v0.26.0-beta Highlights
+## v0.27.0-beta Highlights
 
-- **MP5-L packed Rice + 4-mode stereo** for smaller lossless exports (bit-exact gates unchanged).
-- **MP5-C vNext (`CodecId` MP5C2)** gated lab/advanced export with protect-scale 1.5 (hiss risk low),
-  lossy + L/B coalesce, and High as the preferred loud-path size preset.
-- Converter/player UX: lab codec gate, WASM cold-load progress, denser mobile stems/lyrics/package panels.
-- Docs/compat synced for `FLAG_RICE_PACKED` and AUDI `0x43 0x34`. MP5-L remains the default.
+- **Lab MDCT loud path** (`mp5c3` / `TAG_MDCT`) with FFT Type-IV for practical WASM lab modes.
+- Real-track MDCT validate at protect 1.5: hiss risk **low**, High ~0.214× / Extreme ~0.268× PCM.
+- Default vNext loud path and MP5-L batch/export unchanged; MDCT remains opt-in lab.
+- MP5-C v5.1 quant unchanged. No mainstream-codec claims.
 
 ## What Works
 
@@ -46,7 +45,7 @@ See [MP5_KNOWN_ISSUES.md](./MP5_KNOWN_ISSUES.md).
 ## How To Test
 
 1. Open https://mp5-audio.vercel.app.
-2. Confirm the badge reads `MP5 Public Beta - v0.26.0-beta`.
+2. Confirm the badge reads `MP5 Public Beta - v0.27.0-beta`.
 3. Try the MP5-L demo, karaoke demo, and embedded album demo.
 4. Open Converter and Batch.
 5. Optional: convert your own local file with MP5-L v3 default.

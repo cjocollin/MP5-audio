@@ -23,7 +23,7 @@ function run(label, command, args) {
   }
 }
 
-console.log("MP5 Beta readiness check (v0.26.0-beta gate)\n");
+console.log("MP5 Beta readiness check (v0.27.0-beta gate)\n");
 
 run("Container build", "pnpm", ["--filter", "@mp5/container", "build"]);
 run("Golden fixture validation", "node", ["scripts/validate-golden-fixtures.mjs"]);

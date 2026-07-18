@@ -103,7 +103,7 @@ describe("Public Beta hardening", () => {
       decodeCacheSummary: "0/3",
       librarySummary: "0 entries",
     });
-    expect(report).toMatch(/0.26.0-beta/);
+    expect(report).toMatch(/0.27.0-beta/);
     expect(report).toMatch(/No telemetry/i);
   });
 });
@@ -217,8 +217,8 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.26.0-beta", () => {
-    expect(packageJson.version).toBe("0.26.0-beta");
+  it("package.json is 0.27.0-beta", () => {
+    expect(packageJson.version).toBe("0.27.0-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {

@@ -1,6 +1,6 @@
 # MP5 Vercel Project Setup
 
-**Version:** MP5 Audio v0.26.0-beta  
+**Version:** MP5 Audio v0.27.0-beta  
 **Project:** `mp5-audio`  
 **Production URL:** https://mp5-audio.vercel.app
 

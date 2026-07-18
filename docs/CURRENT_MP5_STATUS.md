@@ -1,7 +1,7 @@
 # Current MP5 Status
 
-**Version:** MP5 Audio v0.26.0-beta (Public Beta)  
-**Last updated:** 2026-07-17
+**Version:** MP5 Audio v0.27.0-beta (Public Beta)  
+**Last updated:** 2026-07-18
 
 ## What MP5 Is Today
 
@@ -18,14 +18,20 @@ MP5 is an experimental, browser-based music format and player stack. The hosted 
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
 
-## v0.26.0-beta Milestone
+## v0.27.0-beta Milestone
 
-Quality-preserving compression and vNext size/UX pass ([MP5C_VNEXT_RESULTS.md](./MP5C_VNEXT_RESULTS.md), [MP5_CODEC_STATUS.md](./MP5_CODEC_STATUS.md)):
+Lab MDCT loud path + FFT + real-track validate ([MP5C_VNEXT_RESULTS.md](./MP5C_VNEXT_RESULTS.md)):
 
-- **MP5-L:** `FLAG_RICE_PACKED`, rice-aware LPC order, FLAC-style 4-mode stereo (~46% residual-payload savings vs varint on the go/no-go corpus).
-- **vNext:** protect-scale **1.5** (real-track hiss risk **low**); lossy + lossless L/B coalesce; prefer **High** loud preset (~0.94× PCM on `dense_music`, ~0.42× on protected `reverb_tail`).
-- **Product:** gated `CodecId.MP5C2` Converter lab export (batch stays MP5-L); mobile density for stems/lyrics/packages; docs/compat sync.
-- **MP5-L stays default.** MP5-C v5.1 quant unchanged. No mainstream-codec claims.
+- **`mp5c3` / `TAG_MDCT`:** opt-in vNext loud path (`encode_mp5c_vnext_mdct`); quiet/fragile/tail stay MP5-L (protect 1.5).
+- **FFT Type-IV MDCT** for practical WASM; `dense_music` ~0.167× PCM; real-track MDCT High ~0.214× / Extreme ~0.268× with hiss risk **low**.
+- **Default unchanged:** `encode_mp5c_vnext` still uses legacy MP5-C loud; MP5-L stays default/batch. No mainstream-codec claims.
+
+## v0.26.0-beta Milestone (previous)
+
+Quality-preserving compression and vNext size/UX pass:
+
+- **MP5-L:** `FLAG_RICE_PACKED`, rice-aware LPC order, FLAC-style 4-mode stereo.
+- **vNext:** protect **1.5**, lossy + L/B coalesce, prefer High loud preset; gated `CodecId.MP5C2`.
 
 ## v0.25.0-beta Milestone (previous)
 

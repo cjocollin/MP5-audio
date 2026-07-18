@@ -1,6 +1,6 @@
 # MP5 Limitations
 
-**Version:** MP5 Audio v0.26.0-beta  
+**Version:** MP5 Audio v0.27.0-beta  
 **Status:** Public Beta technical notes
 
 MP5 is experimental and browser-based. It is not production-ready for archival, legal, rights, or untrusted ingestion workflows.

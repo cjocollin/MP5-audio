@@ -3,12 +3,12 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.26.0--beta-blue)](CHANGELOG.md#0260-beta---2026-07)
+[![Version](https://img.shields.io/badge/version-v0.27.0--beta-blue)](CHANGELOG.md#0270-beta---2026-07)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
-**Version:** MP5 Audio **v0.26.0-beta** (Public Beta)  
+**Version:** MP5 Audio **v0.27.0-beta** (Public Beta)  
 **Live demo:** https://mp5-audio.vercel.app  
 **GitHub:** https://github.com/cjocollin/MP5-audio
 
@@ -35,14 +35,13 @@ Single-track `.mp5` remains the core format. Album packages use `.mp5p` in eithe
 | `.mp5p` | Experimental album package; browser memory limits apply |
 | Public claims | No beat-codec, DRM, legal-proof, telemetry, upload, or cloud-sync claims |
 
-## v0.26.0-beta Focus
+## v0.27.0-beta Focus
 
-Native **vNext** (`mp5c2`) is bit-identical to the JS smooth engine, uses AUDI magic `0x43 0x34`,
-and ships as gated **`CodecId.MP5C2`** under Converter **Show lab / advanced codecs** (batch stays
-MP5-L). Protect-scale **1.5**, lossy + lossless L/B coalesce, and **High** as the preferred loud
-preset keep hiss risk **low** (~0.42× on protected `reverb_tail`, ~0.94× on `dense_music`).
-**MP5-L** remains default/recommended (packed Rice + 4-mode stereo). MP5-C v5.1 quant is unchanged.
-See [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md) and [MP5_CODEC_STATUS.md](docs/MP5_CODEC_STATUS.md).
+Lab **MDCT loud path** (`mp5c3`, vNext `TAG_MDCT`) with FFT Type-IV for practical WASM, plus
+real-track MDCT validate (High ~0.214× / Extreme ~0.268× PCM, hiss risk **low** at protect 1.5).
+Default `encode_mp5c_vnext` still uses legacy MP5-C for loud units; MDCT is opt-in lab only.
+Gated **`CodecId.MP5C2`**, protect **1.5**, and **MP5-L** default/batch are unchanged. No
+mainstream-codec claims. See [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md).
 
 ```bash
 pnpm audio:hiss-report                       # hiss matrix + Hiss Risk + protected % (git-ignored)
