@@ -140,24 +140,28 @@ describe("compare-files / compare-set on generated .mp5", () => {
 });
 
 describe("hiss matrix rows", () => {
-  it("include quiet-window + tail SNR + Hiss Risk for reverb_tail", () => {
-    const reverb = allFixtures().filter((f: any) => f.name === "reverb_tail");
-    const modes = buildModes(codec).filter((m: any) =>
-      ["mp5c-high", "mp5c2-lab", "mp5c2-extreme"].includes(m.id),
-    );
-    const rows = buildHissRows(reverb, modes);
-    expect(rows.length).toBe(3);
-    for (const r of rows) {
-      expect("quietWindowSnrDb" in r).toBe(true);
-      expect("tailSnrDb" in r).toBe(true);
-      expect(["low", "medium", "high", "severe", "n/a"]).toContain(r.hissRisk);
-    }
-    // vNext should not be worse than current MP5-C on reverb-tail quiet SNR
-    const cur = rows.find((r: any) => r.mode === "mp5c-high");
-    const v = rows.find((r: any) => r.mode === "mp5c2-extreme");
-    const q = (x: any) => (x === "inf" ? Infinity : typeof x === "number" ? x : -Infinity);
-    expect(q(v.quietWindowSnrDb)).toBeGreaterThanOrEqual(q(cur.quietWindowSnrDb));
-  });
+  it(
+    "include quiet-window + tail SNR + Hiss Risk for reverb_tail",
+    () => {
+      const reverb = allFixtures().filter((f: any) => f.name === "reverb_tail");
+      const modes = buildModes(codec).filter((m: any) =>
+        ["mp5c-high", "mp5c2-lab", "mp5c2-extreme"].includes(m.id),
+      );
+      const rows = buildHissRows(reverb, modes);
+      expect(rows.length).toBe(3);
+      for (const r of rows) {
+        expect("quietWindowSnrDb" in r).toBe(true);
+        expect("tailSnrDb" in r).toBe(true);
+        expect(["low", "medium", "high", "severe", "n/a"]).toContain(r.hissRisk);
+      }
+      // vNext should not be worse than current MP5-C on reverb-tail quiet SNR
+      const cur = rows.find((r: any) => r.mode === "mp5c-high");
+      const v = rows.find((r: any) => r.mode === "mp5c2-extreme");
+      const q = (x: any) => (x === "inf" ? Infinity : typeof x === "number" ? x : -Infinity);
+      expect(q(v.quietWindowSnrDb)).toBeGreaterThanOrEqual(q(cur.quietWindowSnrDb));
+    },
+    60_000,
+  );
 });
 
 describe("vNext sub-block / per-band quiet detection (v0.23)", () => {

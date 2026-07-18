@@ -19,6 +19,7 @@
 //! default and batch export remain MP5-L.
 
 use crate::mp5c::{self, Preset};
+use crate::mp5c3;
 use crate::mp5l;
 
 const MAGIC0: u8 = 0x43; // 'C'
@@ -68,7 +69,8 @@ impl ProtectParams {
 
 const TAG_LOSSLESS: u8 = 0x4c; // 'L' broadband-quiet
 const TAG_BAND: u8 = 0x42; // 'B' per-band / decaying tail
-const TAG_LOSSY: u8 = 0x43; // 'C' lossy (MP5-C)
+const TAG_LOSSY: u8 = 0x43; // 'C' lossy (MP5-C v5.1) — legacy units stay decodable
+const TAG_MDCT: u8 = 0x4d; // 'M' lossy MDCT (mp5c3 lab) — Phase 2 loud path
 
 struct SubStats {
     peak: f64,
@@ -176,6 +178,32 @@ pub fn encode_with_protect(
     preset: Preset,
     protect: ProtectParams,
 ) -> Vec<u8> {
+    encode_inner(samples, channels, preset, protect, false)
+}
+
+/// Encode with MDCT loud path (`TAG_MDCT` / mp5c3). Quiet/fragile/tail stay MP5-L.
+/// Legacy `TAG_LOSSY` units are not written; old streams remain decodable.
+pub fn encode_mdct(samples: &[i16], channels: u8, preset: Preset) -> Vec<u8> {
+    encode_with_protect_mdct(samples, channels, preset, ProtectParams::widened(1.5))
+}
+
+/// Same as [`encode_mdct`] with explicit protect thresholds.
+pub fn encode_with_protect_mdct(
+    samples: &[i16],
+    channels: u8,
+    preset: Preset,
+    protect: ProtectParams,
+) -> Vec<u8> {
+    encode_inner(samples, channels, preset, protect, true)
+}
+
+fn encode_inner(
+    samples: &[i16],
+    channels: u8,
+    preset: Preset,
+    protect: ProtectParams,
+    use_mdct_loud: bool,
+) -> Vec<u8> {
     let ch = channels.max(1) as usize;
     let frames = samples.len() / ch;
     let alpha = alpha_for_cutoff(HF_CUTOFF_HZ, 44100.0);
@@ -207,8 +235,10 @@ pub fn encode_with_protect(
             while end < bounds.len() && tags[end] == TAG_LOSSY {
                 end += 1;
             }
+            if use_mdct_loud {
+                out_tag = TAG_MDCT;
+            }
         } else {
-            // Coalesce any consecutive lossless L/B run into one MP5-L payload.
             while end < bounds.len() && tags[end] != TAG_LOSSY {
                 if tags[end] == TAG_BAND {
                     out_tag = TAG_BAND;
@@ -220,7 +250,9 @@ pub fn encode_with_protect(
         let e = bounds[end - 1].1;
         let n = e - s;
         let slice = &samples[s * ch..e * ch];
-        let payload = if out_tag == TAG_LOSSY {
+        let payload = if out_tag == TAG_MDCT {
+            mp5c3::encode(slice, ch as u8, preset)
+        } else if out_tag == TAG_LOSSY {
             mp5c::encode(slice, ch as u8, preset)
         } else {
             mp5l::encode(slice, ch as u8)
@@ -251,6 +283,8 @@ pub fn decode(data: &[u8]) -> Result<Vec<i16>, String> {
         pos += len;
         let decoded = if tag == TAG_LOSSY {
             mp5c::decode(payload)?
+        } else if tag == TAG_MDCT {
+            mp5c3::decode(payload)?
         } else {
             mp5l::decode(payload)?
         };
@@ -283,7 +317,7 @@ mod tests {
             let len = u32::from_le_bytes(bytes[pos + 5..pos + 9].try_into().unwrap()) as usize;
             pos += 9 + len;
             total += n;
-            if tag != TAG_LOSSY {
+            if tag != TAG_LOSSY && tag != TAG_MDCT {
                 lossless += n;
             }
         }
@@ -338,6 +372,32 @@ mod tests {
             n += 1;
         }
         n
+    }
+
+    #[test]
+    fn mdct_loud_path_protects_tail_and_duration() {
+        let n = SUB_BLOCK * 8;
+        let s = interleave(n, 2, |i, _| {
+            let t = i as f64 / n as f64;
+            let amp = if t < 0.4 { 0.5 } else { 0.5 * (-(t - 0.4) * 12.0).exp() };
+            ((i as f64 * 0.06).sin() * amp * 32767.0) as i16
+        });
+        let enc = encode_mdct(&s, 2, Preset::High);
+        let dec = decode(&enc).unwrap();
+        assert_eq!(dec.len(), s.len());
+        assert!(lossless_pct(&enc, 2) > 30.0);
+        // stream should contain at least one MDCT unit when there is loud content
+        let mut pos = HEADER_LEN;
+        let mut saw_m = false;
+        while pos + 9 <= enc.len() {
+            let tag = enc[pos];
+            let len = u32::from_le_bytes(enc[pos + 5..pos + 9].try_into().unwrap()) as usize;
+            if tag == TAG_MDCT {
+                saw_m = true;
+            }
+            pos += 9 + len;
+        }
+        assert!(saw_m, "expected TAG_MDCT on loud portion");
     }
 
     #[test]

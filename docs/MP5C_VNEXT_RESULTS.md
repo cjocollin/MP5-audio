@@ -8,6 +8,37 @@
 > optional. Residual 2048 pad ~0.6% — not worth trim. Lab/advanced only; MP5-L stays default.
 > No claim vs MP3/AAC/Opus/FLAC/WAV.
 
+## MDCT / psychoacoustic redesign (Phase 0–2 spike) — **GO (lab)**
+
+Lab-only `mp5c3` MDCT loud path (`0x4D 0x33` standalone; vNext unit tag `TAG_MDCT` `0x4D`).
+**Does not modify MP5-C v5.1.** Default/batch remain MP5-L. Default `encode_mp5c_vnext` still
+uses legacy `TAG_LOSSY`→MP5-C; MDCT loud path is `encode_mp5c_vnext_mdct` / lab mode
+`mp5c2-native-mdct-high`. Quiet/fragile/tail stay MP5-L (protect 1.5).
+
+### Phase 0 size go/no-go (`dense_music`, native release)
+
+| Mode | ×PCM | Full SNR | Notes |
+|------|-----:|---------:|-------|
+| vNext High (mp5c loud) | **0.941** | — | baseline |
+| MP5-L | 0.590 | ∞ | lossless anchor |
+| **mp5c3 MDCT High** | **0.167** | **~24.4 dB** | **GO** (≥5% under vNext; stretch ≤ MP5-L also met) |
+
+Reproduce: `cargo test -p mp5-codec --release dense_music_fixture -- --nocapture`.
+
+Standalone MDCT on quiet material is not bit-exact (use only behind vNext protect). Silence /
+duration: exact. No claim vs MP3/AAC/Opus/FLAC.
+
+### Phase 1
+
+Masking-inspired HF step inflation from low-band energy + transient tighten (re-quant on
+attacks). Size still ~0.167× on `dense_music` after Phase 1.
+
+### Phase 2
+
+`mp5c2::encode_mdct` writes `TAG_MDCT` payloads via `mp5c3`; decode accepts `TAG_MDCT` and
+legacy `TAG_LOSSY`. Protect path still MP5-L. Lab WASM: `encode_mp5c_vnext_mdct`.
+
+
 ## Phase 4.4 — protect-scale experiment (timeboxed) — **GREEN**
 
 `encode_mp5c_vnext_protect(samples, ch, preset, protect_scale)` widens quiet/fragile/tail

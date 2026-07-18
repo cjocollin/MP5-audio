@@ -3,6 +3,8 @@
 
 export function decode_mp5c(data: Uint8Array): Int16Array;
 
+export function decode_mp5c3(data: Uint8Array): Int16Array;
+
 export function decode_mp5c_vnext(data: Uint8Array): Int16Array;
 
 export function decode_mp5h(data: Uint8Array, enhanced: boolean): Int16Array;
@@ -12,11 +14,23 @@ export function decode_mp5l(data: Uint8Array): Int16Array;
 export function encode_mp5c(samples: Int16Array, channels: number, preset: number): Uint8Array;
 
 /**
+ * MP5-C3 MDCT lab spike (experimental). Distinct magic 0x4D 0x33. Not a public
+ * stream and not written into normal `.mp5` exports — audio quality lab only.
+ */
+export function encode_mp5c3(samples: Int16Array, channels: number, preset: number): Uint8Array;
+
+/**
  * MP5-C vNext (experimental, lab-only). Sub-block + per-band + hysteresis
  * lossless fallback. NOT a public MP5-C stream and NOT written into normal
  * `.mp5` exports — used by the audio quality lab for measurement only.
  */
 export function encode_mp5c_vnext(samples: Int16Array, channels: number, preset: number): Uint8Array;
+
+/**
+ * MP5-C vNext with MDCT loud path (lab-only). Quiet/fragile/tail stay MP5-L;
+ * coalesced loud units use mp5c3 (`TAG_MDCT`). Not the default vNext encoder.
+ */
+export function encode_mp5c_vnext_mdct(samples: Int16Array, channels: number, preset: number): Uint8Array;
 
 /**
  * Lab-only: encode vNext with widened quiet/tail protection (`protect_scale` ≥ 1.0).
@@ -35,11 +49,14 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly decode_mp5c: (a: number, b: number) => [number, number, number, number];
+    readonly decode_mp5c3: (a: number, b: number) => [number, number, number, number];
     readonly decode_mp5c_vnext: (a: number, b: number) => [number, number, number, number];
     readonly decode_mp5h: (a: number, b: number, c: number) => [number, number, number, number];
     readonly decode_mp5l: (a: number, b: number) => [number, number, number, number];
     readonly encode_mp5c: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly encode_mp5c3: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5c_vnext: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly encode_mp5c_vnext_mdct: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5c_vnext_protect: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly encode_mp5h: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5l: (a: number, b: number, c: number) => [number, number];

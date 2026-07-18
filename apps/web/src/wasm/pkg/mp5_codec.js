@@ -20,6 +20,22 @@ export function decode_mp5c(data) {
  * @param {Uint8Array} data
  * @returns {Int16Array}
  */
+export function decode_mp5c3(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decode_mp5c3(ptr0, len0);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayI16FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
+    return v2;
+}
+
+/**
+ * @param {Uint8Array} data
+ * @returns {Int16Array}
+ */
 export function decode_mp5c_vnext(data) {
     const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
@@ -81,6 +97,23 @@ export function encode_mp5c(samples, channels, preset) {
 }
 
 /**
+ * MP5-C3 MDCT lab spike (experimental). Distinct magic 0x4D 0x33. Not a public
+ * stream and not written into normal `.mp5` exports — audio quality lab only.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c3(samples, channels, preset) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c3(ptr0, len0, channels, preset);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
  * MP5-C vNext (experimental, lab-only). Sub-block + per-band + hysteresis
  * lossless fallback. NOT a public MP5-C stream and NOT written into normal
  * `.mp5` exports — used by the audio quality lab for measurement only.
@@ -93,6 +126,23 @@ export function encode_mp5c_vnext(samples, channels, preset) {
     const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.encode_mp5c_vnext(ptr0, len0, channels, preset);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * MP5-C vNext with MDCT loud path (lab-only). Quiet/fragile/tail stay MP5-L;
+ * coalesced loud units use mp5c3 (`TAG_MDCT`). Not the default vNext encoder.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c_vnext_mdct(samples, channels, preset) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c_vnext_mdct(ptr0, len0, channels, preset);
     var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v2;

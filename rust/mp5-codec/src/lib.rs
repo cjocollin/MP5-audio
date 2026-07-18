@@ -2,6 +2,7 @@ pub mod pcm;
 pub mod mp5l;
 pub mod mp5c;
 pub mod mp5c2;
+pub mod mp5c3;
 pub mod mp5h;
 
 use mp5c::Preset;
@@ -89,9 +90,32 @@ pub fn encode_mp5c_vnext_protect(
     mp5c2::encode_with_protect(samples, channels, p, protect)
 }
 
+
+/// MP5-C vNext with MDCT loud path (lab-only). Quiet/fragile/tail stay MP5-L;
+/// coalesced loud units use mp5c3 (`TAG_MDCT`). Not the default vNext encoder.
+#[wasm_bindgen]
+pub fn encode_mp5c_vnext_mdct(samples: &[i16], channels: u8, preset: u8) -> Vec<u8> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::High);
+    mp5c2::encode_mdct(samples, channels, p)
+}
+
 #[wasm_bindgen]
 pub fn decode_mp5c_vnext(data: &[u8]) -> Result<Vec<i16>, JsValue> {
     mp5c2::decode(data).map_err(|e| JsValue::from_str(&e))
+}
+
+
+/// MP5-C3 MDCT lab spike (experimental). Distinct magic 0x4D 0x33. Not a public
+/// stream and not written into normal `.mp5` exports — audio quality lab only.
+#[wasm_bindgen]
+pub fn encode_mp5c3(samples: &[i16], channels: u8, preset: u8) -> Vec<u8> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::High);
+    mp5c3::encode(samples, channels, p)
+}
+
+#[wasm_bindgen]
+pub fn decode_mp5c3(data: &[u8]) -> Result<Vec<i16>, JsValue> {
+    mp5c3::decode(data).map_err(|e| JsValue::from_str(&e))
 }
 
 #[wasm_bindgen]

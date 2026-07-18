@@ -535,6 +535,42 @@ export function buildModes(codec) {
             encode: (s, ch) => codec.encode_mp5c_vnext(s, ch, 3),
             decode: (b) => codec.decode_mp5c_vnext(b),
           },
+          ...(typeof codec.encode_mp5c_vnext_mdct === "function"
+            ? [
+                {
+                  id: "mp5c2-native-mdct-high",
+                  label: "MP5-C vNext native MDCT High (mp5c3 loud path · lab · default OFF)",
+                  group: "prototype",
+                  prototype: true,
+                  native: true,
+                  encode: (s, ch) => codec.encode_mp5c_vnext_mdct(s, ch, 2),
+                  decode: (b) => codec.decode_mp5c_vnext(b),
+                },
+              ]
+            : []),
+        ]
+      : []),
+    // MP5-C3 MDCT loud-path spike (lab-only). Present when WASM exports encode_mp5c3.
+    ...(typeof codec.encode_mp5c3 === "function"
+      ? [
+          {
+            id: "mp5c3-mdct-high",
+            label: "MP5-C3 MDCT High (signal-relative band quant · lab spike · default OFF)",
+            group: "prototype",
+            prototype: true,
+            native: true,
+            encode: (s, ch) => codec.encode_mp5c3(s, ch, 2),
+            decode: (b) => codec.decode_mp5c3(b),
+          },
+          {
+            id: "mp5c3-mdct-extreme",
+            label: "MP5-C3 MDCT Extreme (signal-relative band quant · lab spike · default OFF)",
+            group: "prototype",
+            prototype: true,
+            native: true,
+            encode: (s, ch) => codec.encode_mp5c3(s, ch, 3),
+            decode: (b) => codec.decode_mp5c3(b),
+          },
         ]
       : []),
   ];

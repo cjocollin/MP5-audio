@@ -71,15 +71,21 @@ content outright (lossless), and roughly doubles reverb-tail quiet SNR. But it i
    Residual 2048 pad after coalesce is ~0.6% → **no-go** for short-frame trim. Further size needs
    an MDCT / quant redesign (medium-term below). Keep measuring with `pnpm audio:hiss-report`.
 
-## Medium-term (codec redesign — proposal, not yet built)
+## Medium-term (codec redesign) — Phase 0–2 lab spike **GO**
 
-1. **Signal-relative noise allocation.** Replace the full-scale-relative step with a step
-   tied to local band energy (true noise shaping), so the floor tracks the signal down to
-   −60 dBFS.
-2. **Transform-domain coding** (MDCT/lapped) with psychoacoustic masking and temporal noise
-   shaping (TNS) for pre-echo control — the standard way to keep quantization noise inaudible.
-3. **Near-lossless / hybrid residual sidecar** for fragile passages as a graceful fallback
-   (a small, optional correction, distinct from MP5-H's full lossless CORR).
+Measured lab work (not default; MP5-C v5.1 untouched):
+
+1. **Signal-relative per-band MDCT quant + Rice/dense entropy** — `rust/mp5-codec/src/mp5c3/`.
+   On exact `dense_music` fixture: **0.167× PCM** vs vNext High **0.941×** and MP5-L **0.590×**
+   (Phase 0 go + stretch). Full SNR ~24 dB; quiet alone is not bit-exact — only behind vNext
+   protect. See [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md).
+2. **Masking-inspired HF allocation + transient tighten** — Phase 1 (lab).
+3. **vNext loud-path wire** — `TAG_MDCT` (`0x4D`) via `encode_mp5c_vnext_mdct`; legacy
+   `TAG_LOSSY`→MP5-C still decodes. Protect 1.5 quiet/fragile/tail stay MP5-L.
+4. **Near-lossless residual sidecar** — still optional / not built (Phase 3).
+
+Keep lab-gated; no default flip. Re-measure with `pnpm audio:hiss-report` after `pnpm wasm:build`
+(note: direct MDCT is O(N²) — native tests are the authoritative size gate for now).
 
 ## What NOT to do
 

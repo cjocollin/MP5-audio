@@ -1,11 +1,14 @@
 import init, {
   decode_mp5c,
   decode_mp5c_vnext,
+  decode_mp5c3,
   decode_mp5h,
   decode_mp5l,
   encode_mp5c,
   encode_mp5c_vnext,
   encode_mp5c_vnext_protect,
+  encode_mp5c_vnext_mdct,
+  encode_mp5c3,
   encode_mp5h,
   encode_mp5l,
   snr_db_wasm,
@@ -18,7 +21,10 @@ type CodecModule = {
   decode_mp5c: typeof decode_mp5c;
   encode_mp5c_vnext: typeof encode_mp5c_vnext;
   encode_mp5c_vnext_protect: typeof encode_mp5c_vnext_protect;
+  encode_mp5c_vnext_mdct: typeof encode_mp5c_vnext_mdct;
   decode_mp5c_vnext: typeof decode_mp5c_vnext;
+  encode_mp5c3: typeof encode_mp5c3;
+  decode_mp5c3: typeof decode_mp5c3;
   encode_mp5h: typeof encode_mp5h;
   decode_mp5h: typeof decode_mp5h;
   snr_db_wasm: typeof snr_db_wasm;
@@ -57,7 +63,10 @@ async function tryLoadWasmModule(): Promise<CodecModule | null> {
       decode_mp5c,
       encode_mp5c_vnext,
       encode_mp5c_vnext_protect,
+      encode_mp5c_vnext_mdct,
       decode_mp5c_vnext,
+      encode_mp5c3,
+      decode_mp5c3,
       encode_mp5h,
       decode_mp5h,
       snr_db_wasm,
@@ -107,7 +116,10 @@ function createJsFallback(): CodecModule {
     decode_mp5c: decodePassthrough,
     encode_mp5c_vnext: passthrough,
     encode_mp5c_vnext_protect: (s) => passthrough(s),
+    encode_mp5c_vnext_mdct: passthrough,
     decode_mp5c_vnext: decodePassthrough,
+    encode_mp5c3: passthrough,
+    decode_mp5c3: decodePassthrough,
     encode_mp5h: passthrough,
     decode_mp5h: (d) => decodePassthrough(d),
     snr_db_wasm: () => 0,
