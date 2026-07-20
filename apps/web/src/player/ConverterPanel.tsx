@@ -148,7 +148,8 @@ export function ConverterPanel() {
   }, [codecUnavailable, codec]);
 
   useEffect(() => {
-    if (!labCodecsOpen && (codec === "mp5c" || codec === "mp5c2")) {
+    // Classic MP5-C stays behind the lab toggle; MP5-C2 is a first-class non-default option.
+    if (!labCodecsOpen && codec === "mp5c") {
       setCodec("mp5l");
     }
   }, [labCodecsOpen, codec]);
@@ -951,9 +952,10 @@ export function ConverterPanel() {
       )}
 
       {codec === "mp5c2" && codecReady && (
-        <p className="text-xs text-sky-200/90 bg-sky-950/40 rounded-lg p-2" data-testid="mp5c2-lab-warning">
-          <strong>MP5-C vNext is lab/advanced.</strong> Hybrid quiet-lossless coding — hiss risk is low on
-          lab fixtures, but MP5-L remains the recommended default for sharing.
+        <p className="text-xs text-sky-200/90 bg-sky-950/40 rounded-lg p-2" data-testid="mp5c2-info">
+          <strong>MP5-C2</strong> (hybrid): lossless on quiet/fragile tails; signal-relative loud path with
+          CORR when needed. Not the default — prefer MP5-L for bit-exact sharing. Distinct from classic lab
+          MP5-C.
         </p>
       )}
 
@@ -987,12 +989,12 @@ export function ConverterPanel() {
                 <optgroup label="Debug">
                   <option value="pcm">{codecExportOptionLabel("pcm")}</option>
                 </optgroup>
-                <optgroup label="Not default">
+                <optgroup label="Lossy / hybrid (not default)">
+                  <option value="mp5c2">{codecExportOptionLabel("mp5c2")}</option>
                   <option value="mp5h">{codecExportOptionLabel("mp5h")}</option>
                 </optgroup>
                 {labCodecsOpen && (
                   <optgroup label="Lab / advanced">
-                    <option value="mp5c2">{codecExportOptionLabel("mp5c2")}</option>
                     <option value="mp5c">{codecExportOptionLabel("mp5c")}</option>
                   </optgroup>
                 )}
@@ -1013,7 +1015,7 @@ export function ConverterPanel() {
         </button>
 
         <label className="text-sm text-gray-400 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-          <span>Preset (MP5-C / MP5-H / vNext)</span>
+          <span>Preset (MP5-C2 / MP5-H / lab MP5-C)</span>
           <select
             value={preset}
             onChange={(e) => setPreset(Number(e.target.value))}
@@ -1023,9 +1025,9 @@ export function ConverterPanel() {
             aria-label="Codec preset"
           >
             <option value={0}>Low</option>
-            <option value={1}>Standard (smaller / may hiss)</option>
-            <option value={2}>High (balanced · preferred vNext size)</option>
-            <option value={3}>Extreme (finest loud path — still may hiss on MP5-C)</option>
+            <option value={1}>Standard</option>
+            <option value={2}>High (preferred MP5-C2 loud path)</option>
+            <option value={3}>Extreme (finest loud path)</option>
           </select>
         </label>
       </div>

@@ -97,12 +97,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-  // Window benchmarks (v5 only, same quant windows)
+    // Window benchmarks (v5 only, same quant windows)
     let windows = bench_windows(&pcm, duration)?;
 
     let out = PathBuf::from("benchmarks/real-music/V4_VS_V5.md");
     write_report(&out, &rows, pcm_bytes, duration, &windows, &diag_high_v5)?;
-    fs::copy(&out, PathBuf::from("benchmarks/real-music/listening/V4_VS_V5.md"))?;
+    fs::copy(
+        &out,
+        PathBuf::from("benchmarks/real-music/listening/V4_VS_V5.md"),
+    )?;
 
     eprintln!("\nWrote {}", out.display());
     Ok(())
@@ -117,10 +120,7 @@ fn format_diag_high(
     enc_ms: f64,
     dense: &[mp5_codec::mp5c::DenseFrameDetail],
 ) -> String {
-    let mut s = format!(
-        "### High v5 diagnostics\n\nEncode: {:.0} ms\n\n",
-        enc_ms
-    );
+    let mut s = format!("### High v5 diagnostics\n\nEncode: {:.0} ms\n\n", enc_ms);
     s.push_str(&format!(
         "- Frames: silence {} | rice {} | pred2 {} | bitpack {} | golomb {} | rle {} | split4 {} | **dense {} ({:.1}%)**\n",
         b.silence_frames,
@@ -142,7 +142,9 @@ fn format_diag_high(
         b.theoretical_savings_bytes / 1024
     ));
     if b.dense_frame_pct > 50.0 {
-        s.push_str("- Most frames still dense — quantized residuals remain high-entropy on this master.\n");
+        s.push_str(
+            "- Most frames still dense — quantized residuals remain high-entropy on this master.\n",
+        );
     }
     if !dense.is_empty() {
         s.push_str("\n#### Sample dense frames (first 5)\n\n");
@@ -240,8 +242,14 @@ fn write_report(
 
     md.push_str("\n## v4 → v5 deltas (same preset)\n\n");
     for name in ["Standard", "High", "Extreme"] {
-        let v4 = rows.iter().find(|r| r.version == "v4" && r.preset == name).unwrap();
-        let v5 = rows.iter().find(|r| r.version == "v5" && r.preset == name).unwrap();
+        let v4 = rows
+            .iter()
+            .find(|r| r.version == "v4" && r.preset == name)
+            .unwrap();
+        let v5 = rows
+            .iter()
+            .find(|r| r.version == "v5" && r.preset == name)
+            .unwrap();
         let dense_red = v4.dense_pct - v5.dense_pct;
         let size_red = (1.0 - v5.ratio / v4.ratio) * 100.0;
         md.push_str(&format!(
@@ -273,8 +281,14 @@ fn write_report(
     md.push_str(diag_high);
 
     md.push_str("\n## Quality gates (ORIGAMI full)\n\n");
-    let high_v5 = rows.iter().find(|r| r.version == "v5" && r.preset == "High").unwrap();
-    let high_v4 = rows.iter().find(|r| r.version == "v4" && r.preset == "High").unwrap();
+    let high_v5 = rows
+        .iter()
+        .find(|r| r.version == "v5" && r.preset == "High")
+        .unwrap();
+    let high_v4 = rows
+        .iter()
+        .find(|r| r.version == "v4" && r.preset == "High")
+        .unwrap();
     md.push_str(&format!(
         "| Gate | Target | High v5 actual | Pass? |\n|------|--------|----------------|-------|\n"
     ));

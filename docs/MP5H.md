@@ -60,7 +60,7 @@ Full song `- ORIGAMI!.flac` (154.6s, 48 kHz stereo). See `benchmarks/real-music/
 | MP5-C High | 0.97× | 0.97× | no | 2.0 dB |
 | MP5-H High + CORR | 1.97× | 1.97× | **yes** | 120 dB |
 
-**Conclusion:** MP5-H with CORR is clean and bit-exact but ~2× larger than MP5-L on this track. **MP5-L stays the default export.** MP5-H is the validated hybrid option when you accept the size tradeoff for MP5-C-like base + guaranteed restore.
+**Conclusion:** MP5-H with CORR is clean and bit-exact but ~2× larger than MP5-L on this track. **MP5-L stays the default export.** MP5-H is the validated hybrid option when you accept the size tradeoff for MP5-C-like base + guaranteed restore. Quality-preserving size work does **not** claim H will beat L on average — only that CORR rides MP5-L entropy, base presets can be swept for total bytes, and export paths size-gate against pure MP5-L with an honest `CodecId` (never pure-L bytes labeled as MP5-H).
 
 ## Export policy
 
@@ -72,6 +72,12 @@ See the benchmark **Recommended export default** section. General rules:
 | MP5-H clean but larger than MP5-L | MP5-L default; MP5-H labeled hybrid option |
 | MP5-C alone | Lab / research only ([MP5C_BLOCKER.md](./MP5C_BLOCKER.md)) |
 | PCM | Reference fallback |
+
+Converter paths that select MP5-H enforce the size gate at export time (serialize best H vs pure L; emit the smaller with the matching `CodecId`).
+
+## Lab: C2-as-base experiment
+
+`encode_with_c2_base` in `rust/mp5-codec/src/mp5h/mod.rs` can use an MP5-C2 bitstream as the AUDI base. On ORIGAMI (2026-07-20): C2-as-base H landed at **~1.00× MP5-L** (bit-exact) — far smaller than classic-C High H (~2.01× L), but still not smaller than pure MP5-L. **Verdict:** keep behind lab/advanced; default H base remains classic MP5-C; MP5-L stays the export default. See `MP5H_VALIDATION.md`.
 
 ## Related docs
 

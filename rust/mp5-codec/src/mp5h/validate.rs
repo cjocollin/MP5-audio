@@ -1,9 +1,9 @@
 //! MP5-H validation helpers (encode metrics, bit-exact check).
 
+use super::{decode, encode, DecodeMode};
 use crate::mp5c::{self, Preset};
 use crate::mp5l;
 use crate::pcm::{i16_to_f32, snr_db};
-use super::{decode, encode, DecodeMode};
 
 #[derive(Debug, Clone)]
 pub struct Mp5hBenchRow {
@@ -112,7 +112,15 @@ pub fn bench_mp5c_row(
     let snr = snr_db(&i16_to_f32(&samples[..n]), &i16_to_f32(&dec[..n]));
     let quiet = quiet_snr_db(&samples[..n], &dec[..n], channels);
     let clips = dec.iter().filter(|&&s| s.abs() >= 32767).count() as u32;
-    Ok((bs.len(), bs.len() as f64 / pcm_bytes as f64, snr, quiet, clips, enc_ms, dec_ms))
+    Ok((
+        bs.len(),
+        bs.len() as f64 / pcm_bytes as f64,
+        snr,
+        quiet,
+        clips,
+        enc_ms,
+        dec_ms,
+    ))
 }
 
 pub fn bench_mp5l_row(

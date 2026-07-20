@@ -1,8 +1,8 @@
 //! MP5-C v5 frame payloads — multi-mode entropy without changing quantization.
 
 use super::pack::{
-    coeffs_are_silent, read_varint, unzigzag16, write_varint, zigzag16, FLAG_DENSE_I16,
-    FLAG_RICE, FLAG_SILENCE,
+    coeffs_are_silent, read_varint, unzigzag16, write_varint, zigzag16, FLAG_DENSE_I16, FLAG_RICE,
+    FLAG_SILENCE,
 };
 
 pub const FLAG_PRED2: u8 = 3;
@@ -138,7 +138,7 @@ fn candidates_for_frame(coeffs: &[i16]) -> Vec<(u8, Vec<u8>)> {
     if pred2.len() < dense_size {
         out.push((FLAG_PRED2, pred2));
     }
-  // Golomb only when residuals are small (avoids huge unary runs on dense masters).
+    // Golomb only when residuals are small (avoids huge unary runs on dense masters).
     for k in golomb_ks_to_try(max_zigzag_delta(coeffs)) {
         let body = encode_golomb(coeffs, k);
         if body.len() + 1 < dense_size {
@@ -167,7 +167,10 @@ pub fn pack_frame_with_flag(coeffs: &[i16], flag: u8) -> (u8, Vec<u8>) {
         FLAG_SILENCE => (FLAG_SILENCE, Vec::new()),
         FLAG_RICE => (FLAG_RICE, encode_rice(coeffs)),
         FLAG_PRED2 => (FLAG_PRED2, encode_pred2(coeffs)),
-        FLAG_BITPACK => (FLAG_BITPACK, encode_bitpack(coeffs).unwrap_or_else(|| encode_dense(coeffs))),
+        FLAG_BITPACK => (
+            FLAG_BITPACK,
+            encode_bitpack(coeffs).unwrap_or_else(|| encode_dense(coeffs)),
+        ),
         FLAG_GOLOMB => {
             let (k, body) = encode_golomb_best(coeffs);
             let mut p = vec![k];
@@ -234,7 +237,11 @@ fn analyze_frame_impl(coeffs: &[i16], allow_split: bool) -> FramePackAnalysis {
     if let Some(bp) = &bitpack {
         candidates.push((FLAG_BITPACK, bp.len() + 1));
     }
-    let best_non_split = candidates.iter().map(|(_, s)| *s).min().unwrap_or(dense_size);
+    let best_non_split = candidates
+        .iter()
+        .map(|(_, s)| *s)
+        .min()
+        .unwrap_or(dense_size);
     if allow_split && coeffs.len() > SPLIT_CHUNK && best_non_split > dense_size * 95 / 100 {
         let split = encode_split4(coeffs);
         candidates.push((FLAG_SPLIT4, split.len()));
@@ -495,11 +502,7 @@ fn read_golomb_u(reader: &mut BitReader, k: u8) -> Result<u32, String> {
             return Err("golomb runaway".into());
         }
     }
-    let r = if k == 0 {
-        0
-    } else {
-        reader.read_bits(k)?
-    };
+    let r = if k == 0 { 0 } else { reader.read_bits(k)? };
     Ok((q << k) + r)
 }
 
@@ -586,7 +589,11 @@ fn decode_split4(payload: &[u8], expected: usize) -> Result<Vec<i16>, String> {
         if pos + len > payload.len() {
             return Err("split4 truncated".into());
         }
-        let sub = unpack_frame(flag, &payload[pos..pos + len], SPLIT_CHUNK.min(expected - coeffs.len()))?;
+        let sub = unpack_frame(
+            flag,
+            &payload[pos..pos + len],
+            SPLIT_CHUNK.min(expected - coeffs.len()),
+        )?;
         pos += len;
         coeffs.extend(sub);
     }
@@ -721,7 +728,11 @@ mod tests {
     fn v5_modes_roundtrip() {
         let smooth: Vec<i16> = (0..2048).map(|i| (i as i16 / 16) % 200 - 100).collect();
         roundtrip(&smooth);
-        let noisy: Vec<i16> = (0..2048).map(|i| ((i * 1103515245 + 12345) % 4096) as i16 - 2048).collect();
+        let noisy: Vec<i16> = (0..2048)
+            .map(|i| {
+                ((i as u32).wrapping_mul(1_103_515_245).wrapping_add(12_345) % 4096) as i16 - 2048
+            })
+            .collect();
         roundtrip(&noisy);
         let sparse = vec![0i16; 2048];
         roundtrip(&sparse);

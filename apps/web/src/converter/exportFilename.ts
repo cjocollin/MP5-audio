@@ -51,7 +51,7 @@ export function buildExportFilename(
         : codec === "mp5c"
           ? " (MP5-C lab)"
           : codec === "mp5c2"
-            ? " (MP5-C vNext)"
+            ? " (MP5-C2)"
             : "";
 
   return `${base}${variant}.mp5`;

@@ -14,14 +14,14 @@ export const CODEC_MODE_HELP: CodecModeHelp[] = [
     name: "MP5-L v3",
     tagline: "Lossless · recommended default",
     detail:
-      "Bit-exact listening export. Modest compression vs raw PCM. Use this for normal playback and sharing.",
+      "Bit-exact listening export. Modest compression vs raw PCM. Use this for normal playback and sharing. Experimental v4 framing/QLP is lab-only while FLAC-class compression remains a chase, not a claim.",
   },
   {
     id: "mp5c2",
-    name: "MP5-C vNext",
-    tagline: "Hybrid quiet-lossless · lab/advanced",
+    name: "MP5-C2",
+    tagline: "Hybrid quiet-lossless + signal-relative loud · not default",
     detail:
-      "Lossless on quiet/fragile passages; lossy on loud ones. Hiss risk is low on lab fixtures, but MP5-L remains the default for distribution.",
+      "Lossless on quiet/fragile/tail passages; mid/loud units pick the smaller of bit-exact SR+CORR or MP5-L. Often lands near MP5-L size on dense music. MP5-L remains the recommended default. Distinct from classic lab MP5-C.",
   },
   {
     id: "mp5c",
@@ -33,9 +33,9 @@ export const CODEC_MODE_HELP: CodecModeHelp[] = [
   {
     id: "mp5h",
     name: "MP5-H",
-    tagline: "Hybrid · large · not default",
+    tagline: "Hybrid · often larger than MP5-L · not default",
     detail:
-      "MP5-C base plus a lossless CORR correction layer when present. Files are much larger than MP5-L.",
+      "MP5-C base plus lossless CORR (sample-exact when CORR is applied). Often larger than MP5-L on real music; export size-gates against pure MP5-L and may resolve to MP5-L with an honest CodecId. Not a claim to beat MP3/AAC/Opus.",
   },
   {
     id: "pcm",

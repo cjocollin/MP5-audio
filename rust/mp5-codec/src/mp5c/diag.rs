@@ -1,7 +1,7 @@
 //! MP5-C bitstream diagnostics and per-window quality analysis.
 
-use super::pack::{self, FLAG_DENSE_I16, FLAG_RICE, FLAG_SILENCE};
 use super::frame_v51::{self, FLAG_BAND_LR, FLAG_BAND_MS};
+use super::pack::{self, FLAG_DENSE_I16, FLAG_RICE, FLAG_SILENCE};
 use super::pack_v5::{self, FLAG_BITPACK, FLAG_GOLOMB, FLAG_PRED2, FLAG_RLE_ZERO, FLAG_SPLIT4};
 use super::quant::{self, Preset};
 use crate::pcm::{i16_to_f32, snr_db};
@@ -174,16 +174,46 @@ fn analyze_bitstream_inner(
                     if c == 0 {
                         flat_top += 1;
                     }
-                    count_pack_flags_in_payload(payload, &mut silence, &mut rice, &mut dense, &mut pred2, &mut bitpack, &mut golomb, &mut rle, &mut split4);
+                    count_pack_flags_in_payload(
+                        payload,
+                        &mut silence,
+                        &mut rice,
+                        &mut dense,
+                        &mut pred2,
+                        &mut bitpack,
+                        &mut golomb,
+                        &mut rle,
+                        &mut split4,
+                    );
                 } else if flag == FLAG_BAND_MS {
                     band_top += 1;
                     if c == 0 {
                         ms_pairs += 1;
                     }
-                    count_pack_flags_in_payload(payload, &mut silence, &mut rice, &mut dense, &mut pred2, &mut bitpack, &mut golomb, &mut rle, &mut split4);
+                    count_pack_flags_in_payload(
+                        payload,
+                        &mut silence,
+                        &mut rice,
+                        &mut dense,
+                        &mut pred2,
+                        &mut bitpack,
+                        &mut golomb,
+                        &mut rle,
+                        &mut split4,
+                    );
                 } else {
                     flat_top += 1;
-                    tally_flat_flag(flag, &mut silence, &mut rice, &mut dense, &mut pred2, &mut bitpack, &mut golomb, &mut rle, &mut split4);
+                    tally_flat_flag(
+                        flag,
+                        &mut silence,
+                        &mut rice,
+                        &mut dense,
+                        &mut pred2,
+                        &mut bitpack,
+                        &mut golomb,
+                        &mut rle,
+                        &mut split4,
+                    );
                 }
             }
 
@@ -409,11 +439,15 @@ fn count_pack_flags_in_payload(
                 if sp + sl > subp.len() {
                     break;
                 }
-                tally_flat_flag(sf, silence, rice, dense, pred2, bitpack, golomb, rle, split4);
+                tally_flat_flag(
+                    sf, silence, rice, dense, pred2, bitpack, golomb, rle, split4,
+                );
                 sp += sl;
             }
         } else {
-            tally_flat_flag(sub, silence, rice, dense, pred2, bitpack, golomb, rle, split4);
+            tally_flat_flag(
+                sub, silence, rice, dense, pred2, bitpack, golomb, rle, split4,
+            );
             pos += sub_len;
         }
     }
@@ -442,11 +476,9 @@ pub fn analyze_v51_artifact_report(
         .iter()
         .map(|w| w.snr_db)
         .fold(f64::INFINITY, f64::min);
-    let worst_peak = windows
-        .iter()
-        .map(|w| w.peak_error)
-        .fold(0f32, f32::max);
-    let ms_pair_frames = (bs.ms_stereo_frame_pct / 100.0 * bs.frames_per_ch as f64).round() as usize;
+    let worst_peak = windows.iter().map(|w| w.peak_error).fold(0f32, f32::max);
+    let ms_pair_frames =
+        (bs.ms_stereo_frame_pct / 100.0 * bs.frames_per_ch as f64).round() as usize;
     let _ = preset;
     Ok(V51ArtifactReport {
         bitstream: bs,
@@ -503,7 +535,9 @@ fn dense_reason(a: &pack_v5::FramePackAnalysis) -> String {
     if a.would_dense_win {
         format!(
             "no v5 mode beat dense (rice {} B, best alt {:?} {} B)",
-            a.rice_size, flag_name(a.best_alt_flag), a.best_alt_size
+            a.rice_size,
+            flag_name(a.best_alt_flag),
+            a.best_alt_size
         )
     } else {
         format!("encoder chose {:?}", flag_name(a.chosen_flag))
@@ -584,9 +618,12 @@ pub fn build_report(
     let mut notes = Vec::new();
 
     match bs.version {
-        v if v < 4 => notes.push("v3 bitstream: fixed step + mid/side — may hiss on wide stereo masters.".into()),
+        v if v < 4 => notes
+            .push("v3 bitstream: fixed step + mid/side — may hiss on wide stereo masters.".into()),
         4 => notes.push("v4: L/R stereo + per-frame adaptive step.".into()),
-        5 => notes.push("v5: v4 quant + multi-mode entropy (pred2, golomb, bitpack, split4).".into()),
+        5 => {
+            notes.push("v5: v4 quant + multi-mode entropy (pred2, golomb, bitpack, split4).".into())
+        }
         _ => {}
     }
     if bs.dense_frames > bs.rice_frames + bs.pred2_frames + bs.golomb_frames {
@@ -616,10 +653,7 @@ pub fn build_report(
     }
 
     let step = quant::step_for_preset(preset);
-    notes.push(format!(
-        "Base quant step for {:?}: {:.4}",
-        preset, step
-    ));
+    notes.push(format!("Base quant step for {:?}: {:.4}", preset, step));
 
     let labels: Vec<(&str, f64, f64)> = vec![
         ("intro", 0.0, 30.0),

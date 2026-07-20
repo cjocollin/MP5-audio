@@ -46,24 +46,90 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     codecId = CodecId.MP5L;
     encoderLabel = "MP5-L WASM v3 (lossless · bit-exact)";
   } else if (opts.codec === "mp5h") {
-    const wrapped = codec.encode_mp5h(opts.samples, ch, preset);
+    // Size-gate: build best H (≥ requested preset) vs pure MP5-L; emit smaller with honest CodecId.
+    const wrapped = codec.encode_mp5h_min(opts.samples, ch, preset);
+    const lBitstream = codec.encode_mp5l(opts.samples, ch);
+
+    let hBase: Uint8Array;
+    let hCorr: Uint8Array | null = null;
     if (wrapped[0] === 0x48) {
-      const baseLen = new DataView(wrapped.buffer).getUint32(2, true);
-      const base = wrapped.slice(6, 6 + baseLen);
+      const view = new DataView(wrapped.buffer, wrapped.byteOffset, wrapped.byteLength);
+      const baseLen = view.getUint32(2, true);
+      hBase = wrapped.slice(6, 6 + baseLen);
       const corrOff = 6 + baseLen;
-      const corrLen = new DataView(wrapped.buffer).getUint32(corrOff, true);
-      const corr = wrapped.slice(corrOff + 4, corrOff + 4 + corrLen);
-      bitstream = base;
-      corrFrames = [{ frameIndex: 0, data: corr }];
+      const corrLen = view.getUint32(corrOff, true);
+      hCorr = wrapped.slice(corrOff + 4, corrOff + 4 + corrLen);
     } else {
-      bitstream = wrapped;
+      hBase = wrapped;
     }
-    codecId = CodecId.MP5H;
-    encoderLabel = "MP5-H WASM (MP5-C base + lossless CORR)";
+
+    const hFrames: AudioFrame[] = [{ frameIndex: 0, timeType: 0, flags: 0, data: hBase }];
+    const lFrames: AudioFrame[] = [{ frameIndex: 0, timeType: 0, flags: 0, data: lBitstream }];
+    const totalSamples = BigInt(Math.floor(opts.samples.length / ch));
+    const wave = generateWaveform(opts.samples, ch);
+    const meta =
+      opts.metaFields ??
+      Object.entries(opts.metadata ?? {}).map(([key, value]) => ({ key, value }));
+
+    const hFile = writeMp5({
+      head: {
+        codecId: CodecId.MP5H as CodecIdValue,
+        channels: ch,
+        bitsPerSample: 16,
+        presetId: preset,
+        sampleRate: opts.sampleRate,
+        totalSamples,
+        encoderVersion: 1,
+      },
+      meta,
+      cover: opts.cover,
+      audioFrames: hFrames,
+      seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+      waveform: wave.peaks,
+      info: [{ key: "encoder", value: "MP5-H WASM (MP5-C base + lossless CORR)" }],
+      corr: hCorr ? [{ frameIndex: 0, data: hCorr }] : undefined,
+      optional: opts.optional,
+      extraChunks: opts.extraChunks,
+    });
+    const lFile = writeMp5({
+      head: {
+        codecId: CodecId.MP5L as CodecIdValue,
+        channels: ch,
+        bitsPerSample: 16,
+        presetId: 0,
+        sampleRate: opts.sampleRate,
+        totalSamples,
+        encoderVersion: 1,
+      },
+      meta,
+      cover: opts.cover,
+      audioFrames: lFrames,
+      seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+      waveform: wave.peaks,
+      info: [
+        {
+          key: "encoder",
+          value: "MP5-L WASM v3 (lossless · bit-exact; H request resolved to smaller L)",
+        },
+      ],
+      optional: opts.optional,
+      extraChunks: opts.extraChunks,
+    });
+
+    if (lFile.length <= hFile.length) {
+      return lFile;
+    }
+    return hFile;
   } else if (opts.codec === "mp5c2") {
-    bitstream = codec.encode_mp5c_vnext(opts.samples, ch, preset);
+    const encodeAt =
+      typeof codec.encode_mp5c_vnext_at === "function"
+        ? codec.encode_mp5c_vnext_at
+        : null;
+    bitstream = encodeAt
+      ? encodeAt(opts.samples, ch, preset, opts.sampleRate >>> 0)
+      : codec.encode_mp5c_vnext(opts.samples, ch, preset);
     codecId = CodecId.MP5C2;
-    encoderLabel = "MP5-C vNext WASM (hybrid quiet-lossless · lab/advanced)";
+    encoderLabel = "MP5-C2 WASM (hybrid quiet-lossless + SR loud · not default)";
   } else {
     bitstream = codec.encode_mp5c(opts.samples, ch, preset);
     codecId = CodecId.MP5C;

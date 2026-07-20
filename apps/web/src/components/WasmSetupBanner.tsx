@@ -3,7 +3,7 @@ import { getCodec, getCodecLoadState, type CodecLoadState } from "../wasm/codec"
 
 const LOADING_STEPS = [
   "Fetching MP5 codec WASM…",
-  "Initializing encoders (MP5-L / MP5-C / MP5-H / vNext)…",
+  "Initializing encoders (MP5-L / MP5-C2 / MP5-H / lab MP5-C)…",
   "Ready for .mp5 playback and export",
 ] as const;
 
@@ -72,7 +72,7 @@ export function WasmSetupBanner() {
     >
       <p className="font-semibold text-amber-100">MP5 codecs require WASM</p>
       <p className="text-amber-200/90 text-xs leading-relaxed">
-        MP5-L, MP5-C, MP5-C vNext, and MP5-H are not loaded. The app can only use{" "}
+        MP5-L, MP5-C2, MP5-H, and lab MP5-C are not loaded. The app can only use{" "}
         <strong>PCM reference / debug</strong> mode until you build the WASM package.
       </p>
       <ol className="text-xs text-amber-100/90 list-decimal list-inside space-y-1 font-mono">

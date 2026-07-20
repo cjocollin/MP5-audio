@@ -11,6 +11,7 @@ export function mp5lBitstreamVersion(frameData: Uint8Array): number | null {
 export function mp5lVersionLabel(version: number | null): string {
   if (version === 2) return "v2 (legacy raw PCM blocks)";
   if (version === 3) return "v3 (LPC + delta + varint)";
+  if (version === 4) return "v4 (experimental interleaved frames + seek table)";
   if (version == null) return "unknown";
   return `v${version}`;
 }
@@ -20,7 +21,7 @@ export function codecLabel(codecId: number): string {
     case CodecId.MP5C:
       return "MP5-C (experimental / lab)";
     case CodecId.MP5C2:
-      return "MP5-C vNext (hybrid · lab/advanced)";
+      return "MP5-C2 (hybrid · not default)";
     case CodecId.MP5L:
       return "MP5-L v3 (lossless · default)";
     case CodecId.MP5H:
@@ -41,11 +42,11 @@ export function codecExportOptionLabel(
     case "mp5l":
       return "MP5-L v3 (lossless · default export · bit-exact)";
     case "mp5h":
-      return "MP5-H (hybrid: MP5-C base + CORR · large · not default)";
+      return "MP5-H (hybrid: MP5-C base + CORR · size-gated vs MP5-L · not default)";
     case "mp5c":
       return "MP5-C (experimental / lab · may hiss · not for listening)";
     case "mp5c2":
-      return "MP5-C vNext (hybrid quiet-lossless · lab/advanced · not default)";
+      return "MP5-C2 (hybrid quiet-lossless + SR loud · not default)";
     case "pcm":
       return "PCM (reference / debug · uncompressed)";
   }
@@ -67,9 +68,9 @@ export function presetLabelForCodec(codecId: number, presetId: number): string {
   }
   if (codecId === CodecId.MP5C2) {
     const base = PRESET_NAMES[presetId] ?? `Preset ${presetId}`;
-    if (presetId === 2) return `${base} (preferred size · protect 1.5)`;
-    if (presetId === 3) return `${base} (finest loud path · protect 1.5)`;
-    return `${base} (lab vNext loud path)`;
+    if (presetId === 2) return `${base} (preferred · protect 1.5 · SR loud)`;
+    if (presetId === 3) return `${base} (finest SR loud · protect 1.5)`;
+    return `${base} (MP5-C2 loud path)`;
   }
   return presetLabel(presetId);
 }

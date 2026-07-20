@@ -6,7 +6,10 @@ synthetic fixture set (13 fixtures, stereo, 44.1 kHz). Regenerate locally to ref
 No copyrighted audio, no telemetry.
 
 > Numbers below are from synthetic fixtures and are **not** a claim that MP5 beats
-> MP3, AAC, Opus, FLAC, or WAV.
+> MP3, AAC, Opus, FLAC, or WAV. Quality-preserving (bit-exact) modes land between
+> uncompressed WAV and FLAC-class lossless sizes. They cannot match MP3/AAC/Opus
+> file sizes without discarding audio. Stem tracks are a separate payload and are
+> never counted in main-track size claims.
 
 ## Current vNext size stack (new)
 
@@ -20,23 +23,22 @@ Measured with `pnpm audio:hiss-report` (synthetic) and real-track A/B:
 | dense_music | Extreme (lossy coalesce) | 0.971 | — | n/a |
 | dense_music | **High (lossy coalesce)** | **0.941** | — | n/a |
 
-**Public `CodecId.MP5C2`** is Converter lab/advanced only (batch stays MP5-L). Residual 2048 pad
-after coalesce is ~0.6% → no short-frame trim. **MP5-L packed Rice** (~46% residual-payload
-savings vs varint) + 4-mode stereo remain the default path.
+**Public `CodecId.MP5C2`** is a Converter **non-default** hybrid export (batch stays MP5-L).
+Shipping loud units use signal-relative `TAG_SR` (+ CORR when needed); classic MP5-C stays lab.
+Residual 2048 pad after coalesce is ~0.6% → no short-frame trim. **MP5-L packed Rice** remains
+the default path.
 
 ## v0.27.0-beta native Rust vNext (new)
 
 The winning **vNext "smooth"** engine (sub-block + per-band + hysteresis lossless fallback) was
 ported into the **native Rust codec** as `mp5c2` and exposed via additive WASM functions
-`encode_mp5c_vnext` / `decode_mp5c_vnext`. It is **bit-identical to the JS lab prototype**
-(parity SNR = ∞ on every fixture), reaches `reverb_tail` hiss risk **low**, and keeps
-silence/quiet bit-exact — now at native speed. Done safely and additively:
+`encode_mp5c_vnext` / `decode_mp5c_vnext`. Quiet/tail stay lossless; mid/loud uses C2-only
+`TAG_SR` (normalize + MP5-C + optional CORR). Silence/quiet remain bit-exact. Done safely:
 
-- The existing **MP5-C (v5.1) encode/decode is byte-identical** — `mp5c` was not modified, and
-  the full JS + Rust suites pass against the rebuilt WASM (regression proof).
-- The vNext stream uses a **distinct `0x43 0x34` magic**, is **not** a valid MP5-C stream, and
-  the MP5-C / vNext decoders reject each other's containers.
-- **`CodecId.MP5C2 = 5`** is assigned for gated Converter lab/advanced export + player decode;
+- The existing **MP5-C (v5.1) encode/decode is byte-identical** — `mp5c` was not modified.
+- The stream uses a **distinct `0x43 0x34` magic**, is **not** a valid MP5-C stream, and
+  the MP5-C / MP5-C2 decoders reject each other's containers.
+- **`CodecId.MP5C2 = 5`** is a non-default Converter export + player decode;
   default and batch export remain MP5-L. Protect-scale **1.5** is the shipping threshold set
   (real-track hiss risk **low** at ~0.97× PCM; see [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md)).
 - It remains **lab-only, default OFF**; further size cuts must keep hiss risk low.
@@ -116,18 +118,18 @@ shaping or a lossless quiet-frame fallback cannot reach headphone-clean on quiet
 passages. Judge it by quiet-window + worst-1s SNR and the null test — never by
 full-song SNR alone.
 
-## MP5-H (hybrid, large)
+## MP5-H (hybrid, optional)
 
 - Base = MP5-C; with the **CORR** correction layer applied, output is
-  **sample-exact content on every fixture** (the lossless restore works).
-- Raw decoded stream is frame-padded; the container trims to `totalSamples`, so
-  this is not playback drift.
-- **Size is large** — averages ~1.13× PCM and exceeds 1× on loud/dense material
-  (e.g. ~1.79–1.80× on `loud_sine` / `dense_music`) because it carries both a
-  lossy base and a lossless correction.
-- **Decision: MP5-H stays optional/experimental, not default.** It would only
-  become a default candidate if it were both clearly smaller than MP5-L *and*
-  bit-exact — currently it is neither.
+  **sample-exact** (enhanced decode restores original PCM). CORR is an MP5-L
+  bitstream of the residual, so MP5-L entropy improvements shrink CORR for free.
+- **Size is often larger than MP5-L** — averages ~1.13× PCM and can reach ~2×
+  MP5-L on real music (ORIGAMI validation) because the file carries both a lossy
+  base and a lossless correction. Do **not** claim MP5-H beats MP5-L bit-exact
+  on average.
+- **Export policy:** MP5-L remains the default. Auto/default paths must size-gate
+  so H is never a silently larger default than pure MP5-L; H stays available as
+  the labeled hybrid option. See [MP5H.md](MP5H.md).
 
 ## MP5-C vNext prototype (`mp5c2-lab`) — lab-only, default OFF
 
@@ -157,10 +159,16 @@ quantization are the next steps. Size grows because quiet blocks are stored
 losslessly — acceptable under "quality before compression," but it is not a
 shipping codec.
 
+## Quality-preserving compression (C2 + H + L)
+
+- **MP5-C2:** loud units emit `min(bit-exact SR+CORR, MP5-L)` by payload size (tie → L).
+- **MP5-L:** packed Rice k/partition search + verified adaptive block splits (encoder-only).
+- **MP5-H:** residual clamp hardened; CORR inherits MP5-L; converter size-gates vs pure L.
+- Still **no claim** that bit-exact modes beat MP3/AAC/Opus, or that H beats L on average.
+
 ## What did **not** change
 
-- MP5-L is still default/recommended; MP5-C is still not default.
-- No public MP5-L/MP5-C/MP5-H policy change.
+- MP5-L is still default/recommended; MP5-C is still lab-only; MP5-H is still not default.
 - No telemetry, no DRM, no AI, no mainstream-codec claims.
 - Existing MP5 / MP5P files and the playback regression harness are untouched.
 

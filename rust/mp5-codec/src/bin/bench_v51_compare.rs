@@ -88,7 +88,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             version: "v5.1",
             preset: name,
             ratio: bs_v51.len() as f64 / pcm_bytes as f64,
-            snr: snr_db(&i16_to_f32(&pcm.samples[..n51]), &i16_to_f32(&dec_v51[..n51])),
+            snr: snr_db(
+                &i16_to_f32(&pcm.samples[..n51]),
+                &i16_to_f32(&dec_v51[..n51]),
+            ),
             clips: count_clips(&dec_v51[..n51]),
             dense_pct: d51.dense_frame_pct,
             band_pct: d51.band_frame_pct,
@@ -128,7 +131,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let windows = bench_windows(&pcm, duration)?;
     let out = PathBuf::from("benchmarks/real-music/V5_VS_V51.md");
     write_report(&out, &rows, pcm_bytes, duration, &windows, &artifact_md)?;
-    fs::copy(&out, PathBuf::from("benchmarks/real-music/listening/V5_VS_V51.md"))?;
+    fs::copy(
+        &out,
+        PathBuf::from("benchmarks/real-music/listening/V5_VS_V51.md"),
+    )?;
     eprintln!("\nWrote {}", out.display());
     Ok(())
 }
@@ -216,14 +222,29 @@ fn write_report(
     for r in rows {
         md.push_str(&format!(
             "| {} | {} | {:.3} | {:.1} dB | {} | {:.1} | {:.1} | {:.1} | {:.0} | {:.0} |\n",
-            r.version, r.preset, r.ratio, r.snr, r.clips, r.dense_pct, r.band_pct, r.ms_pct, r.enc_ms, r.dec_ms
+            r.version,
+            r.preset,
+            r.ratio,
+            r.snr,
+            r.clips,
+            r.dense_pct,
+            r.band_pct,
+            r.ms_pct,
+            r.enc_ms,
+            r.dec_ms
         ));
     }
 
     md.push_str("\n## v5 → v5.1 deltas\n\n");
     for name in ["Standard", "High", "Extreme"] {
-        let v5 = rows.iter().find(|r| r.version == "v5" && r.preset == name).unwrap();
-        let v51 = rows.iter().find(|r| r.version == "v5.1" && r.preset == name).unwrap();
+        let v5 = rows
+            .iter()
+            .find(|r| r.version == "v5" && r.preset == name)
+            .unwrap();
+        let v51 = rows
+            .iter()
+            .find(|r| r.version == "v5.1" && r.preset == name)
+            .unwrap();
         let size_red = (1.0 - v51.ratio / v5.ratio) * 100.0;
         let dense_red = v5.dense_pct - v51.dense_pct;
         md.push_str(&format!(
@@ -245,8 +266,14 @@ fn write_report(
     md.push_str("\n## Mode usage (v5.1 High)\n\n");
     md.push_str(artifact_md);
 
-    let high_v5 = rows.iter().find(|r| r.version == "v5" && r.preset == "High").unwrap();
-    let high_v51 = rows.iter().find(|r| r.version == "v5.1" && r.preset == "High").unwrap();
+    let high_v5 = rows
+        .iter()
+        .find(|r| r.version == "v5" && r.preset == "High")
+        .unwrap();
+    let high_v51 = rows
+        .iter()
+        .find(|r| r.version == "v5.1" && r.preset == "High")
+        .unwrap();
     md.push_str("\n## Quality gates (High v5.1)\n\n");
     md.push_str("| Gate | Target | Actual | Pass? |\n|------|--------|--------|-------|\n");
     md.push_str(&format!(
@@ -285,11 +312,17 @@ fn write_report(
 
     md.push_str("### Listening notes (bench-guided)\n\n");
     md.push_str("| Aspect | v5 High | v5.1 High |\n|--------|---------|----------|\n");
-    md.push_str("| SNR / hiss risk | 36.4 dB, 0 clips | Same quant floor — expect match if gates pass |\n");
-    md.push_str("| Bass / vocals | v5 reference | Band steps preserve LF/MF multipliers ≤ 1.02× |\n");
+    md.push_str(
+        "| SNR / hiss risk | 36.4 dB, 0 clips | Same quant floor — expect match if gates pass |\n",
+    );
+    md.push_str(
+        "| Bass / vocals | v5 reference | Band steps preserve LF/MF multipliers ≤ 1.02× |\n",
+    );
     md.push_str("| HF / cymbals | — | HF bands allow slightly coarser step (≤ 1.28× High) |\n");
     md.push_str("| Stereo width | L/R | M/S only when correlation > 0.87 & low side energy |\n");
-    md.push_str("| Quiet sections | Adaptive frame scale | Finer LF, controlled HF quant in gaps |\n\n");
+    md.push_str(
+        "| Quiet sections | Adaptive frame scale | Finer LF, controlled HF quant in gaps |\n\n",
+    );
 
     fs::write(path, md)?;
     Ok(())

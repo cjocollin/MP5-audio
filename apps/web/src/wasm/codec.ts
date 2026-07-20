@@ -1,4 +1,5 @@
 import init, {
+  Mp5lStreamDecoder,
   decode_mp5c,
   decode_mp5c_vnext,
   decode_mp5c3,
@@ -6,26 +7,34 @@ import init, {
   decode_mp5l,
   encode_mp5c,
   encode_mp5c_vnext,
+  encode_mp5c_vnext_at,
   encode_mp5c_vnext_protect,
   encode_mp5c_vnext_mdct,
   encode_mp5c3,
   encode_mp5h,
+  encode_mp5h_min,
   encode_mp5l,
+  encode_mp5l_v4,
   snr_db_wasm,
 } from "./pkg/mp5_codec.js";
 
+export { Mp5lStreamDecoder };
+
 type CodecModule = {
   encode_mp5l: typeof encode_mp5l;
+  encode_mp5l_v4: typeof encode_mp5l_v4;
   decode_mp5l: typeof decode_mp5l;
   encode_mp5c: typeof encode_mp5c;
   decode_mp5c: typeof decode_mp5c;
   encode_mp5c_vnext: typeof encode_mp5c_vnext;
+  encode_mp5c_vnext_at: typeof encode_mp5c_vnext_at;
   encode_mp5c_vnext_protect: typeof encode_mp5c_vnext_protect;
   encode_mp5c_vnext_mdct: typeof encode_mp5c_vnext_mdct;
   decode_mp5c_vnext: typeof decode_mp5c_vnext;
   encode_mp5c3: typeof encode_mp5c3;
   decode_mp5c3: typeof decode_mp5c3;
   encode_mp5h: typeof encode_mp5h;
+  encode_mp5h_min: typeof encode_mp5h_min;
   decode_mp5h: typeof decode_mp5h;
   snr_db_wasm: typeof snr_db_wasm;
 };
@@ -58,16 +67,19 @@ async function tryLoadWasmModule(): Promise<CodecModule | null> {
     await init();
     return {
       encode_mp5l,
+      encode_mp5l_v4,
       decode_mp5l,
       encode_mp5c,
       decode_mp5c,
       encode_mp5c_vnext,
+      encode_mp5c_vnext_at,
       encode_mp5c_vnext_protect,
       encode_mp5c_vnext_mdct,
       decode_mp5c_vnext,
       encode_mp5c3,
       decode_mp5c3,
       encode_mp5h,
+      encode_mp5h_min,
       decode_mp5h,
       snr_db_wasm,
     };
@@ -111,16 +123,19 @@ function createJsFallback(): CodecModule {
 
   return {
     encode_mp5l: passthrough,
+    encode_mp5l_v4: passthrough,
     decode_mp5l: decodePassthrough,
     encode_mp5c: passthrough,
     decode_mp5c: decodePassthrough,
     encode_mp5c_vnext: passthrough,
+    encode_mp5c_vnext_at: (s) => passthrough(s),
     encode_mp5c_vnext_protect: (s) => passthrough(s),
     encode_mp5c_vnext_mdct: passthrough,
     decode_mp5c_vnext: decodePassthrough,
     encode_mp5c3: passthrough,
     decode_mp5c3: decodePassthrough,
     encode_mp5h: passthrough,
+    encode_mp5h_min: passthrough,
     decode_mp5h: (d) => decodePassthrough(d),
     snr_db_wasm: () => 0,
   };

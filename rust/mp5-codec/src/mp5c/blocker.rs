@@ -1,10 +1,10 @@
 //! MP5-C transparency blocker — silence, quiet fixtures, path comparison vs MP5-L.
 
-use crate::mp5l;
-use crate::pcm::{i16_to_f32, snr_db};
 use super::artifact::{analyze_slice, hiss_score};
 use super::quant::Preset;
 use super::{decode, encode, peak_error};
+use crate::mp5l;
+use crate::pcm::{i16_to_f32, snr_db};
 
 /// Result of encoding/decoding a synthetic fixture.
 #[derive(Debug, Clone)]

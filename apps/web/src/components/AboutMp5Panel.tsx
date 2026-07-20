@@ -25,12 +25,12 @@ export function AboutMp5Panel() {
       </section>
 
       <section className="rounded-xl border border-sky-500/20 bg-sky-950/20 p-4 space-y-2">
-        <h3 className="font-semibold text-sky-200">MP5-C2 (vNext) — lab / advanced</h3>
+        <h3 className="font-semibold text-sky-200">MP5-C2 — hybrid (not default)</h3>
         <p className="text-gray-400 text-xs leading-relaxed">
-          Hybrid path: quiet/fragile/tail passages stay <strong className="text-gray-200">MP5-L</strong>;
-          loud passages use a lossy loud codec. Available only under Converter{" "}
-          <strong className="text-gray-200">Show lab / advanced codecs</strong>. Not the default;
-          batch export stays MP5-L. An opt-in MDCT loud path exists for lab measurement only.
+          Quiet/fragile/tail passages stay <strong className="text-gray-200">MP5-L</strong>; mid/loud
+          units use a C2-only signal-relative path (optional CORR). First-class Converter option under
+          Lossy / hybrid — not the default; batch export stays MP5-L. Distinct from classic lab MP5-C.
+          MDCT loud path remains lab-only.
         </p>
       </section>
 

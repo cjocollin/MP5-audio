@@ -94,7 +94,7 @@ function LandingAboutDetails() {
           <li>Experimental: manifest or embedded .mp5p album packages</li>
           <li>Batch album export from the Converter (batch stays MP5-L)</li>
           <li>Local library on this device (browser storage only)</li>
-          <li>Optional lab/advanced codecs in Converter behind an explicit gate</li>
+          <li>Optional MP5-C2 hybrid export (not default); classic MP5-C stays lab-gated</li>
         </ul>
         <p className="text-[10px] text-gray-600">
           No DRM, no legal verification, and <strong className="text-gray-500 font-normal">no AI stem
@@ -128,13 +128,13 @@ function LandingAboutDetails() {
           />
           <CodecCard
             testId="landing-codec-mp5c2"
-            title="MP5-C2 (vNext)"
+            title="MP5-C2"
             accent="hybrid"
             items={[
-              "Lab / advanced only",
               "Quiet/fragile → lossless",
-              "Loud → lossy (protect 1.5)",
+              "Mid/loud → SR + CORR when needed",
               "Not default; batch stays MP5-L",
+              "Distinct from classic lab MP5-C",
             ]}
           />
           <CodecCard
@@ -193,7 +193,7 @@ function LandingAboutDetails() {
               <li>Karaoke (stems + synced lyrics)</li>
               <li>Album packages (.mp5p)</li>
               <li>MP5-H hybrid (large)</li>
-              <li>MP5-C2 vNext + MP5-C (lab/advanced gate)</li>
+              <li>MP5-C2 (non-default) + classic MP5-C (lab gate)</li>
               <li>MDCT loud path (lab measure only)</li>
             </ul>
           </div>
@@ -282,8 +282,8 @@ function LandingAboutDetails() {
             working mode for listening and batch export.
           </li>
           <li>
-            <strong className="text-gray-300 font-normal">MP5-C2 (vNext)</strong> is gated
-            lab/advanced: quieter passages stay lossless; loud passages stay lossy. Not default.
+            <strong className="text-gray-300 font-normal">MP5-C2</strong> is a non-default hybrid:
+            quieter passages stay lossless; mid/loud uses a signal-relative path (CORR when needed).
           </li>
           <li>
             <strong className="text-gray-300 font-normal">MP5-C</strong> is research/lab-only

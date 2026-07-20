@@ -208,7 +208,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ));
     }
 
-    write_listening_report(&out_repo.join("LISTENING_VALIDATION.md"), &rows, duration, &pcm)?;
+    write_listening_report(
+        &out_repo.join("LISTENING_VALIDATION.md"),
+        &rows,
+        duration,
+        &pcm,
+    )?;
     fs::copy(
         out_repo.join("LISTENING_VALIDATION.md"),
         out_desktop.join("LISTENING_VALIDATION.md"),
@@ -289,12 +294,24 @@ fn write_listening_report(
     ));
 
     md.push_str("## Fresh export table\n\n");
-    md.push_str("| Export | Ver | Ratio vs PCM | SNR | Peak err | RMS err | Clips | Bitrate | Path |\n");
-    md.push_str("|--------|-----|--------------|-----|----------|---------|-------|---------|------|\n");
+    md.push_str(
+        "| Export | Ver | Ratio vs PCM | SNR | Peak err | RMS err | Clips | Bitrate | Path |\n",
+    );
+    md.push_str(
+        "|--------|-----|--------------|-----|----------|---------|-------|---------|------|\n",
+    );
     for r in rows {
         md.push_str(&format!(
             "| {} | v{} | {:.3} | {:.1} dB | {:.4} | {:.4} | {} | {:.0} kbps | `{}` |\n",
-            r.label, r.version, r.ratio, r.snr, r.peak_err, r.rms_err, r.clipped, r.bitrate_kbps, r.path
+            r.label,
+            r.version,
+            r.ratio,
+            r.snr,
+            r.peak_err,
+            r.rms_err,
+            r.clipped,
+            r.bitrate_kbps,
+            r.path
         ));
     }
 
@@ -302,19 +319,31 @@ fn write_listening_report(
     if let (Some(a), Some(b)) = (std_v3, std_v5) {
         md.push_str(&format!(
             "- **Standard v5 vs v3**: SNR {:.1} → {:.1} dB (+{:.1}); ratio {:.3} → {:.3}\n",
-            a.snr, b.snr, b.snr - a.snr, a.ratio, b.ratio
+            a.snr,
+            b.snr,
+            b.snr - a.snr,
+            a.ratio,
+            b.ratio
         ));
     }
     if let (Some(a), Some(b)) = (std_v5, high_v51) {
         md.push_str(&format!(
             "- **Standard v5 vs High v5.1**: SNR {:.1} → {:.1} dB (+{:.1}); ratio {:.3} → {:.3}\n",
-            a.snr, b.snr, b.snr - a.snr, a.ratio, b.ratio
+            a.snr,
+            b.snr,
+            b.snr - a.snr,
+            a.ratio,
+            b.ratio
         ));
     }
     if let (Some(a), Some(b)) = (high_v51, extreme) {
         md.push_str(&format!(
             "- **High v5.1 vs Extreme v5.1**: SNR {:.1} → {:.1} dB (+{:.1}); ratio {:.3} → {:.3}\n",
-            a.snr, b.snr, b.snr - a.snr, a.ratio, b.ratio
+            a.snr,
+            b.snr,
+            b.snr - a.snr,
+            a.ratio,
+            b.ratio
         ));
     }
     if let (Some(a), Some(_)) = (extreme, pcm_r) {
@@ -330,7 +359,9 @@ fn write_listening_report(
     md.push_str("1. `ORIGAMI_pcm_fallback.mp5` — reference\n");
     md.push_str("2. `ORIGAMI_mp5c_Extreme_v51.mp5` — **converter default**\n");
     md.push_str("3. `ORIGAMI_mp5c_High_v51.mp5` — retuned High quant\n");
-    md.push_str("4. `ORIGAMI_mp5c_High_v4.mp5` / `High_v5.mp5` — same quant as v5.1 on flat path\n");
+    md.push_str(
+        "4. `ORIGAMI_mp5c_High_v4.mp5` / `High_v5.mp5` — same quant as v5.1 on flat path\n",
+    );
     md.push_str("5. `ORIGAMI_mp5c_Standard_v5.mp5` — expect more hiss\n\n");
     md.push_str("See `benchmarks/real-music/HISS_INVESTIGATION.md` for quiet/HF metrics.\n\n");
 

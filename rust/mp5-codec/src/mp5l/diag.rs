@@ -1,13 +1,15 @@
 //! MP5-L compression diagnostics.
 
 use super::block::{
-    FLAG_CONST, FLAG_DELTA, FLAG_RAW, FLAG_RICE, FLAG_RICE_PACKED, FLAG_SILENCE,
+    FLAG_CONST, FLAG_DELTA, FLAG_I32_RICE, FLAG_QLP, FLAG_RAW, FLAG_RICE, FLAG_RICE_PACKED,
+    FLAG_SILENCE,
 };
 use super::predict::residuals;
 use super::rice::{estimate_k, rice_estimate_bits};
 
 pub const VERSION_V2: u8 = 2;
 pub const VERSION_V3: u8 = 3;
+pub const VERSION_V4: u8 = 4;
 
 #[derive(Debug, Clone, Default)]
 pub struct BlockStat {
@@ -56,44 +58,62 @@ pub fn analyze_bitstream(data: &[u8], channels: u8) -> Result<Mp5lDiagnostics, S
     let ch = data[2].max(1) as usize;
     let frames_per_ch = u32::from_le_bytes(data[3..7].try_into().unwrap()) as usize;
     let mut pos = 7;
+    if version == VERSION_V4 {
+        if data.len() < 15 || &data[7..11] != b"SEEK" {
+            return Err("MP5-L v4 seek table missing".into());
+        }
+        let seek_count =
+            u32::from_le_bytes(data[11..15].try_into().map_err(|_| "seek count short")?) as usize;
+        if seek_count != frames_per_ch {
+            return Err("MP5-L v4 seek count mismatch".into());
+        }
+        pos = 15usize
+            .checked_add(seek_count.checked_mul(16).ok_or("seek table overflow")?)
+            .ok_or("seek table overflow")?;
+        if pos > data.len() {
+            return Err("MP5-L v4 seek table truncated".into());
+        }
+    }
     let mut blocks: Vec<BlockStat> = Vec::new();
     let mut idx = 0usize;
     let mut total_samples = 0usize;
 
-    for _c in 0..ch {
-        for _ in 0..frames_per_ch {
-            if pos + 13 > data.len() {
-                break;
-            }
-            let len = u32::from_le_bytes(data[pos..pos + 4].try_into().unwrap()) as usize;
-            let flag = data[pos + 4];
-            let ms_hint = flag & 0x80 != 0;
-            let flag = flag & 0x7f;
-            let enc_len = u32::from_le_bytes(data[pos + 9..pos + 13].try_into().unwrap()) as usize;
-            let total = 13 + enc_len;
-            let (order, rice_k) = parse_rice_meta(flag, &data[pos + 13..pos + total]);
-            let bps = if len > 0 {
-                (enc_len as f64 * 8.0) / len as f64
-            } else {
-                0.0
-            };
-            blocks.push(BlockStat {
-                index: idx,
-                samples: len,
-                flag: if ms_hint { flag | 0x80 } else { flag },
-                payload_bytes: enc_len,
-                total_bytes: total,
-                order,
-                rice_k,
-                bits_per_sample: bps,
-            });
-            total_samples += len;
-            pos += total;
-            idx += 1;
+    for _ in 0..ch.saturating_mul(frames_per_ch) {
+        if pos + 13 > data.len() {
+            break;
         }
+        let len = u32::from_le_bytes(data[pos..pos + 4].try_into().unwrap()) as usize;
+        let flag = data[pos + 4];
+        let ms_hint = flag & 0x80 != 0;
+        let flag = flag & 0x7f;
+        let enc_len = u32::from_le_bytes(data[pos + 9..pos + 13].try_into().unwrap()) as usize;
+        let total = 13 + enc_len;
+        if pos + total > data.len() {
+            return Err("MP5-L block payload truncated".into());
+        }
+        let (order, rice_k) = parse_rice_meta(flag, &data[pos + 13..pos + total]);
+        let bps = if len > 0 {
+            (enc_len as f64 * 8.0) / len as f64
+        } else {
+            0.0
+        };
+        blocks.push(BlockStat {
+            index: idx,
+            samples: len,
+            flag: if ms_hint { flag | 0x80 } else { flag },
+            payload_bytes: enc_len,
+            total_bytes: total,
+            order,
+            rice_k,
+            bits_per_sample: bps,
+        });
+        total_samples += len;
+        pos += total;
+        idx += 1;
     }
 
-    let pcm_bytes = total_samples * ch * 2;
+    // `total_samples` already sums every channel's block lengths (= total i16 samples).
+    let pcm_bytes = total_samples * 2;
     let file_bytes = data.len();
     let rice_blocks: Vec<_> = blocks
         .iter()
@@ -123,6 +143,11 @@ pub fn analyze_bitstream(data: &[u8], channels: u8) -> Result<Mp5lDiagnostics, S
         0.0
     };
 
+    // Stereo hints live in high bits: 0x80=M/S, 0x40=L/S, 0xC0=R/S.
+    let stereo_ms = blocks.iter().filter(|b| (b.flag & 0xC0) == 0x80).count();
+    let stereo_ls = blocks.iter().filter(|b| (b.flag & 0xC0) == 0x40).count();
+    let stereo_rs = blocks.iter().filter(|b| (b.flag & 0xC0) == 0xC0).count();
+
     Ok(Mp5lDiagnostics {
         version,
         total_samples,
@@ -130,24 +155,41 @@ pub fn analyze_bitstream(data: &[u8], channels: u8) -> Result<Mp5lDiagnostics, S
         file_bytes,
         pcm_bytes,
         ratio_vs_pcm: file_bytes as f64 / pcm_bytes.max(1) as f64,
-        bits_per_sample: (file_bytes as f64 * 8.0) / total_samples.max(1) as f64 / ch.max(1) as f64,
+        // Bits per PCM sample (i16), not per channel-frame.
+        bits_per_sample: (file_bytes as f64 * 8.0) / total_samples.max(1) as f64,
         block_count: blocks.len(),
         avg_block_samples: total_samples as f64 / blocks.len().max(1) as f64,
         block_overhead_pct,
-        silence_blocks: blocks.iter().filter(|b| b.flag == FLAG_SILENCE).count(),
-        const_blocks: blocks.iter().filter(|b| b.flag == FLAG_CONST).count(),
-        rice_blocks: blocks.iter().filter(|b| (b.flag & 0x3f) == FLAG_RICE).count(),
+        silence_blocks: blocks
+            .iter()
+            .filter(|b| (b.flag & 0x3f) == FLAG_SILENCE)
+            .count(),
+        const_blocks: blocks
+            .iter()
+            .filter(|b| (b.flag & 0x3f) == FLAG_CONST)
+            .count(),
+        rice_blocks: blocks
+            .iter()
+            .filter(|b| (b.flag & 0x3f) == FLAG_RICE)
+            .count(),
         rice_packed_blocks: blocks
             .iter()
             .filter(|b| (b.flag & 0x3f) == FLAG_RICE_PACKED)
             .count(),
-        delta_blocks: blocks.iter().filter(|b| (b.flag & 0x3f) == FLAG_DELTA).count(),
-        raw_blocks: blocks.iter().filter(|b| (b.flag & 0x3f) == FLAG_RAW).count(),
+        delta_blocks: blocks
+            .iter()
+            .filter(|b| (b.flag & 0x3f) == FLAG_DELTA)
+            .count(),
+        raw_blocks: blocks
+            .iter()
+            .filter(|b| (b.flag & 0x3f) == FLAG_RAW)
+            .count(),
         rice_block_pct: 100.0 * rice_blocks.len() as f64 / blocks.len().max(1) as f64,
         avg_rice_k: avg_k,
         avg_predictor_order: avg_order,
         residual_entropy_bits_per_sample: estimate_entropy_bps(&blocks),
-        stereo_ms_blocks: blocks.iter().filter(|b| b.flag & 0x80 != 0).count(),
+        // Preserve field: count all stereo-decorrelated left blocks (M/S + L/S + R/S).
+        stereo_ms_blocks: stereo_ms + stereo_ls + stereo_rs,
         worst_blocks: worst,
         best_blocks: best,
     })
@@ -195,6 +237,8 @@ pub fn flag_name(flag: u8) -> &'static str {
         FLAG_CONST => "const",
         FLAG_RICE => "lpc+varint",
         FLAG_RICE_PACKED => "lpc+rice",
+        FLAG_QLP => "stored-qlp+rice",
+        FLAG_I32_RICE => "i32-side+rice",
         FLAG_DELTA => "delta+varint",
         FLAG_RAW => "raw",
         _ => "unknown",

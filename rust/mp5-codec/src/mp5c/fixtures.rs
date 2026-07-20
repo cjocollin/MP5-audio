@@ -28,8 +28,10 @@ fn sine_stereo_2s() -> Fixture {
     let n = sr() * 2;
     let mut s = vec![0i16; n * 2];
     for i in 0..n {
-        s[i * 2] = ((440.0 * 2.0 * std::f32::consts::PI * i as f32 / sr() as f32).sin() * 14000.0) as i16;
-        s[i * 2 + 1] = ((330.0 * 2.0 * std::f32::consts::PI * i as f32 / sr() as f32).cos() * 14000.0) as i16;
+        s[i * 2] =
+            ((440.0 * 2.0 * std::f32::consts::PI * i as f32 / sr() as f32).sin() * 14000.0) as i16;
+        s[i * 2 + 1] =
+            ((330.0 * 2.0 * std::f32::consts::PI * i as f32 / sr() as f32).cos() * 14000.0) as i16;
     }
     Fixture {
         name: "sine_2s",
@@ -43,7 +45,8 @@ fn sine_stereo_0_5s() -> Fixture {
     let n = sr() / 2;
     let mut s = vec![0i16; n * 2];
     for i in 0..n {
-        s[i * 2] = ((440.0 * 2.0 * std::f32::consts::PI * i as f32 / sr() as f32).sin() * 14000.0) as i16;
+        s[i * 2] =
+            ((440.0 * 2.0 * std::f32::consts::PI * i as f32 / sr() as f32).sin() * 14000.0) as i16;
         s[i * 2 + 1] = s[i * 2];
     }
     Fixture {

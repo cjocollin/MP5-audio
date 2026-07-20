@@ -78,7 +78,10 @@ fn quantize_bands(coeffs: &[f32], preset: Preset) -> (Vec<i16>, Vec<f32>) {
         steps[bi] = (band_rms[bi] * nf).max(ms).max(peak * 1e-4);
     }
     // Masking-inspired: louder low bands permit coarser high-band steps.
-    let low_mask = band_rms.get(0).copied().unwrap_or(0.0)
+    let low_mask = band_rms
+        .get(0)
+        .copied()
+        .unwrap_or(0.0)
         .max(band_rms.get(1).copied().unwrap_or(0.0));
     for bi in 0..bounds.len() {
         let t = bi as f32 / bounds.len().max(1) as f32;
@@ -301,9 +304,7 @@ mod tests {
     #[test]
     fn float_ola_high_snr() {
         let len = HOP * 10;
-        let x: Vec<f32> = (0..len)
-            .map(|i| ((i as f32) * 0.04).sin() * 0.35)
-            .collect();
+        let x: Vec<f32> = (0..len).map(|i| ((i as f32) * 0.04).sin() * 0.35).collect();
         let y = float_roundtrip(&x);
         let start = HOP;
         let end = len - HOP;
@@ -332,7 +333,9 @@ mod tests {
     #[test]
     fn loud_sine_roundtrips_with_finite_snr() {
         let n = 8192;
-        let s = interleave(n, 2, |i, _| ((i as f64 * 0.06).sin() * 0.5 * 32767.0) as i16);
+        let s = interleave(n, 2, |i, _| {
+            ((i as f64 * 0.06).sin() * 0.5 * 32767.0) as i16
+        });
         let enc = encode(&s, 2, Preset::High);
         let dec = decode(&enc).unwrap();
         assert_eq!(dec.len(), s.len());
@@ -343,9 +346,6 @@ mod tests {
     }
 
     #[test]
-
-
-
 
     /// Exact lab `dense_music` fixture (6s) — Phase 0 size go/no-go.
     #[test]
@@ -366,9 +366,8 @@ mod tests {
             let bass = (tau * 110.0 * t).sin() * 10000.0;
             let lead = (tau * 440.0 * t).sin() * 5000.0;
             let pad = (tau * 277.0 * t).sin() * 3500.0;
-            let hat = (next() * 2.0 - 1.0)
-                * 1500.0
-                * (((t * 8.0).floor() as i64).rem_euclid(2)) as f64;
+            let hat =
+                (next() * 2.0 - 1.0) * 1500.0 * (((t * 8.0).floor() as i64).rem_euclid(2)) as f64;
             let l = kick + bass + lead + pad + hat;
             let r = kick + bass + lead * 0.9 + pad * 1.1 - hat;
             samples[i * 2] = l.clamp(-32768.0, 32767.0) as i16;

@@ -104,8 +104,7 @@ pub fn analyze_slice(
     let d_f = i16_to_f32(d);
 
     let full_snr_db = snr_db(&o_f, &d_f);
-    let (quiet_snr_db, quiet_noise_floor_db, noise_floor_rms) =
-        quiet_metrics(&o_f, &d_f, channels);
+    let (quiet_snr_db, quiet_noise_floor_db, noise_floor_rms) = quiet_metrics(&o_f, &d_f, channels);
     let (hf_err_rms, lf_err_rms) = hf_lf_error(&o_f, &d_f);
     let (side_err_rms, mid_err_rms) = stereo_mid_side_error(&o_f, &d_f, channels);
     let (worst_1s_snr_db, worst_1s_start_sec) =

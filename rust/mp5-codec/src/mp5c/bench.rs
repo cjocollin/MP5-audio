@@ -43,8 +43,13 @@ mod run {
 
         for fx in fixtures::all_fixtures() {
             let pcm_bytes = fx.samples.len() * 2;
-            println!("## Fixture: {} ({} ch, {} samples, PCM {} bytes)", 
-                fx.name, fx.channels, fx.samples.len() / fx.channels as usize, pcm_bytes);
+            println!(
+                "## Fixture: {} ({} ch, {} samples, PCM {} bytes)",
+                fx.name,
+                fx.channels,
+                fx.samples.len() / fx.channels as usize,
+                pcm_bytes
+            );
 
             println!(
                 "| Preset | Bitstream | Ratio vs PCM | SNR dB | Peak err | RMS err | Encode ms | Decode ms | Notes |"
@@ -67,10 +72,7 @@ mod run {
                 let dec_ms = t1.elapsed().as_secs_f64() * 1000.0;
 
                 let n = fx.samples.len().min(dec.len());
-                let snr = snr_db(
-                    &i16_to_f32(&fx.samples[..n]),
-                    &i16_to_f32(&dec[..n]),
-                );
+                let snr = snr_db(&i16_to_f32(&fx.samples[..n]), &i16_to_f32(&dec[..n]));
                 let peak = mp5c::peak_error(&fx.samples[..n], &dec[..n]);
                 let rms = mp5c::rms_error(&fx.samples[..n], &dec[..n]);
                 let ratio = enc.len() as f64 / pcm_bytes as f64;
@@ -78,7 +80,15 @@ mod run {
 
                 println!(
                     "| {} | {} | {:.3} | {:.1} | {:.4} | {:.4} | {:.2} | {:.2} | {} |",
-                    label, enc.len(), ratio, snr, peak, rms, enc_ms, dec_ms, note
+                    label,
+                    enc.len(),
+                    ratio,
+                    snr,
+                    peak,
+                    rms,
+                    enc_ms,
+                    dec_ms,
+                    note
                 );
             }
             println!();
@@ -97,8 +107,14 @@ mod run {
         let overhead = header + (frames as usize * 2 * per_frame);
         println!("--- Short sine Extreme overhead ---");
         println!("frames/ch: {frames}, stream header: {header} B");
-        println!("min frame headers (stereo): ~{} B, total enc: {} B, PCM: {} B",
-            frames as usize * 2 * per_frame, enc.len(), short.samples.len() * 2);
-        println!("v3 uses 3-byte frame headers (vs v2 8-byte) + 2048-sample frames + rice/silence\n");
+        println!(
+            "min frame headers (stereo): ~{} B, total enc: {} B, PCM: {} B",
+            frames as usize * 2 * per_frame,
+            enc.len(),
+            short.samples.len() * 2
+        );
+        println!(
+            "v3 uses 3-byte frame headers (vs v2 8-byte) + 2048-sample frames + rice/silence\n"
+        );
     }
 }

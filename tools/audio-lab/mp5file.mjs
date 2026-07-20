@@ -29,7 +29,7 @@ export const CODEC_NAME = {
   [CodecId.MP5C]: "MP5-C",
   [CodecId.MP5L]: "MP5-L",
   [CodecId.MP5H]: "MP5-H",
-  [CodecId.MP5C2]: "MP5-C vNext",
+  [CodecId.MP5C2]: "MP5-C2",
   [CodecId.PASSTHROUGH]: "Passthrough",
 };
 

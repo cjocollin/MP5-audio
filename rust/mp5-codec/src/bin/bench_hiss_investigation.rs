@@ -1,11 +1,11 @@
 //! MP5-C High hiss investigation — artifact metrics across codec versions.
 //!   cargo run --release -p mp5-codec --features bench_tools --bin bench_hiss_investigation
 
-use mp5_codec::mp5c::{
-    analyze_slice, encode, encode_v4_reference, encode_v5_reference, hiss_score, sections_for_duration,
-    ArtifactMetrics, Preset,
-};
 use mp5_codec::mp5c::{self};
+use mp5_codec::mp5c::{
+    analyze_slice, encode, encode_v4_reference, encode_v5_reference, hiss_score,
+    sections_for_duration, ArtifactMetrics, Preset,
+};
 use mp5_codec::pcm::snr_db;
 use std::fs;
 use std::path::PathBuf;
@@ -186,21 +186,28 @@ fn write_report(
     ));
     md.push_str(&format!(
         "**v5 pack lossless check** (sampled non-dense frames): {}\n\n",
-        if pack_lossless { "pass" } else { "**FAIL — investigate packing**" }
+        if pack_lossless {
+            "pass"
+        } else {
+            "**FAIL — investigate packing**"
+        }
     ));
 
     md.push_str("## Findings summary\n\n");
-    let full: Vec<_> = metrics
-        .iter()
-        .filter(|m| m.label == "full_song")
-        .collect();
+    let full: Vec<_> = metrics.iter().filter(|m| m.label == "full_song").collect();
 
-    let pcm = full.iter().find(|m| m.codec_label == "PCM fallback").cloned();
+    let pcm = full
+        .iter()
+        .find(|m| m.codec_label == "PCM fallback")
+        .cloned();
     let h4 = full.iter().find(|m| m.codec_label == "High v4").cloned();
     let h5 = full.iter().find(|m| m.codec_label == "High v5").cloned();
     let h51 = full.iter().find(|m| m.codec_label == "High v5.1").cloned();
     let ex5 = full.iter().find(|m| m.codec_label == "Extreme v5").cloned();
-    let ex51 = full.iter().find(|m| m.codec_label == "Extreme v5.1").cloned();
+    let ex51 = full
+        .iter()
+        .find(|m| m.codec_label == "Extreme v5.1")
+        .cloned();
 
     if let (Some(h4), Some(h5), Some(h51)) = (h4, h5, h51) {
         let same_quant = (h4.full_snr_db - h5.full_snr_db).abs() < 0.05
@@ -242,10 +249,7 @@ fn write_report(
     if let (Some(ex5), Some(h5)) = (ex5, h5) {
         md.push_str(&format!(
             "- **Extreme vs High (full):** SNR {:.1} vs {:.1} dB; quiet NF {:.1} vs {:.1} dB\n",
-            ex5.full_snr_db,
-            h5.full_snr_db,
-            ex5.quiet_noise_floor_db,
-            h5.quiet_noise_floor_db
+            ex5.full_snr_db, h5.full_snr_db, ex5.quiet_noise_floor_db, h5.quiet_noise_floor_db
         ));
     }
 
@@ -291,10 +295,7 @@ fn write_report(
         md.push_str(&format!("\n## Section: {sec}\n\n"));
         md.push_str("| Codec | SNR | Quiet SNR | Quiet NF | HF err | Worst 1s |\n");
         md.push_str("|-------|-----|-----------|----------|--------|----------|\n");
-        let mut rows: Vec<_> = metrics
-            .iter()
-            .filter(|m| m.label == sec)
-            .collect();
+        let mut rows: Vec<_> = metrics.iter().filter(|m| m.label == sec).collect();
         rows.sort_by(|a, b| a.codec_label.cmp(&b.codec_label));
         for m in rows {
             md.push_str(&format!(

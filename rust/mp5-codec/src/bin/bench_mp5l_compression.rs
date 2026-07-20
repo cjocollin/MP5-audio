@@ -129,7 +129,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let base_len = u32::from_le_bytes(d[2..6].try_into().unwrap()) as usize;
             let base = &d[6..6 + base_len];
             let corr_off = 6 + base_len;
-            let corr_len = u32::from_le_bytes(d[corr_off..corr_off + 4].try_into().unwrap()) as usize;
+            let corr_len =
+                u32::from_le_bytes(d[corr_off..corr_off + 4].try_into().unwrap()) as usize;
             let corr = &d[corr_off + 4..corr_off + 4 + corr_len];
             mp5h::decode(base, Some(corr), DecodeMode::Enhanced)
         },
@@ -206,12 +207,20 @@ fn write_report(
 
     let mut md = String::new();
     md.push_str("# MP5-L compression benchmark\n\n");
-    md.push_str(&format!("Source: `{}` ({:.1}s)\n\n", flac.display(), duration));
+    md.push_str(&format!(
+        "Source: `{}` ({:.1}s)\n\n",
+        flac.display(),
+        duration
+    ));
     md.push_str(&format!("PCM reference: {} bytes\n\n", pcm_bytes));
 
     md.push_str("## Before / after\n\n");
-    md.push_str("| Mode | Bytes | vs PCM | Encode ms | Decode ms | Bit-exact | Max diff | Clips |\n");
-    md.push_str("|------|-------|--------|-----------|-----------|-----------|----------|-------|\n");
+    md.push_str(
+        "| Mode | Bytes | vs PCM | Encode ms | Decode ms | Bit-exact | Max diff | Clips |\n",
+    );
+    md.push_str(
+        "|------|-------|--------|-----------|-----------|-----------|----------|-------|\n",
+    );
     for r in rows {
         md.push_str(&format!(
             "| {} | {} | {:.3}x | {:.0} | {:.0} | {} | {} | {} |\n",
@@ -244,7 +253,11 @@ fn write_report(
         ));
         md.push_str(&format!(
             "- **≤ 0.80× PCM target:** {}\n",
-            if a.ratio_pcm <= 0.80 { "yes" } else { "no (stretch)" }
+            if a.ratio_pcm <= 0.80 {
+                "yes"
+            } else {
+                "no (stretch)"
+            }
         ));
     }
 
@@ -255,7 +268,10 @@ fn write_report(
         "- Block overhead: {:.1}% of file\n",
         diag.block_overhead_pct
     ));
-    md.push_str(&format!("- Blocks: {} (avg {:.0} samples)\n", diag.block_count, diag.avg_block_samples));
+    md.push_str(&format!(
+        "- Blocks: {} (avg {:.0} samples)\n",
+        diag.block_count, diag.avg_block_samples
+    ));
     md.push_str(&format!(
         "- Block types: {} lpc, {} delta, {} silence, {} const, {} raw, {} stereo M/S\n",
         diag.rice_blocks,
@@ -265,7 +281,10 @@ fn write_report(
         diag.raw_blocks,
         diag.stereo_ms_blocks
     ));
-    md.push_str(&format!("- Avg predictor order (rice blocks): {:.2}\n", diag.avg_predictor_order));
+    md.push_str(&format!(
+        "- Avg predictor order (rice blocks): {:.2}\n",
+        diag.avg_predictor_order
+    ));
     md.push_str(&format!(
         "- Residual entropy estimate: {:.2} bits/sample\n",
         diag.residual_entropy_bits_per_sample

@@ -9,38 +9,38 @@ PCM reference: 29676732 bytes
 | Mode | Bytes | vs PCM | Encode ms | Decode ms | Bit-exact | Max diff | Clips |
 |------|-------|--------|-----------|-----------|-----------|----------|-------|
 | PCM fallback | 29676732 | 1.000x | 0 | 0 | yes | 0 | 0 |
-| MP5-L v2 raw (before) | 29723851 | 1.002x | 186 | 152 | yes | 0 | 0 |
-| MP5-L v3 improved | 28045397 | 0.945x | 1629 | 210 | yes | 0 | 0 |
-| MP5-H High + CORR | 53871913 | 1.815x | 5294 | 359 | no | 0 | 0 |
-| MP5-C High (lab) | 28698445 | 0.967x | 2844 | 143 | no | 554 | 0 |
+| MP5-L v2 raw (before) | 29723851 | 1.002x | 124 | 154 | yes | 0 | 0 |
+| MP5-L v3 improved | 23413280 | 0.789x | 17034 | 564 | yes | 0 | 0 |
+| MP5-H High + CORR | 46783862 | 1.576x | 18383 | 617 | no | 0 | 0 |
+| MP5-C High (lab) | 28698445 | 0.967x | 2456 | 125 | no | 554 | 0 |
 
 ## MP5-L v3 vs v2 raw
 
 - v2 raw: 29723851 bytes (1.002x PCM)
-- v3 improved: 28045397 bytes (0.945x PCM)
-- Size change vs v2: 5.6%
+- v3 improved: 23413280 bytes (0.789x PCM)
+- Size change vs v2: 21.2%
 - **Smaller than PCM:** yes
-- **≤ 0.80× PCM target:** no (stretch)
+- **≤ 0.80× PCM target:** yes
 
 ## MP5-L v3 diagnostics
 
 - Version: 3
-- Bits per sample: 7.56
+- Bits per sample: 6.31
 - Block overhead: 0.2% of file
-- Blocks: 3624 (avg 4094 samples)
-- Block types: 725 lpc, 1228 delta, 38 silence, 0 const, 1633 raw
-- Avg predictor order (rice blocks): 2.74
-- Residual entropy estimate: 13.06 bits/sample
+- Blocks: 3632 (avg 4085 samples)
+- Block types: 1 lpc, 0 delta, 45 silence, 1 const, 0 raw, 557 stereo M/S
+- Avg predictor order (rice blocks): 1.59
+- Residual entropy estimate: 12.73 bits/sample
 
 ### Worst blocks (largest)
 
 | # | Samples | Flag | Payload B | Total B | bps |
 |---|---------|------|-----------|---------|-----|
-| 18 | 4096 | raw | 8192 | 8205 | 16.00 |
-| 49 | 4096 | raw | 8192 | 8205 | 16.00 |
-| 70 | 4096 | raw | 8192 | 8205 | 16.00 |
-| 91 | 4096 | raw | 8192 | 8205 | 16.00 |
-| 101 | 4096 | raw | 8192 | 8205 | 16.00 |
+| 224 | 4096 | lpc+rice | 7805 | 7818 | 15.24 |
+| 1996 | 4096 | lpc+rice | 7799 | 7812 | 15.23 |
+| 2040 | 4096 | lpc+rice | 7754 | 7767 | 15.14 |
+| 180 | 4096 | lpc+rice | 7748 | 7761 | 15.13 |
+| 3482 | 4096 | lpc+rice | 7716 | 7729 | 15.07 |
 
 ### Best blocks (smallest)
 
@@ -48,9 +48,9 @@ PCM reference: 29676732 bytes
 |---|---------|------|-----------|---------|-----|
 | 0 | 4096 | silence | 0 | 13 | 0.00 |
 | 1 | 4096 | silence | 0 | 13 | 0.00 |
-| 1795 | 4096 | silence | 0 | 13 | 0.00 |
-| 1796 | 4096 | silence | 0 | 13 | 0.00 |
-| 1797 | 4096 | silence | 0 | 13 | 0.00 |
+| 2 | 684 | silence | 0 | 13 | 0.00 |
+| 4 | 340 | silence | 0 | 13 | 0.00 |
+| 1798 | 4096 | silence | 0 | 13 | 0.00 |
 
 ## Default export policy
 

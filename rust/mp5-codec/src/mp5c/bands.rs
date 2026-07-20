@@ -11,17 +11,9 @@ pub fn split_4(frame: &[f32], sample_rate: u32) -> [Vec<f32>; NUM_BANDS] {
     let low = onepole_lpf(frame, a0);
     let mut rest1: Vec<f32> = frame.iter().zip(low.iter()).map(|(x, l)| x - l).collect();
     let lmid = onepole_lpf(&rest1, a1);
-    let mut rest2: Vec<f32> = rest1
-        .iter()
-        .zip(lmid.iter())
-        .map(|(x, l)| x - l)
-        .collect();
+    let mut rest2: Vec<f32> = rest1.iter().zip(lmid.iter()).map(|(x, l)| x - l).collect();
     let hmid = onepole_lpf(&rest2, a2);
-    let high: Vec<f32> = rest2
-        .iter()
-        .zip(hmid.iter())
-        .map(|(x, h)| x - h)
-        .collect();
+    let high: Vec<f32> = rest2.iter().zip(hmid.iter()).map(|(x, h)| x - h).collect();
     [low, lmid, hmid, high]
 }
 

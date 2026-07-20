@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const __wbg_mp5lstreamdecoder_free: (a: number, b: number) => void;
 export const decode_mp5c: (a: number, b: number) => [number, number, number, number];
 export const decode_mp5c3: (a: number, b: number) => [number, number, number, number];
 export const decode_mp5c_vnext: (a: number, b: number) => [number, number, number, number];
@@ -9,10 +10,18 @@ export const decode_mp5l: (a: number, b: number) => [number, number, number, num
 export const encode_mp5c: (a: number, b: number, c: number, d: number) => [number, number];
 export const encode_mp5c3: (a: number, b: number, c: number, d: number) => [number, number];
 export const encode_mp5c_vnext: (a: number, b: number, c: number, d: number) => [number, number];
+export const encode_mp5c_vnext_at: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+export const encode_mp5c_vnext_legacy_loud: (a: number, b: number, c: number, d: number) => [number, number];
 export const encode_mp5c_vnext_mdct: (a: number, b: number, c: number, d: number) => [number, number];
 export const encode_mp5c_vnext_protect: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+export const encode_mp5c_vnext_protect_at: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number];
 export const encode_mp5h: (a: number, b: number, c: number, d: number) => [number, number];
+export const encode_mp5h_min: (a: number, b: number, c: number, d: number) => [number, number];
 export const encode_mp5l: (a: number, b: number, c: number) => [number, number];
+export const encode_mp5l_v4: (a: number, b: number, c: number) => [number, number];
+export const mp5lstreamdecoder_new: (a: number, b: number) => [number, number, number];
+export const mp5lstreamdecoder_push: (a: number, b: number, c: number) => [number, number, number, number];
+export const mp5lstreamdecoder_seek_frame: (a: number, b: number) => [number, number];
 export const snr_db_wasm: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
 export const __wbindgen_malloc: (a: number, b: number) => number;

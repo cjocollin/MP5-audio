@@ -39,17 +39,16 @@ test.describe("Batch converter", () => {
     await expect(page.getByTestId("batch-converter-panel")).toHaveCount(0);
   });
 
-  test("single mode defaults to MP5-L and gates lab codecs", async ({ page }) => {
+  test("single mode defaults to MP5-L; MP5-C2 open; classic MP5-C lab-gated", async ({ page }) => {
     await page.getByTestId("converter-mode-single").click();
     const select = page.getByTestId("codec-select");
     await expect(select).toHaveValue("mp5l");
     await expect(select.locator('option[value="mp5c"]')).toHaveCount(0);
-    await expect(select.locator('option[value="mp5c2"]')).toHaveCount(0);
-    await page.getByTestId("lab-codecs-toggle").click();
     await expect(select.locator('option[value="mp5c2"]')).toHaveCount(1);
-    await expect(select.locator('option[value="mp5c"]')).toHaveCount(1);
     await select.selectOption("mp5c2");
-    await expect(page.getByTestId("mp5c2-lab-warning")).toBeVisible();
+    await expect(page.getByTestId("mp5c2-info")).toBeVisible();
+    await page.getByTestId("lab-codecs-toggle").click();
+    await expect(select.locator('option[value="mp5c"]')).toHaveCount(1);
     await select.selectOption("mp5c");
     await expect(page.getByTestId("mp5c-hiss-warning")).toBeVisible();
   });

@@ -27,7 +27,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let bs_l = mp5l::encode(&pcm, 2);
         let dec_l = mp5l::decode(&bs_l)?;
-        row(&mut md, "MP5-L", bs_l.len() as f64 / pcm_bytes as f64, &pcm, &dec_l, pcm_bytes);
+        row(
+            &mut md,
+            "MP5-L",
+            bs_l.len() as f64 / pcm_bytes as f64,
+            &pcm,
+            &dec_l,
+            pcm_bytes,
+        );
 
         for (name, preset) in [
             ("MP5-C Standard", mp5_codec::mp5c::Preset::Standard),

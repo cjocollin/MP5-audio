@@ -63,54 +63,8 @@ fn predict_sample_from_slice(samples: &[i16], i: usize, order: usize) -> i32 {
             let s4 = samples[i - 4] as i32;
             4 * s1 - 6 * s2 + 4 * s3 - s4
         }
-        _ => lpc_predict(samples, i, order),
+        _ => unreachable!("fixed predictor order must be 0..=4"),
     }
-}
-
-fn lpc_predict(samples: &[i16], i: usize, order: usize) -> i32 {
-    let coeffs = lpc_coefficients(&samples[..i], order.min(i));
-    let mut pred = 0i64;
-    for (j, &c) in coeffs.iter().enumerate() {
-        pred += c as i64 * samples[i - 1 - j] as i64;
-    }
-    (pred >> 15).clamp(-32768, 32767) as i32
-}
-
-/// Levinson-Durbin; coefficients scaled to Q15.
-fn lpc_coefficients(history: &[i16], order: usize) -> Vec<i32> {
-    if order == 0 || history.is_empty() {
-        return vec![];
-    }
-    let n = history.len();
-    let mut r = vec![0i64; order + 1];
-    for lag in 0..=order {
-        let mut acc = 0i64;
-        for i in lag..n {
-            acc += history[i] as i64 * history[i - lag] as i64;
-        }
-        r[lag] = acc;
-    }
-    if r[0] == 0 {
-        return vec![0; order];
-    }
-    let mut a = vec![0i64; order];
-    let mut e = r[0];
-    for i in 0..order {
-        let mut lambda = 0i64;
-        for j in 0..i {
-            lambda += a[j] * r[i - j];
-        }
-        lambda = (r[i + 1] - lambda) * (1i64 << 15) / e.max(1);
-        a[i] = lambda;
-        for j in 0..i / 2 {
-            let tmp = a[j];
-            a[j] = a[j] - ((lambda * a[i - 1 - j]) >> 15);
-            a[i - 1 - j] = a[i - 1 - j] - ((lambda * tmp) >> 15);
-        }
-        e = (e * (1i64 << 15) - ((lambda * lambda) >> 15) * e) >> 15;
-        e = e.max(1);
-    }
-    a.iter().map(|&c| c.clamp(-32768, 32767) as i32).collect()
 }
 
 pub fn best_order(samples: &[i16], max_order: u8) -> u8 {
@@ -119,7 +73,9 @@ pub fn best_order(samples: &[i16], max_order: u8) -> u8 {
     }
     let mut best = 0u8;
     let mut best_bits = usize::MAX;
-    let max = max_order.min(MAX_ORDER as u8).min(samples.len().saturating_sub(1) as u8);
+    let max = max_order
+        .min(MAX_ORDER as u8)
+        .min(samples.len().saturating_sub(1) as u8);
     for order in 0..=max {
         let res = residuals(samples, order);
         let bits: usize = res
@@ -140,17 +96,19 @@ pub fn best_order(samples: &[i16], max_order: u8) -> u8 {
 
 /// Choose predictor order by estimated **bit-packed Rice** cost (not varint bytes).
 pub fn best_order_rice(samples: &[i16], max_order: u8) -> u8 {
-    use super::rice::{estimate_k_partitioned, rice_estimate_bits_partitioned, PARTITIONS};
+    use super::rice::{best_partitioned_ks, rice_estimate_bits_partitioned};
 
     if samples.is_empty() {
         return 0;
     }
     let mut best = 0u8;
     let mut best_bits = usize::MAX;
-    let max = max_order.min(MAX_ORDER as u8).min(samples.len().saturating_sub(1) as u8);
+    let max = max_order
+        .min(MAX_ORDER as u8)
+        .min(samples.len().saturating_sub(1) as u8);
     for order in 0..=max {
         let res = residuals(samples, order);
-        let ks = estimate_k_partitioned(&res, PARTITIONS);
+        let ks = best_partitioned_ks(&res);
         // 1 byte order + 4 count + 1 parts + ks + rice bits
         let total = 6 + ks.len() + rice_estimate_bits_partitioned(&res, &ks);
         if total < best_bits {

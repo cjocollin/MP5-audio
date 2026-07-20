@@ -1,6 +1,6 @@
 mod artifact;
-pub mod blocker;
 mod bands;
+pub mod blocker;
 mod diag;
 mod frame_v51;
 mod pack;
@@ -311,10 +311,7 @@ fn decode_v51(data: &[u8]) -> Result<Vec<i16>, String> {
     }
 }
 
-fn read_v51_frame(
-    data: &[u8],
-    pos: &mut usize,
-) -> Result<(u8, u8, [u8; 4], Vec<u8>), String> {
+fn read_v51_frame(data: &[u8], pos: &mut usize) -> Result<(u8, u8, [u8; 4], Vec<u8>), String> {
     if *pos >= data.len() {
         return Err("truncated v5.1 frame".into());
     }
@@ -329,12 +326,7 @@ fn read_v51_frame(
         if *pos + 4 > data.len() {
             return Err("truncated v5.1 band scales".into());
         }
-        let b = [
-            data[*pos],
-            data[*pos + 1],
-            data[*pos + 2],
-            data[*pos + 3],
-        ];
+        let b = [data[*pos], data[*pos + 1], data[*pos + 2], data[*pos + 3]];
         *pos += 4;
         b
     } else {
@@ -770,42 +762,42 @@ mod tests {
     }
 
     fn encode_v2_legacy(samples: &[i16], channels: u8, preset: Preset) -> Vec<u8> {
-    let ch = channels.max(1) as usize;
-    let per_ch = if ch == 1 {
-        vec![samples.to_vec()]
-    } else {
-        crate::pcm::deinterleave_i16(samples, ch)
-    };
-    let frame_size = FRAME_SIZE_V2;
-    let frames_per_ch = per_ch
-        .iter()
-        .map(|c| (c.len() + frame_size - 1) / frame_size)
-        .max()
-        .unwrap_or(0) as u32;
-    let mut out = vec![0x43, VERSION_V2];
-    out.push(ch as u8);
-    out.push(preset as u8);
-    out.extend(&frames_per_ch.to_le_bytes());
-    let step = quant::step_for_preset(preset);
-    for channel in &per_ch {
-        let mut i = 0;
-        let mut local_idx = 0u32;
-        while i < channel.len() {
-            let end = (i + frame_size).min(channel.len());
-            let mut frame: Vec<f32> = channel[i..end]
-                .iter()
-                .map(|&s| s as f32 / 32768.0)
-                .collect();
-            frame.resize(frame_size, 0.0);
-            let q = quant::quantize(&frame, step);
-            let payload = quant::pack_coeffs(&q);
-            out.extend(&local_idx.to_le_bytes());
-            out.extend(&(payload.len() as u32).to_le_bytes());
-            out.extend(&payload);
-            local_idx += 1;
-            i += frame_size;
+        let ch = channels.max(1) as usize;
+        let per_ch = if ch == 1 {
+            vec![samples.to_vec()]
+        } else {
+            crate::pcm::deinterleave_i16(samples, ch)
+        };
+        let frame_size = FRAME_SIZE_V2;
+        let frames_per_ch = per_ch
+            .iter()
+            .map(|c| (c.len() + frame_size - 1) / frame_size)
+            .max()
+            .unwrap_or(0) as u32;
+        let mut out = vec![0x43, VERSION_V2];
+        out.push(ch as u8);
+        out.push(preset as u8);
+        out.extend(&frames_per_ch.to_le_bytes());
+        let step = quant::step_for_preset(preset);
+        for channel in &per_ch {
+            let mut i = 0;
+            let mut local_idx = 0u32;
+            while i < channel.len() {
+                let end = (i + frame_size).min(channel.len());
+                let mut frame: Vec<f32> = channel[i..end]
+                    .iter()
+                    .map(|&s| s as f32 / 32768.0)
+                    .collect();
+                frame.resize(frame_size, 0.0);
+                let q = quant::quantize(&frame, step);
+                let payload = quant::pack_coeffs(&q);
+                out.extend(&local_idx.to_le_bytes());
+                out.extend(&(payload.len() as u32).to_le_bytes());
+                out.extend(&payload);
+                local_idx += 1;
+                i += frame_size;
+            }
         }
-    }
-    out
+        out
     }
 }

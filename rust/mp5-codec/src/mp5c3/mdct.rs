@@ -282,7 +282,11 @@ mod tests {
     use super::*;
 
     fn max_rel_err(a: &[f32], b: &[f32]) -> f32 {
-        let peak = a.iter().chain(b.iter()).map(|v| v.abs()).fold(1e-20f32, f32::max);
+        let peak = a
+            .iter()
+            .chain(b.iter())
+            .map(|v| v.abs())
+            .fold(1e-20f32, f32::max);
         a.iter()
             .zip(b.iter())
             .map(|(x, y)| (x - y).abs())

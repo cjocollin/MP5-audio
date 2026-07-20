@@ -89,6 +89,7 @@ export function compareFiles(codec, refPath, candPaths) {
       quietWindowSnrDb: m.quietWindowSnrDb,
       tailSnrDb: h.tailSnrDb,
       worstQuiet1sSnrDb: h.worstQuiet1sSnrDb,
+      worstLoudWindowSnrDb: h.worstLoudWindowSnrDb,
       bitExact: m.contentBitExact,
     });
     return {
@@ -109,16 +110,16 @@ export function compareFiles(codec, refPath, candPaths) {
 export function writeCompareReport({ reference, candidates }) {
   let md = "# MP5 file comparison vs reference\n\n";
   md += `_Local/git-ignored. Reference (ground truth): **${reference.file}** (${reference.codec}, ${reference.channels}ch @ ${reference.sampleRate}Hz, ${reference.frames} frames, ${(reference.sizeBytes / 1048576).toFixed(2)} MB)._\n\n`;
-  md += "Hiss Risk uses quiet-class SNR thresholds: low ≥40dB · medium ≥25 · high ≥12 · severe <12.\n\n";
-  md += "| Candidate | Codec | Size MB | ×Ref | Full SNR | Quiet SNR | Tail SNR | Worst-1s quiet | HF floor dBFS | Err flatness | Clip | Hiss risk |\n";
-  md += "|-----------|-------|--------:|-----:|---------:|----------:|---------:|---------------:|--------------:|-------------:|-----:|:---------:|\n";
+  md += "Hiss Risk uses quiet **and** mid/loud SNR thresholds: low ≥40dB · medium ≥25 · high ≥12 · severe <12.\n\n";
+  md += "| Candidate | Codec | Size MB | ×Ref | Full SNR | Quiet SNR | Tail SNR | Loud SNR | Worst-1s quiet | HF floor dBFS | Clip | Hiss risk |\n";
+  md += "|-----------|-------|--------:|-----:|---------:|----------:|---------:|---------:|---------------:|--------------:|-----:|:---------:|\n";
   for (const c of candidates) {
     if (c.error) { md += `| ${c.file} | — | — | — | decode error: ${c.error} |||||||\n`; continue; }
     if (c.skipped) { md += `| ${c.file} | ${c.codec} | ${(c.sizeBytes / 1048576).toFixed(2)} | — | ${c.skipped} |||||||\n`; continue; }
     const m = c.metrics, h = c.hiss;
-    md += `| ${c.file} | ${c.codec} | ${(c.sizeBytes / 1048576).toFixed(2)} | ${num(c.sizeVsRef, 3)} | ${num(m.fullSnrDb)} | ${num(m.quietWindowSnrDb)} | ${num(h.tailSnrDb)} | ${num(h.worstQuiet1sSnrDb)} | ${num(h.hfNoiseFloorDbfs)} | ${num(h.errorSpectralFlatness, 3)} | ${m.clippingCount} | ${RISK_ICON[c.hissRisk] ?? c.hissRisk} |\n`;
+    md += `| ${c.file} | ${c.codec} | ${(c.sizeBytes / 1048576).toFixed(2)} | ${num(c.sizeVsRef, 3)} | ${num(m.fullSnrDb)} | ${num(m.quietWindowSnrDb)} | ${num(h.tailSnrDb)} | ${num(h.worstLoudWindowSnrDb)} | ${num(h.worstQuiet1sSnrDb)} | ${num(h.hfNoiseFloorDbfs)} | ${m.clippingCount} | ${RISK_ICON[c.hissRisk] ?? c.hissRisk} |\n`;
   }
-  md += "\n_Full-song SNR is shown but is misleading on its own; judge hiss by quiet/tail SNR + HF floor + error flatness (broadband error = hiss)._\n";
+  md += "\n_Full-song SNR is shown but is misleading on its own; judge hiss by quiet/tail **and mid/loud** SNR + HF floor + error flatness._\n";
   return md;
 }
 
@@ -142,6 +143,7 @@ export function buildHissRows(fixtures, modes) {
         quietWindowSnrDb: m.quietWindowSnrDb,
         tailSnrDb: h.tailSnrDb,
         worstQuiet1sSnrDb: h.worstQuiet1sSnrDb,
+        worstLoudWindowSnrDb: h.worstLoudWindowSnrDb,
         bitExact: m.contentBitExact,
       });
       const fb = mode.id.startsWith("mp5c2") ? vnextFallbackStats(enc) : null;
@@ -154,6 +156,7 @@ export function buildHissRows(fixtures, modes) {
         quietWindowSnrDb: m.quietWindowSnrDb,
         tailSnrDb: h.tailSnrDb,
         worstQuiet1sSnrDb: h.worstQuiet1sSnrDb,
+        worstLoudWindowSnrDb: h.worstLoudWindowSnrDb,
         hfNoiseFloorDbfs: h.hfNoiseFloorDbfs,
         errorSpectralFlatness: h.errorSpectralFlatness,
         contentBitExact: m.contentBitExact,

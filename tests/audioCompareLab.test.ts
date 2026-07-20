@@ -24,7 +24,7 @@ import { inspectFiles, compareFiles, buildHissRows } from "../tools/audio-lab/co
 // @ts-expect-error
 import { allFixtures } from "../tools/audio-lab/fixtures.mjs";
 // @ts-expect-error
-import { hissRisk, HISS_RISK_THRESHOLDS } from "../tools/audio-lab/hiss.mjs";
+import { hissRisk, HISS_RISK_THRESHOLDS, hissMetrics, loudPathClearsHissGate } from "../tools/audio-lab/hiss.mjs";
 import { codecExportOptionLabel } from "../apps/web/src/lib/codecDisplay";
 import { CODEC_MODE_HELP } from "../apps/web/src/lib/codecModesCopy";
 
@@ -81,10 +81,11 @@ describe("vNext prototype exposure", () => {
     }
   });
 
-  it("offers vNext only as lab/advanced converter option (not default)", () => {
+  it("offers MP5-C2 as non-default converter option (not classic lab MP5-C)", () => {
     expect(codecExportOptionLabel("mp5l").toLowerCase()).toContain("default");
-    expect(codecExportOptionLabel("mp5c2").toLowerCase()).toMatch(/vnext|lab|advanced/);
+    expect(codecExportOptionLabel("mp5c2").toLowerCase()).toMatch(/mp5-c2|c2/);
     expect(codecExportOptionLabel("mp5c2").toLowerCase()).toContain("not default");
+    expect(codecExportOptionLabel("mp5c").toLowerCase()).toMatch(/lab|experimental/);
     expect(CODEC_MODE_HELP.map((c) => c.id)).toContain("mp5c2");
     expect(CODEC_MODE_HELP.find((c) => c.id === "mp5l")!.tagline.toLowerCase()).toMatch(/default/);
   });
@@ -252,7 +253,8 @@ describe("vNext hysteresis/lookahead + noise-shaping experiment (v0.24)", () => 
     for (const m of buildModes(codec)) if (m.id.startsWith("mp5c2")) expect(m.prototype).toBe(true);
   });
 
-  it("hysteresis/lookahead takes reverb_tail to hiss risk LOW (quiet + tail bit-exact)", () => {
+  it("hysteresis/lookahead takes reverb_tail quiet+tail bit-exact (JS smooth)", () => {
+    const qLoc = (x: any) => (x === "inf" ? Infinity : typeof x === "number" ? x : -Infinity);
     const reverb = allFixtures().filter((f: any) => f.name === "reverb_tail");
     const modes = buildModes(codec).filter((m: any) =>
       ["mp5c2-bandquiet-extreme", "mp5c2-smooth-extreme"].includes(m.id),
@@ -260,11 +262,12 @@ describe("vNext hysteresis/lookahead + noise-shaping experiment (v0.24)", () => 
     const rows = buildHissRows(reverb, modes);
     const smooth = rows.find((r: any) => r.mode === "mp5c2-smooth-extreme");
     const prev = rows.find((r: any) => r.mode === "mp5c2-bandquiet-extreme");
-    expect(smooth.hissRisk).toBe("low");
-    expect(q(smooth.quietWindowSnrDb)).toBe(Infinity); // quiet windows bit-exact
-    expect(q(smooth.tailSnrDb)).toBe(Infinity); // tail windows bit-exact too
-    // no regression vs previous vNext baseline
-    expect(q(smooth.quietWindowSnrDb)).toBeGreaterThanOrEqual(q(prev.quietWindowSnrDb));
+    // Quiet/tail stay bit-exact. Overall hissRisk may be medium: mid/loud SNR now
+    // counts and JS smooth still uses legacy TAG_LOSSY on loud material.
+    expect(qLoc(smooth.quietWindowSnrDb)).toBe(Infinity);
+    expect(qLoc(smooth.tailSnrDb)).toBe(Infinity);
+    expect(["low", "medium"]).toContain(smooth.hissRisk);
+    expect(qLoc(smooth.quietWindowSnrDb)).toBeGreaterThanOrEqual(qLoc(prev.quietWindowSnrDb));
     expect(smooth.protectedSamplePct).toBeGreaterThanOrEqual(prev.protectedSamplePct);
   });
 
@@ -306,17 +309,35 @@ describe("native Rust vNext (encode_mp5c_vnext) — parity with JS, MP5-C untouc
     expect(native.prototype).toBe(true);
   });
 
-  it("is bit-identical to the JS smooth implementation (faithful port)", () => {
+  it("keeps silence/quiet bit-exact; loud path uses TAG_SR (0x46) not legacy TAG_LOSSY", () => {
     if (!hasNative()) return;
     const native = buildModes(codec).find((m: any) => m.id === "mp5c2-native-extreme");
-    const js = buildModes(codec).find((m: any) => m.id === "mp5c2-smooth-extreme");
-    for (const name of ["silence", "quiet_sine", "reverb_tail"]) {
+    for (const name of ["silence", "quiet_sine"]) {
       const f = allFixtures().find((x: any) => x.name === name);
-      const nd = native.decode(native.encode(f.samples, f.channels));
-      const jd = js.decode(js.encode(f.samples, f.channels));
-      expect(nd.length).toBe(jd.length);
-      expect(Array.from(nd.subarray(0, 2000))).toEqual(Array.from(jd.subarray(0, 2000)));
+      const enc = native.encode(f.samples, f.channels);
+      const nd = native.decode(enc);
+      expect(Array.from(nd)).toEqual(Array.from(f.samples));
     }
+    const dense = allFixtures().find((x: any) => x.name === "dense_music");
+    const enc = native.encode(dense.samples, dense.channels);
+    expect(enc[0]).toBe(0x43);
+    expect(enc[1]).toBe(0x34);
+    // Loud units are TAG_SR ('F'=0x46) or TAG_LOSSLESS ('L'=0x4c) via min(); never legacy 'C'=0x43
+    let sawF = false;
+    let sawL = false;
+    let sawLegacyC = false;
+    let pos = 10;
+    const view = new DataView(enc.buffer, enc.byteOffset, enc.byteLength);
+    while (pos + 9 <= enc.length) {
+      const tag = enc[pos];
+      const len = view.getUint32(pos + 5, true);
+      if (tag === 0x46) sawF = true;
+      if (tag === 0x4c) sawL = true;
+      if (tag === 0x43) sawLegacyC = true;
+      pos += 9 + len;
+    }
+    expect(sawLegacyC).toBe(false);
+    expect(sawF || sawL).toBe(true);
   });
 
   it("reaches reverb_tail hiss risk low and keeps silence/quiet bit-exact", () => {
@@ -343,7 +364,7 @@ describe("native Rust vNext (encode_mp5c_vnext) — parity with JS, MP5-C untouc
 });
 
 describe("vNext loud-path High preferred for size (protect 1.5)", () => {
-  it("keeps reverb_tail hiss risk low and is smaller than Extreme on dense_music", () => {
+  it("keeps reverb_tail quiet/tail clean; High is smaller than Extreme on dense_music", () => {
     const modes = buildModes(codec).filter((m: any) =>
       ["mp5c2-smooth", "mp5c2-smooth-extreme"].includes(m.id),
     );
@@ -351,7 +372,10 @@ describe("vNext loud-path High preferred for size (protect 1.5)", () => {
     const reverb = allFixtures().filter((f: any) => f.name === "reverb_tail");
     const dense = allFixtures().find((f: any) => f.name === "dense_music");
     const rows = buildHissRows(reverb, modes);
-    for (const r of rows) expect(r.hissRisk).toBe("low");
+    for (const r of rows) {
+      expect(q(r.quietWindowSnrDb)).toBe(Infinity);
+      expect(q(r.tailSnrDb)).toBe(Infinity);
+    }
     const high = modes.find((m: any) => m.id === "mp5c2-smooth")!;
     const extreme = modes.find((m: any) => m.id === "mp5c2-smooth-extreme")!;
     const highBytes = high.encode(dense.samples, dense.channels).length;
@@ -361,12 +385,62 @@ describe("vNext loud-path High preferred for size (protect 1.5)", () => {
   });
 });
 
+function q(x: any) {
+  return x === "inf" ? Infinity : typeof x === "number" ? x : -Infinity;
+}
+
 describe("Hiss Risk thresholds are committed and sane", () => {
   it("uses fixed dB cutoffs and rates bit-exact as low", () => {
     expect(HISS_RISK_THRESHOLDS).toEqual({ lowMinDb: 40, mediumMinDb: 25, highMinDb: 12 });
     expect(hissRisk({ bitExact: true, quietWindowSnrDb: 5 })).toBe("low");
     expect(hissRisk({ bitExact: false, quietWindowSnrDb: 5, tailSnrDb: 5, worstQuiet1sSnrDb: 5 })).toBe("severe");
     expect(hissRisk({ bitExact: false, quietWindowSnrDb: 45, tailSnrDb: 45, worstQuiet1sSnrDb: 45 })).toBe("low");
+  });
+
+  it("mid/loud SNR can pull risk below low even when quiet/tail are clean", () => {
+    expect(
+      hissRisk({
+        bitExact: false,
+        quietWindowSnrDb: "inf",
+        tailSnrDb: "inf",
+        worstQuiet1sSnrDb: "inf",
+        worstLoudWindowSnrDb: 28,
+      }),
+    ).toBe("medium");
+  });
+});
+
+describe("MP5-C2 loud-path metrics (ear-honest)", () => {
+  it("legacy TAG_LOSSY loud path fails mid/loud gate; shipping SR path clears it", () => {
+    if (typeof codec.encode_mp5c_vnext_legacy_loud !== "function") return;
+    if (typeof codec.encode_mp5c_vnext !== "function") return;
+    const dense = allFixtures().find((f: any) => f.name === "dense_music");
+    const legacy = codec.encode_mp5c_vnext_legacy_loud(dense.samples, dense.channels, 2);
+    const modern = codec.encode_mp5c_vnext(dense.samples, dense.channels, 2);
+    const legDec = codec.decode_mp5c_vnext(legacy);
+    const modDec = codec.decode_mp5c_vnext(modern);
+    const legH = hissMetrics(dense.samples, legDec, dense.channels, dense.sampleRate);
+    const modH = hissMetrics(dense.samples, modDec, dense.channels, dense.sampleRate);
+    expect(loudPathClearsHissGate(legH)).toBe(false);
+    expect(loudPathClearsHissGate(modH)).toBe(true);
+    expect(
+      hissRisk({
+        quietWindowSnrDb: null,
+        tailSnrDb: legH.tailSnrDb,
+        worstQuiet1sSnrDb: legH.worstQuiet1sSnrDb,
+        worstLoudWindowSnrDb: legH.worstLoudWindowSnrDb,
+        bitExact: false,
+      }),
+    ).not.toBe("low");
+    expect(
+      hissRisk({
+        quietWindowSnrDb: null,
+        tailSnrDb: modH.tailSnrDb,
+        worstQuiet1sSnrDb: modH.worstQuiet1sSnrDb,
+        worstLoudWindowSnrDb: modH.worstLoudWindowSnrDb,
+        bitExact: false,
+      }),
+    ).toBe("low");
   });
 });
 

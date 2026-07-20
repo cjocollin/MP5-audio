@@ -1,5 +1,57 @@
 /* @ts-self-types="./mp5_codec.d.ts" */
 
+export class Mp5lStreamDecoder {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        Mp5lStreamDecoderFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_mp5lstreamdecoder_free(ptr, 0);
+    }
+    /**
+     * @param {Uint8Array} data_prefix
+     */
+    constructor(data_prefix) {
+        const ptr0 = passArray8ToWasm0(data_prefix, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.mp5lstreamdecoder_new(ptr0, len0);
+        if (ret[2]) {
+            throw takeFromExternrefTable0(ret[1]);
+        }
+        this.__wbg_ptr = ret[0];
+        Mp5lStreamDecoderFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {Uint8Array} data
+     * @returns {Int16Array}
+     */
+    push(data) {
+        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.mp5lstreamdecoder_push(this.__wbg_ptr, ptr0, len0);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v2 = getArrayI16FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
+        return v2;
+    }
+    /**
+     * @param {number} sample_index
+     */
+    seek_frame(sample_index) {
+        const ret = wasm.mp5lstreamdecoder_seek_frame(this.__wbg_ptr, sample_index);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
+    }
+}
+if (Symbol.dispose) Mp5lStreamDecoder.prototype[Symbol.dispose] = Mp5lStreamDecoder.prototype.free;
+
 /**
  * @param {Uint8Array} data
  * @returns {Int16Array}
@@ -114,9 +166,8 @@ export function encode_mp5c3(samples, channels, preset) {
 }
 
 /**
- * MP5-C vNext (experimental, lab-only). Sub-block + per-band + hysteresis
- * lossless fallback. NOT a public MP5-C stream and NOT written into normal
- * `.mp5` exports — used by the audio quality lab for measurement only.
+ * MP5-C2 / vNext encode (protect 1.5, signal-relative loud path). Assumes 44.1 kHz.
+ * Prefer [`encode_mp5c_vnext_at`] when sample rate is known.
  * @param {Int16Array} samples
  * @param {number} channels
  * @param {number} preset
@@ -132,8 +183,40 @@ export function encode_mp5c_vnext(samples, channels, preset) {
 }
 
 /**
- * MP5-C vNext with MDCT loud path (lab-only). Quiet/fragile/tail stay MP5-L;
- * coalesced loud units use mp5c3 (`TAG_MDCT`). Not the default vNext encoder.
+ * MP5-C2 encode with explicit sample rate (Hz) for HF / protect timing.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @param {number} sample_rate
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c_vnext_at(samples, channels, preset, sample_rate) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c_vnext_at(ptr0, len0, channels, preset, sample_rate);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * Lab/test: force legacy TAG_LOSSY loud path (classic MP5-C) for metric A/B.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c_vnext_legacy_loud(samples, channels, preset) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c_vnext_legacy_loud(ptr0, len0, channels, preset);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * MP5-C2 with MDCT loud path (lab-only). Quiet/fragile/tail stay MP5-L.
  * @param {Int16Array} samples
  * @param {number} channels
  * @param {number} preset
@@ -149,8 +232,7 @@ export function encode_mp5c_vnext_mdct(samples, channels, preset) {
 }
 
 /**
- * Lab-only: encode vNext with widened quiet/tail protection (`protect_scale` ≥ 1.0).
- * Used by the Phase 4.4 real-track ≥40 dB experiment. Default encode uses scale 1.0.
+ * Lab: encode vNext with widened quiet/tail protection (`protect_scale` ≥ 1.0).
  * @param {Int16Array} samples
  * @param {number} channels
  * @param {number} preset
@@ -161,6 +243,24 @@ export function encode_mp5c_vnext_protect(samples, channels, preset, protect_sca
     const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.encode_mp5c_vnext_protect(ptr0, len0, channels, preset, protect_scale);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * Lab: same as protect encode but with sample rate.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @param {number} protect_scale
+ * @param {number} sample_rate
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c_vnext_protect_at(samples, channels, preset, protect_scale, sample_rate) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c_vnext_protect_at(ptr0, len0, channels, preset, protect_scale, sample_rate);
     var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v2;
@@ -182,6 +282,22 @@ export function encode_mp5h(samples, channels, preset) {
 }
 
 /**
+ * Encode MP5-H trying presets ≥ `min_preset`; keep smallest bit-exact base+CORR.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} min_preset
+ * @returns {Uint8Array}
+ */
+export function encode_mp5h_min(samples, channels, min_preset) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5h_min(ptr0, len0, channels, min_preset);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
  * @param {Int16Array} samples
  * @param {number} channels
  * @returns {Uint8Array}
@@ -190,6 +306,21 @@ export function encode_mp5l(samples, channels) {
     const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.encode_mp5l(ptr0, len0, channels);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * Experimental MP5-L v4 framing with seek table, stored QLP, and width-safe stereo.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @returns {Uint8Array}
+ */
+export function encode_mp5l_v4(samples, channels) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5l_v4(ptr0, len0, channels);
     var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v2;
@@ -211,6 +342,9 @@ export function snr_db_wasm(original, decoded) {
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,
+        __wbg___wbindgen_throw_9c31b086c2b26051: function(arg0, arg1) {
+            throw new Error(getStringFromWasm0(arg0, arg1));
+        },
         __wbindgen_cast_0000000000000001: function(arg0, arg1) {
             // Cast intrinsic for `Ref(String) -> Externref`.
             const ret = getStringFromWasm0(arg0, arg1);
@@ -231,6 +365,10 @@ function __wbg_get_imports() {
         "./mp5_codec_bg.js": import0,
     };
 }
+
+const Mp5lStreamDecoderFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_mp5lstreamdecoder_free(ptr, 1));
 
 function getArrayI16FromWasm0(ptr, len) {
     ptr = ptr >>> 0;

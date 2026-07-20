@@ -3,6 +3,7 @@
 
 use mp5_codec::mp5c::Preset;
 use mp5_codec::mp5h::validate::{bench_mp5c_row, bench_mp5h_row, bench_mp5l_row};
+use mp5_codec::mp5h::{encode_min_size, encode_with_c2_base};
 use std::fs;
 use std::path::PathBuf;
 
@@ -95,8 +96,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ] {
         let label = format!("MP5-C {name}");
         eprintln!("{label} …");
-        let (bytes, ratio_pcm, snr, quiet, clips, enc, dec) =
-            bench_mp5c_row(&label, &pcm.samples, pcm.channels, pcm.sample_rate, preset, pcm_bytes)?;
+        let (bytes, ratio_pcm, snr, quiet, clips, enc, dec) = bench_mp5c_row(
+            &label,
+            &pcm.samples,
+            pcm.channels,
+            pcm.sample_rate,
+            preset,
+            pcm_bytes,
+        )?;
         rows.push(Row {
             mode: label,
             file_bytes: bytes,
@@ -168,8 +175,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    // Base/CORR split + min-size + C2-base lab experiment
+    eprintln!("MP5-H min-size sweep + C2-base lab …");
+    let (min_base, min_corr, min_preset) =
+        encode_min_size(&pcm.samples, pcm.channels, Preset::Standard);
+    let min_total = min_base.len() + min_corr.len();
+    let (c2_base, c2_corr, c2_ok) = encode_with_c2_base(&pcm.samples, pcm.channels, Preset::High);
+    let c2_total = c2_base.len() + c2_corr.len();
+
     let report_path = PathBuf::from("benchmarks/real-music/MP5H_VALIDATION.md");
-    write_report(&report_path, &flac, duration, pcm_bytes, l_bytes, &rows)?;
+    write_report(
+        &report_path,
+        &flac,
+        duration,
+        pcm_bytes,
+        l_bytes,
+        &rows,
+        min_total,
+        min_base.len(),
+        min_corr.len(),
+        min_preset,
+        c2_total,
+        c2_base.len(),
+        c2_corr.len(),
+        c2_ok,
+    )?;
     eprintln!("\nWrote {}", report_path.display());
     Ok(())
 }
@@ -181,12 +211,28 @@ fn write_report(
     pcm_bytes: u64,
     mp5l_bytes: usize,
     rows: &[Row],
+    min_total: usize,
+    min_base: usize,
+    min_corr: usize,
+    min_preset: Preset,
+    c2_total: usize,
+    c2_base: usize,
+    c2_corr: usize,
+    c2_ok: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut md = String::new();
     md.push_str("# MP5-H validation benchmark\n\n");
-    md.push_str(&format!("Source: `{}` ({:.1}s)\n\n", flac.display(), duration));
+    md.push_str(&format!(
+        "Source: `{}` ({:.1}s)\n\n",
+        flac.display(),
+        duration
+    ));
     md.push_str(&format!("PCM reference: {} bytes\n\n", pcm_bytes));
-    md.push_str(&format!("MP5-L reference: {} bytes ({:.1}% of PCM)\n\n", mp5l_bytes, 100.0 * mp5l_bytes as f64 / pcm_bytes as f64));
+    md.push_str(&format!(
+        "MP5-L reference: {} bytes ({:.1}% of PCM)\n\n",
+        mp5l_bytes,
+        100.0 * mp5l_bytes as f64 / pcm_bytes as f64
+    ));
 
     md.push_str("## Comparison table\n\n");
     md.push_str("| Mode | File bytes | vs PCM | vs MP5-L | vs MP5-C base | Full SNR | Quiet SNR | Clips | Bit-exact | Encode ms | Decode ms | CORR | Enhanced |\n");
@@ -273,11 +319,9 @@ fn write_report(
     }
     md.push_str("- **MP5-C alone:** research/lab only (hiss blocker).\n");
     md.push_str("- **PCM:** reference fallback.\n");
+    md.push_str("- Converter size-gates H vs pure MP5-L and emits an honest `CodecId` (never pure-L bytes labeled as MP5-H).\n");
 
-    if let (Some(h), Some(c)) = (
-        mp5h_high,
-        rows.iter().find(|r| r.mode == "MP5-C High"),
-    ) {
+    if let (Some(h), Some(c)) = (mp5h_high, rows.iter().find(|r| r.mode == "MP5-C High")) {
         md.push_str("\n### MP5-H vs MP5-C base\n\n");
         md.push_str(&format!(
             "- Hybrid total {:.2}x MP5-C base only; enhanced SNR {:.1} dB vs base {:.1} dB\n",
@@ -285,6 +329,68 @@ fn write_report(
             h.full_snr_db.unwrap_or(0.0),
             c.full_snr_db.unwrap_or(0.0)
         ));
+    }
+
+    md.push_str("\n## Base / CORR split & experiments\n\n");
+    md.push_str("| Variant | Base B | CORR B | Total | vs MP5-L | Notes |\n");
+    md.push_str("|---------|--------|--------|-------|----------|-------|\n");
+    for (name, preset) in [
+        ("Standard", mp5h_std),
+        ("High", mp5h_high),
+        ("Extreme", mp5h_ext),
+    ] {
+        if let Some(h) = preset {
+            let base_only = rows
+                .iter()
+                .find(|r| r.mode == format!("MP5-H {name} base only (no CORR)"));
+            let base_b = base_only.map(|r| r.file_bytes).unwrap_or(0);
+            let corr_b = h.file_bytes.saturating_sub(base_b);
+            md.push_str(&format!(
+                "| MP5-H {name} | {} | {} | {} | {:.2}x | fixed preset |\n",
+                base_b,
+                corr_b,
+                h.file_bytes,
+                h.ratio_vs_mp5l.unwrap_or(0.0)
+            ));
+        }
+    }
+    let preset_name = match min_preset {
+        Preset::Low => "Low",
+        Preset::Standard => "Standard",
+        Preset::High => "High",
+        Preset::Extreme => "Extreme",
+    };
+    md.push_str(&format!(
+        "| Min-size sweep | {} | {} | {} | {:.2}x | best ≥ Standard → {} |\n",
+        min_base,
+        min_corr,
+        min_total,
+        min_total as f64 / mp5l_bytes.max(1) as f64,
+        preset_name
+    ));
+    md.push_str(&format!(
+        "| C2-as-base (lab) | {} | {} | {} | {:.2}x | bit-exact={} |\n",
+        c2_base,
+        c2_corr,
+        c2_total,
+        c2_total as f64 / mp5l_bytes.max(1) as f64,
+        c2_ok
+    ));
+
+    let high_total = mp5h_high.map(|h| h.file_bytes).unwrap_or(usize::MAX);
+    md.push_str("\n### C2-as-base verdict\n\n");
+    if c2_ok && c2_total < high_total && c2_total < mp5l_bytes {
+        md.push_str(
+            "**Promote candidate (lab/advanced only):** C2-as-base H is bit-exact and smaller than both High H and MP5-L on this track.\n",
+        );
+    } else if c2_ok && c2_total < high_total {
+        md.push_str(
+            "**Lab-only interest:** C2-as-base H is bit-exact and smaller than classic-C High H, but still not smaller than MP5-L. Keep behind advanced/lab; MP5-L stays default.\n",
+        );
+    } else {
+        md.push_str(
+            "**C2 base does not beat MP5-C base for H** on this track (or failed bit-exact). Keep classic MP5-C as the H base; document and stop.\n",
+        );
     }
 
     md.push_str("\n---\n*Generated by `bench_mp5h_validation`*\n");

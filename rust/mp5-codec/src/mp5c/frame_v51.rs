@@ -103,8 +103,24 @@ pub fn encode_stereo_frame_pair(
         let (m, s) = to_mid_side_f32(left, right);
         let m_scale = quant::adaptive_step_scale(quant::frame_rms(&m), quant::frame_hf_ratio(&m));
         let s_scale = quant::adaptive_step_scale(quant::frame_rms(&s), quant::frame_hf_ratio(&s));
-        let mid_enc = encode_bands(&m, sample_rate, base_step, m_scale, preset, false, FLAG_BAND_MS);
-        let side_enc = encode_bands(&s, sample_rate, base_step, s_scale, preset, true, FLAG_BAND_MS);
+        let mid_enc = encode_bands(
+            &m,
+            sample_rate,
+            base_step,
+            m_scale,
+            preset,
+            false,
+            FLAG_BAND_MS,
+        );
+        let side_enc = encode_bands(
+            &s,
+            sample_rate,
+            base_step,
+            s_scale,
+            preset,
+            true,
+            FLAG_BAND_MS,
+        );
         let ms_peak = mid_enc.peak_err.max(side_enc.peak_err);
         let ms_bytes = mid_enc.payload.len() + side_enc.payload.len();
         if ms_peak <= limit && ms_bytes + 40 < lr_bytes {
@@ -129,7 +145,15 @@ pub fn decode_channel_frame(
     is_ms_side: bool,
 ) -> Result<Vec<f32>, String> {
     if flag == FLAG_BAND_LR || flag == FLAG_BAND_MS {
-        decode_bands(payload, frame_len, base_step, step_scale, band_scales, preset, is_ms_side)
+        decode_bands(
+            payload,
+            frame_len,
+            base_step,
+            step_scale,
+            band_scales,
+            preset,
+            is_ms_side,
+        )
     } else {
         let step = base_step * step_scale;
         let coeffs = pack_v5::unpack_frame(flag, payload, frame_len)?;
@@ -220,16 +244,11 @@ fn decode_bands(
         }
         let sub = &payload[pos..pos + sub_len];
         pos += sub_len;
-        let step = base_step
-            * frame_scale
-            * mults[i]
-            * quant::band_scale_from_u8(band_scales[i]);
+        let step = base_step * frame_scale * mults[i] * quant::band_scale_from_u8(band_scales[i]);
         let coeffs = pack_v5::unpack_frame(sub_flag, sub, frame_len)?;
         band_signals[i] = quant::dequantize(&coeffs, step);
     }
-    let merged: [Vec<f32>; NUM_BANDS] = band_signals
-        .try_into()
-        .map_err(|_| "band merge")?;
+    let merged: [Vec<f32>; NUM_BANDS] = band_signals.try_into().map_err(|_| "band merge")?;
     Ok(bands::merge_4(&merged))
 }
 

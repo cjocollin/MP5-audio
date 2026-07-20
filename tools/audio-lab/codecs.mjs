@@ -351,7 +351,20 @@ export function vnextFallbackStats(bytes) {
   const channels = bytes[2];
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let pos = v2 ? 10 : 8;
-  const tally = { unit: v2 ? "sub-block" : "block", units: 0, lossless: 0, bandQuiet: 0, lossy: 0, shaped: 0, samplesLossless: 0, samplesBandQuiet: 0, samplesLossy: 0, samplesShaped: 0 };
+  const tally = {
+    unit: v2 ? "sub-block" : "block",
+    units: 0,
+    lossless: 0,
+    bandQuiet: 0,
+    lossy: 0,
+    shaped: 0,
+    fine: 0,
+    samplesLossless: 0,
+    samplesBandQuiet: 0,
+    samplesLossy: 0,
+    samplesShaped: 0,
+    samplesFine: 0,
+  };
   while (pos + 9 <= bytes.length) {
     const tag = bytes[pos];
     const n = view.getUint32(pos + 1, true);
@@ -361,6 +374,7 @@ export function vnextFallbackStats(bytes) {
     if (tag === 0x42) { tally.bandQuiet++; tally.samplesBandQuiet += n; }
     else if (tag === 0x4c) { tally.lossless++; tally.samplesLossless += n; }
     else if (tag === 0x53) { tally.shaped++; tally.samplesShaped += n; tally.samplesLossy += n; }
+    else if (tag === 0x46) { tally.fine++; tally.samplesFine += n; tally.samplesLossy += n; } // native TAG_SR
     else { tally.lossy++; tally.samplesLossy += n; }
   }
   const totalSamples = tally.samplesLossless + tally.samplesBandQuiet + tally.samplesLossy;
@@ -523,7 +537,10 @@ export function buildModes(codec) {
             group: "prototype",
             prototype: true,
             native: true,
-            encode: (s, ch) => codec.encode_mp5c_vnext(s, ch, 2),
+            encode: (s, ch) =>
+              typeof codec.encode_mp5c_vnext_at === "function"
+                ? codec.encode_mp5c_vnext_at(s, ch, 2, 44100)
+                : codec.encode_mp5c_vnext(s, ch, 2),
             decode: (b) => codec.decode_mp5c_vnext(b),
           },
           {
@@ -532,7 +549,10 @@ export function buildModes(codec) {
             group: "prototype",
             prototype: true,
             native: true,
-            encode: (s, ch) => codec.encode_mp5c_vnext(s, ch, 3),
+            encode: (s, ch) =>
+              typeof codec.encode_mp5c_vnext_at === "function"
+                ? codec.encode_mp5c_vnext_at(s, ch, 3, 44100)
+                : codec.encode_mp5c_vnext(s, ch, 3),
             decode: (b) => codec.decode_mp5c_vnext(b),
           },
           ...(typeof codec.encode_mp5c_vnext_mdct === "function"

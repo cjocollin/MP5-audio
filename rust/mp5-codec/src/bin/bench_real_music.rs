@@ -128,7 +128,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 preset_id,
                 "MP5-C WASM v4 (experimental)",
             )?;
-            let export_path = out_dir.join(format!("{}_mp5c_{}.mp5", spec.id, label.to_lowercase()));
+            let export_path =
+                out_dir.join(format!("{}_mp5c_{}.mp5", spec.id, label.to_lowercase()));
             fs::write(&export_path, &mp5)?;
 
             let t1 = Instant::now();
@@ -136,7 +137,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let dec_ms = t1.elapsed().as_secs_f64() * 1000.0;
             let n = pcm.samples.len().min(decoded.len());
             let expected = pcm.frames_per_ch * pcm.channels as usize;
-            let duration_match = decoded.len() >= expected.saturating_sub(pcm.channels as usize * mp5c::FRAME_SIZE_V3);
+            let duration_match = decoded.len()
+                >= expected.saturating_sub(pcm.channels as usize * mp5c::FRAME_SIZE_V3);
 
             rows.push(make_row(
                 spec,
@@ -169,7 +171,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let report_path = PathBuf::from("benchmarks/real-music/REPORT.md");
     write_report(&report_path, &rows)?;
 
-    if let Some(full) = rows.iter().find(|r| r.source_id == "origami_full" && r.preset == "Standard") {
+    if let Some(full) = rows
+        .iter()
+        .find(|r| r.source_id == "origami_full" && r.preset == "Standard")
+    {
         run_origami_diagnostics(root.as_path(), full)?;
     }
     run_rate_comparison(root.as_path())?;
@@ -195,7 +200,8 @@ fn run_rate_comparison(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let native = load_flac_pcm(&flac, &spec)?;
     let resampled = resample_pcm(&native.samples, native.channels, native.sample_rate, 44100);
 
-    let mut lines = vec!["## 48 kHz native vs 44.1 kHz resampled (ORIGAMI full, Standard)\n".to_string()];
+    let mut lines =
+        vec!["## 48 kHz native vs 44.1 kHz resampled (ORIGAMI full, Standard)\n".to_string()];
     for (label, pcm, sr) in [
         ("48k native", native.samples.as_slice(), native.sample_rate),
         ("44.1k resampled", resampled.as_slice(), 44100u32),
@@ -214,7 +220,8 @@ fn run_rate_comparison(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
             (bs.len() as f64 * 8.0) / dur / 1000.0
         ));
     }
-    lines.push("\nConverter exports at 44.1 kHz may differ from native 48 kHz FLAC bench.\n".into());
+    lines
+        .push("\nConverter exports at 44.1 kHz may differ from native 48 kHz FLAC bench.\n".into());
     fs::write("benchmarks/real-music/RATE_COMPARE.md", lines.join("\n"))?;
     Ok(())
 }
@@ -377,11 +384,7 @@ fn load_flac_pcm(path: &Path, spec: &SourceSpec) -> Result<PcmData, Box<dyn std:
     let mut decoder =
         symphonia::default::get_codecs().make(&track.codec_params, &DecoderOptions::default())?;
     let sample_rate = track.codec_params.sample_rate.unwrap_or(44100);
-    let channels = track
-        .codec_params
-        .channels
-        .map(|c| c.count())
-        .unwrap_or(2) as u8;
+    let channels = track.codec_params.channels.map(|c| c.count()).unwrap_or(2) as u8;
 
     let mut planes: Vec<Vec<i16>> = (0..channels).map(|_| Vec::new()).collect();
 

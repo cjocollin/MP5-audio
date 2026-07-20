@@ -101,7 +101,7 @@ const CODEC_LABELS: Record<number, string> = {
   [CodecId.MP5C]: "MP5-C (lab)",
   [CodecId.MP5L]: "MP5-L",
   [CodecId.MP5H]: "MP5-H (hybrid)",
-  [CodecId.MP5C2]: "MP5-C vNext (lab)",
+  [CodecId.MP5C2]: "MP5-C2",
 };
 
 function metaValue(file: Mp5File, key: string): string | undefined {
@@ -219,12 +219,12 @@ export function assessMp5Compatibility(
     }
     if (codecId === CodecId.MP5C2) {
       issues.push({
-        level: "warning",
-        code: "codec_vnext_lab",
+        level: "info",
+        code: "codec_mp5c2",
         message:
-          "MP5-C vNext is an advanced/lab hybrid (lossless quiet + lossy loud). Prefer MP5-L for distribution.",
+          "MP5-C2 hybrid (quiet-lossless + SR loud). Prefer MP5-L for bit-exact distribution.",
       });
-      warnings.push("MP5-C vNext lab codec — advanced export");
+      warnings.push("MP5-C2 — hybrid export (not default)");
     }
     if (codecId === CodecId.MP5H && !file.corr.length) {
       issues.push({

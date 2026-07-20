@@ -147,7 +147,11 @@ Run `pnpm dev` → Player → open `{}` or Desktop copy.
         dec_ms,
         if bit_exact { "yes" } else { "NO" },
         max_diff,
-        if bit_exact { "none expected" } else { "possible — investigate" },
+        if bit_exact {
+            "none expected"
+        } else {
+            "possible — investigate"
+        },
         bitstream[1],
         meta_lines,
         encoder,
@@ -187,7 +191,10 @@ fn load_flac(path: &Path) -> Result<Pcm, Box<dyn std::error::Error>> {
 
     let mut meta = HashMap::new();
     if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-        meta.insert("title".to_string(), stem.replace('-', " ").trim().to_string());
+        meta.insert(
+            "title".to_string(),
+            stem.replace('-', " ").trim().to_string(),
+        );
     }
 
     let mut format = probed.format;
@@ -265,10 +272,8 @@ fn write_mp5(
     audi_wr.push(0);
     audi_wr.extend_from_slice(audi);
 
-    let mut entries: Vec<(&str, &str)> = meta
-        .iter()
-        .map(|(k, v)| (k.as_str(), v.as_str()))
-        .collect();
+    let mut entries: Vec<(&str, &str)> =
+        meta.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
     if !entries.iter().any(|(k, _)| *k == "title") {
         entries.push(("title", title));
     }
