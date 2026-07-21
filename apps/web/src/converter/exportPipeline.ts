@@ -24,6 +24,15 @@ export const EXPORT_PHASE_LABELS: Record<ExportPhase, string> = {
   ready: "Ready to download",
 };
 
+/** Approximate overall progress when each phase begins. Encoding is the long pole. */
+export const EXPORT_PHASE_PERCENT: Record<ExportPhase, number> = {
+  "building-waveform": 8,
+  "writing-metadata": 20,
+  encoding: 35,
+  validating: 85,
+  ready: 100,
+};
+
 export const LOAD_PHASE_LABELS = {
   decoding: "Decoding source audio…",
   extracting: "Extracting metadata…",
@@ -62,11 +71,21 @@ function phaseLabel(codec: OutputCodec, phase: ExportPhase): string {
   return EXPORT_PHASE_LABELS[phase];
 }
 
+/** Lets the browser paint between phases when the pipeline runs on the main thread. */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 export async function runExportPipeline(
   input: ExportPipelineInput,
-  onPhase: (phase: ExportPhase, label: string) => void,
+  onPhase: (phase: ExportPhase, label: string, percent: number) => void,
 ): Promise<ExportPipelineResult> {
-  onPhase("building-waveform", phaseLabel(input.codec, "building-waveform"));
+  const report = (phase: ExportPhase, label?: string) => {
+    onPhase(phase, label ?? phaseLabel(input.codec, phase), EXPORT_PHASE_PERCENT[phase]);
+    return yieldToEventLoop();
+  };
+
+  await report("building-waveform");
   const wave = generateWaveform(input.pcm.samples, input.pcm.channels);
   const overrides = buildOverridesFromEdits(input.edits);
   const bundle = buildExportMetadataBundle(input.extracted, overrides, {
@@ -74,8 +93,7 @@ export async function runExportPipeline(
     rms: wave.rms,
   });
 
-  onPhase("encoding", phaseLabel(input.codec, "encoding"));
-  onPhase("writing-metadata", phaseLabel(input.codec, "writing-metadata"));
+  await report("writing-metadata");
 
   let optional = bundle.optional;
   let extraChunks: { fourcc: string; payload: Uint8Array }[] | undefined;
@@ -90,6 +108,7 @@ export async function runExportPipeline(
     }
   }
 
+  await report("encoding");
   let mp5 = await convertToMp5({
     samples: input.pcm.samples,
     sampleRate: input.pcm.sampleRate,
@@ -102,7 +121,7 @@ export async function runExportPipeline(
     extraChunks,
   });
 
-  onPhase("validating", phaseLabel(input.codec, "validating"));
+  await report("validating");
   let validated = parseMp5(mp5);
   validateParsedFile(validated, 16);
 
@@ -139,7 +158,7 @@ export async function runExportPipeline(
     }
   }
 
-  onPhase("ready", "Export complete — ready to download");
+  await report("ready", "Export complete — ready to download");
 
   return { mp5, bundle, exportCodec: input.codec, fingerprintWarning };
 }

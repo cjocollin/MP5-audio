@@ -1,3 +1,4 @@
+import wasmUrl from "./pkg/mp5_codec_bg.wasm?url";
 import init, {
   Mp5lStreamDecoder,
   decode_mp5c,
@@ -62,9 +63,13 @@ export function isWasmCodecReady(): boolean {
 }
 
 async function tryLoadWasmModule(): Promise<CodecModule | null> {
-  if (typeof window === "undefined") return null;
+  const inWindow = typeof window !== "undefined";
+  const inWorker =
+    typeof self !== "undefined" &&
+    typeof (self as { importScripts?: unknown }).importScripts !== "undefined";
+  if (!inWindow && !inWorker) return null;
   try {
-    await init();
+    await init({ module_or_path: wasmUrl });
     return {
       encode_mp5l,
       encode_mp5l_v4,
