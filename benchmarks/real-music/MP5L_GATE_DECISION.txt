@@ -1,1 +1,6 @@
 PROMOTE_V4
+# Restored after 2026-07-21 multi-genre reseed attempt wrote PROVISIONAL_HELD_OUT / KEEP_V3_NEAR.
+# That run had N=19 (altpop_origami_full filtered by origami name rule) so provisional=true.
+# Size on those 19 rows: median 0.997x flac-5, worst 1.002x — not a formal PASS/MISS.
+# Product default remains mp5l_v4 from prior PROMOTE_V4 (Kesha+ORIGAMI held-out).
+# Re-run with >=20 non-origami held-out names for a formal multi-genre decision.

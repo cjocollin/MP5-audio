@@ -331,6 +331,15 @@ input[type="range"] {
     display: none;
   }
 
+  .mp5-stems-list-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .mp5-stems-list-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
   .mp5-import-summary {
     @apply fixed right-5 top-24 z-[70] max-w-sm shadow-2xl;
     border-color: var(--mp5-border-strong);
@@ -357,7 +366,7 @@ input[type="range"] {
 
   .mp5-player-sidebar {
     grid-area: sidebar;
-    @apply sticky flex flex-col space-y-3 rounded-lg border p-3;
+    @apply sticky flex flex-col gap-3 rounded-lg border p-3;
     align-self: stretch;
     height: auto;
     overflow-y: auto;
@@ -1055,8 +1064,11 @@ input[type="range"] {
     @apply flex max-w-[210px] flex-col items-center;
   }
 
-  .mp5-player-sidebar > .mp5-file-drop-zone {
-    margin-top: auto !important;
+  .mp5-player-sidebar > .mp5-sidebar-drop-slot {
+    /* Push drop zone down when sidebar has spare height; padding keeps a floor
+       gap from the queue list outside the dashed border. */
+    margin-top: auto;
+    padding-top: 0.75rem;
   }
 
   .mp5-player-sidebar .mp5-sidebar-album-creator [data-testid="create-album-hint"] {
@@ -1547,6 +1559,7 @@ input[type="range"] {
     @apply py-0.5;
   }
 
+  .mp5-player-sidebar > .mp5-sidebar-drop-slot,
   .mp5-player-sidebar > .mp5-file-drop-zone,
   .mp5-player-sidebar > .mp5-experimental-card {
     @apply hidden;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mp5File } from "@mp5/container";
-import { stemTypeLabel, type StemAvailabilityStatus, type StemDescriptor } from "@mp5/container";
+import { CodecId, stemTypeLabel, type StemAvailabilityStatus, type StemDescriptor } from "@mp5/container";
 import { codecLabel } from "../lib/codecDisplay";
 import {
   stemDownloadHelp,
@@ -841,7 +841,7 @@ export function StemsPanel({
       </div>
 
       <ul
-        className="space-y-2 max-h-[min(50vh,22rem)] sm:max-h-[min(60vh,28rem)] overflow-y-auto overscroll-contain pr-0.5"
+        className="space-y-2 max-h-[min(50vh,22rem)] sm:max-h-[min(60vh,28rem)] overflow-y-auto overscroll-contain mp5-stems-list-scroll"
         data-testid="stems-list"
       >
         {parsedStems.stems.map((stem, index) => {
@@ -869,10 +869,22 @@ export function StemsPanel({
             availability: avail?.status,
             stemMixActive: stemMixActive && mixMode !== "full_mix",
           });
+          const showAvailability =
+            !loaded ||
+            avail?.status === "missing_fragments" ||
+            avail?.status === "partial_fragments";
+          const gainPct = Math.round((ui?.gain ?? 1) * 100);
+          const stemCodec =
+            stem.codecId === CodecId.MP5L
+              ? "MP5-L"
+              : stem.codecId === CodecId.PCM
+                ? "PCM"
+                : codecLabel(stem.codecId);
+
           return (
             <li
               key={stem.stemId}
-              className={`rounded-lg border p-3 space-y-2 ${
+              className={`rounded-lg border p-3 space-y-2.5 ${
                 controlStatus.audible
                   ? "border-accent/40 bg-accent/10"
                   : "border-white/5 bg-surface/40"
@@ -882,8 +894,8 @@ export function StemsPanel({
               data-stem-loaded={loaded ? "true" : "false"}
               data-stem-audible={controlStatus.audible ? "true" : "false"}
             >
-              <div className="flex flex-wrap justify-between gap-1">
-                <label className="flex items-center gap-2 text-sm text-gray-200 flex-wrap">
+              <div className="space-y-1 min-w-0">
+                <label className="flex items-center gap-2 text-sm text-gray-200 min-w-0">
                   <input
                     type="checkbox"
                     checked={ui?.selected ?? false}
@@ -891,13 +903,16 @@ export function StemsPanel({
                     disabled={preparing && ui?.preparing}
                     data-testid="stems-item-select"
                     aria-label={`Select ${stem.stemName} for stem mix`}
+                    className="shrink-0"
                   />
-                  <span data-testid="stems-item-name">{stem.stemName}</span>
-                  <span className="flex flex-wrap gap-1" data-testid="stems-item-badges">
+                  <span className="font-medium truncate" data-testid="stems-item-name">
+                    {stem.stemName}
+                  </span>
+                  <span className="flex flex-wrap gap-1 min-w-0" data-testid="stems-item-badges">
                     {badges.map((b) => (
                       <span
                         key={b}
-                        className={`text-[10px] px-1 rounded border ${
+                        className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${
                           b === "active"
                             ? "border-accent/40 text-accent/90"
                             : b === "preparing"
@@ -914,28 +929,36 @@ export function StemsPanel({
                       </span>
                     ))}
                   </span>
-                  <span
-                    className={`text-[10px] ${
-                      avail?.status === "missing_fragments" || avail?.status === "partial_fragments"
-                        ? "text-amber-300/90"
-                        : "text-gray-500"
-                    }`}
-                    data-testid="stems-item-availability"
-                  >
-                    {availLabel}
-                    {avail && avail.indexedFragmentCount > 0 && !loaded
-                      ? ` · ${avail.indexedFragmentCount} frags`
-                      : ""}
-                  </span>
                 </label>
-                <span className="text-[10px] text-gray-500">
-                  {stemTypeLabel(stem.stemType)} · {codecLabel(stem.codecId)} ·{" "}
+                <p className="text-[10px] text-gray-500 pl-6 leading-relaxed">
+                  {stemTypeLabel(stem.stemType)} · {stemCodec} ·{" "}
                   {formatDuration(stemDurationSec(stem))} · ~
                   {Math.round(estimateStemDecodedBytes(stem) / (1024 * 1024))} MB
-                </span>
+                  {showAvailability ? (
+                    <span
+                      className={
+                        avail?.status === "missing_fragments" ||
+                        avail?.status === "partial_fragments"
+                          ? " text-amber-300/90"
+                          : ""
+                      }
+                      data-testid="stems-item-availability"
+                    >
+                      {" · "}
+                      {availLabel}
+                      {avail && avail.indexedFragmentCount > 0 && !loaded
+                        ? ` · ${avail.indexedFragmentCount} frags`
+                        : ""}
+                    </span>
+                  ) : (
+                    <span className="sr-only" data-testid="stems-item-availability">
+                      {availLabel}
+                    </span>
+                  )}
+                </p>
               </div>
               <div
-                className={`text-[10px] ${
+                className={`text-[10px] pl-6 ${
                   controlStatus.audible
                     ? "text-accent/90"
                     : controlStatus.disabledReason
@@ -946,7 +969,7 @@ export function StemsPanel({
               >
                 {controlStatus.label}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 pl-6">
                 <button
                   type="button"
                   className="px-3 py-1.5 min-h-9 rounded-lg text-xs border border-accent/30 text-accent disabled:opacity-40"
@@ -967,19 +990,6 @@ export function StemsPanel({
                     Unload
                   </button>
                 )}
-                <label className="flex items-center gap-1 text-xs text-gray-500 flex-1 min-w-[100px]">
-                  Vol
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={Math.round((ui?.gain ?? 1) * 100)}
-                    onChange={(e) => handleGainChange(stem.stemId, Number(e.target.value) / 100)}
-                    disabled={!loaded}
-                    className="h-8 flex-1"
-                    data-testid="stems-item-volume"
-                  />
-                </label>
                 <button
                   type="button"
                   className={`px-3 py-1.5 min-h-9 rounded-lg text-xs border ${
@@ -1001,6 +1011,23 @@ export function StemsPanel({
                   Download
                 </button>
               </div>
+              <label className="flex items-center gap-2 pl-6 min-w-0 w-full text-xs text-gray-500">
+                <span className="shrink-0 w-7">Vol</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={gainPct}
+                  onChange={(e) => handleGainChange(stem.stemId, Number(e.target.value) / 100)}
+                  disabled={!loaded}
+                  className="h-8 min-w-0 flex-1 accent-[var(--color-accent,#a78bfa)]"
+                  data-testid="stems-item-volume"
+                  aria-label={`${stem.stemName} volume`}
+                />
+                <span className="shrink-0 w-9 text-right tabular-nums text-gray-400" aria-hidden>
+                  {gainPct}%
+                </span>
+              </label>
             </li>
           );
         })}

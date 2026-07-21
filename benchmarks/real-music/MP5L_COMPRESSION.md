@@ -1,48 +1,47 @@
 # MP5-L compression benchmark (FLAC A/B)
 
-Generated: 2026-07-21 · N held-out independent masters = 20 · primary table rows: 20 · provisional: false · tool: `ffmpeg version 8.1.1-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers`
+Generated: 2026-07-21 · N held-out independent masters = 19 · primary table rows: 19 · provisional: true · tool: `ffmpeg version 8.1.1-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers`
 
 **Primary gate:** median **MP5-L v4** size **&lt; 1.00×** FFmpeg `flac -compression_level 5` on identical 16-bit PCM; no track worse than **1.20×**; bit-exact; held-out ≥20 independent masters.
 See `corpus/CORPUS_MANIFEST.md`. Never claim “beats FLAC” until gate is green on held-out.
 Lab listening refs and ORIGAMI slices never count toward the ≥20 master gate.
 
-## Gate status: PASS — beats FFmpeg flac -5 median on multi-genre held-out; eligible to promote v4 default
+## Gate status: PROVISIONAL — held-out &lt;20 independent masters (or hash freeze incomplete); keep **v3 default**; do not claim beats FLAC
 
-- Median v4 / FFmpeg flac -5: **0.989×** (beat &lt; 1.00×; near ≤ 1.05×)
-- Worst v4 / FFmpeg flac -5: **0.999×** (target ≤ 1.20×)
+- Median v4 / FFmpeg flac -5: **0.997×** (beat &lt; 1.00×; near ≤ 1.05×)
+- Worst v4 / FFmpeg flac -5: **1.002×** (target ≤ 1.20×)
 - Bit-exact (v3+v4): yes
-- Default encoder: **MP5-L v4 (promoted)**
+- Default encoder: **MP5-L v3 (unchanged)**
 
 ## Primary (held-out / formal)
 
 | Track | Kind | s | v3 | v4 | flac5 | flac8 | v3/f5 | v4/f5 | v4/f8 | ×PCM v4 | v4 ms | ×RT v4 | raw%v4 | QLP% | pred% | Exact |
 |-------|------|--:|---:|---:|------:|------:|------:|------:|------:|--------:|------:|-------:|-------:|-----:|------:|:-----:|
-| altpop_mm_00 | held-out | 8.0 | 929931 | 859333 | 911241 | 907407 | 1.021 | 0.943 | 0.947 | 0.559 | 2376 | 3.4 | 0.00 | 51.1 | 8.4 | yes |
-| altpop_mm_01 | held-out | 8.0 | 1058095 | 982582 | 1011796 | 994671 | 1.046 | 0.971 | 0.988 | 0.640 | 1944 | 4.1 | 0.00 | 54.3 | 2.1 | yes |
-| altpop_mm_02 | held-out | 8.0 | 1175969 | 1111917 | 1131461 | 1120367 | 1.039 | 0.983 | 0.992 | 0.724 | 2143 | 3.7 | 0.00 | 56.1 | 1.1 | yes |
-| altpop_mm_03 | held-out | 8.0 | 1212291 | 1150654 | 1159424 | 1151817 | 1.046 | 0.992 | 0.999 | 0.749 | 2287 | 3.5 | 0.00 | 50.5 | 0.0 | yes |
-| altpop_mm_04 | held-out | 8.0 | 1200513 | 1125395 | 1139801 | 1127136 | 1.053 | 0.987 | 0.998 | 0.733 | 2158 | 3.7 | 0.00 | 54.5 | 0.0 | yes |
-| altpop_mm_05 | held-out | 8.0 | 1342934 | 1284955 | 1286880 | 1283417 | 1.044 | 0.999 | 1.001 | 0.837 | 2607 | 3.1 | 0.00 | 51.1 | 0.0 | yes |
-| altpop_mm_06 | held-out | 8.0 | 1117442 | 1055269 | 1081104 | 1074334 | 1.034 | 0.976 | 0.982 | 0.687 | 2441 | 3.3 | 0.00 | 50.0 | 8.5 | yes |
-| altpop_mm_07 | held-out | 8.0 | 1102736 | 1013101 | 1044736 | 1026382 | 1.056 | 0.970 | 0.987 | 0.660 | 2021 | 4.0 | 0.00 | 50.8 | 1.6 | yes |
-| altpop_mm_08 | held-out | 8.0 | 1269089 | 1192373 | 1207228 | 1195381 | 1.051 | 0.988 | 0.997 | 0.776 | 2347 | 3.4 | 0.00 | 52.9 | 0.0 | yes |
-| altpop_mm_09 | held-out | 8.0 | 1276794 | 1212969 | 1219000 | 1213534 | 1.047 | 0.995 | 1.000 | 0.790 | 2297 | 3.5 | 0.00 | 49.7 | 0.0 | yes |
-| pop_kesha_01_01-freedom | held-out | 90.0 | 4724217 | 4194758 | 4205456 | 4173790 | 1.123 | 0.997 | 1.005 | 0.243 | 22753 | 4.0 | 0.00 | 68.6 | 0.7 | yes |
-| pop_kesha_02_02-joyride | held-out | 90.0 | 10386410 | 9520146 | 9628126 | 9474573 | 1.079 | 0.989 | 1.005 | 0.551 | 21530 | 4.2 | 0.00 | 65.7 | 0.5 | yes |
-| pop_kesha_03_04-delusional | held-out | 90.0 | 11287875 | 10145571 | 10221512 | 10054555 | 1.104 | 0.993 | 1.009 | 0.587 | 21065 | 4.3 | 0.00 | 57.3 | 0.2 | yes |
-| pop_kesha_04_05-red-flag | held-out | 90.0 | 9702072 | 8914807 | 9089967 | 8902622 | 1.067 | 0.981 | 1.001 | 0.516 | 29148 | 3.1 | 0.00 | 58.2 | 1.4 | yes |
-| pop_kesha_05_06-love-forever | held-out | 90.0 | 9171038 | 7986292 | 8118357 | 7967789 | 1.130 | 0.984 | 1.002 | 0.462 | 22517 | 4.0 | 0.00 | 54.7 | 0.2 | yes |
-| pop_kesha_06_07-the-one | held-out | 90.0 | 9861085 | 8912093 | 8959907 | 8813483 | 1.101 | 0.995 | 1.011 | 0.516 | 24724 | 3.6 | 0.00 | 66.1 | 0.1 | yes |
-| pop_kesha_07_08-boy-crazy | held-out | 90.0 | 9912944 | 9148812 | 9243525 | 9084687 | 1.072 | 0.990 | 1.007 | 0.529 | 24263 | 3.7 | 0.00 | 75.5 | 0.5 | yes |
-| pop_kesha_08_09-glow | held-out | 90.0 | 9069780 | 8257154 | 8366651 | 8200272 | 1.084 | 0.987 | 1.007 | 0.478 | 23617 | 3.8 | 0.00 | 53.8 | 0.9 | yes |
-| pop_kesha_09_10-too-hard | held-out | 90.0 | 9648549 | 8905879 | 8976502 | 8830707 | 1.075 | 0.992 | 1.009 | 0.515 | 23959 | 3.8 | 0.00 | 53.7 | 0.8 | yes |
-| pop_kesha_10_11-cathedral | held-out | 90.0 | 7155522 | 6181044 | 6252281 | 6114233 | 1.144 | 0.989 | 1.011 | 0.358 | 23671 | 3.8 | 0.00 | 51.9 | 1.3 | yes |
+| alt_hades_avoidant | held-out | 90.0 | 11691604 | 10422599 | 10457669 | 10338546 | 1.118 | 0.997 | 1.008 | 0.603 | 30215 | 3.0 | 0.00 | 61.0 | 0.0 | yes |
+| alt_hades_avoidant_b | held-out | 90.0 | 11846826 | 10548800 | 10594728 | 10465279 | 1.118 | 0.996 | 1.008 | 0.610 | 29363 | 3.1 | 0.00 | 57.2 | 0.0 | yes |
+| alt_hades_grudges | held-out | 90.0 | 12632087 | 11609885 | 11697633 | 11560222 | 1.080 | 0.992 | 1.004 | 0.672 | 32407 | 2.8 | 0.00 | 60.5 | 1.5 | yes |
+| alt_hades_grudges_b | held-out | 90.0 | 12097080 | 11112322 | 11212904 | 11070012 | 1.079 | 0.991 | 1.004 | 0.643 | 31263 | 2.9 | 0.00 | 54.4 | 3.0 | yes |
+| alt_hades_is_this_a_cult | held-out | 90.0 | 11415901 | 9792623 | 9879834 | 9699116 | 1.155 | 0.991 | 1.010 | 0.567 | 29088 | 3.1 | 0.00 | 58.1 | 0.0 | yes |
+| edm_illenium_good_things | held-out | 90.0 | 13719107 | 12904155 | 12882164 | 12854177 | 1.065 | 1.002 | 1.004 | 0.747 | 33593 | 2.7 | 0.00 | 65.8 | 0.1 | yes |
+| edm_illenium_good_things_b | held-out | 90.0 | 13620951 | 12839381 | 12816527 | 12790462 | 1.063 | 1.002 | 1.004 | 0.743 | 35093 | 2.6 | 0.00 | 65.7 | 0.1 | yes |
+| hiphop_nicki_itty_bitty | held-out | 90.0 | 12567145 | 10752104 | 11268752 | 10832613 | 1.115 | 0.954 | 0.993 | 0.622 | 25136 | 3.6 | 0.00 | 58.1 | 0.3 | yes |
+| hiphop_nicki_only | held-out | 90.0 | 11587228 | 10514570 | 10604410 | 10501157 | 1.093 | 0.992 | 1.001 | 0.608 | 690233 | 0.1 | 0.00 | 55.5 | 0.0 | yes |
+| kpop_huntrx_takedown | held-out | 90.0 | 13630603 | 12595055 | 12671780 | 12548957 | 1.076 | 0.994 | 1.004 | 0.729 | 30317 | 3.0 | 0.00 | 58.4 | 0.4 | yes |
+| kpop_huntrx_takedown_b | held-out | 90.0 | 13226900 | 12204419 | 12245866 | 12126476 | 1.080 | 0.997 | 1.006 | 0.706 | 29890 | 3.0 | 0.00 | 60.9 | 0.0 | yes |
+| kpop_sajaboys_your_idol | held-out | 90.0 | 13930326 | 12845602 | 12888971 | 12801880 | 1.081 | 0.997 | 1.003 | 0.743 | 32786 | 2.7 | 0.00 | 66.1 | 0.2 | yes |
+| kpop_sajaboys_your_idol_b | held-out | 90.0 | 13753128 | 12662019 | 12666916 | 12597793 | 1.086 | 1.000 | 1.005 | 0.733 | 32980 | 2.7 | 0.00 | 69.4 | 0.0 | yes |
+| pop_bellion_jim_morrison | held-out | 90.0 | 11357450 | 9617699 | 10048037 | 9614510 | 1.130 | 0.957 | 1.000 | 0.557 | 26881 | 3.3 | 0.00 | 57.9 | 0.0 | yes |
+| pop_bellion_jim_morrison_b | held-out | 90.0 | 11254604 | 9511107 | 9922501 | 9496254 | 1.134 | 0.959 | 1.002 | 0.550 | 26197 | 3.4 | 0.00 | 62.3 | 0.0 | yes |
+| pop_britney_break_the_ice | held-out | 90.0 | 14271843 | 13264942 | 13297023 | 13199169 | 1.073 | 0.998 | 1.005 | 0.768 | 30703 | 2.9 | 0.00 | 65.2 | 0.2 | yes |
+| pop_britney_get_naked | held-out | 90.0 | 13805277 | 12903587 | 12939589 | 12843449 | 1.067 | 0.997 | 1.005 | 0.747 | 32085 | 2.8 | 0.00 | 54.4 | 0.2 | yes |
+| pop_britney_gimme_more | held-out | 90.0 | 13041528 | 12133066 | 12160806 | 12072501 | 1.072 | 0.998 | 1.005 | 0.702 | 32574 | 2.8 | 0.00 | 71.0 | 0.8 | yes |
+| pop_britney_gimme_more_b | held-out | 90.0 | 12942164 | 12250887 | 12257295 | 12163131 | 1.056 | 0.999 | 1.007 | 0.709 | 33683 | 2.7 | 0.00 | 67.3 | 0.4 | yes |
 
 ## Notes
 
 - Layout: `corpus/held-out/` formal, `corpus/tuning/` + ORIGAMI smoke, lab/synth secondary.
 - v4 encoder: QLP, predicted i32 side, escape-aware Rice; experimental disposable bitstream until freeze.
-- QLP warm-up totals: **4798544 verbatim bits** vs **6463656 Rice counterfactual bits** across all tables.
+- QLP warm-up totals: **8566064 verbatim bits** vs **13419039 Rice counterfactual bits** across all tables.
 - Raw-block % is a fallback-rate proxy (verify-then-raw must stay near 0%).
 
 ---

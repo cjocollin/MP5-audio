@@ -2133,11 +2133,13 @@ export function Mp5Player({
             album={activeAlbum}
             hydratingTrackId={embeddedHydratingTrackId}
           />
-          <FileDropZone
-            testId="player-file-input"
-            label="Drag MP5 or .mp5p files here"
-            onFiles={(files) => void handleFiles(files)}
-          />
+          <div className="mp5-sidebar-drop-slot">
+            <FileDropZone
+              testId="player-file-input"
+              label="Drag MP5 or .mp5p files here"
+              onFiles={(files) => void handleFiles(files)}
+            />
+          </div>
           <div className="mp5-experimental-card">
             <TestTube size={22} aria-hidden />
             <div>
