@@ -16,7 +16,8 @@ import {
 } from "../converter/manualMetadata";
 import { buildExportFilename } from "../converter/exportFilename";
 import { buildExportSummary, type ExportSummary } from "../converter/exportSummary";
-import { LOAD_PHASE_LABELS, runExportPipeline } from "../converter/exportPipeline";
+import { LOAD_PHASE_LABELS } from "../converter/exportPipeline";
+import { runExportPipelineOffThread } from "../converter/exportPipelineClient";
 import { importMp5ToPlayer } from "./playerImport";
 import { saveMp5ToLibrary } from "../lib/localLibrary/api";
 import { buildSingleExportSummaryText } from "../lib/album/exportReview";
@@ -108,6 +109,7 @@ export function ConverterPanel() {
   const [labCodecsOpen, setLabCodecsOpen] = useState(false);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const [exportProgress, setExportProgress] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [loadState, setLoadState] = useState(getCodecLoadState());
@@ -619,11 +621,14 @@ export function ConverterPanel() {
     setError("");
     setExportDone(false);
     setExportSummary(null);
+    setExportProgress(0);
     const exportGen = useConversionStore.getState().cancelGeneration;
+    const controller = new AbortController();
+    abortRef.current = controller;
     setSinglePhase("exporting", pending.file.name);
     try {
       const exportCodec = codecUnavailable ? "pcm" : codec;
-      const { mp5, bundle, fingerprintWarning } = await runExportPipeline(
+      const { mp5, bundle, fingerprintWarning } = await runExportPipelineOffThread(
         {
           pcm: pending.pcm,
           extracted: pending.extracted,
@@ -633,7 +638,11 @@ export function ConverterPanel() {
           sourceBytes: pending.file.size,
           stems: stems.length ? stems : undefined,
         },
-        (_phase, label) => setStatus(label),
+        (_phase, label, percent) => {
+          setStatus(label);
+          setExportProgress(percent);
+        },
+        { signal: controller.signal },
       );
 
       const validated = await import("@mp5/container").then((m) => m.parseMp5(mp5));
@@ -670,9 +679,15 @@ export function ConverterPanel() {
       downloadBlob(blob, filename);
       setStatus("Export complete — ready to download or open in player.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setStatus("");
+      if (e instanceof DOMException && e.name === "AbortError") {
+        setStatus("Export cancelled — no download.");
+      } else {
+        setError(e instanceof Error ? e.message : String(e));
+        setStatus("");
+      }
     } finally {
+      abortRef.current = null;
+      setExportProgress(null);
       setBusy(false);
       resetSingle();
     }
@@ -1009,6 +1024,24 @@ export function ConverterPanel() {
         </label>
       </div>
 
+      {busy && exportProgress !== null && (
+        <div
+          className="flex flex-col gap-1.5"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={exportProgress}
+          aria-label="Export progress"
+          data-testid="export-progress"
+        >
+          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out animate-pulse"
+              style={{ width: `${Math.max(exportProgress, 3)}%` }}
+            />
+          </div>
+        </div>
+      )}
       {busy && status && (
         <p className="text-sm text-accent" data-testid="convert-busy">
           {status}

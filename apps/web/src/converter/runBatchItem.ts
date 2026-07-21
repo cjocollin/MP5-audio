@@ -1,7 +1,7 @@
 import { decodeSourceToPcm } from "./decodeSourceToPcm";
 import { extractSourceMetadata } from "./extractSourceMetadata";
 import { manualEditsFromSource, type ManualMetadataEdits } from "./manualMetadata";
-import { runExportPipeline } from "./exportPipeline";
+import { runExportPipelineOffThread } from "./exportPipelineClient";
 import { decodeFailureHint } from "./supportedSources";
 import {
   batchOutputFilename,
@@ -73,7 +73,7 @@ export async function runBatchItemConversion(
       outputFilename,
     });
 
-    const { mp5 } = await runExportPipeline(
+    const { mp5 } = await runExportPipelineOffThread(
       {
         pcm,
         extracted,
@@ -83,7 +83,6 @@ export async function runBatchItemConversion(
         sourceBytes: file.size,
       },
       (phase) => {
-        checkAborted();
         report({
           status: mapExportPhaseToBatchStatus(phase),
           detectedTitle,
@@ -91,6 +90,7 @@ export async function runBatchItemConversion(
           outputFilename,
         });
       },
+      { signal: opts.signal },
     );
 
     checkAborted();
