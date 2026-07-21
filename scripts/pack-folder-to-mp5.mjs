@@ -175,7 +175,7 @@ for (let i = 0; i < files.length; i++) {
       { key: "artist", value: artist },
     ],
     cover,
-    audioFrames: [{ frameIndex: 0, timeType: 0, flags: 0, data: bits }],
+    audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: bits }],
     seek: [{ sampleOffset: 0n, byteOffset: 0n }],
     waveform: peaksFromSamples(pcm.samples, pcm.channels),
     info: [{ key: "encoder", value: "MP5-L WASM v4 (lossless · default · bit-exact) · flac-mp5 batch" }],

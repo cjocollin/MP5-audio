@@ -241,7 +241,7 @@ function packSong(song) {
       { key: "genre", value: "K-Pop" },
     ],
     cover,
-    audioFrames: [{ frameIndex: 0, timeType: 0, flags: 0, data: mixBits }],
+    audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: mixBits }],
     seek: [{ sampleOffset: 0n, byteOffset: 0n }],
     waveform: peaks,
     info: [

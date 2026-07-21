@@ -74,8 +74,8 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
       hBase = wrapped;
     }
 
-    const hFrames: AudioFrame[] = [{ frameIndex: 0, timeType: 0, flags: 0, data: hBase }];
-    const lFrames: AudioFrame[] = [{ frameIndex: 0, timeType: 0, flags: 0, data: lBitstream }];
+    const hFrames: AudioFrame[] = [{ frameIndex: 0, blockType: 0, flags: 0, data: hBase }];
+    const lFrames: AudioFrame[] = [{ frameIndex: 0, blockType: 0, flags: 0, data: lBitstream }];
     const totalSamples = BigInt(Math.floor(opts.samples.length / ch));
     const wave = generateWaveform(opts.samples, ch);
     const meta =
