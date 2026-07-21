@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
+import { loadDemoFromSettings } from "./helpers/demoFixtures";
 
 const pcmFixture = path.join(process.cwd(), "test-fixtures", "validation_pcm_slice.mp5");
 const mp5lFixture = path.join(process.cwd(), "test-fixtures", "validation_mp5l_v3.mp5");
@@ -30,21 +31,22 @@ test.describe("MP5 player playback", () => {
     return seek;
   }
 
-  test("shows the seeded Player and codec helper on first load", async ({ page }) => {
-    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
-    await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
-    await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
-    await expect(page.getByTestId("now-playing-badges")).toContainText("Bit-exact");
+  test("shows an empty Player and codec helper on first load", async ({ page }) => {
+    await expect(page.getByTestId("player-empty-state")).toBeVisible();
+    await expect(page.getByTestId("playlist-item")).toHaveCount(0);
+    await expect(page.getByTestId("demo-fixture-actions")).toHaveCount(0);
     await openFormatInspector(page);
     await expect(page.getByTestId("codec-modes-helper")).toBeVisible();
   });
 
-  test("loads the default demo fixture from the fixtures URL when available", async ({ page }) => {
+  test("loads the synthetic demo fixture from Settings when available", async ({ page }) => {
     const demoPath = path.join(process.cwd(), "test-fixtures", "demo_mp5l_v3_tone.mp5");
     test.skip(!fs.existsSync(demoPath), "run pnpm fixtures:generate first");
-    await expect
-      .poll(async () => page.getByTestId("playlist-item").count(), { timeout: 15_000 })
-      .toBeGreaterThan(0);
+    await loadDemoFromSettings(page);
+    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("Bit-exact");
     await openFormatInspector(page);
     await expect(page.getByTestId("codec-label")).toContainText(/MP5-L/i);
   });

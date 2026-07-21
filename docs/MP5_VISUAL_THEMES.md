@@ -1,6 +1,6 @@
 # MP5 Visual Themes (VISU)
 
-**Version:** MP5 Audio v0.27.0-beta  
+**Version:** MP5 Audio v0.28.0-beta  
 **Status:** Optional display metadata
 
 The optional `VISU` chunk lets a file suggest player colors and mood without affecting audio decode, playback transport, volume, codec policy, or file semantics.

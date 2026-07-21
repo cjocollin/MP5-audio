@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "path";
 import fs from "fs";
+import { loadDemoFromSettings } from "./helpers/demoFixtures";
 
 const MOBILE = { width: 390, height: 844 };
 const STEM_DEMO = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_stems.mp5");
@@ -43,9 +44,7 @@ async function assertCoverContainedInCard(page: import("@playwright/test").Page)
 }
 
 async function loadStemsDemo(page: import("@playwright/test").Page) {
-  await page.getByTestId("app-tab-demo").click();
-  await page.getByTestId("demo-load-stems-demo").click();
-  await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");
+  await loadDemoFromSettings(page, { mode: "stems" });
 }
 
 test.describe("VISU / cover mobile containment", () => {

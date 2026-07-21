@@ -41,7 +41,7 @@ export function guidanceForTarget(target: BatchAlbumExportTarget): PackageModeGu
 
 /** Concise, honest reminders shown on the export review step. */
 export const EXPORT_REVIEW_NOTES = {
-  mp5lRecommended: "MP5-L v3 is the recommended lossless, bit-exact default.",
+  mp5lRecommended: "MP5-L v4 is the recommended lossless, bit-exact default.",
   mp5cLabOnly: "MP5-C is an experimental lab codec — not recommended for distribution.",
   browserLocal: "All processing happens locally in your browser — nothing is uploaded.",
   keepOriginals: "Keep your original source files backed up — exports do not replace them.",

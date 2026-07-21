@@ -53,7 +53,7 @@ export type DiagnosticsReportInput = {
 };
 
 const SUPPORTED_FEATURES = [
-  "MP5-L v3 playback and export (recommended)",
+  "MP5-L v4 playback and export (recommended)",
   "MP5-C / MP5-H lab modes",
   "Stems and karaoke (experimental)",
   "Embedded and manifest .mp5p (experimental)",

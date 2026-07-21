@@ -1,5 +1,5 @@
 import { CodecId, loadAudiFrames, parseMp5, type Mp5File } from "@mp5/container";
-import { getCodec } from "../wasm/codec";
+import { getCodec, Mp5lStreamDecoder } from "../wasm/codec";
 import { mp5lBitstreamVersion, mp5lVersionLabel } from "../lib/codecDisplay";
 import { updateIngestDiagnostics } from "../lib/ingest/ingestDiagnostics";
 
@@ -13,7 +13,7 @@ function decodeWasm(
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("RuntimeError") || msg.includes("unreachable")) {
       throw new Error(
-        `${codecName} decode failed. This file may use an unsupported bitstream version — re-export as MP5-L v3 with the current converter.`,
+        `${codecName} decode failed. This file may use an unsupported bitstream version — re-export as MP5-L v4 with the current converter.`,
       );
     }
     throw new Error(`${codecName} decode failed: ${msg}`);
@@ -23,6 +23,7 @@ function decodeWasm(
 export type DecodePath =
   | "PCM (container passthrough)"
   | "MP5-L WASM v3 decode (lossless)"
+  | "MP5-L WASM v4 stream+seek decode (experimental)"
   | "MP5-L WASM v2 decode (legacy raw blocks)"
   | "MP5-L WASM decode"
   | "MP5-C WASM v5.1 decode (experimental)"
@@ -67,9 +68,31 @@ function mp5cDecodePath(frameData: Uint8Array): DecodePath {
 
 function mp5lDecodePath(frameData: Uint8Array): DecodePath {
   const ver = mp5lBitstreamVersion(frameData);
+  if (ver === 4) return "MP5-L WASM v4 stream+seek decode (experimental)";
   if (ver === 3) return "MP5-L WASM v3 decode (lossless)";
   if (ver === 2) return "MP5-L WASM v2 decode (legacy raw blocks)";
   return `MP5-L WASM decode (${mp5lVersionLabel(ver)})` as DecodePath;
+}
+
+/** Demo path for experimental v4: chunked push decode, then indexed seek smoke check. */
+function decodeMp5lV4Streaming(frameData: Uint8Array): Int16Array {
+  const decoder = new Mp5lStreamDecoder(new Uint8Array(0));
+  const mid = Math.max(1, Math.floor(frameData.length / 2));
+  const first = decoder.push(frameData.subarray(0, mid));
+  const rest = decoder.push(frameData.subarray(mid));
+  const merged = new Int16Array(first.length + rest.length);
+  merged.set(first, 0);
+  merged.set(rest, first.length);
+  if (merged.length >= 8) {
+    const channelFrames = Math.floor(merged.length / 2);
+    const target = Math.floor(channelFrames / 2);
+    decoder.seek_frame(target);
+    const fromSeek = decoder.push(new Uint8Array(0));
+    if (fromSeek.length === 0) {
+      throw new Error("MP5-L v4 seek demo produced empty output");
+    }
+  }
+  return merged;
 }
 
 /**
@@ -107,7 +130,12 @@ export async function decodeMp5ToPcm(
     case CodecId.MP5L:
       decodePath = mp5lDecodePath(frameData);
       mp5l = { bitstreamVersion: mp5lBitstreamVersion(frameData) };
-      samples = decodeWasm(() => codec.decode_mp5l(frameData), "MP5-L");
+      samples = decodeWasm(() => {
+        if (mp5lBitstreamVersion(frameData) === 4) {
+          return decodeMp5lV4Streaming(frameData);
+        }
+        return codec.decode_mp5l(frameData);
+      }, "MP5-L");
       break;
     case CodecId.MP5C:
       decodePath = mp5cDecodePath(frameData);
@@ -143,7 +171,7 @@ export async function decodeMp5ToPcm(
       break;
     default:
       throw new Error(
-        `Unsupported codec id ${parsed.head.codecId}. Re-export with MP5-L v3 (recommended) or PCM.`,
+        `Unsupported codec id ${parsed.head.codecId}. Re-export with MP5-L v4 (recommended) or PCM.`,
       );
   }
 

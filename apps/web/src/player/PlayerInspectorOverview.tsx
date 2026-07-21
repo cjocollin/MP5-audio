@@ -21,16 +21,20 @@ export function PlayerInspectorOverview({ track, parsed, duration, integrity }: 
   const info = track ? trackDisplayInfo(track) : null;
   const meta = parsed?.meta ?? [];
   const head = parsed?.head;
-  const fullCodecLabel = head ? codecLabel(head.codecId) : "";
+  const fullCodecLabel = head
+    ? codecLabel(head.codecId, parsed?.audioFrames[0]?.data)
+    : "";
   const isLossless = /lossless/i.test(fullCodecLabel);
   const isDefaultDemo = track?.origin === "default-demo";
-  const integrityLabel = integrity?.status === "verified" || integrity?.status === "audio_verified"
-    ? "Bit-exact"
-    : isLossless
+  const integrityLabel = !track
+    ? null
+    : integrity?.status === "verified" || integrity?.status === "audio_verified"
       ? "Bit-exact"
-    : integrity?.status && integrity.status !== "missing"
-      ? integrity.status.replace(/_/g, " ")
-      : "Not verified";
+      : isLossless
+        ? "Bit-exact"
+        : integrity?.status && integrity.status !== "missing"
+          ? integrity.status.replace(/_/g, " ")
+          : "Not verified";
 
   const leftRows: OverviewRow[] = [
     ["Title", info?.title],

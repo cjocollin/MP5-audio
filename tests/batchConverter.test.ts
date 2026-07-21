@@ -151,7 +151,7 @@ describe("batch output summary", () => {
 });
 
 describe("batch safe filenames", () => {
-  it("uses MP5-L v3 naming from detected metadata", () => {
+  it("uses MP5-L v4 naming from detected metadata", () => {
     const edits = manualEditsFromSource({
       meta: { artist: "Artist", title: "Title" },
     });

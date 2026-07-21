@@ -1,16 +1,23 @@
 /**
- * MP5-L v3 WASM encode/decode bit-exact proof (requires pnpm wasm:build).
+ * MP5-L v3/v4 WASM encode/decode bit-exact proof (requires pnpm wasm:build).
  */
 import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { CodecId, parseMp5, writeMp5 } from "@mp5/container";
+
+type Mp5lStreamDecoder = {
+  free(): void;
+  push(data: Uint8Array): Int16Array;
+  seek_frame(sample_index: number): void;
+};
 
 type WasmCodec = {
   default: (bytes: BufferSource) => Promise<void>;
   encode_mp5l: (samples: Int16Array, channels: number) => Uint8Array;
+  encode_mp5l_v4: (samples: Int16Array, channels: number) => Uint8Array;
   decode_mp5l: (data: Uint8Array) => Int16Array;
+  Mp5lStreamDecoder: new (data_prefix: Uint8Array) => Mp5lStreamDecoder;
 };
 
 let wasm: WasmCodec | null = null;
@@ -81,5 +88,45 @@ describe("MP5-L v3 WASM roundtrip", () => {
     expect(audi?.[1]).toBe(3);
     const decoded = wasm.decode_mp5l(audi!);
     expect(Array.from(decoded)).toEqual(Array.from(samples));
+  });
+});
+
+describe("MP5-L v4 WASM parity + seek", () => {
+  it("encodes v4 bitstream and decodes bit-exact", () => {
+    expect(wasmLoaded).toBe(true);
+    if (!wasm) throw new Error("WASM not loaded — run pnpm wasm:build");
+
+    const ch = 2;
+    const samples = makeSine(8192, ch);
+    const bitstream = wasm.encode_mp5l_v4(samples, ch);
+    expect(bitstream[0]).toBe(0x4c);
+    expect(bitstream[1]).toBe(4);
+    expect(String.fromCharCode(...bitstream.slice(7, 11))).toBe("SEEK");
+
+    const decoded = wasm.decode_mp5l(bitstream);
+    expect(decoded.length).toBe(samples.length);
+    for (let i = 0; i < samples.length; i++) {
+      expect(decoded[i]).toBe(samples[i]);
+    }
+  });
+
+  it("stream seek_frame lands on/after target (sparse SEEK)", () => {
+    if (!wasm) throw new Error("WASM not loaded");
+    const ch = 2;
+    const frames = 10000;
+    const samples = makeSine(frames, ch);
+    const bitstream = wasm.encode_mp5l_v4(samples, ch);
+    const target = 4500;
+    const stream = new wasm.Mp5lStreamDecoder(bitstream);
+    try {
+      stream.seek_frame(target);
+      const got = stream.push(new Uint8Array(0));
+      expect(got.length).toBe((frames - target) * ch);
+      for (let i = 0; i < got.length; i++) {
+        expect(got[i]).toBe(samples[target * ch + i]);
+      }
+    } finally {
+      stream.free();
+    }
   });
 });

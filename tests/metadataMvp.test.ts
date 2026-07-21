@@ -368,19 +368,15 @@ describe("AI feature helpers", () => {
   it("AI model presets resolve known and custom models", async () => {
     const { modelPresetIdForProvider, modelFromProviderPreset, AI_MODEL_CUSTOM_ID, inferProviderId } =
       await import("../apps/web/src/lib/ai/aiSettings");
-    expect(modelPresetIdForProvider("openai", "gpt-5.4-nano")).toBe("gpt-5.4-nano");
+    expect(modelPresetIdForProvider("openai", "gpt-5.6-luna")).toBe("gpt-5.6-luna");
     expect(modelPresetIdForProvider("openai", "unknown-model")).toBe(AI_MODEL_CUSTOM_ID);
-    expect(modelFromProviderPreset("anthropic", "claude-haiku-4-5-20251001")).toBe(
-      "claude-haiku-4-5-20251001",
-    );
-    expect(inferProviderId("https://api.anthropic.com/v1", "claude-haiku-4-5-20251001")).toBe(
-      "anthropic",
-    );
+    expect(modelFromProviderPreset("anthropic", "claude-sonnet-5")).toBe("claude-sonnet-5");
+    expect(inferProviderId("https://api.anthropic.com/v1", "claude-sonnet-5")).toBe("anthropic");
     expect(inferProviderId("https://api.deepseek.com", "deepseek-v4-flash")).toBe("deepseek");
     expect(inferProviderId("https://api.mistral.ai/v1", "ministral-3b-latest")).toBe("mistral");
-    expect(inferProviderId("https://api.groq.com/openai/v1", "llama-3.1-8b-instant")).toBe("groq");
+    expect(inferProviderId("https://api.groq.com/openai/v1", "openai/gpt-oss-20b")).toBe("groq");
     expect(inferProviderId("https://openrouter.ai/api/v1", "openrouter/auto")).toBe("openrouter");
-    expect(inferProviderId("https://api.x.ai/v1", "grok-4.3")).toBe("xai");
+    expect(inferProviderId("https://api.x.ai/v1", "grok-4.5")).toBe("xai");
   });
 
   it("AI model settings migrate retired saved defaults", async () => {

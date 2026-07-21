@@ -24,10 +24,12 @@ export function ExportSummaryPanel({
       data-testid="export-summary-panel"
     >
       <p className="font-medium text-green-300">Export complete</p>
-      {summary.exportCodec === "mp5l" && (
+      {(summary.exportCodec === "mp5l_v4" || summary.exportCodec === "mp5l") && (
         <p className="text-[10px] text-gray-500" data-testid="export-duplicate-hint">
           Saving again? Your browser may keep both files — try{" "}
-          <span className="text-gray-400">{suggestDuplicateExportFilename(summary.filename, "mp5l")}</span>
+          <span className="text-gray-400">
+            {suggestDuplicateExportFilename(summary.filename, summary.exportCodec)}
+          </span>
         </p>
       )}
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-gray-300">

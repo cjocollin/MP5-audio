@@ -44,7 +44,7 @@ export function buildPackageSummaryText(input: PackageSummaryInput): string {
   lines.push(`Tracks: ${input.trackCount}`);
   if (input.packageFilename) lines.push(`File: ${input.packageFilename}`);
   if (input.totalBytes != null) lines.push(`Size: ${formatBytes(input.totalBytes)}`);
-  lines.push("Codec: MP5-L v3 (lossless)");
+  lines.push("Codec: MP5-L v4 (lossless)");
   if (input.verification) {
     lines.push(`Validation: ${input.verification.valid ? input.verification.summary : `FAILED — ${input.verification.summary}`}`);
     for (const w of input.verification.warnings) lines.push(`  - ${w}`);

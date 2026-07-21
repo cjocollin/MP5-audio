@@ -11,19 +11,29 @@ export function mp5lBitstreamVersion(frameData: Uint8Array): number | null {
 export function mp5lVersionLabel(version: number | null): string {
   if (version === 2) return "v2 (legacy raw PCM blocks)";
   if (version === 3) return "v3 (LPC + delta + varint)";
-  if (version === 4) return "v4 (experimental interleaved frames + seek table)";
+  if (version === 4)
+    return "v4 (verbatim warm-ups · CRC16 · sparse SEEK · FLAG_I32_QLP)";
   if (version == null) return "unknown";
   return `v${version}`;
 }
 
-export function codecLabel(codecId: number): string {
+/**
+ * Human codec badge. For MP5-L, pass AUDI frame bytes so v4 files are not mislabeled as v3.
+ * Without frame data, MP5-L defaults to the v4 label (recommended default export).
+ */
+export function codecLabel(codecId: number, frameData?: Uint8Array): string {
   switch (codecId) {
     case CodecId.MP5C:
       return "MP5-C (experimental / lab)";
     case CodecId.MP5C2:
       return "MP5-C2 (hybrid · not default)";
-    case CodecId.MP5L:
-      return "MP5-L v3 (lossless · default)";
+    case CodecId.MP5L: {
+      const ver = frameData ? mp5lBitstreamVersion(frameData) : null;
+      if (ver === 4) return "MP5-L v4 (lossless · default)";
+      if (ver === 2) return "MP5-L v2 (legacy)";
+      if (ver === 3) return "MP5-L v3 (lossless · lab/legacy)";
+      return "MP5-L v4 (lossless · default)";
+    }
     case CodecId.MP5H:
       return "MP5-H (hybrid · not default)";
     case CodecId.PCM:
@@ -36,11 +46,13 @@ export function codecLabel(codecId: number): string {
 }
 
 export function codecExportOptionLabel(
-  codec: "mp5l" | "mp5h" | "mp5c" | "mp5c2" | "pcm",
+  codec: "mp5l" | "mp5l_v4" | "mp5h" | "mp5c" | "mp5c2" | "pcm",
 ): string {
   switch (codec) {
     case "mp5l":
-      return "MP5-L v3 (lossless · default export · bit-exact)";
+      return "MP5-L v3 (lossless · lab/legacy · bit-exact)";
+    case "mp5l_v4":
+      return "MP5-L v4 (lossless · default export · bit-exact · no silent v3 fallback)";
     case "mp5h":
       return "MP5-H (hybrid: MP5-C base + CORR · size-gated vs MP5-L · not default)";
     case "mp5c":
@@ -85,11 +97,20 @@ export type Mp5lPlaybackLabels = {
 
 export function describeMp5lPlayback(frameData?: Uint8Array): Mp5lPlaybackLabels {
   const ver = frameData ? mp5lBitstreamVersion(frameData) : null;
+  if (ver === 4 || ver == null) {
+    return {
+      containerMode: "MP5-L v4 (lossless · default)",
+      encoderVersion: mp5lVersionLabel(ver ?? 4),
+      outputQuality: "Bit-exact — decoded PCM matches source samples",
+      defaultExport: "Recommended default export for listening",
+      bitExact: true,
+    };
+  }
   return {
-    containerMode: "MP5-L v3 (lossless)",
+    containerMode: "MP5-L v3 (lossless · lab/legacy)",
     encoderVersion: mp5lVersionLabel(ver),
     outputQuality: "Bit-exact — decoded PCM matches source samples",
-    defaultExport: "Recommended default export for listening",
+    defaultExport: "Lab/legacy — not the recommended default export",
     bitExact: true,
   };
 }
@@ -164,8 +185,8 @@ export function describeMp5cPlayback(frameData?: Uint8Array): Mp5cPlaybackLabels
   };
 }
 
-export function formatCodecSummary(head: HeadPayload): string {
-  const parts = [codecLabel(head.codecId)];
+export function formatCodecSummary(head: HeadPayload, frameData?: Uint8Array): string {
+  const parts = [codecLabel(head.codecId, frameData)];
   if (head.codecId !== CodecId.MP5L && head.codecId !== CodecId.PCM) {
     parts.push(presetLabelForCodec(head.codecId, head.presetId));
   }

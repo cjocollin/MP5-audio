@@ -29,7 +29,6 @@ import {
 import { SupportedSourcesNote } from "../components/SupportedSourcesNote";
 import { ConverterEmptyState } from "../components/ConverterEmptyState";
 import { CodecModesHelper } from "../components/CodecModesHelper";
-import { DemoFixtureActions } from "../components/DemoFixtureActions";
 import { dismissOnboarding } from "../lib/firstRun";
 import { FileDropZone } from "./FileDropZone";
 import { BatchConverterPanel } from "../components/BatchConverterPanel";
@@ -104,7 +103,7 @@ type ConverterMode = "single" | "batch";
 
 export function ConverterPanel() {
   const [mode, setMode] = useState<ConverterMode>("single");
-  const [codec, setCodec] = useState<OutputCodec>("mp5l");
+  const [codec, setCodec] = useState<OutputCodec>("mp5l_v4");
   const [preset, setPreset] = useState(2);
   const [labCodecsOpen, setLabCodecsOpen] = useState(false);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
@@ -150,7 +149,7 @@ export function ConverterPanel() {
   useEffect(() => {
     // Classic MP5-C stays behind the lab toggle; MP5-C2 is a first-class non-default option.
     if (!labCodecsOpen && codec === "mp5c") {
-      setCodec("mp5l");
+      setCodec("mp5l_v4");
     }
   }, [labCodecsOpen, codec]);
 
@@ -220,7 +219,7 @@ export function ConverterPanel() {
       setEdits(manualEditsFromSource(extracted));
       dismissOnboarding();
       resetSingle();
-      setStatus("Source loaded — edit metadata, preview tags, then export MP5-L v3.");
+      setStatus("Source loaded — edit metadata, preview tags, then export MP5-L v4.");
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
         setStatus("Conversion cancelled.");
@@ -773,14 +772,26 @@ export function ConverterPanel() {
         <BatchConverterPanel />
       ) : (
         <>
-      <div className="mp5-card p-4 sm:p-5 space-y-3 border-accent/15">
-        <h2 className="text-lg font-semibold text-white">Convert to MP5</h2>
-        <p className="text-sm text-gray-400 leading-relaxed" data-testid="converter-export-help">
-          Drop FLAC, WAV, MP3, M4A, or OGG. Default export is{" "}
-          <strong className="text-gray-300">MP5-L v3</strong>. Review metadata, then export and open in
-          the player.
-        </p>
-        <ConverterFlowSteps hasSource={!!pending} exportDone={exportDone} />
+      <div
+        className={
+          !pending && !busy
+            ? "grid gap-4 md:grid-cols-2 md:items-stretch"
+            : undefined
+        }
+        data-testid={!pending && !busy ? "converter-intro-row" : undefined}
+      >
+        <div className="mp5-card flex h-full flex-col gap-3 p-4 sm:p-5 border-accent/15">
+          <h2 className="text-lg font-semibold text-white">Convert to MP5</h2>
+          <p className="text-sm text-gray-400 leading-relaxed" data-testid="converter-export-help">
+            Drop FLAC, WAV, MP3, M4A, or OGG. Default export is{" "}
+            <strong className="text-gray-300">MP5-L v4</strong>. Review metadata, then export and open in
+            the player.
+          </p>
+          <div className="mt-auto">
+            <ConverterFlowSteps hasSource={!!pending} exportDone={exportDone} />
+          </div>
+        </div>
+        {!pending && !busy && <ConverterEmptyState />}
       </div>
 
       {loadState === "loading" && (
@@ -794,26 +805,17 @@ export function ConverterPanel() {
         >
           <strong>MP5 codecs require WASM.</strong> Run <code className="text-accent">pnpm wasm:build</code>{" "}
           and refresh. Until then, only <strong>PCM reference / debug</strong> export is available — not
-          MP5-L v3.
+          MP5-L v4.
         </p>
       )}
 
       {codecReady && (
         <p className="text-xs text-green-400/90 bg-green-950/30 rounded-lg p-2" data-testid="codec-ready-banner">
-          <strong>Default: MP5-L v3</strong> — lossless, bit-exact, modest compression. MP5-H is hybrid
-          (large). MP5-C is lab-only and may hiss.
+          <strong>Default: MP5-L v4</strong> — lossless, bit-exact. Hard-fail on encode errors (no silent
+          v3 fallback). MP5-L v3 remains available as lab/legacy. MP5-H is hybrid (large). MP5-C is
+          lab-only and may hiss.
         </p>
       )}
-
-      {!pending && !busy && <ConverterEmptyState />}
-
-      <DemoFixtureActions
-        compact
-        testIdPrefix="converter"
-        onLoaded={async (file, playFirst) => {
-          await importMp5ToPlayer([file], { playFirst });
-        }}
-      />
 
       <SupportedSourcesNote />
 
@@ -915,39 +917,13 @@ export function ConverterPanel() {
               />
             </>
           )}
-          <button
-            type="button"
-            onClick={() => void handleExport()}
-            disabled={busy}
-            className="w-full py-3 rounded-xl bg-accent text-black font-semibold text-sm hover:opacity-90 disabled:opacity-40"
-            data-testid="export-mp5-button"
-          >
-            {busy ? "Exporting…" : "4. Export MP5"}
-          </button>
         </>
-      )}
-
-      {librarySaveNote && (
-        <p className="text-xs text-gray-400" data-testid="converter-library-save-note">
-          {librarySaveNote}
-        </p>
-      )}
-
-      {exportSummary && exportDone && (
-        <ExportSummaryPanel
-          summary={exportSummary}
-          onDownloadAgain={handleDownloadAgain}
-          onOpenInPlayer={() => void handleOpenInPlayer()}
-          onAddToPlaylist={() => void handleAddToPlaylist()}
-          onSaveToLibrary={() => void handleSaveToLibrary()}
-          onCopySummary={handleCopySummary}
-        />
       )}
 
       {codec === "mp5c" && codecReady && (
         <p className="text-xs text-amber-200/90 bg-amber-950/40 rounded-lg p-2" data-testid="mp5c-hiss-warning">
           <strong>MP5-C is experimental / lab-only.</strong> Not for normal listening — audible hiss on all
-          presets. Use MP5-L v3 (default) or PCM.
+          presets. Use MP5-L v4 (default) or PCM.
         </p>
       )}
 
@@ -984,7 +960,7 @@ export function ConverterPanel() {
             ) : (
               <>
                 <optgroup label="Recommended">
-                  <option value="mp5l">{codecExportOptionLabel("mp5l")}</option>
+                  <option value="mp5l_v4">{codecExportOptionLabel("mp5l_v4")}</option>
                 </optgroup>
                 <optgroup label="Debug">
                   <option value="pcm">{codecExportOptionLabel("pcm")}</option>
@@ -995,6 +971,7 @@ export function ConverterPanel() {
                 </optgroup>
                 {labCodecsOpen && (
                   <optgroup label="Lab / advanced">
+                    <option value="mp5l">{codecExportOptionLabel("mp5l")}</option>
                     <option value="mp5c">{codecExportOptionLabel("mp5c")}</option>
                   </optgroup>
                 )}
@@ -1020,7 +997,7 @@ export function ConverterPanel() {
             value={preset}
             onChange={(e) => setPreset(Number(e.target.value))}
             className="bg-surface-elevated rounded-lg px-3 py-1.5 border border-white/10 mp5-focus-ring"
-            disabled={codec === "mp5l" || codec === "pcm" || busy}
+            disabled={codec === "mp5l" || codec === "mp5l_v4" || codec === "pcm" || busy}
             data-testid="preset-select"
             aria-label="Codec preset"
           >
@@ -1043,9 +1020,56 @@ export function ConverterPanel() {
         </p>
       )}
       {error && (
-        <p className="text-sm text-red-400" data-testid="convert-error">
-          {error}
+        <div className="space-y-2" data-testid="convert-error-block">
+          <p className="text-sm text-red-400" data-testid="convert-error">
+            {error}
+          </p>
+          {/no v3 fallback|MP5-L v4/i.test(error) && (
+            <button
+              type="button"
+              className="text-xs text-accent underline-offset-2 hover:underline disabled:opacity-40"
+              data-testid="retry-as-mp5l-v3"
+              disabled={busy || !pending}
+              onClick={() => {
+                setCodec("mp5l");
+                setLabCodecsOpen(true);
+                setError("");
+                setStatus("Switched to MP5-L v3 — click Export MP5 to retry.");
+              }}
+            >
+              Retry as MP5-L v3
+            </button>
+          )}
+        </div>
+      )}
+
+      {pending && edits && (
+        <button
+          type="button"
+          onClick={() => void handleExport()}
+          disabled={busy}
+          className="w-full py-3 rounded-xl bg-accent text-black font-semibold text-sm hover:opacity-90 disabled:opacity-40"
+          data-testid="export-mp5-button"
+        >
+          {busy ? "Exporting…" : "4. Export MP5"}
+        </button>
+      )}
+
+      {librarySaveNote && (
+        <p className="text-xs text-gray-400" data-testid="converter-library-save-note">
+          {librarySaveNote}
         </p>
+      )}
+
+      {exportSummary && exportDone && (
+        <ExportSummaryPanel
+          summary={exportSummary}
+          onDownloadAgain={handleDownloadAgain}
+          onOpenInPlayer={() => void handleOpenInPlayer()}
+          onAddToPlaylist={() => void handleAddToPlaylist()}
+          onSaveToLibrary={() => void handleSaveToLibrary()}
+          onCopySummary={handleCopySummary}
+        />
       )}
         </>
       )}

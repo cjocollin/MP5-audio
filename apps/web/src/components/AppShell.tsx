@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { Icon } from "@phosphor-icons/react";
 import { ArrowsClockwise } from "@phosphor-icons/react/ArrowsClockwise";
-import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { ClockCounterClockwise } from "@phosphor-icons/react/ClockCounterClockwise";
 import { Flask } from "@phosphor-icons/react/Flask";
 import { FolderOpen } from "@phosphor-icons/react/FolderOpen";
@@ -11,6 +10,8 @@ import { List } from "@phosphor-icons/react/List";
 import { X } from "@phosphor-icons/react/X";
 import { APP_VERSION } from "../generated/appVersion";
 import { MP5_GITHUB_URL } from "../lib/publicLinks";
+import { usePlayerStore } from "../store/playerStore";
+import { SignalMarkSprite } from "./SignalMarkSprite";
 
 export type AppTab = "player" | "converter" | "library" | "demo" | "about" | "settings";
 
@@ -38,6 +39,7 @@ interface Props {
 export function AppShell({ activeTab, onTabChange }: Props) {
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
 
   const openFilePicker = () => {
     onTabChange("player");
@@ -66,8 +68,17 @@ export function AppShell({ activeTab, onTabChange }: Props) {
           onClick={() => changeTab("player")}
           aria-label="Open MP5 Player"
         >
-          <span className="mp5-shell-wordmark"><span className="mp5-shell-wordmark-accent">MP5</span> Audio</span>
-          <span className="mp5-shell-version">Public Beta · v{APP_VERSION}</span>
+          <SignalMarkSprite
+            playing={isPlaying}
+            size="xs"
+            className="mp5-shell-brand-mark"
+          />
+          <span className="mp5-shell-brand-text">
+            <span className="mp5-shell-wordmark">
+              <span className="mp5-shell-wordmark-accent">MP5</span> Audio
+            </span>
+            <span className="mp5-shell-version">Public Beta · v{APP_VERSION}</span>
+          </span>
         </button>
 
         <nav className="mp5-shell-nav" aria-label="Main" data-testid="app-main-nav">
@@ -95,10 +106,9 @@ export function AppShell({ activeTab, onTabChange }: Props) {
             data-testid="shell-open-mp5"
           >
             <FolderOpen size={18} weight="bold" />
-            <span className="hidden sm:inline">Open MP5 / Add files</span>
+            <span className="hidden lg:inline">Open MP5 / Add files</span>
+            <span className="hidden sm:inline lg:hidden">Open MP5</span>
             <span className="sm:hidden">Open</span>
-            <span className="mp5-shell-open-divider" aria-hidden />
-            <CaretDown className="mp5-shell-open-caret" size={15} weight="bold" aria-hidden />
           </button>
           <button
             type="button"

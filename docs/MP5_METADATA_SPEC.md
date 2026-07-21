@@ -1,11 +1,11 @@
 # MP5 Metadata Specification
 
-**Version:** MP5 Audio v0.27.0-beta  
+**Version:** MP5 Audio v0.28.0-beta  
 **Status:** Public Beta reference spec
 
 MP5 metadata is optional. Files must play with only `HEAD` and `AUDI`; missing or unsupported metadata must not block playback.
 
-This document covers the current reference metadata model. v0.27.0-beta does not change chunk semantics and does not add AI generation.
+This document covers the current reference metadata model. v0.28.0-beta does not change chunk semantics and does not add AI generation.
 
 ## Principles
 

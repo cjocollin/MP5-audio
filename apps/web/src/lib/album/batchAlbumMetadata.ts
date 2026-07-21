@@ -37,7 +37,7 @@ export interface BatchTrackAlbumMeta {
 }
 
 export const BATCH_ALBUM_LIMITATIONS = [
-  "Batch album export uses MP5-L v3 only (same as batch convert).",
+  "Batch album export uses MP5-L v4 only (same as batch convert).",
   "No per-file stem editing in batch — use Single file mode for stems.",
   "No AI metadata generation — values come from source tags or your edits only.",
   "Manifest .mp5p references sidecar .mp5 files — keep them together when sharing.",

@@ -58,11 +58,11 @@ describe("converter honesty", () => {
 
   it("resolves MP5-H request to MP5-L when L container is smaller", async () => {
     isWasmCodecReady.mockReturnValue(true);
-    const lBits = new Uint8Array([0x4c, 3, 1, 0, 0, 0, 0]);
+    const lBits = new Uint8Array([0x4c, 4, 1, 0, 0, 0, 0]);
     const hBase = new Uint8Array([1, 2, 3, 4]);
     const hCorr = new Uint8Array(8000); // inflate H
     getCodec.mockResolvedValue({
-      encode_mp5l: () => lBits,
+      encode_mp5l_v4: () => lBits,
       encode_mp5h_min: () => wrapH(hBase, hCorr),
       encode_mp5h: () => wrapH(hBase, hCorr),
     });
@@ -77,5 +77,62 @@ describe("converter honesty", () => {
     expect(p.head?.codecId).toBe(CodecId.MP5L);
     const info = p.info.find((i) => i.key === "encoder");
     expect(info?.value).toMatch(/resolved to smaller L/i);
+  });
+
+  it("default lossless path encodes MP5-L v4", async () => {
+    isWasmCodecReady.mockReturnValue(true);
+    const encode_mp5l = vi.fn(() => new Uint8Array([0x4c, 3, 1, 0, 0, 0, 0]));
+    const encode_mp5l_v4 = vi.fn(() => new Uint8Array([0x4c, 4, 1, 0, 0, 0, 0]));
+    getCodec.mockResolvedValue({ encode_mp5l, encode_mp5l_v4 });
+    const buf = await convertToMp5({
+      samples,
+      sampleRate: 44100,
+      channels: 1,
+      codec: "mp5l_v4",
+    });
+    const p = parseMp5(buf);
+    expect(p.head?.codecId).toBe(CodecId.MP5L);
+    expect(encode_mp5l_v4).toHaveBeenCalled();
+    expect(encode_mp5l).not.toHaveBeenCalled();
+    const info = p.info.find((i) => i.key === "encoder");
+    expect(info?.value).toMatch(/v4/i);
+  });
+
+  it("hard-fails MP5-L v4 encode without silent v3 fallback", async () => {
+    isWasmCodecReady.mockReturnValue(true);
+    const encode_mp5l = vi.fn(() => new Uint8Array([0x4c, 3, 1, 0, 0, 0, 0]));
+    getCodec.mockResolvedValue({
+      encode_mp5l,
+      encode_mp5l_v4: () => {
+        throw new Error("v4 boom");
+      },
+    });
+    await expect(
+      convertToMp5({
+        samples,
+        sampleRate: 44100,
+        channels: 1,
+        codec: "mp5l_v4",
+      }),
+    ).rejects.toThrow(/v4 boom/);
+    expect(encode_mp5l).not.toHaveBeenCalled();
+  });
+
+  it("rejects MP5-L v4 bitstream with wrong magic without falling back to v3", async () => {
+    isWasmCodecReady.mockReturnValue(true);
+    const encode_mp5l = vi.fn(() => new Uint8Array([0x4c, 3, 1, 0, 0, 0, 0]));
+    getCodec.mockResolvedValue({
+      encode_mp5l,
+      encode_mp5l_v4: () => new Uint8Array([0x4c, 3, 0, 0]),
+    });
+    await expect(
+      convertToMp5({
+        samples,
+        sampleRate: 44100,
+        channels: 1,
+        codec: "mp5l_v4",
+      }),
+    ).rejects.toThrow(/no v3 fallback/i);
+    expect(encode_mp5l).not.toHaveBeenCalled();
   });
 });

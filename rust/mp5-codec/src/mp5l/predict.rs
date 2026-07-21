@@ -96,7 +96,7 @@ pub fn best_order(samples: &[i16], max_order: u8) -> u8 {
 
 /// Choose predictor order by estimated **bit-packed Rice** cost (not varint bytes).
 pub fn best_order_rice(samples: &[i16], max_order: u8) -> u8 {
-    use super::rice::{best_partitioned_ks, rice_estimate_bits_partitioned};
+    use super::rice::{best_partitioned_ks_unescaped, rice_estimate_bits_partitioned};
 
     if samples.is_empty() {
         return 0;
@@ -108,7 +108,7 @@ pub fn best_order_rice(samples: &[i16], max_order: u8) -> u8 {
         .min(samples.len().saturating_sub(1) as u8);
     for order in 0..=max {
         let res = residuals(samples, order);
-        let ks = best_partitioned_ks(&res);
+        let ks = best_partitioned_ks_unescaped(&res);
         // 1 byte order + 4 count + 1 parts + ks + rice bits
         let total = 6 + ks.len() + rice_estimate_bits_partitioned(&res, &ks);
         if total < best_bits {

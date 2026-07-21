@@ -122,8 +122,6 @@ import { verifyMp5Integrity } from "../lib/fingerprint/verify";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
 import { USER_ERRORS } from "../lib/userFacingErrors";
 import { DropImportSummary } from "../components/DropImportSummary";
-import { PlayerEmptyState } from "../components/PlayerEmptyState";
-import { DemoFixtureActions } from "../components/DemoFixtureActions";
 import { CodecModesHelper } from "../components/CodecModesHelper";
 import { dismissOnboarding } from "../lib/firstRun";
 import {
@@ -150,13 +148,11 @@ const INSPECTOR_TABS: { id: InspectorSection; label: string; target: InspectorSe
 ];
 
 interface Mp5PlayerProps {
-  defaultDemoLoading?: boolean;
   panelVisible?: boolean;
   onRequestPlayer?: () => void;
 }
 
 export function Mp5Player({
-  defaultDemoLoading = false,
   panelVisible = true,
   onRequestPlayer,
 }: Mp5PlayerProps) {
@@ -193,6 +189,7 @@ export function Mp5Player({
     useFileThemes,
     pendingAlbumPackage,
     consumePendingAlbumPackage,
+    setActiveTab,
   } = store;
 
   const [parsed, setParsed] = useState<Mp5File | undefined>();
@@ -1839,25 +1836,6 @@ export function Mp5Player({
     <>
       {panelVisible && (
         <div className="space-y-6" data-testid="mp5-player">
-          {tracks.length === 0 && !defaultDemoLoading && <PlayerEmptyState />}
-
-          {tracks.length === 0 && !defaultDemoLoading && (
-            <DemoFixtureActions
-              testIdPrefix="player"
-              onLoaded={async (file, playFirst) => {
-                dismissOnboarding();
-                const start = tracks.length;
-                const result = await ingestMp5Files([file]);
-                if (result.tracks.length) appendTracks(result.tracks);
-                setLastDropSummary(result);
-                if (playFirst && result.addedCount > 0) {
-                  playWhenReadyRef.current = true;
-                  setCurrentIndex(start);
-                }
-              }}
-            />
-          )}
-
       {ingestStage !== "idle" && ingestStage !== "ready" && (
         <p
           className="text-xs text-accent/90 bg-accent/5 rounded-lg px-3 py-2"
@@ -2165,7 +2143,7 @@ export function Mp5Player({
             <div>
               <p className="font-medium text-gray-200">MP5 is experimental</p>
               <p>Verify important playback. Use at your own risk.</p>
-              <button type="button" onClick={() => jumpToInspector("metadata")}>
+              <button type="button" onClick={() => setActiveTab("about")}>
                 Learn more
               </button>
             </div>

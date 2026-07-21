@@ -1,0 +1,272 @@
+{
+  "meta": {
+    "app": "MP5 Audio",
+    "version": 2,
+    "variant": "v2",
+    "image": "signal-mark-spritesheet.png",
+    "vectorImage": "signal-mark-spritesheet.svg",
+    "format": "RGBA8888",
+    "size": {
+      "width": 3072,
+      "height": 256
+    },
+    "frameSize": {
+      "width": 256,
+      "height": 256
+    },
+    "frameCount": 12,
+    "fps": 12,
+    "durationMs": 1000,
+    "loop": true,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    }
+  },
+  "frames": {
+    "signal-mark-01.png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-02.png": {
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-03.png": {
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-04.png": {
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-05.png": {
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-06.png": {
+      "frame": {
+        "x": 1280,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-07.png": {
+      "frame": {
+        "x": 1536,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-08.png": {
+      "frame": {
+        "x": 1792,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-09.png": {
+      "frame": {
+        "x": 2048,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-10.png": {
+      "frame": {
+        "x": 2304,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-11.png": {
+      "frame": {
+        "x": 2560,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "signal-mark-12.png": {
+      "frame": {
+        "x": 2816,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "sourceSize": {
+        "width": 256,
+        "height": 256
+      },
+      "durationMs": 83.333,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "animations": {
+    "musicPlaying": [
+      "signal-mark-01.png",
+      "signal-mark-02.png",
+      "signal-mark-03.png",
+      "signal-mark-04.png",
+      "signal-mark-05.png",
+      "signal-mark-06.png",
+      "signal-mark-07.png",
+      "signal-mark-08.png",
+      "signal-mark-09.png",
+      "signal-mark-10.png",
+      "signal-mark-11.png",
+      "signal-mark-12.png"
+    ]
+  }
+}

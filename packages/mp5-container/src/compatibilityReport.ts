@@ -234,13 +234,21 @@ export function assessMp5Compatibility(
       });
       warnings.push("MP5-H missing CORR chunk");
     }
-    if (codecId === CodecId.MP5L && audi?.[1] !== 3) {
+    if (codecId === CodecId.MP5L && audi?.[1] !== 3 && audi?.[1] !== 4) {
       issues.push({
         level: "warning",
         code: "mp5l_not_v3",
-        message: "MP5-L bitstream is not v3 - v3 is the Public Beta default/recommended.",
+        message:
+          "MP5-L bitstream is not v3/v4 — v4 is the Public Beta default; v3 is lab/legacy.",
       });
-      warnings.push("MP5-L not v3");
+      warnings.push("MP5-L not v3/v4");
+    } else if (codecId === CodecId.MP5L && audi?.[1] === 3) {
+      issues.push({
+        level: "info",
+        code: "mp5l_v3_legacy",
+        message:
+          "MP5-L v3 (lab/legacy). Public Beta default export is MP5-L v4; v3 remains decodable forever.",
+      });
     }
   } else if (basic) {
     issues.push({ level: "error", code: "no_audio", message: "Missing HEAD or AUDI." });

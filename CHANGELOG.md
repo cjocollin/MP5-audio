@@ -6,21 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-## [0.27.0-beta] - 2026-07
+### Milestone - MP5-L v4 promoted to Converter default
 
-### Milestone - Lab MDCT loud path (FFT) + real-track validate
+- **Gate:** `PROMOTE_V4` on held-out (median **0.989x** FFmpeg flac-5, worst **0.999x**, bit-exact). See `MP5L_COMPRESSION.md` / `MP5L_V4_SOAK.md`.
+- **Default export:** Converter + batch use `mp5l_v4`; hard-fail retained (no silent v3 fallback); Retry as v3 remains lab/legacy.
+- **Honesty:** held-out is 10 Kesha pop tracks + 10 ORIGAMI alt-pop extracts (2 albums). Speech SPEECH_PASS archived under `corpus/speech-held-out/`.
 
-**Quality before compression.** MP5-L remains the default. MP5-C (v5.1) is unchanged.
-No claim that MP5 beats MP3/AAC/Opus/FLAC/WAV. MDCT stays lab/opt-in — default
-`encode_mp5c_vnext` still uses legacy MP5-C for loud units.
+## [0.28.0-beta] - 2026-07
 
-- **`mp5c3` MDCT loud lab:** Type-IV MDCT/IMDCT + signal-relative band quant; vNext unit tag
-  `TAG_MDCT` (`0x4D`) via `encode_mp5c_vnext_mdct` / lab mode `mp5c2-native-mdct-high`.
-- **FFT Type-IV MDCT:** dependency-free radix-2 path in `mdct.rs` (fixed N=2048) for practical WASM.
-  Float OLA >80 dB; `dense_music` gate ~0.167× PCM / ~24 dB SNR.
-- **Real-track MDCT validate:** `pnpm audio:validate-vnext-ref` High/Extreme at protect 1.5 —
-  hiss risk **low**, bit-exact tails; ×PCM **~0.214** (High) / **~0.268** (Extreme) on the local
-  commercial reference. See [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md).
+### Milestone - FLAC A/B harness + experimental v4 chase
+
+**Quality before compression.** MP5-L **v4 is the default** after a measured
+FFmpeg flac -5 gate passes. No claim that MP5 beats FLAC unless that gate is green.
+
+- **FLAC A/B harness:** `pnpm bench:mp5l-compression` vs FFmpeg `compression_level` 5/8;
+  report in [MP5L_COMPRESSION.md](benchmarks/real-music/MP5L_COMPRESSION.md).
+- **MP5-L v4 (experimental):** frame-interleaved stereo + SEEK table + streaming decode;
+  Welch-windowed stored QLP (orders 1–12); predicted i32 side (`FLAG_I32_PRED`);
+  escape-aware Rice partitions through 16. WASM `encode_mp5l_v4` / `Mp5lStreamDecoder`.
+- **Beat-flac-5 chase:** primary gate = median v4 &lt; 1.00× FFmpeg flac -5 on ≥20 real-music
+  clips; level 8 is context only. Promote v4 default only if the gate passes.
+- **Honesty:** until then, “between WAV and FLAC-class.” Never universal “beats FLAC.”
+
+### Also included - Lab MDCT loud path (FFT) + real-track validate
+
+- **`mp5c3` MDCT loud lab** and real-track validate remain available; see
+  [MP5C_VNEXT_RESULTS.md](docs/MP5C_VNEXT_RESULTS.md).
 
 ## [0.26.0-beta] - 2026-07
 

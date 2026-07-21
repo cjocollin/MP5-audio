@@ -15,7 +15,7 @@ const outFile = join(root, "apps/web/src/generated/appVersion.ts");
 mkdirSync(dirname(outFile), { recursive: true });
 writeFileSync(
   outFile,
-  `/** Auto-generated from root package.json — do not edit */\nexport const APP_VERSION = ${JSON.stringify(version)};\n`,
+  `/** Auto-generated from root package.json - do not edit */\nexport const APP_VERSION = ${JSON.stringify(version)};\n`,
 );
 
 const webPkgPath = join(root, "apps/web/package.json");

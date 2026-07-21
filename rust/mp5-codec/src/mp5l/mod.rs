@@ -1,6 +1,8 @@
 //! MP5-L lossless codec.
 //! - v2: raw PCM blocks + CRC (legacy)
 //! - v3: silence / const / LPC+Rice / raw fallback; optional M/S stereo per block
+//! - v4: disposable seek-framed layout with verbatim QLP i16 and fixed-i32
+//!   warm-ups; escaped Rice codes only the `N - order` prediction residuals
 
 pub mod bitwriter;
 pub mod block;
@@ -12,8 +14,11 @@ pub mod stereo;
 pub mod varint;
 
 use block::{
-    decode_block_payload, decode_i32_rice_payload, encode_block_payload, encode_block_payload_v4,
-    encode_i32_rice_payload, FLAG_I32_RICE, FLAG_QLP, FLAG_RAW,
+    decode_block_payload, decode_i32_predicted_rice_payload, decode_i32_qlp_payload,
+    decode_i32_rice_payload, encode_block_payload, encode_block_payload_v4,
+    encode_i32_predicted_rice_payload, encode_i32_rice_payload, estimate_block_payload_v4_bytes,
+    estimate_i32_predicted_rice_payload_bytes, estimate_i32_rice_payload_bytes, FLAG_I32_PRED,
+    FLAG_I32_QLP, FLAG_I32_RICE, FLAG_QLP, FLAG_RAW,
 };
 
 /// Stereo transform hints in the high bits of the left-channel flag byte.
@@ -25,8 +30,15 @@ const STEREO_RS: u8 = 0xC0;
 use diag::{VERSION_V2, VERSION_V3, VERSION_V4};
 
 const BLOCK_SIZE: usize = 4096;
+/// v4 encoder planning max — longer windows help stationary speech LPC; wire
+/// stores per-block length so this is encoder-only (v3 stays 4096).
+const BLOCK_SIZE_V4: usize = 8192;
 const MIN_SILENCE_RUN: usize = 64;
 const SEEK_MAGIC: &[u8; 4] = b"SEEK";
+/// Sparse seek table stride for disposable experimental v4 (P4a).
+const SEEK_STRIDE: usize = 8;
+/// v4 block header: len(4)+flag(1)+crc16(2)+enc_len(4) — CRC16 replaces per-block CRC32.
+const V4_BLOCK_HDR: usize = 11;
 
 /// Current encoder (v3).
 pub fn encode(samples: &[i16], channels: u8) -> Vec<u8> {
@@ -69,112 +81,196 @@ pub fn encode_v3(samples: &[i16], channels: u8) -> Vec<u8> {
 /// Experimental v4 encoder. Frames are interleaved by block boundary and an
 /// absolute-offset seek table immediately follows the seven-byte header.
 pub fn encode_v4(samples: &[i16], channels: u8) -> Vec<u8> {
+    diag::reset_encode_telemetry();
     let channel_count = channels.max(1) as usize;
     let per_channel = if channel_count == 1 {
         vec![samples.to_vec()]
     } else {
         crate::pcm::deinterleave_i16(samples, channel_count)
     };
-    let plan = plan_blocks(&per_channel);
-    let mut frames: Vec<(u64, Vec<u8>)> = Vec::new();
+    let plan = plan_blocks_v4(&per_channel);
+    let sample_len = per_channel.first().map(Vec::len).unwrap_or(0);
+    let mut ranges = Vec::with_capacity(plan.boundaries.len());
     let mut start = 0usize;
     for &boundary in &plan.boundaries {
-        let end = boundary.min(per_channel.first().map(Vec::len).unwrap_or(0));
+        let end = boundary.min(sample_len);
         if start >= end {
             break;
         }
-        let mut frame = Vec::new();
-        if channel_count == 2 {
-            let (first, second) = encode_stereo_block_best_v4(
-                &per_channel[0][start..end],
-                &per_channel[1][start..end],
-            );
-            frame.extend_from_slice(&first);
-            frame.extend_from_slice(&second);
-        } else {
-            for channel in &per_channel {
-                let channel_end = end.min(channel.len());
-                if start >= channel_end {
-                    continue;
-                }
-                let block = &channel[start..channel_end];
-                let (flag, payload) = encode_block_payload_v4(block);
-                frame.extend_from_slice(&wrap_block(block, flag, &payload));
-            }
-        }
-        frames.push((start as u64, frame));
+        ranges.push((start, end));
         start = end;
     }
 
+    #[cfg(all(feature = "native_parallel", not(target_arch = "wasm32")))]
+    let frames: Vec<_> = {
+        use rayon::prelude::*;
+        ranges
+            .par_iter()
+            .map(|&(start, end)| encode_v4_frame(&per_channel, channel_count, start, end))
+            .collect()
+    };
+    #[cfg(not(all(feature = "native_parallel", not(target_arch = "wasm32"))))]
+    let frames: Vec<_> = ranges
+        .iter()
+        .map(|&(start, end)| encode_v4_frame(&per_channel, channel_count, start, end))
+        .collect();
+
+    diag::reset_encode_telemetry();
+    for (_, _, telemetry) in &frames {
+        diag::merge_encode_telemetry(*telemetry);
+    }
+
+    let seek_indices: Vec<usize> = (0..frames.len())
+        .filter(|&i| i % SEEK_STRIDE == 0 || i + 1 == frames.len())
+        .collect();
     let mut out = vec![0x4c, VERSION_V4, channel_count as u8];
     out.extend_from_slice(&(frames.len() as u32).to_le_bytes());
     out.extend_from_slice(SEEK_MAGIC);
-    out.extend_from_slice(&(frames.len() as u32).to_le_bytes());
-    let frame_data_start = 7usize + 8 + frames.len() * 16;
+    out.extend_from_slice(&(seek_indices.len() as u32).to_le_bytes());
+    let frame_data_start = 7usize + 8 + seek_indices.len() * 16;
     let mut offset = frame_data_start as u64;
-    for (sample_offset, frame) in &frames {
-        out.extend_from_slice(&sample_offset.to_le_bytes());
-        out.extend_from_slice(&offset.to_le_bytes());
+    let mut frame_offsets = Vec::with_capacity(frames.len());
+    for (_, frame, _) in &frames {
+        frame_offsets.push(offset);
         offset += frame.len() as u64;
     }
-    for (_, frame) in frames {
+    for &i in &seek_indices {
+        out.extend_from_slice(&frames[i].0.to_le_bytes());
+        out.extend_from_slice(&frame_offsets[i].to_le_bytes());
+    }
+    for (_, frame, _) in frames {
         out.extend_from_slice(&frame);
     }
     out
 }
 
+fn encode_v4_frame(
+    per_channel: &[Vec<i16>],
+    channel_count: usize,
+    start: usize,
+    end: usize,
+) -> (u64, Vec<u8>, diag::EncodeTelemetry) {
+    diag::reset_encode_telemetry();
+    let mut frame = Vec::new();
+    if channel_count == 2 {
+        let (first, second) = encode_stereo_block_best_v4(
+            &per_channel[0][start..end],
+            &per_channel[1][start..end],
+        );
+        frame.extend_from_slice(&first);
+        frame.extend_from_slice(&second);
+    } else {
+        for channel in per_channel {
+            let channel_end = end.min(channel.len());
+            if start >= channel_end {
+                continue;
+            }
+            let block = &channel[start..channel_end];
+            let (flag, payload) = encode_block_payload_v4(block);
+            frame.extend_from_slice(&wrap_block_v4(block, flag, &payload));
+        }
+    }
+    (start as u64, frame, diag::encode_telemetry())
+}
+
+fn best_i32_side_payload(side: &[i32]) -> (u8, Vec<u8>) {
+    #[derive(Clone, Copy)]
+    enum SidePayload {
+        Rice,
+        Fixed,
+        Qlp,
+    }
+
+    let mut candidates = vec![(estimate_i32_rice_payload_bytes(side), SidePayload::Rice)];
+    if let Some(bytes) = estimate_i32_predicted_rice_payload_bytes(side) {
+        candidates.push((bytes, SidePayload::Fixed));
+    }
+    if let Some(bytes) = qlp::estimate_best_i32_qlp_payload_bytes(side) {
+        candidates.push((bytes, SidePayload::Qlp));
+    }
+    candidates.sort_by_key(|(bytes, _)| *bytes);
+    for (_, candidate) in candidates {
+        match candidate {
+            SidePayload::Rice => {
+                return (FLAG_I32_RICE, encode_i32_rice_payload(side));
+            }
+            SidePayload::Fixed => {
+                if let Some(payload) = encode_i32_predicted_rice_payload(side) {
+                    return (FLAG_I32_PRED, payload);
+                }
+            }
+            SidePayload::Qlp => {
+                if let Some(payload) = qlp::encode_best_i32_qlp_payload(side) {
+                    return (FLAG_I32_QLP, payload);
+                }
+            }
+        }
+    }
+    (FLAG_I32_RICE, encode_i32_rice_payload(side))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum StereoChoiceV4 {
+    Independent,
+    MidSide,
+    LeftSide,
+    RightSide,
+}
+
 fn encode_stereo_block_best_v4(left: &[i16], right: &[i16]) -> (Vec<u8>, Vec<u8>) {
     let (left_flag, left_payload) = encode_block_payload_v4(left);
     let (right_flag, right_payload) = encode_block_payload_v4(right);
-    let mut best = (
-        wrap_block(left, left_flag, &left_payload),
-        wrap_block(right, right_flag, &right_payload),
-    );
-    let mut best_len = best.0.len() + best.1.len();
+    let side = stereo::encode_side_i32(left, right);
+    let (side_flag, side_payload) = best_i32_side_payload(&side);
+    let side_total = V4_BLOCK_HDR + side_payload.len();
 
-    let mut try_side = |first: &[i16], side: &[i32], hint: u8, verified: bool| {
-        if !verified {
-            return;
-        }
-        let (first_flag, first_payload) = encode_block_payload_v4(first);
-        let side_payload = encode_i32_rice_payload(side);
-        let first_block = wrap_block(first, first_flag | hint, &first_payload);
-        let side_block = wrap_i32_block(side, FLAG_I32_RICE, &side_payload);
-        let total = first_block.len() + side_block.len();
+    let mut choice = StereoChoiceV4::Independent;
+    let mut best_len = V4_BLOCK_HDR * 2 + left_payload.len() + right_payload.len();
+    let mut mid_encoded: Option<(Vec<i16>, u8, Vec<u8>)> = None;
+
+    if stereo::should_encode_mid(left, right) {
+        let (mid, _) = stereo::encode_ms_i32(left, right);
+        let (mid_flag, mid_payload) = encode_block_payload_v4(&mid);
+        let total = V4_BLOCK_HDR + mid_payload.len() + side_total;
         if total < best_len {
             best_len = total;
-            best = (first_block, side_block);
+            choice = StereoChoiceV4::MidSide;
         }
-    };
+        mid_encoded = Some((mid, mid_flag, mid_payload));
+    }
 
-    let (mid, side) = stereo::encode_ms_i32(left, right);
-    try_side(
-        &mid,
-        &side,
-        STEREO_MS,
-        stereo::decode_ms_i32(&mid, &side)
-            .map(|pair| pair.0 == left && pair.1 == right)
-            .unwrap_or(false),
-    );
-    let (left_keep, side) = stereo::encode_ls_i32(left, right);
-    try_side(
-        &left_keep,
-        &side,
-        STEREO_LS,
-        stereo::decode_ls_i32(&left_keep, &side)
-            .map(|pair| pair.0 == left && pair.1 == right)
-            .unwrap_or(false),
-    );
-    let (right_keep, side) = stereo::encode_rs_i32(left, right);
-    try_side(
-        &right_keep,
-        &side,
-        STEREO_RS,
-        stereo::decode_rs_i32(&right_keep, &side)
-            .map(|pair| pair.0 == left && pair.1 == right)
-            .unwrap_or(false),
-    );
-    best
+    let left_side_len = V4_BLOCK_HDR + left_payload.len() + side_total;
+    if left_side_len < best_len {
+        best_len = left_side_len;
+        choice = StereoChoiceV4::LeftSide;
+    }
+    let right_side_len = V4_BLOCK_HDR + right_payload.len() + side_total;
+    if right_side_len < best_len {
+        choice = StereoChoiceV4::RightSide;
+    }
+
+    match choice {
+        StereoChoiceV4::Independent => (
+            wrap_block_v4(left, left_flag, &left_payload),
+            wrap_block_v4(right, right_flag, &right_payload),
+        ),
+        StereoChoiceV4::MidSide => {
+            let (mid, mid_flag, mid_payload) =
+                mid_encoded.expect("mid/side choice requires an encoded mid channel");
+            (
+                wrap_block_v4(&mid, mid_flag | STEREO_MS, &mid_payload),
+                wrap_i32_block_v4(&side, side_flag, &side_payload),
+            )
+        }
+        StereoChoiceV4::LeftSide => (
+            wrap_block_v4(left, left_flag | STEREO_LS, &left_payload),
+            wrap_i32_block_v4(&side, side_flag, &side_payload),
+        ),
+        StereoChoiceV4::RightSide => (
+            wrap_block_v4(right, right_flag | STEREO_RS, &right_payload),
+            wrap_i32_block_v4(&side, side_flag, &side_payload),
+        ),
+    }
 }
 
 fn encode_version(samples: &[i16], channels: u8, version: u8, force_raw: bool) -> Vec<u8> {
@@ -323,18 +419,28 @@ struct BlockPlan {
 }
 
 fn plan_blocks(per_ch: &[Vec<i16>]) -> BlockPlan {
+    plan_blocks_version(per_ch, false)
+}
+
+fn plan_blocks_v4(per_ch: &[Vec<i16>]) -> BlockPlan {
+    plan_blocks_version(per_ch, true)
+}
+
+fn plan_blocks_version(per_ch: &[Vec<i16>], v4: bool) -> BlockPlan {
     let max_len = per_ch.iter().map(|c| c.len()).max().unwrap_or(0);
     let probe = per_ch.first().map(|c| c.as_slice()).unwrap_or(&[]);
+    let right = per_ch.get(1).map(|c| c.as_slice());
+    let max_block = if v4 { BLOCK_SIZE_V4 } else { BLOCK_SIZE };
     let mut boundaries = Vec::new();
     let mut i = 0usize;
     while i < max_len {
-        let hard_end = (i + BLOCK_SIZE).min(max_len);
+        let hard_end = (i + max_block).min(max_len);
         let mut end = silence_aware_block_end(probe, i, hard_end);
         if end <= i {
             end = hard_end;
         }
-        // Verified adaptive split: whole window vs 2× / 4× (probe channel cost).
-        for e in adaptive_split_ends(probe, i, end) {
+        // Verified adaptive split: whole window vs 2× / 4× (v4 uses QLP/stereo costs).
+        for e in adaptive_split_ends(probe, right, i, end, v4) {
             boundaries.push(e);
         }
         i = end;
@@ -359,8 +465,62 @@ fn block_encode_cost(samples: &[i16]) -> usize {
     13 + payload.len()
 }
 
-/// Try keeping `[start, end)` as one block vs 2 or 4 equal splits; return end offsets.
-fn adaptive_split_ends(probe: &[i16], start: usize, end: usize) -> Vec<usize> {
+/// v4 planning cost: QLP-capable mono payload + v4 header (CRC16).
+fn block_encode_cost_v4(samples: &[i16]) -> usize {
+    if samples.is_empty() {
+        return 0;
+    }
+    V4_BLOCK_HDR + estimate_block_payload_v4_bytes(samples)
+}
+
+/// Stereo frame planning cost (cheap approx — full mid/side search is encode-time).
+fn stereo_frame_encode_cost_v4(left: &[i16], right: &[i16]) -> usize {
+    if left.is_empty() {
+        return 0;
+    }
+    V4_BLOCK_HDR
+        .saturating_mul(2)
+        .saturating_add(stereo::stereo_split_proxy_bytes(left, right))
+}
+
+fn strongest_transient_cut(
+    probe: &[i16],
+    right: Option<&[i16]>,
+    start: usize,
+    end: usize,
+) -> Option<usize> {
+    const MIN_SEGMENT: usize = 256;
+    if end.saturating_sub(start) < MIN_SEGMENT * 2 {
+        return None;
+    }
+    let scan_start = start.saturating_add(MIN_SEGMENT).max(start + 1);
+    let scan_end = end.saturating_sub(MIN_SEGMENT);
+    let mut best: Option<(u64, usize)> = None;
+    for index in scan_start..=scan_end {
+        let left_jump = (probe[index] as i32 - probe[index - 1] as i32).unsigned_abs() as u64;
+        let right_jump = right
+            .and_then(|channel| {
+                (index < channel.len()).then(|| {
+                    (channel[index] as i32 - channel[index - 1] as i32).unsigned_abs() as u64
+                })
+            })
+            .unwrap_or(0);
+        let score = left_jump.saturating_add(right_jump);
+        if best.map(|(current, _)| score > current).unwrap_or(true) {
+            best = Some((score, index));
+        }
+    }
+    best.and_then(|(score, index)| (score > 0).then_some(index))
+}
+
+/// Try keeping `[start, end)` whole, equal 2×/4× splits, and a transient cut.
+fn adaptive_split_ends(
+    probe: &[i16],
+    right: Option<&[i16]>,
+    start: usize,
+    end: usize,
+    v4: bool,
+) -> Vec<usize> {
     let len = end.saturating_sub(start);
     if len < 1024 || probe.is_empty() || start >= probe.len() {
         return vec![end];
@@ -375,7 +535,18 @@ fn adaptive_split_ends(probe: &[i16], start: usize, end: usize) -> Vec<usize> {
         if a >= b {
             return 0;
         }
-        block_encode_cost(&probe[a..b])
+        if v4 {
+            if let Some(r) = right {
+                let ra = a.min(r.len());
+                let rb = b.min(r.len());
+                if ra < rb {
+                    return stereo_frame_encode_cost_v4(&probe[a..b], &r[ra..rb]);
+                }
+            }
+            block_encode_cost_v4(&probe[a..b])
+        } else {
+            block_encode_cost(&probe[a..b])
+        }
     };
     let c1 = cost(start, slice_end);
     let mid = start + len / 2;
@@ -390,13 +561,20 @@ fn adaptive_split_ends(probe: &[i16], start: usize, end: usize) -> Vec<usize> {
         usize::MAX
     };
 
-    if c4 < c1 && c4 <= c2 {
-        return vec![start + q, start + 2 * q, start + 3 * q, end];
+    let (selected_cost, mut selected) = if c4 < c1 && c4 <= c2 {
+        (c4, vec![start + q, start + 2 * q, start + 3 * q, end])
+    } else if c2 < c1 {
+        (c2, vec![mid, end])
+    } else {
+        (c1, vec![end])
+    };
+    if let Some(cut) = strongest_transient_cut(probe, right, start, slice_end) {
+        let transient_cost = cost(start, cut) + cost(cut, slice_end);
+        if transient_cost < selected_cost {
+            selected = vec![cut, end];
+        }
     }
-    if c2 < c1 {
-        return vec![mid, end];
-    }
-    vec![end]
+    selected
 }
 
 /// Prefer ending a non-silent block just before a long silence run, and ending a
@@ -480,11 +658,21 @@ fn wrap_block(samples: &[i16], flag: u8, payload: &[u8]) -> Vec<u8> {
     out
 }
 
-fn wrap_i32_block(samples: &[i32], flag: u8, payload: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(13 + payload.len());
+fn wrap_block_v4(samples: &[i16], flag: u8, payload: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(V4_BLOCK_HDR + payload.len());
     out.extend_from_slice(&(samples.len() as u32).to_le_bytes());
     out.push(flag);
-    out.extend_from_slice(&crc32_i32(samples).to_le_bytes());
+    out.extend_from_slice(&crc16_i16(samples).to_le_bytes());
+    out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+    out.extend_from_slice(payload);
+    out
+}
+
+fn wrap_i32_block_v4(samples: &[i32], flag: u8, payload: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(V4_BLOCK_HDR + payload.len());
+    out.extend_from_slice(&(samples.len() as u32).to_le_bytes());
+    out.push(flag);
+    out.extend_from_slice(&crc16_i32(samples).to_le_bytes());
     out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
     out.extend_from_slice(payload);
     out
@@ -524,7 +712,11 @@ pub fn decode(data: &[u8]) -> Result<Vec<i16>, String> {
             let mut flag = data[pos + 4];
             let stereo_hint = if c == 0 { flag & STEREO_MASK } else { 0 };
             flag &= !STEREO_MASK;
-            if flag == FLAG_QLP || flag == FLAG_I32_RICE {
+            if flag == FLAG_QLP
+                || flag == FLAG_I32_RICE
+                || flag == FLAG_I32_PRED
+                || flag == FLAG_I32_QLP
+            {
                 return Err(format!("v3 stream uses v4-only block flag {flag}"));
             }
             let crc_expected = u32::from_le_bytes(data[pos + 5..pos + 9].try_into().unwrap());
@@ -604,8 +796,10 @@ fn parse_v4_prefix(data: &[u8]) -> Result<Option<(usize, usize, Vec<SeekEntry>)>
             .try_into()
             .map_err(|_| "v4 seek count truncated")?,
     ) as usize;
-    if count != frames {
-        return Err(format!("v4 seek count {count} != frame count {frames}"));
+    if count == 0 || count > frames {
+        return Err(format!(
+            "v4 seek count {count} invalid for frame count {frames}"
+        ));
     }
     let table_bytes = count
         .checked_mul(16)
@@ -660,7 +854,7 @@ fn try_decode_v4_frame(
 
     for channel in 0..channels {
         let header_end = position
-            .checked_add(13)
+            .checked_add(V4_BLOCK_HDR)
             .ok_or("v4 block header offset overflow")?;
         if header_end > data.len() {
             return Ok(None);
@@ -678,13 +872,13 @@ fn try_decode_v4_frame(
         } else if len != frame_samples {
             return Err("v4 frame channel lengths differ".into());
         }
-        let crc_expected = u32::from_le_bytes(
-            data[position + 5..position + 9]
+        let crc_expected = u16::from_le_bytes(
+            data[position + 5..position + 7]
                 .try_into()
                 .map_err(|_| "v4 block CRC truncated")?,
         );
         let payload_len = u32::from_le_bytes(
-            data[position + 9..position + 13]
+            data[position + 7..position + 11]
                 .try_into()
                 .map_err(|_| "v4 payload length truncated")?,
         ) as usize;
@@ -695,18 +889,25 @@ fn try_decode_v4_frame(
             return Ok(None);
         }
         let payload = &data[header_end..block_end];
-        if channel == 1 && stereo_hint != 0 && flag == FLAG_I32_RICE {
-            let side = decode_i32_rice_payload(payload, len)?;
-            if crc32_i32(&side) != crc_expected {
+        if channel == 1
+            && stereo_hint != 0
+            && (flag == FLAG_I32_RICE || flag == FLAG_I32_PRED || flag == FLAG_I32_QLP)
+        {
+            let side = match flag {
+                FLAG_I32_QLP => decode_i32_qlp_payload(payload, len)?,
+                FLAG_I32_PRED => decode_i32_predicted_rice_payload(payload, len)?,
+                _ => decode_i32_rice_payload(payload, len)?,
+            };
+            if crc16_i32(&side) != crc_expected {
                 return Err("v4 i32 side CRC mismatch".into());
             }
             i32_side = Some(side);
         } else {
-            if flag == FLAG_I32_RICE {
+            if flag == FLAG_I32_RICE || flag == FLAG_I32_PRED || flag == FLAG_I32_QLP {
                 return Err("v4 i32 side flag outside stereo side channel".into());
             }
             let block = decode_block_payload(flag, payload, len)?;
-            if crc32(&block) != crc_expected {
+            if crc16_i16(&block) != crc_expected {
                 return Err("v4 block CRC mismatch".into());
             }
             decoded_channels.push(block);
@@ -758,9 +959,6 @@ fn decode_v4(data: &[u8]) -> Result<Vec<i16>, String> {
         .map(|entry| entry.byte_offset)
         .unwrap_or(data.len());
     for frame_index in 0..frames {
-        if entries[frame_index].byte_offset != position {
-            return Err(format!("v4 seek offset mismatch at frame {frame_index}"));
-        }
         let (pcm, next, _) = try_decode_v4_frame(data, position, channels)?
             .ok_or_else(|| format!("truncated MP5-L v4 frame {frame_index}"))?;
         output.extend_from_slice(&pcm);
@@ -824,10 +1022,6 @@ impl StreamDecoder {
         }
         let mut output = Vec::new();
         while self.frame_index < self.frame_count {
-            let expected_offset = self.entries[self.frame_index].byte_offset;
-            if self.position != expected_offset {
-                return Err("stream position does not match v4 seek table".into());
-            }
             let Some((pcm, next, frame_samples)) =
                 try_decode_v4_frame(&self.buffer, self.position, self.channels)?
             else {
@@ -847,23 +1041,40 @@ impl StreamDecoder {
 
     /// Seek to a channel-frame sample index. The next `push` (including an
     /// empty push) emits from that exact sample within the indexed frame.
+    /// Sparse SEEK entries land on/before the target; leftover skip covers the gap.
     pub fn seek_frame(&mut self, sample_index: usize) -> Result<(), String> {
         self.initialize_if_available()?;
         if !self.initialized {
             return Err("v4 seek table is not available yet".into());
         }
         let target = sample_index as u64;
-        let (index, entry) = self
+        let entry = self
             .entries
             .iter()
-            .enumerate()
             .rev()
-            .find(|(_, entry)| entry.sample_offset <= target)
+            .find(|entry| entry.sample_offset <= target)
             .ok_or("seek target precedes first frame")?;
-        self.frame_index = index;
+        // Estimate frame index from sample offset / typical block; refine by scanning.
         self.position = entry.byte_offset;
         self.skip_samples = usize::try_from(target - entry.sample_offset)
             .map_err(|_| "seek offset exceeds platform")?;
+        // Count frames from stream start to this byte offset for frame_index bookkeeping.
+        let mut position = self
+            .entries
+            .first()
+            .map(|e| e.byte_offset)
+            .unwrap_or(self.position);
+        let mut frame_index = 0usize;
+        while position < self.position && frame_index < self.frame_count {
+            let Some((_, next, _)) = try_decode_v4_frame(&self.buffer, position, self.channels)?
+            else {
+                break;
+            };
+            position = next;
+            frame_index += 1;
+        }
+        self.frame_index = frame_index;
+        self.position = entry.byte_offset;
         Ok(())
     }
 }
@@ -928,6 +1139,30 @@ fn crc32_bytes(bytes: impl IntoIterator<Item = u8>) -> u32 {
         }
     }
     !crc
+}
+
+fn crc16_i16(data: &[i16]) -> u16 {
+    crc16_bytes(data.iter().flat_map(|sample| sample.to_le_bytes()))
+}
+
+fn crc16_i32(data: &[i32]) -> u16 {
+    crc16_bytes(data.iter().flat_map(|sample| sample.to_le_bytes()))
+}
+
+/// CRC-16/IBM (poly 0xA001), used by disposable experimental v4 block headers.
+fn crc16_bytes(bytes: impl IntoIterator<Item = u8>) -> u16 {
+    let mut crc = 0xffffu16;
+    for b in bytes {
+        crc ^= u16::from(b);
+        for _ in 0..8 {
+            crc = if crc & 1 != 0 {
+                0xa001 ^ (crc >> 1)
+            } else {
+                crc >> 1
+            };
+        }
+    }
+    crc
 }
 
 #[cfg(test)]
@@ -1022,6 +1257,17 @@ mod tests {
     }
 
     #[test]
+    fn v4_transient_cut_is_not_forced_to_equal_halves() {
+        let mut channel = vec![100i16; 2048];
+        channel[700..].fill(20_000);
+        assert_eq!(
+            strongest_transient_cut(&channel, None, 0, channel.len()),
+            Some(700)
+        );
+        assert_ne!(700, channel.len() / 2);
+    }
+
+    #[test]
     fn default_encoder_remains_v3() {
         let enc = encode(&[1, -2, 3, -4], 1);
         assert_eq!(enc[1], VERSION_V3);
@@ -1054,6 +1300,56 @@ mod tests {
     }
 
     #[test]
+    fn v4_stereo_encode_is_size_and_byte_deterministic() {
+        let samples: Vec<i16> = (0..1536)
+            .flat_map(|i| {
+                let left = ((i as f64 * 0.023).sin() * 22_000.0) as i16;
+                let right = left.saturating_sub(((i % 11) as i16) - 5);
+                [left, right]
+            })
+            .collect();
+        let first = encode_v4(&samples, 2);
+        let second = encode_v4(&samples, 2);
+        assert_eq!(first.len(), 1_204, "frozen v4 fixture size changed");
+        assert_eq!(
+            crc32_bytes(first.iter().copied()),
+            1_830_739_704,
+            "frozen v4 fixture bytes changed"
+        );
+        assert_eq!(first.len(), second.len());
+        assert_eq!(first, second);
+        assert_eq!(decode(&first).unwrap(), samples);
+    }
+
+    #[test]
+    #[ignore = "manual release-mode speed smoke"]
+    fn v4_two_second_stereo_speed_smoke() {
+        let sample_rate = 48_000usize;
+        let duration_seconds = 2.0f64;
+        let samples: Vec<i16> = (0..sample_rate * 2)
+            .flat_map(|i| {
+                let t = i as f64 / sample_rate as f64;
+                let left = ((t * 440.0 * std::f64::consts::TAU).sin() * 20_000.0) as i16;
+                let right = left
+                    .saturating_add(((t * 2_100.0 * std::f64::consts::TAU).sin() * 180.0) as i16);
+                [left, right]
+            })
+            .collect();
+        let started = std::time::Instant::now();
+        let encoded = encode_v4(&samples, 2);
+        let elapsed = started.elapsed().as_secs_f64();
+        let frames = u32::from_le_bytes(encoded[3..7].try_into().unwrap());
+        eprintln!(
+            "MP5-L v4 speed smoke: {:.3}s, {:.2}x RT, {} bytes, {} frames",
+            elapsed,
+            duration_seconds / elapsed.max(f64::EPSILON),
+            encoded.len(),
+            frames
+        );
+        assert_eq!(decode(&encoded).unwrap(), samples);
+    }
+
+    #[test]
     fn v4_extreme_stereo_uses_width_safe_side() {
         let samples = vec![
             i16::MAX,
@@ -1067,6 +1363,27 @@ mod tests {
         ];
         let enc = encode_v4(&samples, 2);
         assert_eq!(decode(&enc).unwrap(), samples);
+    }
+
+    #[test]
+    fn v4_smooth_side_uses_predicted_i32_flag() {
+        let left: Vec<i16> = (0..4096)
+            .map(|i| ((i as f64 * 0.014).sin() * 20_000.0) as i16)
+            .collect();
+        let right: Vec<i16> = left
+            .iter()
+            .enumerate()
+            .map(|(i, &sample)| {
+                let side = ((i as f64 * 0.007).sin() * 500.0) as i32;
+                (sample as i32 + side).clamp(i16::MIN as i32, i16::MAX as i32) as i16
+            })
+            .collect();
+        let (_, side_block) = encode_stereo_block_best_v4(&left, &right);
+        let side_flag = side_block[4] & !STEREO_MASK;
+        assert!(
+            side_flag == FLAG_I32_PRED || side_flag == FLAG_I32_QLP,
+            "smooth side should use predicted/QLP i32, got {side_flag}"
+        );
     }
 
     #[test]

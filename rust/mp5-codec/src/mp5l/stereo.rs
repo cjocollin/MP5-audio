@@ -81,6 +81,13 @@ pub fn encode_ms_i32(left: &[i16], right: &[i16]) -> (Vec<i16>, Vec<i32>) {
     (mid, side)
 }
 
+pub fn encode_side_i32(left: &[i16], right: &[i16]) -> Vec<i32> {
+    left.iter()
+        .zip(right)
+        .map(|(&left, &right)| left as i32 - right as i32)
+        .collect()
+}
+
 pub fn decode_ms_i32(mid: &[i16], side: &[i32]) -> Result<(Vec<i16>, Vec<i16>), String> {
     let n = mid.len().min(side.len());
     let mut left = Vec::with_capacity(n);
@@ -103,7 +110,7 @@ pub fn decode_ms_i32(mid: &[i16], side: &[i32]) -> Result<(Vec<i16>, Vec<i16>), 
 
 pub fn encode_ls_i32(left: &[i16], right: &[i16]) -> (Vec<i16>, Vec<i32>) {
     let n = left.len().min(right.len());
-    let side = (0..n).map(|i| left[i] as i32 - right[i] as i32).collect();
+    let side = encode_side_i32(&left[..n], &right[..n]);
     (left[..n].to_vec(), side)
 }
 
@@ -122,7 +129,7 @@ pub fn decode_ls_i32(left: &[i16], side: &[i32]) -> Result<(Vec<i16>, Vec<i16>),
 
 pub fn encode_rs_i32(left: &[i16], right: &[i16]) -> (Vec<i16>, Vec<i32>) {
     let n = left.len().min(right.len());
-    let side = (0..n).map(|i| left[i] as i32 - right[i] as i32).collect();
+    let side = encode_side_i32(&left[..n], &right[..n]);
     (right[..n].to_vec(), side)
 }
 
@@ -137,6 +144,92 @@ pub fn decode_rs_i32(right: &[i16], side: &[i32]) -> Result<(Vec<i16>, Vec<i16>)
         left.push(l as i16);
     }
     Ok((left, right[..n].to_vec()))
+}
+
+fn proxy_sample_bits(value: i64) -> usize {
+    let magnitude = value.unsigned_abs();
+    if magnitude == 0 {
+        1
+    } else {
+        (u64::BITS - magnitude.leading_zeros()) as usize + 1
+    }
+}
+
+/// Cheap split-ranking proxy. It samples fixed-predictor residual magnitudes
+/// for independent L/R and width-safe M/S and returns the lower byte estimate.
+///
+/// This is deliberately not used for the final stereo mode decision.
+pub fn stereo_split_proxy_bytes(left: &[i16], right: &[i16]) -> usize {
+    let len = left.len().min(right.len());
+    if len == 0 {
+        return 0;
+    }
+    let stride = len.div_ceil(256).max(1);
+    let mut independent_bits = 0usize;
+    let mut ms_bits = 0usize;
+    let mut previous_left = 0i64;
+    let mut previous_right = 0i64;
+    let mut previous_mid = 0i64;
+    let mut previous_side = 0i64;
+    let mut sampled = 0usize;
+    for index in (0..len).step_by(stride) {
+        let left_value = left[index] as i64;
+        let right_value = right[index] as i64;
+        let mid = (left_value + right_value) >> 1;
+        let side = left_value - right_value;
+        independent_bits = independent_bits
+            .saturating_add(proxy_sample_bits(left_value - previous_left))
+            .saturating_add(proxy_sample_bits(right_value - previous_right));
+        ms_bits = ms_bits
+            .saturating_add(proxy_sample_bits(mid - previous_mid))
+            .saturating_add(proxy_sample_bits(side - previous_side));
+        previous_left = left_value;
+        previous_right = right_value;
+        previous_mid = mid;
+        previous_side = side;
+        sampled += 1;
+    }
+    independent_bits
+        .min(ms_bits)
+        .saturating_mul(len)
+        .div_ceil(sampled.max(1))
+        .div_ceil(8)
+}
+
+/// Correlation gate for the expensive mid-channel encode. L/S and R/S remain
+/// available because they reuse the already-encoded independent channels.
+pub fn should_encode_mid(left: &[i16], right: &[i16]) -> bool {
+    let len = left.len().min(right.len());
+    if len < 2 {
+        return false;
+    }
+    let stride = len.div_ceil(512).max(1);
+    let mut count = 0i128;
+    let mut sum_left = 0i128;
+    let mut sum_right = 0i128;
+    let mut sum_left_sq = 0i128;
+    let mut sum_right_sq = 0i128;
+    let mut sum_product = 0i128;
+    for index in (0..len).step_by(stride) {
+        let left_value = left[index] as i128;
+        let right_value = right[index] as i128;
+        count += 1;
+        sum_left += left_value;
+        sum_right += right_value;
+        sum_left_sq += left_value * left_value;
+        sum_right_sq += right_value * right_value;
+        sum_product += left_value * right_value;
+    }
+    let covariance = count * sum_product - sum_left * sum_right;
+    let left_energy = count * sum_left_sq - sum_left * sum_left;
+    let right_energy = count * sum_right_sq - sum_right * sum_right;
+    if left_energy <= 0 || right_energy <= 0 {
+        return false;
+    }
+    // |correlation| >= 0.10 (was 0.20). Audiobook / near-mono speech is usually
+    // well above this; the lower bar catches weakly correlated beds without
+    // skipping a mid/side try that often wins on size.
+    covariance * covariance * 100 >= left_energy * right_energy
 }
 
 pub fn ms_worth_try(left: &[i16], right: &[i16]) -> bool {
@@ -241,5 +334,26 @@ mod tests {
         );
         let (r, side) = encode_rs_i32(&left, &right);
         assert_eq!(decode_rs_i32(&r, &side).unwrap(), (left, right));
+    }
+
+    #[test]
+    fn correlation_gate_rejects_unrelated_channels() {
+        let left: Vec<i16> = (0..1024)
+            .map(|i| ((i as f64 * 0.017).sin() * 20_000.0) as i16)
+            .collect();
+        let related: Vec<i16> = left
+            .iter()
+            .map(|&sample| sample.saturating_sub(3))
+            .collect();
+        let unrelated: Vec<i16> = (0..1024)
+            .map(|i| {
+                let noise = (i as u32)
+                    .wrapping_mul(1_664_525)
+                    .wrapping_add(1_013_904_223);
+                (noise >> 16) as i16
+            })
+            .collect();
+        assert!(should_encode_mid(&left, &related));
+        assert!(!should_encode_mid(&left, &unrelated));
     }
 }

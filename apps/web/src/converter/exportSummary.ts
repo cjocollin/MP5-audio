@@ -51,7 +51,10 @@ export function buildExportSummary(args: {
 
   return {
     filename: args.filename,
-    codecLabel: codecLabel(head?.codecId ?? CodecId.PCM),
+    codecLabel: codecLabel(
+      head?.codecId ?? CodecId.PCM,
+      args.validated.audioFrames[0]?.data,
+    ),
     exportCodec: args.exportCodec,
     outputBytes: args.outputBytes,
     sourceBytes: args.sourceBytes,

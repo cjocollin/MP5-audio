@@ -192,7 +192,7 @@ export function BatchAlbumBuilderSection({
       const result = await exportBatchAlbumPackage(synced, trackOrder, album, exportMetas);
       recordExportContext({
         exportMode: album.exportTarget,
-        codecPreset: "MP5-L v3",
+        codecPreset: "MP5-L v4",
         trackCount: result.trackCount ?? 0,
         packageType:
           album.exportTarget === "embedded"

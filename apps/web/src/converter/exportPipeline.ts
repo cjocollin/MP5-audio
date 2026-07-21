@@ -18,7 +18,7 @@ export type ExportPhase =
 
 export const EXPORT_PHASE_LABELS: Record<ExportPhase, string> = {
   "building-waveform": "Building waveform and seek data…",
-  encoding: "Encoding MP5-L v3…",
+  encoding: "Encoding MP5-L v4…",
   "writing-metadata": "Writing metadata chunks…",
   validating: "Validating exported MP5…",
   ready: "Ready to download",
@@ -47,8 +47,11 @@ export interface ExportPipelineResult {
 }
 
 function phaseLabel(codec: OutputCodec, phase: ExportPhase): string {
+  if (phase === "encoding" && codec === "mp5l_v4") {
+    return "Encoding MP5-L v4 (lossless · bit-exact · no silent v3 fallback)…";
+  }
   if (phase === "encoding" && codec === "mp5l") {
-    return "Encoding MP5-L v3 (lossless · bit-exact)…";
+    return "Encoding MP5-L v3 (lossless · lab/legacy)…";
   }
   if (phase === "encoding" && codec === "pcm") {
     return "Encoding PCM reference export…";
@@ -103,7 +106,7 @@ export async function runExportPipeline(
   let validated = parseMp5(mp5);
   validateParsedFile(validated, 16);
 
-  if (input.codec === "mp5l") {
+  if (input.codec === "mp5l" || input.codec === "mp5l_v4") {
     const fpOptional = new Map(optional);
     const fpNote = await attachFingerprintOptional(fpOptional, {
       parsed: validated,

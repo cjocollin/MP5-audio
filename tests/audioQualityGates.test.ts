@@ -155,7 +155,7 @@ describe("public policy: MP5-L remains the recommended default", () => {
     const c = CODEC_MODE_HELP.find((c) => c.id === "mp5c")!;
     expect(l.tagline.toLowerCase()).toContain("recommended default");
     expect(`${c.tagline} ${c.detail}`.toLowerCase()).toMatch(/lab|experimental|hiss/);
-    expect(codecExportOptionLabel("mp5l").toLowerCase()).toContain("default");
+    expect(codecExportOptionLabel("mp5l_v4").toLowerCase()).toContain("default");
     expect(MP5_HONEST_LIMIT.toLowerCase()).toContain("does not claim to beat");
   });
 });

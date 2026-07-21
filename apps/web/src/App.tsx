@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { Mp5Player } from "./player/Mp5Player";
 import { ConverterPanel } from "./player/ConverterPanel";
@@ -10,9 +10,8 @@ import { PerformanceDiagnosticsPanel } from "./components/PerformanceDiagnostics
 import { BetaFeedbackPanel } from "./components/BetaFeedbackPanel";
 import { AiSettingsSection } from "./components/AiSettingsSection";
 import { AppShell } from "./components/AppShell";
-import { fetchDemoMp5lFixture } from "./lib/demoFixture";
-import { dismissOnboarding } from "./lib/firstRun";
-import { ingestMp5Files } from "./player/playlistUtils";
+import { DemoFixtureActions } from "./components/DemoFixtureActions";
+import { importMp5ToPlayer } from "./player/playerImport";
 
 export default function App() {
   const {
@@ -22,62 +21,29 @@ export default function App() {
     setTheme,
     useFileThemes,
     setUseFileThemes,
-    tracks,
-    appendTracks,
-    defaultDemoDismissed,
   } = usePlayerStore();
-  const [defaultDemoLoading, setDefaultDemoLoading] = useState(tracks.length === 0);
-  const defaultDemoLoadStartedRef = useRef(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
   }, [theme]);
 
+  // Tab switches via store (e.g. Open in Player) bypass AppShell; always land at top.
   useEffect(() => {
-    if (tracks.length > 0 || defaultDemoDismissed) {
-      setDefaultDemoLoading(false);
-      return;
-    }
-    if (defaultDemoLoadStartedRef.current) {
-      setDefaultDemoLoading(false);
-      return;
-    }
-
-    let mounted = true;
-    const timer = window.setTimeout(() => {
-      if (defaultDemoLoadStartedRef.current) return;
-      defaultDemoLoadStartedRef.current = true;
-
-      void (async () => {
-        try {
-          const file = await fetchDemoMp5lFixture();
-          const current = usePlayerStore.getState();
-          if (!file || current.tracks.length > 0 || current.defaultDemoDismissed) return;
-
-          const result = await ingestMp5Files([file]);
-          const ready = usePlayerStore.getState();
-          if (
-            result.tracks.length > 0 &&
-            ready.tracks.length === 0 &&
-            !ready.defaultDemoDismissed
-          ) {
-            appendTracks(
-              result.tracks.map((track) => ({ ...track, origin: "default-demo" as const })),
-            );
-            dismissOnboarding();
-          }
-        } finally {
-          if (mounted) setDefaultDemoLoading(false);
-        }
-      })();
-    }, 0);
-
+    const root = document.documentElement;
+    const previousScrollBehavior = root.style.scrollBehavior;
+    root.style.scrollBehavior = "auto";
+    window.scrollTo({ top: 0, left: 0 });
+    // After paint in case the new panel changes document height.
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0 });
+      root.style.scrollBehavior = previousScrollBehavior;
+    });
     return () => {
-      mounted = false;
-      window.clearTimeout(timer);
+      window.cancelAnimationFrame(frame);
+      root.style.scrollBehavior = previousScrollBehavior;
     };
-  }, [appendTracks, defaultDemoDismissed, tracks.length]);
+  }, [activeTab]);
 
   return (
     <div className="mp5-app-shell">
@@ -89,7 +55,6 @@ export default function App() {
 
       <main className="mp5-app-main">
         <Mp5Player
-          defaultDemoLoading={defaultDemoLoading}
           panelVisible={activeTab === "player"}
           onRequestPlayer={() => setActiveTab("player")}
         />
@@ -129,6 +94,13 @@ export default function App() {
               Optional content guidance and visual themes (VISU) tint the active Now Playing card
               only — not the global app shell, tabs, or other panels. They never affect playback.
             </p>
+            <DemoFixtureActions
+              testIdPrefix="settings"
+              onLoaded={async (file, playFirst) => {
+                setActiveTab("player");
+                await importMp5ToPlayer([file], { playFirst });
+              }}
+            />
             <div
               className="text-xs text-gray-500 space-y-2 leading-relaxed border border-white/5 rounded-lg p-3"
               data-testid="settings-reliability-note"

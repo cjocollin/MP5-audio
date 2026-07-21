@@ -1,6 +1,6 @@
 # MP5 Developer Quickstart
 
-**Version:** MP5 Audio v0.27.0-beta
+**Version:** MP5 Audio v0.28.0-beta
 
 This guide is for developers, testers, and contributors who want to run MP5 locally, inspect files, validate packages, and reproduce the public beta gates.
 
@@ -10,7 +10,7 @@ MP5 is an experimental browser-based audio format, container, codec, converter, 
 
 - `.mp5` is the single-track container with `MP5A` magic.
 - `.mp5p` is an experimental album package. It can be a JSON manifest with sidecar `.mp5` files, or one embedded binary package with `MP5P` magic.
-- MP5-L v3 is the recommended/default lossless path.
+- MP5-L v4 is the recommended/default lossless path.
 - MP5-C is lab-only and may hiss.
 - MP5-H is large/experimental and not default.
 - Rights, fingerprint, and credit metadata are informational only. MP5 is not DRM and does not provide legal proof.

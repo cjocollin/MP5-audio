@@ -96,8 +96,8 @@ export function buildNowPlayingSummary(input: {
   integrity?: IntegrityCheckResult | null;
 }): NowPlayingSummary {
   const info = input.track ? trackDisplayInfo(input.track) : null;
-  const title = info?.title || "No track selected";
-  const artist = info?.artist || (input.track ? "Unknown artist" : "Drop MP5 files to build a playlist");
+  const title = info?.title || "Song Name";
+  const artist = info?.artist || (input.track ? "Unknown artist" : "Artist");
   const album =
     info?.album ||
     getMetaValue(input.parsed?.meta ?? [], "album") ||
@@ -120,7 +120,10 @@ export function buildNowPlayingSummary(input: {
     title,
     artist,
     album,
-    codecLabel: input.parsed?.head != null ? codecLabel(input.parsed.head.codecId) : null,
+    codecLabel:
+      input.parsed?.head != null
+        ? codecLabel(input.parsed.head.codecId, input.parsed.audioFrames[0]?.data)
+        : null,
     sourceKind,
     sourceLabel: playerSourceLabel(sourceKind),
     trackPositionLabel,

@@ -1,9 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { loadDemoFromSettings } from "./helpers/demoFixtures";
 
 async function loadStemsDemo(page: import("@playwright/test").Page) {
-  await page.getByTestId("app-tab-demo").click();
-  await page.getByTestId("demo-load-stems-demo").click();
-  await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");
+  await loadDemoFromSettings(page, { mode: "stems" });
 }
 
 test.describe("visual theme (VISU)", () => {

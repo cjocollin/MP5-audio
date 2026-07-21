@@ -11,17 +11,17 @@ export interface CodecModeHelp {
 export const CODEC_MODE_HELP: CodecModeHelp[] = [
   {
     id: "mp5l",
-    name: "MP5-L v3",
+    name: "MP5-L v4",
     tagline: "Lossless · recommended default",
     detail:
-      "Bit-exact listening export. Modest compression vs raw PCM. Use this for normal playback and sharing. Experimental v4 framing/QLP is lab-only while FLAC-class compression remains a chase, not a claim.",
+      "Bit-exact listening export (v4 bitstream). Use this for normal playback and sharing. Held-out gate PASS vs FFmpeg flac -5 (PROMOTE_V4). Encode hard-fails with no silent v3 fallback — Retry as MP5-L v3 (lab) if needed. v3 remains available under lab/advanced.",
   },
   {
     id: "mp5c2",
     name: "MP5-C2",
     tagline: "Hybrid quiet-lossless + signal-relative loud · not default",
     detail:
-      "Lossless on quiet/fragile/tail passages; mid/loud units pick the smaller of bit-exact SR+CORR or MP5-L. Often lands near MP5-L size on dense music. MP5-L remains the recommended default. Distinct from classic lab MP5-C.",
+      "Lossless on quiet/fragile/tail passages; mid/loud units pick the smaller of bit-exact SR+CORR or MP5-L. Often lands near MP5-L size on dense music. MP5-L v4 remains the recommended default. Distinct from classic lab MP5-C.",
   },
   {
     id: "mp5c",

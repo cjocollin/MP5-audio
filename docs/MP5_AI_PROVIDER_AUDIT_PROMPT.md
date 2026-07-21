@@ -41,50 +41,46 @@ Your job:
 - defaultBaseUrl: https://api.openai.com/v1
 - apiStyle: openai
 - models:
-  - gpt-4o-mini (default, fast/low cost)
-  - gpt-4o
-  - gpt-4.1
-  - gpt-4.1-mini
-  - gpt-4.1-nano
-  - o4-mini (reasoning)
-  - o3-mini (reasoning)
-  - gpt-3.5-turbo
+  - gpt-5.6-luna (default, fast/low cost)
+  - gpt-5.6-terra
+  - gpt-5.6-sol
+  - gpt-5.5
 
 ### anthropic - Anthropic (Claude)
 - defaultBaseUrl: https://api.anthropic.com/v1
 - apiStyle: anthropic
 - models:
-  - claude-sonnet-4-20250514
-  - claude-3-5-haiku-20241022
-  - claude-3-5-sonnet-20241022
-  - claude-3-opus-20240229
+  - claude-haiku-4-5-20251001
+  - claude-sonnet-5
+  - claude-opus-4-8
+  - claude-fable-5
 
 ### gemini - Google Gemini
 - defaultBaseUrl: https://generativelanguage.googleapis.com/v1beta
 - apiStyle: gemini
 - models:
-  - gemini-2.0-flash
-  - gemini-2.5-flash-preview-05-20
-  - gemini-2.5-pro-preview-06-05
-  - gemini-1.5-flash
-  - gemini-1.5-pro
+  - gemini-3.1-flash-lite (default, fast/low cost)
+  - gemini-3.5-flash
+  - gemini-3.1-pro-preview
+  - gemini-2.5-flash (legacy)
+  - gemini-2.5-pro (legacy)
 
 ### deepseek - DeepSeek
-- defaultBaseUrl: https://api.deepseek.com/v1
+- defaultBaseUrl: https://api.deepseek.com
 - apiStyle: openai
 - models:
-  - deepseek-chat
-  - deepseek-reasoner
+  - deepseek-v4-flash
+  - deepseek-v4-pro
 
 ### kimi - Moonshot (Kimi)
 - defaultBaseUrl: https://api.moonshot.ai/v1
 - apiStyle: openai
 - note: China users may need https://api.moonshot.cn/v1
 - models:
-  - kimi-k2-0711-preview
-  - moonshot-v1-8k
-  - moonshot-v1-32k
-  - moonshot-v1-128k
+  - kimi-k3
+  - kimi-k2.7-code
+  - kimi-k2.7-code-highspeed
+  - kimi-k2.6
 
 ### zai - Z.AI (GLM)
 - defaultBaseUrl: https://api.z.ai/api/paas/v4
@@ -92,10 +88,10 @@ Your job:
 - note: older docs reference open.bigmodel.cn - confirm which base URL is current for international vs China
 - models:
   - glm-5.2
+  - glm-5-turbo
+  - glm-5.1
+  - glm-4.7-flash
   - glm-4.7
-  - glm-4-plus
-  - glm-4-flash
-  - glm-4-air
 
 ### openai-compatible - Other (OpenAI-compatible)
 - defaultBaseUrl: https://api.openai.com/v1 (placeholder)

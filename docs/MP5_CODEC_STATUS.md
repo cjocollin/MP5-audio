@@ -1,6 +1,6 @@
 # MP5 Codec Status
 
-**Version:** MP5 Audio v0.27.0-beta  
+**Version:** MP5 Audio v0.28.0-beta  
 **Source of numbers:** `pnpm audio:quality-report` / `pnpm audio:hiss-report` over the
 synthetic fixture set (13 fixtures, stereo, 44.1 kHz). Regenerate locally to refresh.
 No copyrighted audio, no telemetry.
@@ -28,7 +28,7 @@ Shipping loud units use signal-relative `TAG_SR` (+ CORR when needed); classic M
 Residual 2048 pad after coalesce is ~0.6% → no short-frame trim. **MP5-L packed Rice** remains
 the default path.
 
-## v0.27.0-beta native Rust vNext (new)
+## v0.28.0-beta native Rust vNext (new)
 
 The winning **vNext "smooth"** engine (sub-block + per-band + hysteresis lossless fallback) was
 ported into the **native Rust codec** as `mp5c2` and exposed via additive WASM functions
@@ -78,13 +78,14 @@ detection leaves decaying tails partly lossy — still lab-only. See
 
 | Mode | Role | Lossless | Avg size ×PCM | Status |
 |------|------|----------|---------------|--------|
-| **MP5-L v3** | **Default / recommended** | **Bit-exact (13/13)** | ~0.50× | ✅ Clean, default |
+| **MP5-L v4** | **Default / recommended** | **Bit-exact** | ~0.50× | ✅ Clean, default (PROMOTE_V4) |
+| MP5-L v3 | Lab / legacy | Bit-exact | ~0.50× | Lab/legacy (forever decode) |
 | MP5-C (Standard/High/Extreme) | Lab / research | No (lossy) | ~0.52–0.61× | ⚠️ Lab-only — hiss |
 | MP5-H High + CORR | Hybrid | Sample-exact content (13/13) | ~1.13× (often >1×) | Optional, large, not default |
 | **MP5-C vNext (`CodecId` 5)** | **Lab/advanced export** | Quiet/fragile bit-exact | ~0.42–0.94× (High) | 🧪 Gated; hiss low @ protect 1.5; prefer High preset for size |
 | PCM | Reference / debug | Bit-exact | 1.00× | Reference |
 
-## MP5-L (default, lossless)
+## MP5-L (default = v4, lossless)
 
 - **Bit-exact on every fixture** (samples *and* length); null test = digital silence.
 - No introduced hiss, no clipping, no duration drift.
@@ -92,10 +93,20 @@ detection leaves decaying tails partly lossy — still lab-only. See
 - **Packed Rice (landed):** `FLAG_RICE_PACKED = 6` encodes LPC residuals with bit-packed
   partitioned Rice; legacy `FLAG_RICE = 3` remains LPC+**varint** for older files. Encoder
   picks the smaller verified payload. Go/no-go corpus: ~46% residual-payload savings vs varint.
-  Also: rice-cost-aware LPC order selection and FLAC-style 4-mode stereo (L/R, M/S, L/S, R/S).
-- **Decision: MP5-L remains the recommended default.** Further compression experiments
-  (adaptive block size, LPC selection, RLE) are allowed only if they keep every bit-exact
-  gate green.
+  Also: rice-cost-aware fixed predictors (orders ≤4) and FLAC-style 4-mode stereo (L/R, M/S, L/S, R/S).
+- **FLAC-class chase (tuning smoke, not a formal PASS):** early single-album ORIGAMI tuning
+  measured **MP5-L v4 median ≈ 1.015×** FFmpeg flac -5 (worst ≈1.028×). That is **not** a
+  multi-genre held-out result. Beat gate (&lt;1.00× median on ≥20 independent masters) **not met**.
+  See [MP5L_COMPRESSION.md](../benchmarks/real-music/MP5L_COMPRESSION.md). Never claim
+  “beats FLAC.” Honest product language: **between WAV and FLAC-class** pending formal gate.
+- **v4 default / v3 lab-legacy (hard-fail):** v4 uses verbatim QLP/I32 warm-ups, CRC16
+  block headers, sparse SEEK (stride 8), Tukey/Welch QLP, v4-aware `plan_blocks`, side
+  `FLAG_I32_QLP=10`, and verify-winner encode pruning. Lab toggle `mp5l_v4` **does not**
+  silently fall back to v3 — encode errors fail the export (user may retry as v3).
+  **Held-out ≥20 independent masters still required** for formal PASS; until then results
+  are PROVISIONAL. Promote default to v4 only if held-out median &lt;1.00× flac-5, worst ≤1.20×,
+  bit-exact, native encode ≥2× RT, and WASM/player parity green.
+- **Decision: MP5-L v4 is the recommended default (`PROMOTE_V4`).**
 
 ## MP5-C (lab-only, lossy) — why it still hisses
 

@@ -54,8 +54,13 @@ export function buildFormatWarnings(parsed?: Mp5File): string[] {
     const info = describeMp5hPlayback(parsed, false);
     if (info.warning) warnings.push(info.warning);
   }
-  if (head.codecId !== CodecId.MP5L && head.codecId !== CodecId.PCM) {
-    warnings.push("Not the default MP5-L v3 listening mode.");
+  if (head.codecId === CodecId.MP5L) {
+    const ver = frameData?.[0] === 0x4c ? frameData[1] : null;
+    if (ver === 4) {
+      warnings.push("MP5-L v4 experimental bitstream — not the default listening export.");
+    }
+  } else if (head.codecId !== CodecId.PCM) {
+    warnings.push("Not the default MP5-L v4 listening mode.");
   }
   return warnings;
 }
@@ -115,7 +120,10 @@ export function buildMetadataSummaryFromParsed(
     album,
     genre,
     durationSec: trackDurationSec(parsed),
-    codecLabel: parsed?.head != null ? codecLabel(parsed.head.codecId) : "—",
+    codecLabel:
+      parsed?.head != null
+        ? codecLabel(parsed.head.codecId, parsed.audioFrames[0]?.data)
+        : "—",
     moodTags,
     vibeTags,
     hasContentGuidance: hasGuidance,

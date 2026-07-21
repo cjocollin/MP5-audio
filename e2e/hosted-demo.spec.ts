@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { loadDemoFromSettings } from "./helpers/demoFixtures";
 import {
   parseDisplayedPlaybackTime,
   waitForPlaybackProgress,
@@ -21,7 +22,7 @@ test.describe("MP5 hosted demo", () => {
     await expect(header).toBeVisible();
     await expect(header).toContainText("MP5 Audio");
     await expect(header).toContainText("Public Beta");
-    await expect(header).toContainText("v0.27.0-beta");
+    await expect(header).toContainText("v0.28.0-beta");
   });
 
   test("app shell and honest tagline", async ({ page }) => {
@@ -31,14 +32,16 @@ test.describe("MP5 hosted demo", () => {
       .click();
     const about = page.getByTestId("about-mp5-panel");
     await expect(about).toContainText(/does not claim to beat/i);
-    await expect(about).toContainText("MP5-C2 (vNext)");
+    await expect(about).toContainText("MP5-C2");
     await expect(about).toContainText(/lab \/ advanced/i);
     await expect(about).toContainText("no AI stem separation");
   });
 
-  test("direct Player entry shows the recommended lossless format", async ({ page }) => {
+  test("direct Player entry is empty until a demo is loaded from Settings", async ({ page }) => {
     await expect(page.getByTestId("mp5-player")).toBeVisible();
-    await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
+    await expect(page.getByTestId("player-empty-state")).toBeVisible();
+    await expect(page.getByTestId("playlist-item")).toHaveCount(0);
+    await loadDemoFromSettings(page);
     await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
     await expect(page.getByTestId("now-playing-badges")).toContainText("MP5-L v3");
     await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
@@ -46,6 +49,7 @@ test.describe("MP5 hosted demo", () => {
   });
 
   test("loads demo fixture and shows MP5-L v3 format panel", async ({ page }) => {
+    await loadDemoFromSettings(page);
     await waitForSeekReady(page);
     await expect(page.getByTestId("now-playing-source-badge")).toContainText(".mp5");
     await expect(page.getByTestId("now-playing-duration")).toContainText(/:/);
@@ -71,8 +75,7 @@ test.describe("MP5 hosted demo", () => {
   });
 
   test("karaoke demo loads and enables karaoke mode", async ({ page }) => {
-    await page.getByTestId("app-tab-demo").click();
-    await page.getByTestId("demo-load-stems-demo").click();
+    await loadDemoFromSettings(page, { mode: "stems" });
     await waitForSeekReady(page);
     await page.locator('[data-inspector-id="lyrics"]').click();
     await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 30_000 });

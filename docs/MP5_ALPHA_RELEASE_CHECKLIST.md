@@ -63,7 +63,7 @@ pnpm dev
 - [ ] `pnpm alpha:check` passed recently on this machine
 - [ ] `pnpm wasm:build` done (Format panel should show MP5-L WASM v3, not PCM-only)
 - [ ] Browser tab open to Player; try `test-fixtures/demo_mp5l_v3_tone.mp5`
-- [ ] Converter tab shows **MP5-L v3** as default export
+- [ ] Converter tab shows **MP5-L v4** as default export
 - [ ] Volume up; click **Play** after loading a file
 - [ ] Read **Demo** tab steps in the app (or `docs/MP5_DEMO_GUIDE.md`)
 - [ ] Do **not** claim MP5 beats mainstream codecs or FLAC

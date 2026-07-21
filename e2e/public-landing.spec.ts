@@ -1,17 +1,24 @@
 import { test, expect } from "@playwright/test";
+import { loadDemoFromSettings } from "./helpers/demoFixtures";
 
 test.describe("direct-entry public experience", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
   });
 
-  test("opens directly into the seeded Player workspace", async ({ page }) => {
+  test("opens directly into an empty Player workspace", async ({ page }) => {
     await expect(page.getByTestId("app-shell-header")).toBeVisible();
     await expect(page.getByTestId("public-beta-notice")).toBeVisible();
     await expect(page.getByTestId("app-main-nav")).toBeVisible();
     await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");
     await expect(page.getByTestId("mp5-player")).toBeVisible();
+    await expect(page.getByTestId("player-empty-state")).toBeVisible();
+    await expect(page.getByTestId("playlist-item")).toHaveCount(0);
+    await expect(page.getByTestId("demo-fixture-actions")).toHaveCount(0);
+  });
 
+  test("Settings can load the synthetic MP5-L demo", async ({ page }) => {
+    await loadDemoFromSettings(page);
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
     await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
     await expect(page.getByTestId("now-playing-badges")).toContainText("MP5-L v3");
@@ -27,7 +34,7 @@ test.describe("direct-entry public experience", () => {
 
     const about = page.getByTestId("about-mp5-panel");
     await expect(about).toBeVisible();
-    await expect(about).toContainText("MP5-C2 (vNext)");
+    await expect(about).toContainText("MP5-C2");
     await expect(about).toContainText("user/artist-provided stems");
     await expect(about).toContainText("no AI stem separation");
     await expect(about).toContainText(/does not claim to beat/i);
@@ -45,6 +52,7 @@ test.describe("direct-entry public experience", () => {
 
     await page.getByTestId("app-tab-settings").click();
     await expect(page.getByTestId("performance-diagnostics")).toBeVisible();
+    await expect(page.getByTestId("demo-fixture-actions")).toBeVisible();
 
     await page.getByTestId("app-tab-player").click();
     await expect(page.getByTestId("mp5-player")).toBeVisible();
@@ -54,6 +62,6 @@ test.describe("direct-entry public experience", () => {
     const header = page.getByTestId("app-shell-header");
     await expect(header).toContainText("MP5 Audio");
     await expect(header).toContainText("Public Beta");
-    await expect(header).toContainText("v0.27.0-beta");
+    await expect(header).toContainText("v0.28.0-beta");
   });
 });

@@ -1,0 +1,4 @@
+# Local real-music FLAC/WAV seeds (can be large). Bench auto-seeds from MP5_BENCH_ROOT.
+*.flac
+*.wav
+!README.md

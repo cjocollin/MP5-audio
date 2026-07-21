@@ -1,61 +1,49 @@
-# MP5-L compression benchmark
+# MP5-L compression benchmark (FLAC A/B)
 
-Source: `C:\Users\colli\OneDrive\Desktop\- ORIGAMI!.flac` (154.6s)
+Generated: 2026-07-21 · N held-out independent masters = 20 · primary table rows: 20 · provisional: false · tool: `ffmpeg version 8.1.1-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers`
 
-PCM reference: 29676732 bytes
+**Primary gate:** median **MP5-L v4** size **&lt; 1.00×** FFmpeg `flac -compression_level 5` on identical 16-bit PCM; no track worse than **1.20×**; bit-exact; held-out ≥20 independent masters.
+See `corpus/CORPUS_MANIFEST.md`. Never claim “beats FLAC” until gate is green on held-out.
+Lab listening refs and ORIGAMI slices never count toward the ≥20 master gate.
 
-## Before / after
+## Gate status: PASS — beats FFmpeg flac -5 median on multi-genre held-out; eligible to promote v4 default
 
-| Mode | Bytes | vs PCM | Encode ms | Decode ms | Bit-exact | Max diff | Clips |
-|------|-------|--------|-----------|-----------|-----------|----------|-------|
-| PCM fallback | 29676732 | 1.000x | 0 | 0 | yes | 0 | 0 |
-| MP5-L v2 raw (before) | 29723851 | 1.002x | 124 | 154 | yes | 0 | 0 |
-| MP5-L v3 improved | 23413280 | 0.789x | 17034 | 564 | yes | 0 | 0 |
-| MP5-H High + CORR | 46783862 | 1.576x | 18383 | 617 | no | 0 | 0 |
-| MP5-C High (lab) | 28698445 | 0.967x | 2456 | 125 | no | 554 | 0 |
+- Median v4 / FFmpeg flac -5: **0.989×** (beat &lt; 1.00×; near ≤ 1.05×)
+- Worst v4 / FFmpeg flac -5: **0.999×** (target ≤ 1.20×)
+- Bit-exact (v3+v4): yes
+- Default encoder: **MP5-L v4 (promoted)**
 
-## MP5-L v3 vs v2 raw
+## Primary (held-out / formal)
 
-- v2 raw: 29723851 bytes (1.002x PCM)
-- v3 improved: 23413280 bytes (0.789x PCM)
-- Size change vs v2: 21.2%
-- **Smaller than PCM:** yes
-- **≤ 0.80× PCM target:** yes
+| Track | Kind | s | v3 | v4 | flac5 | flac8 | v3/f5 | v4/f5 | v4/f8 | ×PCM v4 | v4 ms | ×RT v4 | raw%v4 | QLP% | pred% | Exact |
+|-------|------|--:|---:|---:|------:|------:|------:|------:|------:|--------:|------:|-------:|-------:|-----:|------:|:-----:|
+| altpop_mm_00 | held-out | 8.0 | 929931 | 859333 | 911241 | 907407 | 1.021 | 0.943 | 0.947 | 0.559 | 2376 | 3.4 | 0.00 | 51.1 | 8.4 | yes |
+| altpop_mm_01 | held-out | 8.0 | 1058095 | 982582 | 1011796 | 994671 | 1.046 | 0.971 | 0.988 | 0.640 | 1944 | 4.1 | 0.00 | 54.3 | 2.1 | yes |
+| altpop_mm_02 | held-out | 8.0 | 1175969 | 1111917 | 1131461 | 1120367 | 1.039 | 0.983 | 0.992 | 0.724 | 2143 | 3.7 | 0.00 | 56.1 | 1.1 | yes |
+| altpop_mm_03 | held-out | 8.0 | 1212291 | 1150654 | 1159424 | 1151817 | 1.046 | 0.992 | 0.999 | 0.749 | 2287 | 3.5 | 0.00 | 50.5 | 0.0 | yes |
+| altpop_mm_04 | held-out | 8.0 | 1200513 | 1125395 | 1139801 | 1127136 | 1.053 | 0.987 | 0.998 | 0.733 | 2158 | 3.7 | 0.00 | 54.5 | 0.0 | yes |
+| altpop_mm_05 | held-out | 8.0 | 1342934 | 1284955 | 1286880 | 1283417 | 1.044 | 0.999 | 1.001 | 0.837 | 2607 | 3.1 | 0.00 | 51.1 | 0.0 | yes |
+| altpop_mm_06 | held-out | 8.0 | 1117442 | 1055269 | 1081104 | 1074334 | 1.034 | 0.976 | 0.982 | 0.687 | 2441 | 3.3 | 0.00 | 50.0 | 8.5 | yes |
+| altpop_mm_07 | held-out | 8.0 | 1102736 | 1013101 | 1044736 | 1026382 | 1.056 | 0.970 | 0.987 | 0.660 | 2021 | 4.0 | 0.00 | 50.8 | 1.6 | yes |
+| altpop_mm_08 | held-out | 8.0 | 1269089 | 1192373 | 1207228 | 1195381 | 1.051 | 0.988 | 0.997 | 0.776 | 2347 | 3.4 | 0.00 | 52.9 | 0.0 | yes |
+| altpop_mm_09 | held-out | 8.0 | 1276794 | 1212969 | 1219000 | 1213534 | 1.047 | 0.995 | 1.000 | 0.790 | 2297 | 3.5 | 0.00 | 49.7 | 0.0 | yes |
+| pop_kesha_01_01-freedom | held-out | 90.0 | 4724217 | 4194758 | 4205456 | 4173790 | 1.123 | 0.997 | 1.005 | 0.243 | 22753 | 4.0 | 0.00 | 68.6 | 0.7 | yes |
+| pop_kesha_02_02-joyride | held-out | 90.0 | 10386410 | 9520146 | 9628126 | 9474573 | 1.079 | 0.989 | 1.005 | 0.551 | 21530 | 4.2 | 0.00 | 65.7 | 0.5 | yes |
+| pop_kesha_03_04-delusional | held-out | 90.0 | 11287875 | 10145571 | 10221512 | 10054555 | 1.104 | 0.993 | 1.009 | 0.587 | 21065 | 4.3 | 0.00 | 57.3 | 0.2 | yes |
+| pop_kesha_04_05-red-flag | held-out | 90.0 | 9702072 | 8914807 | 9089967 | 8902622 | 1.067 | 0.981 | 1.001 | 0.516 | 29148 | 3.1 | 0.00 | 58.2 | 1.4 | yes |
+| pop_kesha_05_06-love-forever | held-out | 90.0 | 9171038 | 7986292 | 8118357 | 7967789 | 1.130 | 0.984 | 1.002 | 0.462 | 22517 | 4.0 | 0.00 | 54.7 | 0.2 | yes |
+| pop_kesha_06_07-the-one | held-out | 90.0 | 9861085 | 8912093 | 8959907 | 8813483 | 1.101 | 0.995 | 1.011 | 0.516 | 24724 | 3.6 | 0.00 | 66.1 | 0.1 | yes |
+| pop_kesha_07_08-boy-crazy | held-out | 90.0 | 9912944 | 9148812 | 9243525 | 9084687 | 1.072 | 0.990 | 1.007 | 0.529 | 24263 | 3.7 | 0.00 | 75.5 | 0.5 | yes |
+| pop_kesha_08_09-glow | held-out | 90.0 | 9069780 | 8257154 | 8366651 | 8200272 | 1.084 | 0.987 | 1.007 | 0.478 | 23617 | 3.8 | 0.00 | 53.8 | 0.9 | yes |
+| pop_kesha_09_10-too-hard | held-out | 90.0 | 9648549 | 8905879 | 8976502 | 8830707 | 1.075 | 0.992 | 1.009 | 0.515 | 23959 | 3.8 | 0.00 | 53.7 | 0.8 | yes |
+| pop_kesha_10_11-cathedral | held-out | 90.0 | 7155522 | 6181044 | 6252281 | 6114233 | 1.144 | 0.989 | 1.011 | 0.358 | 23671 | 3.8 | 0.00 | 51.9 | 1.3 | yes |
 
-## MP5-L v3 diagnostics
+## Notes
 
-- Version: 3
-- Bits per sample: 6.31
-- Block overhead: 0.2% of file
-- Blocks: 3632 (avg 4085 samples)
-- Block types: 1 lpc, 0 delta, 45 silence, 1 const, 0 raw, 557 stereo M/S
-- Avg predictor order (rice blocks): 1.59
-- Residual entropy estimate: 12.73 bits/sample
-
-### Worst blocks (largest)
-
-| # | Samples | Flag | Payload B | Total B | bps |
-|---|---------|------|-----------|---------|-----|
-| 224 | 4096 | lpc+rice | 7805 | 7818 | 15.24 |
-| 1996 | 4096 | lpc+rice | 7799 | 7812 | 15.23 |
-| 2040 | 4096 | lpc+rice | 7754 | 7767 | 15.14 |
-| 180 | 4096 | lpc+rice | 7748 | 7761 | 15.13 |
-| 3482 | 4096 | lpc+rice | 7716 | 7729 | 15.07 |
-
-### Best blocks (smallest)
-
-| # | Samples | Flag | Payload B | Total B | bps |
-|---|---------|------|-----------|---------|-----|
-| 0 | 4096 | silence | 0 | 13 | 0.00 |
-| 1 | 4096 | silence | 0 | 13 | 0.00 |
-| 2 | 684 | silence | 0 | 13 | 0.00 |
-| 4 | 340 | silence | 0 | 13 | 0.00 |
-| 1798 | 4096 | silence | 0 | 13 | 0.00 |
-
-## Default export policy
-
-**MP5-L remains the recommended default** — bit-exact, no hiss.
-v3 achieves smaller-than-PCM on this track.
+- Layout: `corpus/held-out/` formal, `corpus/tuning/` + ORIGAMI smoke, lab/synth secondary.
+- v4 encoder: QLP, predicted i32 side, escape-aware Rice; experimental disposable bitstream until freeze.
+- QLP warm-up totals: **4798544 verbatim bits** vs **6463656 Rice counterfactual bits** across all tables.
+- Raw-block % is a fallback-rate proxy (verify-then-raw must stay near 0%).
 
 ---
-*Generated by `bench_mp5l_compression`*
+*Generated by `bench_mp5l_compression` · MP5 Audio v0.28.0-beta*

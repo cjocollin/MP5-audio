@@ -1,19 +1,21 @@
-import { EmptyStateCard } from "./EmptyStateCard";
-
 export function PlayerEmptyState() {
   return (
-    <EmptyStateCard title="Build your playlist" testId="player-empty-state">
-      <ul className="space-y-2 text-left list-disc list-inside">
-        <li>Drop one or more <strong className="text-gray-400 font-normal">.mp5</strong> files</li>
-        <li>Tracks append to the queue — use next/previous or tap a row to play</li>
-        <li>
-          Search by title, artist, album, genre, or mood/vibe tags
-        </li>
-        <li>
-          Scroll to the <strong className="text-gray-400 font-normal">Format</strong> panel below for
-          codec, bit-exact, and decode path details
-        </li>
-      </ul>
-    </EmptyStateCard>
+    <div className="mp5-player-empty-tip" data-testid="player-empty-state">
+      <p className="mp5-player-empty-tip-title">Queue is empty</p>
+      <p className="mp5-player-empty-tip-copy">
+        Drop <strong>.mp5</strong> / <strong>.mp5p</strong> below, or open files from the header.
+        Optional demo tone lives in <strong>Settings</strong>.
+      </p>
+      <details className="mp5-player-empty-tip-more">
+        <summary>More tips</summary>
+        <ul>
+          <li>Tracks append to the queue — next/previous or tap a row to play</li>
+          <li>Search by title, artist, album, genre, or mood/vibe tags</li>
+          <li>
+            Use the <strong>Format</strong> panel for codec, bit-exact, and decode path details
+          </li>
+        </ul>
+      </details>
+    </div>
   );
 }

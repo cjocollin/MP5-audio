@@ -1,9 +1,9 @@
 # MP5 Embedded Album Package
 
-**Version:** MP5 Audio v0.27.0-beta  
+**Version:** MP5 Audio v0.28.0-beta  
 **Status:** Experimental Public Beta package format
 
-Embedded `.mp5p` packages use magic `MP5P`, manifest format `mp5-album-embedded-v1`, a track directory, and fragmented embedded `.mp5` payloads. v0.27.0-beta does not change MP5P semantics.
+Embedded `.mp5p` packages use magic `MP5P`, manifest format `mp5-album-embedded-v1`, a track directory, and fragmented embedded `.mp5` payloads. v0.28.0-beta does not change MP5P semantics.
 
 ## Binary Package Limits
 

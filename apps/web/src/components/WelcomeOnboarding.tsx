@@ -31,7 +31,7 @@ export function WelcomeOnboarding() {
           MP5 is an experimental smart audio container — not production-ready.{" "}
           <strong className="text-gray-300">.mp5</strong> is one song;{" "}
           <strong className="text-gray-300">.mp5p</strong> is an album package (experimental). For
-          listening, use <strong className="text-gray-300">MP5-L v3</strong> (lossless, recommended).
+          listening, use <strong className="text-gray-300">MP5-L v4</strong> (lossless, recommended).
           MP5 does not claim to beat MP3, AAC, Opus, or FLAC.
         </p>
       </div>
@@ -42,7 +42,7 @@ export function WelcomeOnboarding() {
           <ol className="text-gray-500 space-y-1.5 list-decimal list-inside text-xs leading-relaxed">
             <li>Open the Converter tab</li>
             <li>Drop FLAC, WAV, MP3, M4A, or OGG</li>
-            <li>Review metadata, export MP5-L v3</li>
+            <li>Review metadata, export MP5-L v4</li>
             <li>Open in Player or download</li>
           </ol>
           <button

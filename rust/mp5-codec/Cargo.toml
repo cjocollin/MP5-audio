@@ -15,9 +15,13 @@ serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
 bytemuck = { version = "1.14", optional = true }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rayon = { version = "1.10", optional = true }
+
 [features]
-default = []
+default = ["native_parallel"]
 bench_tools = ["symphonia", "crc32fast", "serde", "serde_json", "bytemuck"]
+native_parallel = ["dep:rayon"]
 
 [[bin]]
 name = "bench_real_music"

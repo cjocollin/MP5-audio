@@ -1,6 +1,6 @@
 # MP5 Manual QA Checklist
 
-**Version:** MP5 Audio v0.27.0-beta  
+**Version:** MP5 Audio v0.28.0-beta  
 **Purpose:** Public Beta hosted/demo smoke using synthetic fixtures.  
 **Hosted URL:** https://mp5-audio.vercel.app
 
@@ -8,7 +8,7 @@ Status key: **Pass**, **Pass with limitation**, **Blocked**, **Not tested**.
 
 ## A. Hosted App Shell
 
-- [ ] Badge shows `MP5 Public Beta - v0.27.0-beta`.
+- [ ] Badge shows `MP5 Public Beta - v0.28.0-beta`.
 - [ ] Public copy remains experimental and honest.
 - [ ] Settings and diagnostics open.
 
@@ -70,4 +70,4 @@ Status key: **Pass**, **Pass with limitation**, **Blocked**, **Not tested**.
 
 ## Sign-Off
 
-Pending v0.27.0-beta hosted verification.
+Pending v0.28.0-beta hosted verification.

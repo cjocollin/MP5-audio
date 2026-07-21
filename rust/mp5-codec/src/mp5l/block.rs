@@ -2,8 +2,8 @@
 
 use super::predict::{best_order, best_order_rice, reconstruct, residuals, MAX_ORDER};
 use super::rice::{
-    estimate_k_partitioned, rice_decode_partitioned, rice_encode_partitioned,
-    rice_estimate_bits_partitioned,
+    rice_decode_partitioned, rice_encode_partitioned, rice_estimate_bits_partitioned,
+    rice_estimate_bits_partitioned_escape,
 };
 use super::varint::{read_varint, write_varint};
 
@@ -67,6 +67,10 @@ pub const FLAG_RICE_PACKED: u8 = 6;
 pub const FLAG_QLP: u8 = 7;
 /// Signed i32 samples with escaped partitioned Rice coding (v4 stereo side only).
 pub const FLAG_I32_RICE: u8 = 8;
+/// Fixed-predicted i32 samples with escaped partitioned Rice (v4 stereo side only).
+pub const FLAG_I32_PRED: u8 = 9;
+/// Stored QLP on width-safe i32 stereo side with verbatim i32 warm-ups (v4 only).
+pub const FLAG_I32_QLP: u8 = 10;
 
 const BLOCK_HDR: usize = 13;
 
@@ -87,7 +91,7 @@ fn payload_roundtrips(flag: u8, payload: &[u8], samples: &[i16]) -> bool {
 /// Encode LPC residuals as bit-packed Rice.
 /// Layout: `[order u8][count u32 LE][parts u8][k0..k_{parts-1}][rice bytes…]`
 fn encode_rice_packed_payload(samples: &[i16], order: u8) -> Option<Vec<u8>> {
-    use super::rice::{best_partitioned_ks, PARTITION_CANDIDATES};
+    use super::rice::{best_partitioned_ks_unescaped, estimate_k_partitioned_unescaped};
 
     let res = residuals(samples, order);
     let count = res.len() as u32;
@@ -96,12 +100,12 @@ fn encode_rice_packed_payload(samples: &[i16], order: u8) -> Option<Vec<u8>> {
 
     // Always try the global best partition choice, plus each candidate count.
     let mut tried: Vec<Vec<u8>> = Vec::new();
-    tried.push(best_partitioned_ks(&res));
-    for &parts in PARTITION_CANDIDATES {
+    tried.push(best_partitioned_ks_unescaped(&res));
+    for &parts in &[1usize, 2, 4, 8] {
         if parts > res.len().max(1) {
             continue;
         }
-        let ks = estimate_k_partitioned(&res, parts);
+        let ks = estimate_k_partitioned_unescaped(&res, parts);
         if !tried.iter().any(|t| t == &ks) {
             tried.push(ks);
         }
@@ -216,13 +220,9 @@ pub fn encode_block_payload(samples: &[i16]) -> (u8, Vec<u8>) {
 
 /// v4 block search adds stored QLP without changing v3 encoder decisions.
 pub fn encode_block_payload_v4(samples: &[i16]) -> (u8, Vec<u8>) {
-    let (mut best_flag, mut best_payload) = encode_block_payload(samples);
+    let (mut best_flag, mut best_payload) = encode_base_payload_v4_winner(samples);
     if let Some(qlp_payload) = super::qlp::encode_best_qlp_payload(samples) {
-        if qlp_payload.len() < best_payload.len()
-            && decode_block_payload(FLAG_QLP, &qlp_payload, samples.len())
-                .map(|decoded| decoded == samples)
-                .unwrap_or(false)
-        {
+        if qlp_payload.len() < best_payload.len() {
             best_flag = FLAG_QLP;
             best_payload = qlp_payload;
         }
@@ -230,41 +230,403 @@ pub fn encode_block_payload_v4(samples: &[i16]) -> (u8, Vec<u8>) {
     (best_flag, best_payload)
 }
 
-/// Encode a 17-bit stereo side channel. Layout:
-/// `[count u32 LE][parts u8][k bytes][escaped Rice bytes]`.
-pub fn encode_i32_rice_payload(samples: &[i32]) -> Vec<u8> {
-    use super::rice::{best_partitioned_ks, rice_encode_partitioned_escape};
+fn varint_payload_bytes(residuals: &[i32]) -> usize {
+    residuals.iter().fold(0usize, |total, &residual| {
+        let zigzag = zigzag32(residual);
+        total.saturating_add(if zigzag == 0 {
+            1
+        } else {
+            (u32::BITS - zigzag.leading_zeros()).div_ceil(7) as usize
+        })
+    })
+}
 
-    let ks = best_partitioned_ks(samples);
-    let packed = rice_encode_partitioned_escape(samples, &ks);
-    let mut payload = Vec::with_capacity(5 + ks.len() + packed.len());
-    payload.extend_from_slice(&(samples.len() as u32).to_le_bytes());
-    payload.push(ks.len() as u8);
-    payload.extend_from_slice(&ks);
+struct RicePackedPlan {
+    residuals: Vec<i32>,
+    ks: Vec<u8>,
+    payload_bytes: usize,
+}
+
+fn rice_packed_plan(samples: &[i16], order: u8) -> Option<RicePackedPlan> {
+    use super::rice::{best_partitioned_ks_unescaped, estimate_k_partitioned_unescaped};
+
+    let residuals = residuals(samples, order);
+    let raw_cap = samples.len().saturating_mul(2).saturating_add(8);
+    let mut tried: Vec<Vec<u8>> = vec![best_partitioned_ks_unescaped(&residuals)];
+    for &parts in &[1usize, 2, 4, 8] {
+        if parts > residuals.len().max(1) {
+            continue;
+        }
+        let ks = estimate_k_partitioned_unescaped(&residuals, parts);
+        if !tried.iter().any(|candidate| candidate == &ks) {
+            tried.push(ks);
+        }
+    }
+    let mut best: Option<(Vec<u8>, usize)> = None;
+    for ks in tried {
+        let bits = rice_estimate_bits_partitioned(&residuals, &ks);
+        if bits / 8 + 6 + ks.len() >= raw_cap {
+            continue;
+        }
+        let payload_bytes = 6 + ks.len() + bits.div_ceil(8);
+        if payload_bytes < raw_cap
+            && best
+                .as_ref()
+                .map(|(_, current)| payload_bytes < *current)
+                .unwrap_or(true)
+        {
+            best = Some((ks, payload_bytes));
+        }
+    }
+    best.map(|(ks, payload_bytes)| RicePackedPlan {
+        residuals,
+        ks,
+        payload_bytes,
+    })
+}
+
+fn estimate_rice_packed_payload_bytes(samples: &[i16], order: u8) -> Option<usize> {
+    rice_packed_plan(samples, order).map(|plan| plan.payload_bytes)
+}
+
+fn materialize_rice_packed_plan(order: u8, plan: &RicePackedPlan) -> Vec<u8> {
+    let packed = rice_encode_partitioned(&plan.residuals, &plan.ks);
+    let mut payload = Vec::with_capacity(plan.payload_bytes);
+    payload.push(order);
+    payload.extend_from_slice(&(plan.residuals.len() as u32).to_le_bytes());
+    payload.push(plan.ks.len() as u8);
+    payload.extend_from_slice(&plan.ks);
     payload.extend_from_slice(&packed);
     payload
 }
 
-pub fn decode_i32_rice_payload(payload: &[u8], len: usize) -> Result<Vec<i32>, String> {
-    use super::rice::rice_decode_partitioned_escape;
+fn estimate_block_payload_bytes(samples: &[i16]) -> usize {
+    if samples.is_empty() || samples.iter().all(|&sample| sample == 0) {
+        return 0;
+    }
+    if samples
+        .first()
+        .is_some_and(|first| samples.iter().all(|sample| sample == first))
+    {
+        return 2;
+    }
 
-    if payload.len() < 5 {
+    let mut best = samples.len().saturating_mul(2);
+    let delta = 4usize.saturating_add(varint_payload_bytes(&delta_residuals(samples)));
+    best = best.min(delta);
+
+    let varint_order = best_order(samples, MAX_ORDER as u8);
+    let varint_residuals = residuals(samples, varint_order);
+    best = best.min(5usize.saturating_add(varint_payload_bytes(&varint_residuals)));
+
+    let rice_order = best_order_rice(samples, MAX_ORDER as u8);
+    if let Some(rice) = estimate_rice_packed_payload_bytes(samples, rice_order) {
+        best = best.min(rice);
+    }
+    best
+}
+
+enum V4BasePlan {
+    Raw,
+    Delta,
+    Varint { order: u8, residuals: Vec<i32> },
+    Packed { order: u8, plan: RicePackedPlan },
+}
+
+fn encode_base_payload_v4_winner(samples: &[i16]) -> (u8, Vec<u8>) {
+    if samples.is_empty() || samples.iter().all(|&sample| sample == 0) {
+        return (FLAG_SILENCE, Vec::new());
+    }
+    if let Some(&value) = samples.first() {
+        if samples.iter().all(|&sample| sample == value) {
+            return (FLAG_CONST, value.to_le_bytes().to_vec());
+        }
+    }
+
+    let mut best_bytes = samples.len().saturating_mul(2);
+    let mut best = V4BasePlan::Raw;
+
+    let delta_bytes = 4usize.saturating_add(varint_payload_bytes(&delta_residuals(samples)));
+    if delta_bytes < best_bytes {
+        best_bytes = delta_bytes;
+        best = V4BasePlan::Delta;
+    }
+
+    let varint_order = best_order(samples, MAX_ORDER as u8);
+    let varint_residuals = residuals(samples, varint_order);
+    let varint_bytes = 5usize.saturating_add(varint_payload_bytes(&varint_residuals));
+    if varint_bytes < best_bytes {
+        best_bytes = varint_bytes;
+        best = V4BasePlan::Varint {
+            order: varint_order,
+            residuals: varint_residuals,
+        };
+    }
+
+    let rice_order = best_order_rice(samples, MAX_ORDER as u8);
+    if let Some(plan) = rice_packed_plan(samples, rice_order) {
+        if plan.payload_bytes < best_bytes {
+            best = V4BasePlan::Packed {
+                order: rice_order,
+                plan,
+            };
+        }
+    }
+
+    let (flag, payload) = match best {
+        V4BasePlan::Raw => (FLAG_RAW, raw_payload(samples)),
+        V4BasePlan::Delta => (FLAG_DELTA, encode_delta_payload(samples)),
+        V4BasePlan::Varint { order, residuals } => {
+            let mut payload = Vec::with_capacity(5 + varint_payload_bytes(&residuals));
+            payload.push(order);
+            payload.extend_from_slice(&(residuals.len() as u32).to_le_bytes());
+            for residual in residuals {
+                write_varint(&mut payload, zigzag32(residual));
+            }
+            (FLAG_RICE, payload)
+        }
+        V4BasePlan::Packed { order, plan } => {
+            (FLAG_RICE_PACKED, materialize_rice_packed_plan(order, &plan))
+        }
+    };
+    (flag, payload)
+}
+
+/// Exact selected v4 payload byte count without materializing or decoding.
+///
+/// This mirrors all metadata and final-byte padding decisions made by the
+/// encoder. Ties do not affect the returned size.
+pub fn estimate_block_payload_v4_bytes(samples: &[i16]) -> usize {
+    let base = estimate_block_payload_bytes(samples);
+    super::qlp::estimate_best_qlp_payload_bytes(samples)
+        .map(|qlp| base.min(qlp))
+        .unwrap_or(base)
+}
+
+/// Encode a stereo side channel.
+/// Layout: `[parts u8][escape_bits u8][packed ks][escaped Rice bytes]`.
+pub fn encode_i32_rice_payload(samples: &[i32]) -> Vec<u8> {
+    use super::rice::{
+        best_partitioned_ks, escape_bits_for_residuals, pack_partition_ks,
+        rice_encode_partitioned_escape,
+    };
+
+    let escape_bits = escape_bits_for_residuals(samples);
+    let ks = best_partitioned_ks(samples, escape_bits);
+    let packed_ks = pack_partition_ks(&ks);
+    let packed = rice_encode_partitioned_escape(samples, &ks, escape_bits);
+    let mut payload = Vec::with_capacity(2 + packed_ks.len() + packed.len());
+    payload.push(ks.len() as u8);
+    payload.push(escape_bits);
+    payload.extend_from_slice(&packed_ks);
+    payload.extend_from_slice(&packed);
+    payload
+}
+
+pub fn estimate_i32_rice_payload_bytes(samples: &[i32]) -> usize {
+    use super::rice::{best_partitioned_ks, escape_bits_for_residuals};
+
+    let escape_bits = escape_bits_for_residuals(samples);
+    let ks = best_partitioned_ks(samples, escape_bits);
+    2 + ks.len().div_ceil(2)
+        + rice_estimate_bits_partitioned_escape(samples, &ks, escape_bits).div_ceil(8)
+}
+
+pub fn decode_i32_rice_payload(payload: &[u8], len: usize) -> Result<Vec<i32>, String> {
+    use super::rice::{rice_decode_partitioned_escape, unpack_partition_ks};
+
+    if payload.len() < 3 {
         return Err("i32 Rice payload short".into());
     }
-    let count = u32::from_le_bytes(
-        payload[0..4]
-            .try_into()
-            .map_err(|_| "i32 Rice count truncated")?,
-    ) as usize;
-    if count != len {
-        return Err(format!("i32 Rice count {count} != block len {len}"));
-    }
-    let parts = payload[4] as usize;
-    if parts == 0 || parts > 16 || 5 + parts > payload.len() {
+    let parts = payload[0] as usize;
+    let escape_bits = payload[1];
+    let packed_ks_len = parts.div_ceil(2);
+    if parts == 0
+        || parts > 16
+        || !(8..=32).contains(&escape_bits)
+        || 2 + packed_ks_len > payload.len()
+    {
         return Err("i32 Rice partitions invalid".into());
     }
-    let ks = &payload[5..5 + parts];
-    rice_decode_partitioned_escape(&payload[5 + parts..], ks, count)
+    let ks = unpack_partition_ks(&payload[2..2 + packed_ks_len], parts)?;
+    rice_decode_partitioned_escape(&payload[2 + packed_ks_len..], &ks, len, escape_bits)
+}
+
+fn fixed_i32_prediction(history: &[i32], index: usize, order: u8) -> i64 {
+    let sample = |back: usize| history[index - back] as i64;
+    match order {
+        1 => sample(1),
+        2 => 2 * sample(1) - sample(2),
+        3 => 3 * sample(1) - 3 * sample(2) + sample(3),
+        4 => 4 * sample(1) - 6 * sample(2) + 4 * sample(3) - sample(4),
+        _ => 0,
+    }
+}
+
+fn fixed_i32_residuals(samples: &[i32], order: u8) -> Option<Vec<i32>> {
+    let order = order as usize;
+    if order > samples.len() {
+        return None;
+    }
+    let mut residuals = Vec::with_capacity(samples.len() - order);
+    for (index, &sample) in samples.iter().enumerate().skip(order) {
+        let value =
+            (sample as i64).checked_sub(fixed_i32_prediction(samples, index, order as u8))?;
+        residuals.push(i32::try_from(value).ok()?);
+    }
+    Some(residuals)
+}
+
+struct PredictedI32Plan {
+    order: u8,
+    residuals: Vec<i32>,
+    escape_bits: u8,
+    ks: Vec<u8>,
+    estimated_bits: usize,
+    payload_bytes: usize,
+}
+
+fn best_i32_predicted_plan(samples: &[i32]) -> Option<PredictedI32Plan> {
+    use super::rice::{best_partitioned_ks, escape_bits_for_residuals};
+
+    let mut best: Option<PredictedI32Plan> = None;
+    for order in 0..=4u8 {
+        let Some(residuals) = fixed_i32_residuals(samples, order) else {
+            continue;
+        };
+        let escape_bits = escape_bits_for_residuals(&residuals);
+        let ks = best_partitioned_ks(&residuals, escape_bits);
+        let rice_bits = rice_estimate_bits_partitioned_escape(&residuals, &ks, escape_bits);
+        let estimated_bits = (3 + order as usize * 4) * 8 + ks.len() * 4 + rice_bits;
+        let payload_bytes = 3 + order as usize * 4 + ks.len().div_ceil(2) + rice_bits.div_ceil(8);
+        let replace = best
+            .as_ref()
+            .map(|current| {
+                estimated_bits < current.estimated_bits
+                    || (estimated_bits == current.estimated_bits
+                        && payload_bytes < current.payload_bytes)
+            })
+            .unwrap_or(true);
+        if replace {
+            best = Some(PredictedI32Plan {
+                order,
+                residuals,
+                escape_bits,
+                ks,
+                estimated_bits,
+                payload_bytes,
+            });
+        }
+    }
+    best
+}
+
+fn reconstruct_fixed_i32(
+    warmups: &[i32],
+    residuals: &[i32],
+    count: usize,
+    order: u8,
+) -> Result<Vec<i32>, String> {
+    let order = order as usize;
+    if warmups.len() != order || count < order || residuals.len() != count - order {
+        return Err("predicted i32 Rice reconstruction lengths invalid".into());
+    }
+    let mut samples = Vec::with_capacity(count);
+    samples.extend_from_slice(warmups);
+    for &residual in residuals {
+        let index = samples.len();
+        let value = fixed_i32_prediction(&samples, index, order as u8)
+            .checked_add(residual as i64)
+            .ok_or("i32 prediction reconstruction overflow")?;
+        samples
+            .push(i32::try_from(value).map_err(|_| "i32 prediction sample exceeds signed width")?);
+    }
+    Ok(samples)
+}
+
+/// v4 layout:
+/// `[order u8][warm-up i32 LE][parts u8][escape_bits u8][packed ks][Rice N-order]`.
+/// Orders 0–4 use the FLAC fixed predictor coefficients.
+pub fn encode_i32_predicted_rice_payload(samples: &[i32]) -> Option<Vec<u8>> {
+    use super::rice::{pack_partition_ks, rice_encode_partitioned_escape};
+
+    let plan = best_i32_predicted_plan(samples)?;
+    let packed_ks = pack_partition_ks(&plan.ks);
+    let packed = rice_encode_partitioned_escape(&plan.residuals, &plan.ks, plan.escape_bits);
+    let mut payload = Vec::with_capacity(plan.payload_bytes);
+    payload.push(plan.order);
+    for &sample in samples.iter().take(plan.order as usize) {
+        payload.extend_from_slice(&sample.to_le_bytes());
+    }
+    payload.push(plan.ks.len() as u8);
+    payload.push(plan.escape_bits);
+    payload.extend_from_slice(&packed_ks);
+    payload.extend_from_slice(&packed);
+    debug_assert_eq!(payload.len(), plan.payload_bytes);
+    Some(payload)
+}
+
+pub fn estimate_i32_predicted_rice_payload_bytes(samples: &[i32]) -> Option<usize> {
+    best_i32_predicted_plan(samples).map(|plan| plan.payload_bytes)
+}
+
+pub fn decode_i32_qlp_payload(payload: &[u8], len: usize) -> Result<Vec<i32>, String> {
+    super::qlp::decode_i32_qlp_payload(payload, len)
+}
+
+pub fn decode_i32_predicted_rice_payload(payload: &[u8], len: usize) -> Result<Vec<i32>, String> {
+    use super::rice::{rice_decode_partitioned_escape, unpack_partition_ks};
+
+    if payload.len() < 4 {
+        return Err("predicted i32 Rice payload short".into());
+    }
+    let order = payload[0];
+    if order > 4 {
+        return Err("predicted i32 Rice order invalid".into());
+    }
+    let count = len;
+    let order = order as usize;
+    if order > count {
+        return Err("predicted i32 Rice order exceeds sample count".into());
+    }
+    let warmup_bytes = order
+        .checked_mul(4)
+        .ok_or("predicted i32 Rice warm-up size overflow")?;
+    let mut position = 1usize;
+    let warmup_end = position
+        .checked_add(warmup_bytes)
+        .ok_or("predicted i32 Rice warm-up offset overflow")?;
+    if warmup_end
+        .checked_add(2)
+        .ok_or("predicted i32 Rice partition offset overflow")?
+        > payload.len()
+    {
+        return Err("predicted i32 Rice warm-up truncated".into());
+    }
+    let mut warmups = Vec::with_capacity(order);
+    while position < warmup_end {
+        warmups.push(i32::from_le_bytes(
+            payload[position..position + 4]
+                .try_into()
+                .map_err(|_| "predicted i32 Rice warm-up truncated")?,
+        ));
+        position += 4;
+    }
+    let parts = payload[position] as usize;
+    position += 1;
+    let escape_bits = payload[position];
+    position += 1;
+    let packed_ks_len = parts.div_ceil(2);
+    let ks_end = position
+        .checked_add(packed_ks_len)
+        .ok_or("predicted i32 Rice partition offset overflow")?;
+    if parts == 0 || parts > 16 || !(8..=32).contains(&escape_bits) || ks_end > payload.len() {
+        return Err("predicted i32 Rice partitions invalid".into());
+    }
+    let ks = unpack_partition_ks(&payload[position..ks_end], parts)?;
+    let residuals =
+        rice_decode_partitioned_escape(&payload[ks_end..], &ks, count - order, escape_bits)?;
+    reconstruct_fixed_i32(&warmups, &residuals, count, order as u8)
 }
 
 pub fn encode_stereo_ms_payload(mid: &[i16], side: &[i16]) -> Vec<u8> {
@@ -444,6 +806,33 @@ mod tests {
     }
 
     #[test]
+    fn v4_payload_estimate_matches_materialized_bytes() {
+        let fixtures: Vec<Vec<i16>> = vec![
+            vec![0; 4096],
+            vec![1234; 4096],
+            (0..4096)
+                .map(|i| ((i as f64 * 0.014).sin() * 24_000.0) as i16)
+                .collect(),
+            (0..4096)
+                .map(|i| {
+                    let noise = (i as u32)
+                        .wrapping_mul(1_664_525)
+                        .wrapping_add(1_013_904_223);
+                    (noise >> 16) as i16
+                })
+                .collect(),
+        ];
+        for samples in fixtures {
+            let (_, payload) = encode_block_payload_v4(&samples);
+            assert_eq!(
+                estimate_block_payload_v4_bytes(&samples),
+                payload.len(),
+                "estimate must include exact metadata and Rice byte padding"
+            );
+        }
+    }
+
+    #[test]
     fn rice_packed_roundtrip_and_smaller_than_varint() {
         let sine: Vec<i16> = (0..4096)
             .map(|i| ((i as f32 * 0.02).sin() * 12000.0) as i16)
@@ -486,10 +875,58 @@ mod tests {
     fn i32_side_payload_roundtrips_17_bit_values() {
         let samples = vec![-65535, 65535, 0, -1, 1, 32768, -32769];
         let payload = encode_i32_rice_payload(&samples);
+        assert!((1..=16).contains(&payload[0]));
+        assert_eq!(payload[1], 17);
         assert_eq!(
             decode_i32_rice_payload(&payload, samples.len()).unwrap(),
             samples
         );
+    }
+
+    #[test]
+    fn predicted_i32_side_roundtrips_extremes() {
+        let samples = vec![i32::MIN, i32::MAX, i32::MIN + 1, i32::MAX - 1, 0, -1, 1];
+        let payload = encode_i32_predicted_rice_payload(&samples).expect("predicted payload");
+        assert_eq!(
+            decode_i32_predicted_rice_payload(&payload, samples.len()).unwrap(),
+            samples
+        );
+    }
+
+    #[test]
+    fn predicted_i32_side_improves_smooth_signal() {
+        let samples: Vec<i32> = (0..4096)
+            .map(|i| ((i as f64 * 0.014).sin() * 60_000.0) as i32)
+            .collect();
+        let raw = encode_i32_rice_payload(&samples);
+        let predicted = encode_i32_predicted_rice_payload(&samples).expect("predicted payload");
+        let order = predicted[0] as usize;
+        assert!(order > 0, "smooth signal should use a predictor");
+        for (index, sample) in samples.iter().take(order).enumerate() {
+            let offset = 1 + index * 4;
+            assert_eq!(
+                i32::from_le_bytes(predicted[offset..offset + 4].try_into().unwrap()),
+                *sample,
+                "i32 warm-up {index} must be stored verbatim"
+            );
+        }
+        let parts_offset = 1 + order * 4;
+        assert!((1..=16).contains(&predicted[parts_offset]));
+        assert!((8..=32).contains(&predicted[parts_offset + 1]));
+        assert!(
+            predicted.len() < raw.len(),
+            "predicted={} raw={}",
+            predicted.len(),
+            raw.len()
+        );
+    }
+
+    #[test]
+    fn predicted_i32_rejects_truncated_verbatim_warmup() {
+        let mut payload = vec![2];
+        payload.extend_from_slice(&123i32.to_le_bytes());
+        let error = decode_i32_predicted_rice_payload(&payload, 2).unwrap_err();
+        assert!(error.contains("warm-up"), "{error}");
     }
 
     /// Phase 4.0 go/no-go: projected Rice savings across a small corpus.

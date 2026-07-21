@@ -12,7 +12,15 @@ export default defineConfig({
     fixturesPlugin(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icons/mp5-icon.svg", "icons/mp5-192.png", "icons/mp5-512.png"],
+      includeAssets: [
+        "brand/mp5-brand-icon.svg",
+        "brand/mp5-brand-logo.svg",
+        "icons/mp5-icon.svg",
+        "icons/mp5-32.png",
+        "icons/mp5-192.png",
+        "icons/mp5-512.png",
+        "icons/apple-touch-icon.png",
+      ],
       workbox: {
         maximumFileSizeToCacheInBytes: 35 * 1024 * 1024,
         navigateFallback: "index.html",
@@ -23,7 +31,7 @@ export default defineConfig({
         name: "MP5 Player",
         short_name: "MP5",
         description:
-          "Experimental MP5 audio player and converter (Public Beta). MP5-L v3 recommended; MP5-C/H lab-only.",
+          "Experimental MP5 audio player and converter (Public Beta). MP5-L v4 recommended; MP5-C/H lab-only.",
         start_url: "/",
         scope: "/",
         theme_color: "#070b12",
@@ -32,6 +40,12 @@ export default defineConfig({
         orientation: "any",
         categories: ["music", "utilities"],
         icons: [
+          {
+            src: "brand/mp5-brand-icon.svg",
+            sizes: "any",
+            type: "image/svg+xml",
+            purpose: "any",
+          },
           {
             src: "icons/mp5-192.png",
             sizes: "192x192",

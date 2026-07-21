@@ -2,7 +2,7 @@ import { CodecId, writeMp5, type AudioFrame, type CodecIdValue, type CoverArt, t
 import { getCodec, CodecPreset, isWasmCodecReady } from "../wasm/codec";
 import { generateWaveform } from "./generateWaveform";
 
-export type OutputCodec = "pcm" | "mp5c" | "mp5l" | "mp5h" | "mp5c2";
+export type OutputCodec = "pcm" | "mp5c" | "mp5l" | "mp5l_v4" | "mp5h" | "mp5c2";
 
 export interface ConvertOptions {
   samples: Int16Array;
@@ -22,7 +22,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
   const wasmReady = isWasmCodecReady();
   const ch = opts.channels;
   const preset =
-    opts.codec === "mp5l" || opts.codec === "pcm"
+    opts.codec === "mp5l" || opts.codec === "mp5l_v4" || opts.codec === "pcm"
       ? 0
       : (opts.preset ?? CodecPreset.High);
 
@@ -44,11 +44,22 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
   } else if (opts.codec === "mp5l") {
     bitstream = codec.encode_mp5l(opts.samples, ch);
     codecId = CodecId.MP5L;
-    encoderLabel = "MP5-L WASM v3 (lossless · bit-exact)";
+    encoderLabel = "MP5-L WASM v3 (lossless · lab/legacy)";
+  } else if (opts.codec === "mp5l_v4") {
+    // Default lossless. NO silent fallback: if v4 can't encode, the export fails loudly.
+    bitstream = codec.encode_mp5l_v4(opts.samples, ch);
+    if (bitstream.length < 2 || bitstream[0] !== 0x4c || bitstream[1] !== 4) {
+      throw new Error(
+        "MP5-L v4 encode failed — no v3 fallback by design. " +
+          "Retry as MP5-L v3 (lab) for a legacy lossless file.",
+      );
+    }
+    codecId = CodecId.MP5L;
+    encoderLabel = "MP5-L WASM v4 (lossless · default · bit-exact)";
   } else if (opts.codec === "mp5h") {
-    // Size-gate: build best H (≥ requested preset) vs pure MP5-L; emit smaller with honest CodecId.
+    // Size-gate: build best H (≥ requested preset) vs pure MP5-L v4; emit smaller with honest CodecId.
     const wrapped = codec.encode_mp5h_min(opts.samples, ch, preset);
-    const lBitstream = codec.encode_mp5l(opts.samples, ch);
+    const lBitstream = codec.encode_mp5l_v4(opts.samples, ch);
 
     let hBase: Uint8Array;
     let hCorr: Uint8Array | null = null;
@@ -109,7 +120,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
       info: [
         {
           key: "encoder",
-          value: "MP5-L WASM v3 (lossless · bit-exact; H request resolved to smaller L)",
+          value: "MP5-L WASM v4 (lossless · bit-exact; H request resolved to smaller L)",
         },
       ],
       optional: opts.optional,

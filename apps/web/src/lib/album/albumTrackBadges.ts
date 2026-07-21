@@ -54,7 +54,10 @@ export function badgesForAlbumTrack(
   const parsed = row.playlistTrack?.parsed;
   const availability = trackAvailability(row, isEmbedded);
   return {
-    codec: parsed?.head != null ? codecLabel(parsed.head.codecId) : null,
+    codec:
+      parsed?.head != null
+        ? codecLabel(parsed.head.codecId, parsed.audioFrames[0]?.data)
+        : null,
     hasStems: parsed?.optional.has("STEM") ?? false,
     hasLyrics: parsed?.optional.has("LYRC") ?? false,
     hasVisu: parsed?.optional.has("VISU") ?? false,

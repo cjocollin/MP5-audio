@@ -1,6 +1,6 @@
 # MP5 Album Package
 
-**Version:** MP5 Audio v0.27.0-beta  
+**Version:** MP5 Audio v0.28.0-beta  
 **Status:** Experimental Public Beta package format
 
 Album packaging is optional and does not change the core single-track `.mp5` format. Single-track `.mp5` playback remains the baseline.
@@ -21,7 +21,7 @@ Batch Album Builder can export:
 - Manifest `.mp5p` plus sidecar `.mp5` files.
 - Embedded `.mp5p` self-contained package.
 
-Exports use MP5-L v3 by default. No DRM, legal verification, telemetry, upload, cloud sync, or AI metadata/stem generation is added.
+Exports use MP5-L v4 by default. No DRM, legal verification, telemetry, upload, cloud sync, or AI metadata/stem generation is added.
 
 ## Manifest Schema
 

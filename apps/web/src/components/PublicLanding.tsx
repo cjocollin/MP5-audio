@@ -85,7 +85,7 @@ function LandingAboutDetails() {
       <section className="mp5-card p-4 space-y-2" data-testid="landing-what-works">
         <SectionTitle>What works today (Public Beta)</SectionTitle>
         <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside leading-relaxed">
-          <li>Convert FLAC/WAV/MP3/etc. to .mp5 — <strong className="text-gray-300 font-normal">MP5-L v3</strong> is the default</li>
+          <li>Convert FLAC/WAV/MP3/etc. to .mp5 — <strong className="text-gray-300 font-normal">MP5-L v4</strong> is the default</li>
           <li>Play single .mp5 with metadata, cover art, lyrics, waveform/seek, and VISU themes</li>
           <li>
             Experimental: user/artist-provided stems, batch stem import, karaoke (when stems + synced
@@ -175,7 +175,7 @@ function LandingAboutDetails() {
               Works now
             </h3>
             <ul className="text-gray-400 space-y-0.5 text-[11px] list-disc list-inside">
-              <li>MP5-L v3 convert &amp; play</li>
+              <li>MP5-L v4 convert &amp; play</li>
               <li>Smart metadata, cover art, lyrics</li>
               <li>Waveform / seek data</li>
               <li>VISU themes (player visuals)</li>
@@ -256,7 +256,7 @@ function LandingAboutDetails() {
             lyrics, optional guidance
           </li>
           <li>
-            <strong className="text-gray-300 font-normal">Export MP5-L v3</strong> — recommended
+            <strong className="text-gray-300 font-normal">Export MP5-L v4</strong> — recommended
             lossless mode
           </li>
           <li>
@@ -278,7 +278,7 @@ function LandingAboutDetails() {
         <ul className="text-sm text-gray-400 space-y-1.5 list-disc list-inside leading-relaxed">
           <li>MP5 is experimental Public Beta software — not a finished product codec.</li>
           <li>
-            <strong className="text-gray-300 font-normal">MP5-L v3</strong> is the recommended
+            <strong className="text-gray-300 font-normal">MP5-L v4</strong> is the recommended
             working mode for listening and batch export.
           </li>
           <li>
@@ -359,6 +359,15 @@ export function PublicLanding() {
   return (
     <div className="space-y-3 mb-4" data-testid="public-landing">
       <header className="space-y-2.5" data-testid="landing-hero-compact">
+        <img
+          src="/brand/mp5-brand-logo.svg"
+          alt="MP5 Audio"
+          width={220}
+          height={88}
+          className="h-10 sm:h-12 w-auto object-contain object-left"
+          data-testid="landing-brand-logo"
+          decoding="async"
+        />
         <div className="flex flex-wrap items-center gap-2">
           <h1
             className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-400 bg-clip-text text-transparent"

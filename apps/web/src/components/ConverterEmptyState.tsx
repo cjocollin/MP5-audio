@@ -9,7 +9,7 @@ export function ConverterEmptyState() {
           files here
         </li>
         <li>
-          Default export is <strong className="text-gray-400 font-normal">MP5-L v3</strong> (lossless,
+          Default export is <strong className="text-gray-400 font-normal">MP5-L v4</strong> (lossless,
           recommended)
         </li>
         <li>Review and edit metadata before export</li>

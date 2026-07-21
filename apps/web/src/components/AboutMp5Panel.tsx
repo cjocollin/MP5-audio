@@ -1,104 +1,214 @@
+import { useId, useRef, useState } from "react";
+import { usePlayerStore } from "../store/playerStore";
+
+type ModeId = "l" | "c2" | "h" | "c" | "pcm";
+
+const SPECTRUM_MODES: { id: ModeId; label: string; short: string }[] = [
+  { id: "l", label: "MP5-L v4 (default)", short: "L" },
+  { id: "c2", label: "MP5-C2", short: "C2" },
+  { id: "h", label: "MP5-H", short: "H" },
+  { id: "c", label: "MP5-C", short: "C" },
+  { id: "pcm", label: "PCM", short: "PCM" },
+];
+
+const SECONDARY_MODES: {
+  id: Exclude<ModeId, "l">;
+  name: string;
+  tag: string;
+  body: string;
+}[] = [
+  {
+    id: "c2",
+    name: "MP5-C2",
+    tag: "Hybrid · not default",
+    body: "Quiet, fragile, and tail passages stay MP5-L; mid/loud units use a C2-only signal-relative path (optional CORR). First-class Converter option under Lossy / hybrid — batch export stays MP5-L. Distinct from classic lab MP5-C. MDCT loud path remains lab-only.",
+  },
+  {
+    id: "h",
+    name: "MP5-H",
+    tag: "Experimental hybrid",
+    body: "MP5-C base layer plus a lossless CORR correction. Clean when CORR is applied, but files are much larger than MP5-L. Not the default.",
+  },
+  {
+    id: "c",
+    name: "MP5-C",
+    tag: "Lab-only",
+    body: "Lossy research codec. May add audible hiss on all presets. Not for normal listening or demos unless you are explicitly showing lab limitations.",
+  },
+  {
+    id: "pcm",
+    name: "PCM",
+    tag: "Reference / debug",
+    body: "Uncompressed samples inside the container. Used when WASM codecs are unavailable or for baseline testing. Not the normal export path.",
+  },
+];
+
 export function AboutMp5Panel() {
+  const setActiveTab = usePlayerStore((s) => s.setActiveTab);
+  const spectrumLabelId = useId();
+  const [selectedMode, setSelectedMode] = useState<ModeId>("l");
+  const modeRefs = useRef<Partial<Record<ModeId, HTMLElement | null>>>({});
+
+  const selectMode = (id: ModeId) => {
+    setSelectedMode(id);
+    requestAnimationFrame(() => {
+      modeRefs.current[id]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  };
+
   return (
-    <div className="space-y-4 text-sm text-gray-300" data-testid="about-mp5-panel">
-      <section className="rounded-xl bg-surface-elevated p-4 space-y-2">
-        <h2 className="text-lg font-semibold text-white">What is MP5?</h2>
-        <p className="text-gray-400 leading-relaxed">
-          <strong className="text-gray-200">MP5</strong> is an experimental smart audio container ({" "}
-          <code className="text-accent">.mp5</code> files) with several codec modes. This Public Beta
-          release is a research prototype — not a finished product codec.
+    <div className="mp5-about" data-testid="about-mp5-panel">
+      <header className="mp5-about-intro">
+        <p className="mp5-about-eyebrow">Public Beta</p>
+        <h2 className="mp5-about-title">MP5</h2>
+        <p className="mp5-about-lede">
+          An experimental smart audio container (<code>.mp5</code>) with several codec modes. Research
+          prototype — not a finished product codec.
         </p>
-        <p className="text-xs text-gray-500">
-          MP5 does <strong className="text-gray-400">not</strong> claim to beat MP3, AAC, Opus, or
-          FLAC.
+        <p className="mp5-about-honesty">
+          Does <strong>not</strong> claim to beat MP3, AAC, Opus, or FLAC.
         </p>
+        <div className="mp5-about-recommend">
+          <div>
+            <p className="mp5-about-recommend-label">Recommended</p>
+            <p className="mp5-about-recommend-name">MP5-L v4 · lossless</p>
+            <p className="mp5-about-recommend-copy">
+              Bit-exact export. Decoded PCM matches the source sample-for-sample. Packed Rice +
+              multi-mode stereo give modest compression vs raw PCM. Use this for listening, demos, and
+              batch export.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="mp5-about-cta"
+            onClick={() => setActiveTab("converter")}
+          >
+            Open Converter
+          </button>
+        </div>
+      </header>
+
+      <section className="mp5-about-modes" aria-labelledby="mp5-about-modes-heading">
+        <div className="mp5-about-modes-head">
+          <h3 id="mp5-about-modes-heading">Codec modes</h3>
+          <p>One default path. Everything else is optional or lab. Tap a point to inspect a mode.</p>
+        </div>
+
+        <div className="mp5-about-spectrum">
+          <span className="mp5-about-spectrum-end" id={spectrumLabelId}>
+            Default
+          </span>
+          <div
+            className="mp5-about-spectrum-track"
+            role="radiogroup"
+            aria-labelledby={spectrumLabelId}
+          >
+            {SPECTRUM_MODES.map((mode) => {
+              const selected = selectedMode === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={mode.label}
+                  title={mode.label}
+                  className={`mp5-about-spectrum-dot${selected ? " is-active" : ""}`}
+                  onClick={() => selectMode(mode.id)}
+                >
+                  <span className="mp5-about-spectrum-short" aria-hidden="true">
+                    {mode.short}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <span className="mp5-about-spectrum-end">Lab / debug</span>
+        </div>
+
+        <button
+          type="button"
+          ref={(el) => {
+            modeRefs.current.l = el;
+          }}
+          className={`mp5-about-mode-featured${selectedMode === "l" ? " is-selected" : ""}`}
+          aria-pressed={selectedMode === "l"}
+          onClick={() => selectMode("l")}
+        >
+          <div className="mp5-about-mode-featured-top">
+            <span className="mp5-about-mode-featured-name">MP5-L v4</span>
+            <span className="mp5-about-pill">Default</span>
+          </div>
+          <span className="mp5-about-mode-featured-copy">
+            Lossless, bit-exact. The only mode this beta recommends for everyday use.
+          </span>
+        </button>
+
+        <ul className="mp5-about-mode-list">
+          {SECONDARY_MODES.map((mode) => {
+            const selected = selectedMode === mode.id;
+            return (
+              <li
+                key={mode.id}
+                ref={(el) => {
+                  modeRefs.current[mode.id] = el;
+                }}
+              >
+                <button
+                  type="button"
+                  className={`mp5-about-mode-row${selected ? " is-open" : ""}`}
+                  aria-expanded={selected}
+                  onClick={() => selectMode(selected ? "l" : mode.id)}
+                >
+                  <span className="mp5-about-mode-name">{mode.name}</span>
+                  <span className="mp5-about-mode-tag">{mode.tag}</span>
+                  <span className="mp5-about-mode-chevron" aria-hidden="true">
+                    {selected ? "−" : "+"}
+                  </span>
+                </button>
+                {selected ? <p className="mp5-about-mode-detail">{mode.body}</p> : null}
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
-      <section className="rounded-xl border border-accent/20 bg-accent/5 p-4 space-y-2">
-        <h3 className="font-semibold text-accent">MP5-L v3 — default</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          <strong className="text-gray-200">Lossless, bit-exact</strong> export. Decoded PCM matches
-          the source sample-for-sample. Packed Rice + multi-mode stereo give modest compression vs
-          raw PCM. This is the <strong className="text-gray-200">recommended</strong> mode for
-          listening, demos, and batch export.
-        </p>
-      </section>
+      <details className="mp5-about-disclosure">
+        <summary>What the player can do</summary>
+        <div className="mp5-about-disclosure-body">
+          <p>
+            Metadata, cover art, lyrics, waveform/seek, VISU themes, and a{" "}
+            <strong>local library</strong> stored in this browser only.
+          </p>
+          <p>
+            <strong>Experimental:</strong> user/artist-provided stems, batch stem import, karaoke when
+            stems + synced lyrics are present, and manifest/embedded <code>.mp5p</code> album
+            packages. There is <strong>no AI stem separation</strong>.
+          </p>
+        </div>
+      </details>
 
-      <section className="rounded-xl border border-sky-500/20 bg-sky-950/20 p-4 space-y-2">
-        <h3 className="font-semibold text-sky-200">MP5-C2 — hybrid (not default)</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          Quiet/fragile/tail passages stay <strong className="text-gray-200">MP5-L</strong>; mid/loud
-          units use a C2-only signal-relative path (optional CORR). First-class Converter option under
-          Lossy / hybrid — not the default; batch export stays MP5-L. Distinct from classic lab MP5-C.
-          MDCT loud path remains lab-only.
-        </p>
-      </section>
-
-      <section className="rounded-xl bg-surface-elevated p-4 space-y-2">
-        <h3 className="font-semibold text-gray-200">PCM — reference / debug</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          Uncompressed samples inside the container. Used when WASM codecs are unavailable or for
-          baseline testing. Not the normal export path.
-        </p>
-      </section>
-
-      <section className="rounded-xl bg-surface-elevated p-4 space-y-2">
-        <h3 className="font-semibold text-gray-200">MP5-H — hybrid (experimental)</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          MP5-C base layer plus a lossless <strong className="text-gray-200">CORR</strong> correction.
-          Can be <strong className="text-gray-200">clean when CORR is applied</strong>, but files are{" "}
-          <strong className="text-gray-200">much larger</strong> than MP5-L. Not the default.
-        </p>
-      </section>
-
-      <section className="rounded-xl border border-amber-500/20 bg-amber-950/20 p-4 space-y-2">
-        <h3 className="font-semibold text-amber-200">MP5-C — lab-only (experimental)</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          Lossy research codec. May add <strong className="text-amber-200/90">audible hiss</strong> on
-          all presets. Not for normal listening or demos unless you are explicitly showing lab
-          limitations.
-        </p>
-      </section>
-
-      <section className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 space-y-2">
-        <h3 className="font-semibold text-emerald-200">Player features (Public Beta)</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          Metadata, cover art, lyrics, waveform/seek, VISU themes, and a{" "}
-          <strong className="text-gray-200">local library</strong> stored in this browser only.
-        </p>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          <strong className="text-gray-200">Experimental:</strong> user/artist-provided stems, batch
-          stem import, karaoke when stems + synced lyrics are present, and manifest/embedded{" "}
-          <code className="text-accent">.mp5p</code> album packages. There is{" "}
-          <strong className="text-gray-200">no AI stem separation</strong>.
-        </p>
-      </section>
-
-      <section className="rounded-xl bg-surface-elevated p-4 space-y-2">
-        <h3 className="font-semibold text-gray-200">Install &amp; share (Public Beta)</h3>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          The primary target is a <strong className="text-gray-200">web app / PWA</strong> (install
-          from the browser on HTTPS or localhost). Desktop (Tauri) and mobile (Capacitor) are
-          packaging scaffolds only — not production store apps yet.
-        </p>
-        <p className="text-gray-400 text-xs leading-relaxed">
-          <strong className="text-gray-200">Offline:</strong> the UI and codecs can cache after a
-          successful first load, but full offline conversion of all formats is not guaranteed (WASM,
-          FFmpeg, fonts).
-        </p>
-        <p className="text-xs text-gray-500">
-          Guide: <code className="text-accent">docs/MP5_INSTALL_GUIDE.md</code>
-        </p>
-      </section>
-
-      <section className="rounded-xl bg-surface-elevated p-4 space-y-1 text-xs text-gray-500">
-        <p>
-          Docs: <code className="text-accent">docs/MP5_DEMO_GUIDE.md</code>,{" "}
-          <code className="text-accent">docs/MP5_BETA_READINESS.md</code>,{" "}
-          <code className="text-accent">docs/MP5_CODEC_STATUS.md</code>
-        </p>
-        <p>Verify: <code className="text-accent">pnpm beta:check</code></p>
-      </section>
+      <details className="mp5-about-disclosure">
+        <summary>Install, privacy &amp; docs</summary>
+        <div className="mp5-about-disclosure-body">
+          <p>
+            Primary target is a <strong>web app / PWA</strong> (install from the browser on HTTPS or
+            localhost). Desktop (Tauri) and mobile (Capacitor) are packaging scaffolds only — not
+            production store apps yet.
+          </p>
+          <p>
+            Audio stays on this device. No telemetry, upload, or cloud sync from the reference app.
+            Offline UI/codecs can cache after first load; full offline conversion of all formats is not
+            guaranteed.
+          </p>
+          <p className="mp5-about-docs">
+            Docs: <code>docs/MP5_DEMO_GUIDE.md</code>, <code>docs/MP5_BETA_READINESS.md</code>,{" "}
+            <code>docs/MP5_CODEC_STATUS.md</code>, <code>docs/MP5_INSTALL_GUIDE.md</code>
+            <br />
+            Verify: <code>pnpm beta:check</code>
+          </p>
+        </div>
+      </details>
     </div>
   );
 }

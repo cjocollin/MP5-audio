@@ -399,7 +399,7 @@ export function buildModes(codec) {
     },
     {
       id: "mp5l",
-      label: "MP5-L v3 (lossless · default)",
+      label: "MP5-L v3 (lossless · lab/legacy)",
       group: "lossless",
       encode: (s, ch) => codec.encode_mp5l(s, ch),
       decode: (b) => codec.decode_mp5l(b),

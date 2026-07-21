@@ -42,7 +42,7 @@ function assertNoOverclaim(text: string, rel: string) {
 const REQUIRED_PUBLIC_PHRASES = [
   /experimental/i,
   /does not claim to beat/i,
-  /MP5-L v3/i,
+  /MP5-L v4/i,
   /lab/i,
 ];
 
@@ -103,7 +103,7 @@ describe("Public Beta hardening", () => {
       decodeCacheSummary: "0/3",
       librarySummary: "0 entries",
     });
-    expect(report).toMatch(/0.27.0-beta/);
+    expect(report).toMatch(/0.28.0-beta/);
     expect(report).toMatch(/No telemetry/i);
   });
 });
@@ -174,7 +174,7 @@ describe("public claims audit", () => {
     expect(shell).toContain('changeTab("about")');
     expect(about).toMatch(/Public Beta/i);
     expect(about).toMatch(/does[\s\S]*not[\s\S]*claim to beat/i);
-    expect(about).toContain("MP5-C2 (vNext)");
+    expect(about).toContain("MP5-C2");
     expect(about).toMatch(/no AI stem separation/i);
   });
 });
@@ -192,7 +192,9 @@ describe("user-facing error messages", () => {
 
   it("App keeps onboarding out of the concept-first player route", () => {
     const app = scanFile("apps/web/src/App.tsx");
-    expect(app).toContain("fetchDemoMp5lFixture");
+    expect(app).toContain("DemoFixtureActions");
+    expect(app).toContain('testIdPrefix="settings"');
+    expect(app).not.toContain("fetchDemoMp5lFixture");
     expect(app).not.toContain("WelcomeOnboarding");
     expect(app).not.toContain("PublicLanding");
   });
@@ -232,10 +234,11 @@ describe("user-facing error messages", () => {
       /\.mp5-library-compact \.mp5-queue-header-actions > \.mp5-queue-action\s*\{[^}]*@apply\s+inline-flex/,
     );
     expect(mobile).toMatch(
-      /\.mp5-library-compact \.mp5-queue-row \.mp5-queue-action\s*\{[^}]*@apply\s+opacity-100/,
+      /\.mp5-library-compact \.mp5-queue-actions\s*\{[^}]*@apply\s+flex\s+shrink-0/,
     );
-    expect(mobile).toMatch(
-      /\.mp5-library-compact \.mp5-queue-compact-more\s*\{[^}]*@apply\s+hidden/,
+    expect(css).toMatch(/\.mp5-queue-actions\s*\{[^}]*@apply\s+flex\s+shrink-0/);
+    expect(css).not.toMatch(
+      /\.mp5-library-compact \.mp5-queue-row \.mp5-queue-action\s*\{[^}]*absolute/,
     );
   });
 
@@ -248,8 +251,8 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.27.0-beta", () => {
-    expect(packageJson.version).toBe("0.27.0-beta");
+  it("package.json is 0.28.0-beta", () => {
+    expect(packageJson.version).toBe("0.28.0-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {

@@ -15,7 +15,7 @@ export const FEEDBACK_PRIVACY_NOTE =
 /** Concise first-user guidance (landing + demo guide). */
 export const FIRST_USER_TIPS = [
   "Start with the hosted demos before converting your own files.",
-  "Use MP5-L v3 for serious conversion - it is the recommended lossless mode.",
+  "Use MP5-L v4 for serious conversion - it is the recommended lossless mode.",
   "MP5-C is lab-only; MP5-H is large and not default.",
   "Large embedded .mp5p albums can be heavy in the browser.",
   "Audio processing stays local in this tab; nothing is uploaded automatically.",

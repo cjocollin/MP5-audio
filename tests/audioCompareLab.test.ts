@@ -82,7 +82,8 @@ describe("vNext prototype exposure", () => {
   });
 
   it("offers MP5-C2 as non-default converter option (not classic lab MP5-C)", () => {
-    expect(codecExportOptionLabel("mp5l").toLowerCase()).toContain("default");
+    expect(codecExportOptionLabel("mp5l_v4").toLowerCase()).toContain("default");
+    expect(codecExportOptionLabel("mp5l").toLowerCase()).toMatch(/lab|legacy/);
     expect(codecExportOptionLabel("mp5c2").toLowerCase()).toMatch(/mp5-c2|c2/);
     expect(codecExportOptionLabel("mp5c2").toLowerCase()).toContain("not default");
     expect(codecExportOptionLabel("mp5c").toLowerCase()).toMatch(/lab|experimental/);

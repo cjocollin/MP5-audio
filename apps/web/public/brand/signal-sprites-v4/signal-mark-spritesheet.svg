@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="6144" height="256" viewBox="0 0 6144 256" role="img" aria-labelledby="title desc">
+  <title id="title">MP5 full music equalizer sprite sheet</title>
+  <desc id="desc">24 transparent animation frames in one horizontal row.</desc>
+  
+  <defs>
+    <linearGradient id="brightPurple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9859d8"/>
+      <stop offset="0.5" stop-color="#9f63df"/>
+      <stop offset="1" stop-color="#9759d5"/>
+    </linearGradient>
+    <linearGradient id="deepPurple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6947b7"/>
+      <stop offset="0.5" stop-color="#6d4bbc"/>
+      <stop offset="1" stop-color="#6846b4"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#42d0d7"/>
+      <stop offset="0.5" stop-color="#45d4da"/>
+      <stop offset="1" stop-color="#3fced5"/>
+    </linearGradient>
+  </defs>
+  
+  <svg x="0" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 1">
+    
+    <g id="signal-mark-frame-01-strip-01">
+      <rect id="signal-short-strip-01" x="267" y="520" width="68" height="214" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-01" x="367" y="431" width="94" height="391" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-01" x="503" y="325" width="103" height="606" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-01" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z"/>
+      <rect id="signal-accent-strip-01" x="918" y="533" width="68" height="193" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="256" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 2">
+    
+    <g id="signal-mark-frame-02-strip-02">
+      <rect id="signal-short-strip-02" x="267" y="495.229" width="68" height="238.771" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-02" x="367" y="432.833" width="94" height="389.167" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-02" x="503" y="308.676" width="103" height="622.324" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-02" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.035 0 -34.58)"/>
+      <rect id="signal-accent-strip-02" x="918" y="550.973" width="68" height="175.027" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="512" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 3">
+    
+    <g id="signal-mark-frame-03-strip-03">
+      <rect id="signal-short-strip-03" x="267" y="474.204" width="68" height="259.796" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-03" x="367" y="438.82" width="94" height="383.18" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-03" x="503" y="295.912" width="103" height="635.088" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-03" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.060622 0 -59.894536)"/>
+      <rect id="signal-accent-strip-03" x="918" y="565.038" width="68" height="160.962" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="768" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 4">
+    
+    <g id="signal-mark-frame-04-strip-04">
+      <rect id="signal-short-strip-04" x="267" y="463.638" width="68" height="270.362" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-04" x="367" y="453.922" width="94" height="368.078" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-04" x="503" y="293.905" width="103" height="637.095" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-04" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.07 0 -69.16)"/>
+      <rect id="signal-accent-strip-04" x="918" y="568.524" width="68" height="157.476" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="1024" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 5">
+    
+    <g id="signal-mark-frame-05-strip-05">
+      <rect id="signal-short-strip-05" x="267" y="461.792" width="68" height="272.208" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-05" x="367" y="474.792" width="94" height="347.208" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-05" x="503" y="300.154" width="103" height="630.846" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-05" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.060622 0 -59.894536)"/>
+      <rect id="signal-accent-strip-05" x="918" y="563.687" width="68" height="162.313" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="1280" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 6">
+    
+    <g id="signal-mark-frame-06-strip-06">
+      <rect id="signal-short-strip-06" x="267" y="471.141" width="68" height="262.859" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-06" x="367" y="501.942" width="94" height="320.058" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-06" x="503" y="317.084" width="103" height="613.916" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-06" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.035 0 -34.58)"/>
+      <rect id="signal-accent-strip-06" x="918" y="548.283" width="68" height="177.717" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="1536" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 7">
+    
+    <g id="signal-mark-frame-07-strip-07">
+      <rect id="signal-short-strip-07" x="267" y="485.76" width="68" height="248.24" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-07" x="367" y="528.75" width="94" height="293.25" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-07" x="503" y="337.12" width="103" height="593.88" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-07" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z"/>
+      <rect id="signal-accent-strip-07" x="918" y="529.14" width="68" height="196.86" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="1792" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 8">
+    
+    <g id="signal-mark-frame-08-strip-08">
+      <rect id="signal-short-strip-08" x="267" y="501.93" width="68" height="232.07" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-08" x="367" y="550.084" width="94" height="271.916" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-08" x="503" y="355.111" width="103" height="575.889" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-08" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.965 0 34.58)"/>
+      <rect id="signal-accent-strip-08" x="918" y="510.914" width="68" height="215.086" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="2048" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 9">
+    
+    <g id="signal-mark-frame-09-strip-09">
+      <rect id="signal-short-strip-09" x="267" y="515.506" width="68" height="218.494" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-09" x="367" y="561.985" width="94" height="260.015" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-09" x="503" y="366.208" width="103" height="564.792" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-09" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.939378 0 59.894536)"/>
+      <rect id="signal-accent-strip-09" x="918" y="497.874" width="68" height="228.126" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="2304" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 10">
+    
+    <g id="signal-mark-frame-10-strip-10">
+      <rect id="signal-short-strip-10" x="267" y="520.495" width="68" height="213.505" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-10" x="367" y="557.708" width="94" height="264.292" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-10" x="503" y="362.648" width="103" height="568.352" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-10" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.93 0 69.16)"/>
+      <rect id="signal-accent-strip-10" x="918" y="496.668" width="68" height="229.332" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="2560" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 11">
+    
+    <g id="signal-mark-frame-11-strip-11">
+      <rect id="signal-short-strip-11" x="267" y="518.716" width="68" height="215.284" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-11" x="367" y="540.48" width="94" height="281.52" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-11" x="503" y="348.028" width="103" height="582.972" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-11" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.939378 0 59.894536)"/>
+      <rect id="signal-accent-strip-11" x="918" y="504.822" width="68" height="221.178" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="2816" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 12">
+    
+    <g id="signal-mark-frame-12-strip-12">
+      <rect id="signal-short-strip-12" x="267" y="508.029" width="68" height="225.971" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-12" x="367" y="508.662" width="94" height="313.338" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-12" x="503" y="320.606" width="103" height="610.394" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-12" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.965 0 34.58)"/>
+      <rect id="signal-accent-strip-12" x="918" y="524.472" width="68" height="201.528" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="3072" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 13">
+    
+    <g id="signal-mark-frame-13-strip-13">
+      <rect id="signal-short-strip-13" x="267" y="494.32" width="68" height="239.68" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-13" x="367" y="470.1" width="94" height="351.9" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-13" x="503" y="288.64" width="103" height="642.36" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-13" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z"/>
+      <rect id="signal-accent-strip-13" x="918" y="548.44" width="68" height="177.56" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="3328" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 14">
+    
+    <g id="signal-mark-frame-14-strip-14">
+      <rect id="signal-short-strip-14" x="267" y="481.52" width="68" height="252.48" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-14" x="367" y="430.218" width="94" height="391.782" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-14" x="503" y="257.961" width="103" height="673.039" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-14" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.035 0 -34.58)"/>
+      <rect id="signal-accent-strip-14" x="918" y="571.829" width="68" height="154.171" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="3584" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 15">
+    
+    <g id="signal-mark-frame-15-strip-15">
+      <rect id="signal-short-strip-15" x="267" y="473.348" width="68" height="260.652" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-15" x="367" y="394.637" width="94" height="427.363" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-15" x="503" y="234.1" width="103" height="696.9" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-15" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.060622 0 -59.894536)"/>
+      <rect id="signal-accent-strip-15" x="918" y="589.935" width="68" height="136.065" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="3840" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 16">
+    
+    <g id="signal-mark-frame-16-strip-16">
+      <rect id="signal-short-strip-16" x="267" y="475.689" width="68" height="258.311" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-16" x="367" y="371.079" width="94" height="450.921" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-16" x="503" y="225.313" width="103" height="705.687" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-16" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.07 0 -69.16)"/>
+      <rect id="signal-accent-strip-16" x="918" y="595.641" width="68" height="130.359" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="4096" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 17">
+    
+    <g id="signal-mark-frame-17-strip-17">
+      <rect id="signal-short-strip-17" x="267" y="485.974" width="68" height="248.026" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-17" x="367" y="358.665" width="94" height="463.335" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-17" x="503" y="229.252" width="103" height="701.748" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-17" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.060622 0 -59.894536)"/>
+      <rect id="signal-accent-strip-17" x="918" y="591.286" width="68" height="134.714" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="4352" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 18">
+    
+    <g id="signal-mark-frame-18-strip-18">
+      <rect id="signal-short-strip-18" x="267" y="505.756" width="68" height="228.244" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-18" x="367" y="361.109" width="94" height="460.891" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-18" x="503" y="249.136" width="103" height="681.864" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-18" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 1.035 0 -34.58)"/>
+      <rect id="signal-accent-strip-18" x="918" y="574.519" width="68" height="151.481" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="4608" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 19">
+    
+    <g id="signal-mark-frame-19-strip-19">
+      <rect id="signal-short-strip-19" x="267" y="528.56" width="68" height="205.44" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-19" x="367" y="372.35" width="94" height="449.65" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-19" x="503" y="276.52" width="103" height="654.48" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-19" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z"/>
+      <rect id="signal-accent-strip-19" x="918" y="552.3" width="68" height="173.7" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="4864" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 20">
+    
+    <g id="signal-mark-frame-20-strip-20">
+      <rect id="signal-short-strip-20" x="267" y="549.813" width="68" height="184.187" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-20" x="367" y="389.065" width="94" height="432.935" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-20" x="503" y="305.949" width="103" height="625.051" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-20" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.965 0 34.58)"/>
+      <rect id="signal-accent-strip-20" x="918" y="529.164" width="68" height="196.836" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="5120" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 21">
+    
+    <g id="signal-mark-frame-21-strip-21">
+      <rect id="signal-short-strip-21" x="267" y="565.368" width="68" height="168.632" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-21" x="367" y="406.758" width="94" height="415.242" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-21" x="503" y="331.666" width="103" height="599.334" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-21" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.939378 0 59.894536)"/>
+      <rect id="signal-accent-strip-21" x="918" y="510.033" width="68" height="215.967" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="5376" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 22">
+    
+    <g id="signal-mark-frame-22-strip-22">
+      <rect id="signal-short-strip-22" x="267" y="568.819" width="68" height="165.181" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-22" x="367" y="419.49" width="94" height="402.51" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-22" x="503" y="345.415" width="103" height="585.585" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-22" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.93 0 69.16)"/>
+      <rect id="signal-accent-strip-22" x="918" y="502.048" width="68" height="223.952" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="5632" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 23">
+    
+    <g id="signal-mark-frame-23-strip-23">
+      <rect id="signal-short-strip-23" x="267" y="562.372" width="68" height="171.628" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-23" x="367" y="428.263" width="94" height="393.737" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-23" x="503" y="349.24" width="103" height="581.76" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-23" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.939378 0 59.894536)"/>
+      <rect id="signal-accent-strip-23" x="918" y="503.085" width="68" height="222.915" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+  <svg x="5888" y="0" width="256" height="256" viewBox="0 0 1254 1254" aria-label="Frame 24">
+    
+    <g id="signal-mark-frame-24-strip-24">
+      <rect id="signal-short-strip-24" x="267" y="543.861" width="68" height="190.139" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium-strip-24" x="367" y="430.487" width="94" height="391.513" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall-strip-24" x="503" y="340.036" width="103" height="590.964" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step-strip-24" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z" transform="matrix(1 0 0 0.965 0 34.58)"/>
+      <rect id="signal-accent-strip-24" x="918" y="515.606" width="68" height="210.394" rx="34" fill="url(#cyan)"/>
+    </g>
+  </svg>
+</svg>

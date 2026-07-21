@@ -100,13 +100,28 @@ export function NowPlayingView({
           style={resolveCoverCardStyle(playerTheme, Boolean(coverUrl))}
           data-testid="now-playing-theme-card"
         >
-          <img
-            src={coverUrl ?? "/artwork/mp5-default-visu.webp"}
-            alt={coverUrl ? `${summary.title} cover` : "MP5 visual waveform artwork"}
-            className="absolute inset-0 z-0 h-full w-full object-cover"
-            data-testid={coverUrl ? "now-playing-cover" : "now-playing-cover-placeholder"}
-          />
-          {playerTheme && (
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt={`${summary.title} cover`}
+              className="absolute inset-0 z-0 h-full w-full object-cover"
+              data-testid="now-playing-cover"
+            />
+          ) : (
+            <div
+              className="mp5-now-playing-cover-placeholder"
+              data-testid="now-playing-cover-placeholder"
+              aria-hidden
+            >
+              <img
+                src="/brand/mp5-brand-icon.svg"
+                alt=""
+                className="mp5-now-playing-cover-mark"
+                decoding="async"
+              />
+            </div>
+          )}
+          {playerTheme && coverUrl && (
             <div
               className="absolute inset-0 z-[1]"
               style={playerTheme.coverOverlayStyle}
@@ -222,14 +237,18 @@ export function NowPlayingView({
           <dt>Codec</dt>
           <dd>{codecBadgeLabel ?? "—"}</dd>
           <dt>Mode</dt>
-          <dd>{isLossless ? "Lossless" : "Standard"}</dd>
+          <dd>{!track ? "—" : isLossless ? "Lossless" : "Standard"}</dd>
           <dt>Integrity</dt>
-          <dd className={isBitExact ? "text-cyan-300" : undefined}>
-            {isBitExact ? (
-              <span className="mp5-integrity-value">
-                <CheckCircle size={12} weight="bold" aria-hidden /> Bit-exact
-              </span>
-            ) : "Not verified"}
+          <dd className={track && isBitExact ? "text-cyan-300" : undefined}>
+            {!track
+              ? "—"
+              : isBitExact ? (
+                <span className="mp5-integrity-value">
+                  <CheckCircle size={12} weight="bold" aria-hidden /> Bit-exact
+                </span>
+              ) : (
+                "Not verified"
+              )}
           </dd>
           <dt>Duration</dt>
           <dd data-testid="now-playing-duration">{summary.durationLabel}</dd>

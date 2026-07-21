@@ -53,10 +53,10 @@ export interface BatchProgressSummary {
   libraryDuplicates: number;
 }
 
-export const BATCH_CODEC = "mp5l" as const;
+export const BATCH_CODEC = "mp5l_v4" as const;
 
 export const BATCH_LIMITATIONS = [
-  "Batch export uses MP5-L v3 only (default/recommended).",
+  "Batch export uses MP5-L v4 only (default/recommended).",
   "Metadata comes from source tags — edit one file at a time in Single mode for full control.",
   "No ZIP download — download files individually or use Download all (separate files).",
   "Stems, karaoke, sections, and advanced metadata are not applied in batch.",

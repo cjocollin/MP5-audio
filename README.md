@@ -3,16 +3,16 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.27.0--beta-blue)](CHANGELOG.md#0270-beta---2026-07)
+[![Version](https://img.shields.io/badge/version-v0.28.0--beta-blue)](CHANGELOG.md#0280-beta---2026-07)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
-**Version:** MP5 Audio **v0.27.0-beta** (Public Beta)  
+**Version:** MP5 Audio **v0.28.0-beta** (Public Beta)  
 **Live demo:** https://mp5-audio.vercel.app  
 **GitHub:** https://github.com/cjocollin/MP5-audio
 
-MP5 Public Beta uses **MP5-L v3** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only. No telemetry, upload, or cloud sync is added by the reference app.
+MP5 Public Beta uses **MP5-L v4** as the recommended lossless mode. **MP5-C** and **MP5-H** are experimental research modes. **MP5 does not claim to beat MP3, AAC, Opus, or FLAC.** No DRM. Rights metadata is informational only. No telemetry, upload, or cloud sync is added by the reference app.
 
 **Report bugs:** [GitHub Issues](https://github.com/cjocollin/MP5-audio/issues/new/choose) or in the hosted app: **Settings -> Report a bug / Give feedback**. Paste **Settings -> Diagnostics -> Copy diagnostics** if useful; no files are uploaded automatically.
 
@@ -27,7 +27,7 @@ Single-track `.mp5` remains the core format. Album packages use `.mp5p` in eithe
 | Area | Status |
 |------|--------|
 | Overall | Public Beta / experimental; not production-ready for archival or legal use |
-| MP5-L v3 | Recommended lossless path; bit-exact roundtrip |
+| MP5-L v4 | Recommended lossless path; bit-exact roundtrip (v3 lab/legacy) |
 | MP5-C | Lab-only; quiet-passage hiss is measured (see codec status) |
 | MP5-C vNext (MP5C2) | Lab/advanced gated export (`CodecId` 5, AUDI `0x43 0x34`); protect 1.5; prefer High preset; not default |
 | MP5-H | Experimental hybrid; large (avg >1× PCM); not default |
@@ -35,7 +35,7 @@ Single-track `.mp5` remains the core format. Album packages use `.mp5p` in eithe
 | `.mp5p` | Experimental album package; browser memory limits apply |
 | Public claims | No beat-codec, DRM, legal-proof, telemetry, upload, or cloud-sync claims |
 
-## v0.27.0-beta Focus
+## v0.28.0-beta Focus
 
 Lab **MDCT loud path** (`mp5c3`, vNext `TAG_MDCT`) with FFT Type-IV for practical WASM, plus
 real-track MDCT validate (High ~0.214× / Extreme ~0.268× PCM, hiss risk **low** at protect 1.5).
@@ -131,8 +131,8 @@ More captures: [docs/screenshots/](docs/screenshots/README.md)
 ## Supported Workflows
 
 - **Player:** open `.mp5`, manifest `.mp5p`, or embedded `.mp5p`; queue, play, seek, inspect format, view lyrics/karaoke/stems/VISU when present.
-- **Converter:** drop WAV/FLAC/MP3/M4A/OGG sources; export MP5-L v3; edit metadata manually.
-- **Batch:** convert multiple local files to MP5-L v3; package as manifest or embedded `.mp5p`; validate package output.
+- **Converter:** drop WAV/FLAC/MP3/M4A/OGG sources; export MP5-L v4; edit metadata manually.
+- **Batch:** convert multiple local files to MP5-L v4; package as manifest or embedded `.mp5p`; validate package output.
 - **Library:** optional browser-local IndexedDB/localStorage save for tracks and packages on this device only.
 
 ## Safety And Privacy

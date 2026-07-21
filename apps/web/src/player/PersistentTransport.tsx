@@ -8,8 +8,8 @@ import { Shuffle } from "@phosphor-icons/react/Shuffle";
 import { SkipBack } from "@phosphor-icons/react/SkipBack";
 import { SkipForward } from "@phosphor-icons/react/SkipForward";
 import { SpeakerHigh } from "@phosphor-icons/react/SpeakerHigh";
-import { Waveform } from "@phosphor-icons/react/Waveform";
 import { CodecId, type Mp5File } from "@mp5/container";
+import { SignalMarkSprite } from "../components/SignalMarkSprite";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import type { PlaylistTrack } from "../store/playerStore";
 import { trackDisplayInfo } from "./playlistUtils";
@@ -62,58 +62,98 @@ export function PersistentTransport({
   onQueue,
 }: Props) {
   const coverUrl = useCoverObjectUrl(coverFromParsed(parsed));
-  if (!track) return null;
-
-  const info = trackDisplayInfo(track);
+  const hasTrack = !!track;
+  const info = track ? trackDisplayInfo(track) : null;
   const timeline = formatTimelineRange(currentTime, duration);
+  const playbackReady = hasTrack && duration > 0;
 
   return (
-    <section className="mp5-persistent-transport" data-testid="persistent-transport" aria-label="Now playing controls">
+    <section
+      className="mp5-persistent-transport"
+      data-testid="persistent-transport"
+      data-empty={hasTrack ? "false" : "true"}
+      aria-label="Now playing controls"
+    >
       <div className="mp5-persistent-track">
         {coverUrl ? (
           <img src={coverUrl} alt="" className="mp5-persistent-cover" />
         ) : (
-          <span className="mp5-persistent-cover mp5-waveform-tile" aria-hidden>
-            <Waveform size={28} weight="bold" />
-          </span>
+          <SignalMarkSprite
+            playing={hasTrack && isPlaying}
+            size="md"
+            className="mp5-persistent-cover"
+          />
         )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-gray-100">{info.title}</p>
-          <p className="mp5-persistent-artist truncate text-xs text-gray-500">{info.artist}</p>
-          <p className="mp5-persistent-mobile-time">{timeline.current} / {timeline.duration}</p>
-          <div
-            className="mp5-persistent-badges hidden min-w-0 max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto sm:flex"
-            data-testid="persistent-transport-badges"
-          >
-            {parsed?.head && (
-              <span className="mp5-mini-badge">
-                {codecLabel(parsed.head.codecId).replace(/\s*\(.+\)$/, "")}
-              </span>
-            )}
-            {parsed?.head?.codecId === CodecId.MP5L && (
-              <>
-                <span className="mp5-quality-badge"><CheckCircle size={11} weight="bold" aria-hidden /> Lossless</span>
-                <span className="mp5-quality-badge"><CheckCircle size={11} weight="bold" aria-hidden /> Bit-exact</span>
-              </>
-            )}
-          </div>
+          <p className="truncate text-sm font-semibold text-gray-100">
+            {info?.title ?? "Nothing playing"}
+          </p>
+          <p className="mp5-persistent-artist truncate text-xs text-gray-500">
+            {info?.artist ?? "Open a file or load a demo from Settings"}
+          </p>
+          <p className="mp5-persistent-mobile-time">
+            {timeline.current} / {timeline.duration}
+          </p>
+          {hasTrack && (
+            <div
+              className="mp5-persistent-badges hidden min-w-0 max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto sm:flex"
+              data-testid="persistent-transport-badges"
+            >
+              {parsed?.head && (
+                <span className="mp5-mini-badge">
+                  {codecLabel(parsed.head.codecId, parsed.audioFrames[0]?.data).replace(
+                    /\s*\(.+\)$/,
+                    "",
+                  )}
+                </span>
+              )}
+              {parsed?.head?.codecId === CodecId.MP5L && (
+                <>
+                  <span className="mp5-quality-badge">
+                    <CheckCircle size={11} weight="bold" aria-hidden /> Lossless
+                  </span>
+                  <span className="mp5-quality-badge">
+                    <CheckCircle size={11} weight="bold" aria-hidden /> Bit-exact
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       <div className="mp5-persistent-controls">
-        <button type="button" onClick={onShuffle} aria-label="Toggle shuffle">
+        <button
+          type="button"
+          className="mp5-persistent-shuffle"
+          onClick={onShuffle}
+          disabled={!hasTrack}
+          aria-label="Toggle shuffle"
+        >
           <Shuffle size={18} />
         </button>
         <button type="button" onClick={onPrevious} disabled={!canPrevious} aria-label="Previous">
           <SkipBack size={20} weight="fill" />
         </button>
-        <button type="button" className="mp5-persistent-play" onClick={onPlayPause} disabled={duration <= 0} aria-label={isPlaying ? "Pause" : "Play"}>
+        <button
+          type="button"
+          className="mp5-persistent-play"
+          onClick={onPlayPause}
+          disabled={!playbackReady}
+          aria-label={isPlaying ? "Pause" : "Play"}
+        >
           {isPlaying ? <Pause size={21} weight="fill" /> : <Play size={21} weight="fill" />}
         </button>
         <button type="button" onClick={onNext} disabled={!canNext} aria-label="Next">
           <SkipForward size={20} weight="fill" />
         </button>
-        <button type="button" onClick={onRepeat} aria-label="Cycle repeat mode">
+        <button
+          type="button"
+          className="mp5-persistent-repeat"
+          onClick={onRepeat}
+          disabled={!hasTrack}
+          aria-label="Cycle repeat mode"
+        >
           <Repeat size={18} />
         </button>
       </div>
@@ -128,7 +168,7 @@ export function PersistentTransport({
           value={currentTime}
           onChange={(event) => onSeek(Number(event.target.value))}
           aria-label="Persistent seek"
-          disabled={duration <= 0}
+          disabled={!playbackReady}
         />
         <span>{timeline.duration}</span>
       </div>
@@ -154,7 +194,12 @@ export function PersistentTransport({
         <button type="button" className="mp5-persistent-queue" onClick={onQueue} aria-label="Open queue">
           <ListBullets size={22} weight="bold" />
         </button>
-        <button type="button" className="mp5-persistent-queue mp5-persistent-collapse" onClick={onQueue} aria-label="Open queue details">
+        <button
+          type="button"
+          className="mp5-persistent-queue mp5-persistent-collapse"
+          onClick={onQueue}
+          aria-label="Open queue details"
+        >
           <CaretUp size={17} weight="bold" />
         </button>
       </div>

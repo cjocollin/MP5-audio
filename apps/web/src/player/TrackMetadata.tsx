@@ -171,7 +171,7 @@ export function TrackMetadata({ parsed, title, decodePath, mp5h, fileBytes, hide
             Format
           </p>
           <p className="text-lg font-bold text-violet-300" data-testid="codec-label">
-            {codecLabel(head.codecId)}
+            {codecLabel(head.codecId, frameData)}
           </p>
           {mp5lLabels && <Mp5lDetailBlock labels={mp5lLabels} />}
           {mp5cLabels && <Mp5cDetailBlock labels={mp5cLabels} />}
@@ -191,7 +191,7 @@ export function TrackMetadata({ parsed, title, decodePath, mp5h, fileBytes, hide
               Container size vs PCM: {(ratio * 100).toFixed(1)}% ({ratio < 1 ? "smaller" : "larger"} than PCM)
             </p>
           )}
-          <p className="text-xs text-gray-500 mt-2 font-mono">{formatCodecSummary(head)}</p>
+          <p className="text-xs text-gray-500 mt-2 font-mono">{formatCodecSummary(head, frameData)}</p>
           {decodePath && (
             <p className="text-xs text-gray-400 mt-2" data-testid="decode-path">
               Decode path: <span className="text-accent font-mono">{decodePath}</span>

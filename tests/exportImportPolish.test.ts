@@ -16,20 +16,21 @@ describe("export filename", () => {
   });
 
   it("builds Artist - Title.mp5 for MP5-L", () => {
-    expect(buildExportFilename({ artist: "A", title: "B" }, "mp5l")).toBe("A - B.mp5");
+    expect(buildExportFilename({ artist: "A", title: "B" }, "mp5l_v4")).toBe("A - B.mp5");
   });
 
   it("falls back to source filename", () => {
-    expect(buildExportFilename({}, "mp5l", "my_track.flac")).toBe("my_track.mp5");
+    expect(buildExportFilename({}, "mp5l_v4", "my_track.flac")).toBe("my_track.mp5");
   });
 
   it("adds codec variant suffix for non-default exports", () => {
     expect(buildExportFilename({ title: "T" }, "pcm")).toBe("T (PCM reference).mp5");
     expect(buildExportFilename({ title: "T" }, "mp5c")).toBe("T (MP5-C lab).mp5");
+    expect(buildExportFilename({ title: "T" }, "mp5l")).toBe("T (MP5-L v3).mp5");
   });
 
   it("suggests duplicate-friendly MP5-L name", () => {
-    expect(suggestDuplicateExportFilename("Song.mp5", "mp5l")).toBe("Song (MP5-L v3).mp5");
+    expect(suggestDuplicateExportFilename("Song.mp5", "mp5l_v4")).toBe("Song (MP5-L v4).mp5");
   });
 });
 

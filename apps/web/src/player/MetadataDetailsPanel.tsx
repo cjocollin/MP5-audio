@@ -418,7 +418,9 @@ export function MetadataDetailsPanel({
           data-testid="format-compatibility-panel"
         >
           <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Format</p>
-          <p className="text-xs text-gray-300">{codecLabel(parsed.head.codecId)}</p>
+          <p className="text-xs text-gray-300">
+            {codecLabel(parsed.head.codecId, parsed.audioFrames[0]?.data)}
+          </p>
           <p className="text-xs text-gray-500">
             {parsed.head.sampleRate} Hz · {parsed.head.channels} ch · {parsed.head.bitsPerSample}-bit
             {parsed.head.codecId === CodecId.MP5L ? " · bit-exact" : ""}

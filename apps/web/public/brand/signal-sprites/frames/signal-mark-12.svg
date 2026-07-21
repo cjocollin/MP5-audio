@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 1254 1254" role="img" aria-labelledby="title desc">
+  <title id="title">MP5 signal animation frame 12</title>
+  <desc id="desc">Frame 12 of a looping signal pulse on a transparent background.</desc>
+  
+  <defs>
+    <linearGradient id="brightPurple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9859d8"/>
+      <stop offset="0.5" stop-color="#9f63df"/>
+      <stop offset="1" stop-color="#9759d5"/>
+    </linearGradient>
+    <linearGradient id="deepPurple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6947b7"/>
+      <stop offset="0.5" stop-color="#6d4bbc"/>
+      <stop offset="1" stop-color="#6846b4"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#42d0d7"/>
+      <stop offset="0.5" stop-color="#45d4da"/>
+      <stop offset="1" stop-color="#3fced5"/>
+    </linearGradient>
+  </defs>
+  
+    <g id="signal-mark-frame-12">
+      <rect id="signal-short" x="267" y="520" width="68" height="214" rx="34" fill="url(#brightPurple)"/>
+      <rect id="signal-medium" x="367" y="431" width="94" height="391" rx="22" fill="url(#brightPurple)"/>
+      <rect id="signal-tall" x="503" y="325" width="103" height="606" rx="23" fill="url(#brightPurple)"/>
+      <path id="signal-step" fill="url(#deepPurple)" d="M676 231h67c12.15 0 22 9.85 22 22v222c0 12.15 9.85 22 22 22h67c12.15 0 22 9.85 22 22v447c0 12.15-9.85 22-22 22h-49c-12.15 0-22-9.85-22-22V657c0-23.75-19.25-43-43-43h-64c-12.15 0-22-9.85-22-22V253c0-12.15 9.85-22 22-22Z"/>
+      <rect id="signal-accent" x="918" y="533.193" width="68" height="192.614" rx="34" fill="url(#cyan)"/>
+    </g>
+</svg>

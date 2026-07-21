@@ -24,11 +24,12 @@ describe("public experience", () => {
     expect(HONESTY_NO_BEAT_CLAIM).not.toMatch(/MP5 beats/i);
   });
 
-  it("App opens directly into the seeded player workspace", () => {
+  it("App opens directly into the player workspace without auto-seeding demo audio", () => {
     const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
-    expect(src).toContain("fetchDemoMp5lFixture");
-    expect(src).toContain('origin: "default-demo"');
-    expect(src).toContain("defaultDemoLoading={defaultDemoLoading}");
+    expect(src).toContain("DemoFixtureActions");
+    expect(src).toContain('testIdPrefix="settings"');
+    expect(src).not.toContain("fetchDemoMp5lFixture");
+    expect(src).not.toContain("defaultDemoLoading");
     expect(src).not.toContain("<PublicLanding />");
     expect(src).not.toContain("<WelcomeOnboarding />");
   });
@@ -39,8 +40,8 @@ describe("public experience", () => {
       "utf8",
     );
     expect(src).toContain('data-testid="about-mp5-panel"');
-    expect(src).toContain("MP5-L v3");
-    expect(src).toContain("MP5-C2 (vNext)");
+    expect(src).toContain("MP5-L v4");
+    expect(src).toContain("MP5-C2");
     expect(src).toContain("Packed Rice");
     expect(src).toContain("local library");
     expect(src).toContain("user/artist-provided stems");
@@ -68,7 +69,8 @@ describe("public experience", () => {
       "utf8",
     );
     expect(src).toContain("FIRST_USER_TIPS");
-    expect(src).toContain("DemoFixtureActions");
+    expect(src).not.toContain("DemoFixtureActions");
+    expect(src).toContain("demo-open-settings-fixtures");
     expect(src).toContain('id: "a"');
     expect(src).toContain('id: "e"');
     expect(src).toContain('data-testid="demo-load-embedded-album"');

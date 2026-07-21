@@ -1,6 +1,6 @@
 # Current MP5 Status
 
-**Version:** MP5 Audio v0.27.0-beta (Public Beta)  
+**Version:** MP5 Audio v0.28.0-beta (Public Beta)  
 **Last updated:** 2026-07-18
 
 ## What MP5 Is Today
@@ -18,7 +18,7 @@ MP5 is an experimental, browser-based music format and player stack. The hosted 
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
 
-## v0.27.0-beta Milestone
+## v0.28.0-beta Milestone
 
 Lab MDCT loud path + FFT + real-track validate ([MP5C_VNEXT_RESULTS.md](./MP5C_VNEXT_RESULTS.md)):
 

@@ -148,7 +148,7 @@ export function BatchConverterPanel() {
 
   async function handleStartBatch() {
     if (!codecReady) {
-      setBatchError("MP5-L v3 batch export requires WASM codecs. Run pnpm wasm:build and refresh.");
+      setBatchError("MP5-L v4 batch export requires WASM codecs. Run pnpm wasm:build and refresh.");
       return;
     }
     if (queueGuardrails.some((g) => g.level === "block")) {
@@ -329,10 +329,10 @@ export function BatchConverterPanel() {
   return (
     <div className="space-y-5" data-testid="batch-converter-panel">
       <div className="mp5-card p-4 sm:p-5 space-y-3 border-accent/15">
-        <h2 className="text-lg font-semibold text-white">Batch convert to MP5-L v3</h2>
+        <h2 className="text-lg font-semibold text-white">Batch convert to MP5-L v4</h2>
         <p className="text-sm text-gray-400 leading-relaxed">
           Drop or select multiple source files. Each export uses{" "}
-          <strong className="text-gray-300">MP5-L v3</strong> with detected metadata, waveform,
+          <strong className="text-gray-300">MP5-L v4</strong> with detected metadata, waveform,
           seek data, and FING/HASH when possible. Edit metadata per file in{" "}
           <strong className="text-gray-300">Single file</strong> mode.
         </p>
@@ -358,7 +358,7 @@ export function BatchConverterPanel() {
           className="text-xs text-amber-200/90 bg-amber-950/40 rounded-lg p-2"
           data-testid="batch-codec-unavailable"
         >
-          <strong>Batch requires WASM for MP5-L v3.</strong> Run{" "}
+          <strong>Batch requires WASM for MP5-L v4.</strong> Run{" "}
           <code className="text-accent">pnpm wasm:build</code> and refresh. Single-file mode still
           offers PCM reference export without WASM.
         </p>
@@ -366,7 +366,7 @@ export function BatchConverterPanel() {
 
       {codecReady && (
         <p className="text-xs text-green-400/90 bg-green-950/30 rounded-lg p-2" data-testid="batch-codec-ready">
-          <strong>Batch default: MP5-L v3</strong> — lossless, bit-exact. MP5-C (lab) and MP5-H are not
+          <strong>Batch default: MP5-L v4</strong> — lossless, bit-exact. MP5-C (lab) and MP5-H are not
           used in batch mode.
         </p>
       )}

@@ -4,7 +4,7 @@ const STEPS: { id: StepId; label: string }[] = [
   { id: "drop", label: "Drop source audio" },
   { id: "edit", label: "Edit metadata" },
   { id: "preview", label: "Preview embedded metadata" },
-  { id: "export", label: "Export MP5-L v3" },
+  { id: "export", label: "Export MP5-L v4" },
   { id: "player", label: "Download / open in player" },
 ];
 

@@ -47,40 +47,62 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   providerId: "openai",
   apiKey: "",
   apiBaseUrl: "https://api.openai.com/v1",
-  model: "gpt-5.4-nano",
+  model: "gpt-5.6-luna",
 };
 
 const MODEL_REPLACEMENTS: Record<string, Record<string, string>> = {
   openai: {
-    "gpt-3.5-turbo": "gpt-5.4-nano",
-    "gpt-4.1-nano": "gpt-5.4-nano",
-    "o3-mini": "gpt-5.4-mini",
-    "o4-mini": "gpt-5.4-mini",
+    "gpt-3.5-turbo": "gpt-5.6-luna",
+    "gpt-4.1-nano": "gpt-5.6-luna",
+    "gpt-5.4-nano": "gpt-5.6-luna",
+    "gpt-5.4-mini": "gpt-5.6-terra",
+    "gpt-5.4": "gpt-5.6-terra",
+    "o3-mini": "gpt-5.6-terra",
+    "o4-mini": "gpt-5.6-terra",
   },
   anthropic: {
-    "claude-sonnet-4-20250514": "claude-sonnet-4-6",
+    "claude-sonnet-4-20250514": "claude-sonnet-5",
+    "claude-sonnet-4-6": "claude-sonnet-5",
     "claude-3-5-haiku-20241022": "claude-haiku-4-5-20251001",
-    "claude-3-5-sonnet-20241022": "claude-sonnet-4-6",
+    "claude-3-5-sonnet-20241022": "claude-sonnet-5",
     "claude-3-opus-20240229": "claude-opus-4-8",
   },
   gemini: {
     "gemini-2.0-flash": "gemini-3.5-flash",
     "gemini-2.5-flash-preview-05-20": "gemini-3.5-flash",
-    "gemini-2.5-pro-preview-06-05": "gemini-2.5-pro",
+    "gemini-2.5-flash-lite": "gemini-3.1-flash-lite",
+    "gemini-2.5-pro-preview-06-05": "gemini-3.1-pro-preview",
+    "gemini-3-flash-preview": "gemini-3.5-flash",
+    "gemini-3-pro-preview": "gemini-3.1-pro-preview",
     "gemini-1.5-flash": "gemini-3.1-flash-lite",
-    "gemini-1.5-pro": "gemini-2.5-pro",
+    "gemini-1.5-pro": "gemini-3.1-pro-preview",
   },
   deepseek: {
     "deepseek-chat": "deepseek-v4-flash",
     "deepseek-reasoner": "deepseek-v4-pro",
   },
   kimi: {
-    "kimi-k2-0711-preview": "kimi-k2.6",
+    "kimi-k2-0711-preview": "kimi-k3",
+    "kimi-k2.5": "kimi-k3",
+    "moonshot-v1-8k": "kimi-k3",
+    "moonshot-v1-32k": "kimi-k3",
+    "moonshot-v1-128k": "kimi-k3",
   },
   zai: {
     "glm-4-plus": "glm-5.2",
     "glm-4-flash": "glm-4.7-flash",
-    "glm-4-air": "glm-4.5-air",
+    "glm-4-air": "glm-4.7-flash",
+    "glm-4.5-flash": "glm-4.7-flash",
+    "glm-4.5-air": "glm-4.7-flash",
+  },
+  groq: {
+    "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+  },
+  xai: {
+    "grok-4": "grok-4.3",
+    "grok-4-0709": "grok-4.3",
+    "grok-4-fast-reasoning": "grok-4.3",
+    "grok-4-1-fast-reasoning": "grok-4.3",
   },
 };
 

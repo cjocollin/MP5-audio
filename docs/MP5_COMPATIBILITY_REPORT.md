@@ -3,7 +3,7 @@
 **Date:** May 2026 · **Version:** MP5 Audio v0.9.0-alpha  
 **Milestones:** Real-World Compatibility Pass · Spec Freeze / Compatibility Toolkit  
 **Automated gates:** `pnpm compatibility:check` · `pnpm fixtures:validate` · `pnpm validate:mp5`  
-**Policy:** [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · MP5-L v3 default · MP5-C lab-only · MP5-H hybrid/large/not default · PCM reference/debug
+**Policy:** [`MP5_COMPATIBILITY_POLICY.md`](MP5_COMPATIBILITY_POLICY.md) · MP5-L v4 default · MP5-C lab-only · MP5-H hybrid/large/not default · PCM reference/debug
 
 This report documents how MP5 Public Beta behaves with common source formats, metadata edge cases, and player import scenarios. **No copyrighted music is committed to the repository.** Automated tests use synthetic tones in `test-fixtures/compatibility/`.
 
@@ -62,7 +62,7 @@ For each **WAV** fixture, automated tests confirm:
 4. **Format labels** — `describeMp5lPlayback` reports bit-exact MP5-L v3
 5. **Decode bit-exact** — WASM `decode_mp5l` matches source samples sample-for-sample
 
-**Browser path (manual):** After export, **Open in Player** or drop the `.mp5` — playback, seek bar, and Format panel should match MP5-L v3 defaults.
+**Browser path (manual):** After export, **Open in Player** or drop the `.mp5` — playback, seek bar, and Format panel should match MP5-L v4 defaults.
 
 ### Public Beta limitation (honest)
 

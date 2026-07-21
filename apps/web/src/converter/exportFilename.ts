@@ -46,6 +46,8 @@ export function buildExportFilename(
   const variant =
     codec === "pcm"
       ? " (PCM reference)"
+      : codec === "mp5l"
+        ? " (MP5-L v3)"
       : codec === "mp5h"
         ? " (MP5-H hybrid)"
         : codec === "mp5c"
@@ -59,10 +61,10 @@ export function buildExportFilename(
 
 /** Suggested duplicate-friendly name when the browser may save a second copy. */
 export function suggestDuplicateExportFilename(baseFilename: string, codec: OutputCodec): string {
-  if (codec !== "mp5l") return baseFilename;
+  if (codec !== "mp5l_v4") return baseFilename;
   const withoutExt = baseFilename.replace(/\.mp5$/i, "");
-  if (withoutExt.includes("(MP5-L v3)")) return baseFilename;
-  return `${withoutExt} (MP5-L v3).mp5`;
+  if (withoutExt.includes("(MP5-L v4)")) return baseFilename;
+  return `${withoutExt} (MP5-L v4).mp5`;
 }
 
 /**
