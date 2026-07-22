@@ -15,6 +15,11 @@ test.describe("credits / rights metadata", () => {
     await expect(page.getByTestId("converter-panel")).toBeVisible();
     await page.getByTestId("converter-file-input").setInputFiles([wavFixture]);
     await expect(page.getByTestId("metadata-editor")).toBeVisible({ timeout: 60_000 });
+    const legalDisclosure = page.getByTestId("converter-credits-rights-toggle");
+    await expect(legalDisclosure).toBeVisible();
+    await expect(legalDisclosure).toHaveAttribute("aria-expanded", "false");
+    await legalDisclosure.click();
+    await expect(legalDisclosure).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByTestId("credits-metadata-toggle")).toBeVisible();
     await expect(page.getByTestId("rights-metadata-toggle")).toBeVisible();
     await expect(page.getByTestId("identifiers-metadata-toggle")).toBeVisible();

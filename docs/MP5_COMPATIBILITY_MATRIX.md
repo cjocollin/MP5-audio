@@ -18,6 +18,7 @@ Status key:
 | Item | Status | Notes | Validation |
 |------|--------|-------|------------|
 | MP5-L v4 | Public Beta | Recommended/default lossless path; bit-exact roundtrip; packed Rice (`FLAG_RICE_PACKED`) needs current decoder. | `inspect:mp5`, `validate:mp5`, unit/compat gates |
+| MP5-L v3 | Lab-only / legacy | Backward-compatible bit-exact decode; legacy export remains under Lab/advanced; not default. | v3 golden fixtures, `inspect:mp5`, `validate:mp5`, compatibility gates |
 | MP5-C | Lab-only | Experimental lossy codec; may hiss; not default. | Reports as lab codec with warnings |
 | MP5-C2 (vNext) | Lab-only / advanced UI | Hybrid quiet→MP5-L + loud→MP5-C; AUDI `0x43 0x34`; CodecId 5; not default; batch stays MP5-L. | Converter advanced toggle; player `decode_mp5c_vnext` |
 | MP5-H | Experimental | Hybrid/CORR path can be large; not default. | Playable when structure validates |

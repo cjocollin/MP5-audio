@@ -39,6 +39,19 @@ test.describe("Batch converter", () => {
     await expect(page.getByTestId("batch-converter-panel")).toHaveCount(0);
   });
 
+  test("single-file desktop import keeps metadata open beside the format picker", async ({ page }) => {
+    test.skip(!hasWavFixture, "run pnpm e2e:fixtures or pnpm compatibility:fixtures");
+    await page.getByTestId("converter-mode-single").click();
+    await page.getByTestId("converter-file-input").setInputFiles(wavFixture);
+
+    const panel = page.getByTestId("converter-panel");
+    await expect(page.getByTestId("converter-source-card")).toBeVisible({ timeout: 60_000 });
+    await expect(panel).toHaveAttribute("data-stage", "metadata");
+    await expect(page.getByTestId("metadata-editor")).toBeVisible();
+    await expect(page.getByTestId("converter-output-rail")).toBeVisible();
+    await expect(page.getByTestId("codec-select")).toBeVisible();
+  });
+
   test("single mode defaults to MP5-L; MP5-C2 open; classic MP5-C lab-gated", async ({ page }) => {
     await page.getByTestId("converter-mode-single").click();
     const select = page.getByTestId("codec-select");
@@ -48,7 +61,13 @@ test.describe("Batch converter", () => {
     await expect(select.locator('option[value="mp5c2"]')).toHaveCount(1);
     await select.selectOption("mp5c2");
     await expect(page.getByTestId("mp5c2-info")).toBeVisible();
-    await page.getByTestId("lab-codecs-toggle").click();
+    const advancedFormats = page.getByTestId("converter-advanced-formats-toggle");
+    await expect(advancedFormats).toHaveAttribute("aria-expanded", "false");
+    await advancedFormats.click();
+    await expect(advancedFormats).toHaveAttribute("aria-expanded", "true");
+    const labCodecs = page.getByTestId("lab-codecs-toggle");
+    await expect(labCodecs).toBeVisible();
+    await labCodecs.click();
     await expect(select.locator('option[value="mp5c"]')).toHaveCount(1);
     await expect(select.locator('option[value="mp5l"]')).toHaveCount(1);
     await select.selectOption("mp5c");

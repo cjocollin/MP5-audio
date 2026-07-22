@@ -78,6 +78,9 @@ export function fixturesPlugin(): Plugin {
       server.middlewares.use("/fixtures", (req, res, next) => {
         serveFixture(req.url, res, next);
       });
+      server.middlewares.use("/qa", (req, res, next) => {
+        serveStaticFromDir(req.url, fixturesDir, "text/html; charset=utf-8", res, next);
+      });
       server.middlewares.use("/screenshots", (req, res, next) => {
         serveStaticFromDir(req.url, screenshotsDir, "image/png", res, next);
       });
@@ -85,6 +88,9 @@ export function fixturesPlugin(): Plugin {
     configurePreviewServer(server) {
       server.middlewares.use("/fixtures", (req, res, next) => {
         serveFixture(req.url, res, next);
+      });
+      server.middlewares.use("/qa", (req, res, next) => {
+        serveStaticFromDir(req.url, fixturesDir, "text/html; charset=utf-8", res, next);
       });
       server.middlewares.use("/screenshots", (req, res, next) => {
         serveStaticFromDir(req.url, screenshotsDir, "image/png", res, next);

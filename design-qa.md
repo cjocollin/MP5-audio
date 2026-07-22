@@ -1,3 +1,40 @@
+# MP5 Export Desk — implementation QA
+
+## Reference and scope
+
+- Desktop visual truth: `/workspace/scratch/4e5255cf5284/generated_images/exec-dd1c7602-293f-4d9c-8712-a320fdc41f15.png`
+- Mobile visual truth: `/workspace/scratch/4e5255cf5284/generated_images/exec-dbd300d3-2bc6-4b11-81fa-38a39eca8df9.png`
+- Desktop implementation viewport: `1365 × 936`.
+- Mobile implementation viewport: `390 × 844`, rendered in a same-origin QA frame so the real mobile media queries, fixed transport, and bottom navigation were active.
+- The reference predates the current release. Its `0.27.0-beta` and MP5-L v3 labels were intentionally replaced by the product's authoritative `0.28.0-beta` and recommended/default MP5-L v4 state. MP5-L v3 remains available only as an explicit Lab/legacy option.
+
+The approved information architecture was the visual truth: one Source → Metadata → Export flow, a populated source card, tabbed metadata, a dedicated output rail, restrained charcoal/plum surfaces, semantic violet/cyan codec badges, and the existing persistent playback/navigation shell.
+
+## Final findings
+
+No actionable P0, P1, or P2 visual differences remain within the approved converter scope.
+
+- Desktop composition: title, mode selector, three-stage progress line, source preview, metadata workspace, output rail, ready summary, and persistent transport follow the reference hierarchy and proportions. The output rail remains sticky while the page provides enough bottom scroll clearance for its export controls.
+- Mobile composition: mode selector, title, compact stage indicator, source card, Metadata summary/Edit row, Output card, ready summary, transport, and navigation follow the reference order. Metadata fields remain in their own explicit stage instead of being deleted or hidden permanently.
+- Visual system: flat charcoal surfaces, quiet borders, restrained plum controls, low radii, and the existing DM Sans typography match the approved non-neon direction. The MP5-L v4 badge remains violet; Lossless and Bit-exact remain cyan, unwrapped, and on one line.
+- Artwork and waveform: the generated neon-flower QA cover is used only for deterministic design review. Real imported cover art and decoded PCM waveform data drive the shipped source card.
+- Responsive geometry: at `390 × 844`, the bottom navigation measured `104 px`; the persistent transport measured `72 px` and ended exactly where the navigation began. All three codec badges shared the same top coordinate and the rightmost badge ended at `363.36 px`, inside the `390 px` viewport.
+- Accessibility: mode and metadata controls retain tab semantics, disclosures expose `aria-expanded`, labels remain associated with inputs, focus-visible treatment is present, and primary mobile controls meet practical touch sizing.
+
+## Interaction and runtime checks
+
+- Loaded a real stereo WAV through the same decoder used by customers; verified source replacement, decoded waveform, cover presentation, extracted/editable metadata, all five metadata tabs, nested legal/tool disclosures, and the mobile Metadata → Export transition.
+- Ran a real MP5-L v4 export in the mobile layout. The export completed with the expected MP5-L v4 lossless/default summary, embedded metadata and artwork, and all post-export actions present.
+- Verified Single/Batch switching, MP5-L v4 as the fresh default, MP5-C2/MP5-H advanced choices, and MP5-L v3/MP5-C remaining Lab-gated.
+- No application-origin runtime errors were recorded. The only browser-console errors came from the cloud browser's own extension.
+- TypeScript and the production Vite/PWA build passed.
+- Main unit partition: `539` passed, `2` intentionally skipped. Audio-quality partition: all `44` assertions passed; Vitest still reports its known 60-second worker heartbeat after one synchronous robustness case takes about 65 seconds in this workspace. Compatibility: `25/25` passed.
+- Updated targeted Playwright coverage discovers `13` converter/mobile/legal cases, including the new three-stage mobile layout and non-wrapping badge regression. Local execution awaits a Chromium binary; equivalent desktop/mobile flows were exercised in the shared Chrome browser.
+
+final result: passed
+
+---
+
 # MP5 Studio Neutral redesign — design QA
 
 ## Evidence

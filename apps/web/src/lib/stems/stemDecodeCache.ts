@@ -81,7 +81,7 @@ export class StemDecodeCache {
     stemIndex: number,
     signal?: AbortSignal,
     onProgress?: (p: StemDecodeProgress) => void,
-    batch?: { currentIndex: number; total: number; fullMixPcm?: FullMixPcm },
+    batch?: { currentIndex?: number; total?: number; fullMixPcm?: FullMixPcm },
   ): Promise<DecodedStemPcm> {
     const cached = this.decoded.get(stem.stemId);
     if (cached) {

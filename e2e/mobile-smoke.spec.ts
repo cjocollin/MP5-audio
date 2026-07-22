@@ -4,11 +4,17 @@ import fs from "fs";
 import { dismissWelcomeOnboarding } from "./helpers/onboarding";
 
 const MOBILE = { width: 375, height: 812 };
+const CONVERTER_MOBILE = { width: 390, height: 844 };
 const embeddedFixture = path.join(
   process.cwd(),
   "test-fixtures/demo_embedded_album_package.mp5p",
 );
 const hasEmbedded = fs.existsSync(embeddedFixture);
+const wavFixture = path.join(
+  process.cwd(),
+  "test-fixtures/compatibility/wav_stereo_44k_short.wav",
+);
+const hasWavFixture = fs.existsSync(wavFixture);
 
 test.describe("Mobile smoke", () => {
   test.use({ viewport: MOBILE, isMobile: true, hasTouch: true });
@@ -72,6 +78,77 @@ test.describe("Mobile smoke", () => {
       expect(restoredPlayerBox?.height).toBeCloseTo(playerBox?.height ?? 0, 1);
       expect(restoredPlayerBox?.y).toBeCloseTo(playerBox?.y ?? 0, 1);
     }
+  });
+
+  test("converter keeps the format picker visible through the mobile Export Desk", async ({ page }) => {
+    test.skip(!hasWavFixture, "run pnpm compatibility:fixtures");
+    await page.setViewportSize(CONVERTER_MOBILE);
+    await page.goto("/");
+    await page.getByTestId("app-tab-converter").click();
+    const panel = page.getByTestId("converter-panel");
+    const outputRail = page.getByTestId("converter-output-rail");
+    const formatPicker = page.getByTestId("codec-select");
+    const visualFormatPicker = outputRail.locator(".mp5-converter-format-control");
+    await expect(panel).toBeVisible();
+    await expect(outputRail).toBeVisible();
+    await expect(visualFormatPicker).toBeVisible();
+    await expect(formatPicker).toBeVisible();
+    await expect(formatPicker).toHaveValue("mp5l_v4");
+    await visualFormatPicker.scrollIntoViewIfNeeded();
+
+    const initialFormatBox = await visualFormatPicker.boundingBox();
+    const transportBox = await page.getByTestId("persistent-transport").boundingBox();
+    expect(initialFormatBox).not.toBeNull();
+    expect(transportBox).not.toBeNull();
+    expect(initialFormatBox?.x).toBeGreaterThanOrEqual(0);
+    expect((initialFormatBox?.x ?? 0) + (initialFormatBox?.width ?? 0)).toBeLessThanOrEqual(
+      CONVERTER_MOBILE.width + 1,
+    );
+    expect((initialFormatBox?.y ?? 0) + (initialFormatBox?.height ?? 0)).toBeLessThanOrEqual(
+      (transportBox?.y ?? CONVERTER_MOBILE.height) + 1,
+    );
+
+    await page.getByTestId("converter-file-input").setInputFiles(wavFixture);
+    await expect(page.getByTestId("converter-source-card")).toBeVisible({ timeout: 60_000 });
+    await expect(panel).toHaveAttribute("data-stage", "export");
+    await expect(page.getByTestId("converter-mobile-metadata-summary")).toBeVisible();
+    await expect(outputRail).toBeVisible();
+    await expect(visualFormatPicker).toBeVisible();
+    await expect(formatPicker).toBeVisible();
+    await expect(formatPicker).toBeEnabled();
+    await expect(page.getByTestId("convert-status")).toBeVisible();
+    await expect(page.getByTestId("convert-status")).toContainText("MP5-L v4");
+
+    await formatPicker.selectOption("mp5c2");
+    await expect(formatPicker).toHaveValue("mp5c2");
+    await expect(outputRail.locator(".mp5-converter-format-control strong")).toHaveText("MP5-C2");
+    await expect(page.getByTestId("mp5c2-info")).toBeVisible();
+
+    await formatPicker.selectOption("mp5l_v4");
+    await expect(formatPicker).toHaveValue("mp5l_v4");
+
+    await page.getByTestId("converter-mobile-edit-metadata").click();
+    await expect(panel).toHaveAttribute("data-stage", "metadata");
+    await expect(page.getByTestId("metadata-editor")).toBeVisible();
+    await expect(outputRail).not.toBeVisible();
+
+    await page.getByTestId("converter-mobile-metadata-done").click();
+    await expect(panel).toHaveAttribute("data-stage", "export");
+    await expect(page.getByTestId("converter-mobile-metadata-summary")).toBeVisible();
+    await expect(outputRail).toBeVisible();
+    await expect(formatPicker).toBeVisible();
+    await expect(formatPicker).toHaveValue("mp5l_v4");
+
+    const badgeBoxes = await page
+      .getByLabel("Selected format qualities")
+      .locator("span")
+      .evaluateAll((badges) => badges.map((badge) => {
+        const box = badge.getBoundingClientRect();
+        return { x: box.x, y: box.y, right: box.right, height: box.height };
+      }));
+    expect(badgeBoxes).toHaveLength(3);
+    expect(Math.max(...badgeBoxes.map((box) => box.y)) - Math.min(...badgeBoxes.map((box) => box.y))).toBeLessThan(2);
+    expect(Math.max(...badgeBoxes.map((box) => box.right))).toBeLessThanOrEqual(MOBILE.width + 1);
   });
 
   test("player controls stay reachable without horizontal overflow", async ({ page }) => {
