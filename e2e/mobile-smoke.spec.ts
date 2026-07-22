@@ -9,6 +9,11 @@ const embeddedFixture = path.join(
   "test-fixtures/demo_embedded_album_package.mp5p",
 );
 const hasEmbedded = fs.existsSync(embeddedFixture);
+const wavFixture = path.join(
+  process.cwd(),
+  "test-fixtures/compatibility/wav_mono_44k_short.wav",
+);
+const hasWav = fs.existsSync(wavFixture);
 
 test.describe("Mobile smoke", () => {
   test.use({ viewport: MOBILE, isMobile: true, hasTouch: true });
@@ -83,6 +88,30 @@ test.describe("Mobile smoke", () => {
     const play = page.getByTestId("play-pause");
     const box = await play.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(56);
+  });
+
+  test("converter source waveform stays visible", async ({ page }) => {
+    test.skip(!hasWav, "run pnpm e2e:fixtures or pnpm compatibility:fixtures");
+    await page.goto("/");
+    await page.getByTestId("app-tab-converter").click();
+    await page.getByTestId("converter-file-input").setInputFiles([wavFixture]);
+
+    const waveform = page.getByLabel("Source waveform summary");
+    await expect(waveform).toBeVisible({ timeout: 30_000 });
+    await expect(waveform.getByTestId("waveform")).toBeVisible();
+    const cardBox = await page.getByTestId("converter-source-card").boundingBox();
+    const box = await waveform.boundingBox();
+    expect(cardBox).not.toBeNull();
+    expect(box).not.toBeNull();
+    expect(box?.width).toBeGreaterThan(250);
+    expect(box?.height).toBeGreaterThanOrEqual(42);
+    expect(box?.x ?? 0).toBeGreaterThanOrEqual(cardBox?.x ?? 0);
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
+      (cardBox?.x ?? 0) + (cardBox?.width ?? 0),
+    );
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(2);
   });
 
   test("VISU stays in Now Playing only on mobile", async ({ page }) => {
