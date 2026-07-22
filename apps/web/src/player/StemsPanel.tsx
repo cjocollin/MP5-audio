@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Mp5File } from "@mp5/container";
-import { CodecId, stemTypeLabel, type StemAvailabilityStatus, type StemDescriptor } from "@mp5/container";
+import {
+  CodecId,
+  isStemAlias,
+  stemTypeLabel,
+  type StemAvailabilityStatus,
+  type StemDescriptor,
+} from "@mp5/container";
+import type { FullMixPcm } from "../lib/stems/fullMixPcm";
 import { codecLabel } from "../lib/codecDisplay";
 import {
   stemDownloadHelp,
@@ -51,6 +58,8 @@ interface KaraokePrepareRequest {
 
 interface Props {
   parsed?: Mp5File;
+  /** Decoded AUDI PCM for resolving codingMode: alias stems. */
+  fullMixPcm?: FullMixPcm | null;
   stemMixActive: boolean;
   onStemMixActiveChange: (active: boolean) => void;
   onStemMixEnable: (tracks: StemPcmTrack[], mode: StemMixMode, offsetSec: number) => void;
@@ -161,6 +170,7 @@ export function StemsPanel({
   karaokePrepareRequest,
   onKaraokePrepareDone,
   onKaraokePrepareFailed,
+  fullMixPcm,
 }: Props) {
   const parsedStems = useMemo(() => (parsed ? parseStemsFromFile(parsed) : null), [parsed]);
   const fileTier = useMemo(
@@ -286,6 +296,7 @@ export function StemsPanel({
           stems: stemsToLoad,
           cache: cacheRef.current,
           signal: ac.signal,
+          fullMixPcm: fullMixPcm ?? undefined,
           onProgress: (p) => {
             setPrepareProgress(p);
             setWorkerDiag(getStemWorkerClient().diagnostics);
@@ -346,6 +357,7 @@ export function StemsPanel({
       onKaraokePrepareFailed,
       playbackOffset,
       bumpCacheUi,
+      fullMixPcm,
     ],
   );
 
@@ -363,7 +375,14 @@ export function StemsPanel({
       const ac = new AbortController();
       bgPrepareByStemRef.current.set(stemId, ac);
       try {
-        await cacheRef.current.decodeStem(parsedStems, stem, Math.max(0, idx), ac.signal);
+        await cacheRef.current.decodeStem(
+          parsedStems,
+          stem,
+          Math.max(0, idx),
+          ac.signal,
+          undefined,
+          { fullMixPcm: fullMixPcm ?? undefined },
+        );
         setUiState((prev) => {
           const next = prev.map((u) =>
             u.id === stemId ? { ...u, preparing: false, pendingAudible: false } : u,
@@ -400,7 +419,15 @@ export function StemsPanel({
         }
       }
     },
-    [parsedStems, stemMixActive, mixMode, onStemMixSeamlessOp, bumpCacheUi, getStemGraphGeneration],
+    [
+      parsedStems,
+      stemMixActive,
+      mixMode,
+      onStemMixSeamlessOp,
+      bumpCacheUi,
+      getStemGraphGeneration,
+      fullMixPcm,
+    ],
   );
 
   useEffect(() => {
@@ -590,6 +617,24 @@ export function StemsPanel({
     if (!parsedStems) return;
     setDownloadBusy(stem.stemId);
     try {
+      if (isStemAlias(stem)) {
+        if (!fullMixPcm?.samples.length) {
+          setStatusError(
+            `Stem "${stem.stemName}" aliases AUDI — load the full mix before downloading.`,
+          );
+          return;
+        }
+        const bytes = new Uint8Array(
+          fullMixPcm.samples.buffer,
+          fullMixPcm.samples.byteOffset,
+          fullMixPcm.samples.byteLength,
+        );
+        downloadBlob(
+          new Blob([bytes.slice()], { type: "application/octet-stream" }),
+          stemFrameDownloadFilename(stem.stemName, stem.stemType, CodecId.PCM),
+        );
+        return;
+      }
       const { frameData, errors } = await loadStemFrameData(parsedStems, stem, index);
       if (errors.length || !frameData.length) {
         setStatusError(errors[0] ?? "Could not load stem for download.");

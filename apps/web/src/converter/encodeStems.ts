@@ -17,8 +17,24 @@ export interface EncodeStemsResult {
   report?: StemExportSizeReport;
 }
 
+export interface EncodeStemsMixPcm {
+  samples: Int16Array;
+  sampleRate: number;
+  channels: number;
+}
+
+/** Bit-exact Int16 PCM equality (same length required). */
+export function pcmSamplesEqual(a: Int16Array, b: Int16Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 export async function encodeStemsForExport(
   stems: PendingStemPcm[],
+  mix?: EncodeStemsMixPcm,
 ): Promise<EncodeStemsResult> {
   if (!stems.length) {
     return { optional: new Map(), extraChunks: [], warnings: [] };
@@ -32,21 +48,52 @@ export async function encodeStemsForExport(
 
   const codec = wasmReady ? await getCodec() : null;
   const bundles: StemBundleInput[] = [];
+  let aliasCount = 0;
 
   for (const stem of stems) {
     const ch = stem.channels;
+    const durationSamples = Math.floor(stem.samples.length / ch);
+
+    const canAlias =
+      !!mix &&
+      mix.sampleRate === stem.sampleRate &&
+      mix.channels === ch &&
+      pcmSamplesEqual(stem.samples, mix.samples);
+
+    if (canAlias) {
+      aliasCount++;
+      bundles.push({
+        stemId: stem.id,
+        stemName: stem.name.trim() || stem.fileName,
+        stemType: stem.stemType as StemType,
+        codecId: CodecId.MP5L,
+        sampleRate: stem.sampleRate,
+        channels: ch,
+        durationSamples,
+        frameData: new Uint8Array(0),
+        defaultVolume: stem.defaultVolume,
+        explicitContent: stem.explicitContent,
+        codingMode: "alias",
+        refTarget: "AUDI",
+      });
+      continue;
+    }
+
     let frameData: Uint8Array;
     let codecId: number;
 
     if (wasmReady && codec) {
-      frameData = codec.encode_mp5l(stem.samples, ch);
+      frameData = codec.encode_mp5l_v4(stem.samples, ch);
       codecId = CodecId.MP5L;
     } else {
-      frameData = new Uint8Array(stem.samples.buffer, stem.samples.byteOffset, stem.samples.byteLength);
+      frameData = new Uint8Array(
+        stem.samples.buffer,
+        stem.samples.byteOffset,
+        stem.samples.byteLength,
+      );
       codecId = CodecId.PCM;
     }
 
-    const durationSamples = Math.floor(stem.samples.length / ch);
     bundles.push({
       stemId: stem.id,
       stemName: stem.name.trim() || stem.fileName,
@@ -59,6 +106,12 @@ export async function encodeStemsForExport(
       defaultVolume: stem.defaultVolume,
       explicitContent: stem.explicitContent,
     });
+  }
+
+  if (aliasCount > 0) {
+    warnings.push(
+      `Omitted duplicate stem data for ${aliasCount} stem(s) identical to the full mix (AUDI alias).`,
+    );
   }
 
   try {

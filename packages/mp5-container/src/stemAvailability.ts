@@ -3,6 +3,11 @@ import type { StdfFragmentIndex } from "./types.js";
 import { groupStdfFragmentIndex } from "./lazyMp5Load.js";
 import { decodeStdfFragment } from "./stemStdf.js";
 
+/** Local check — avoid importing stems.js helpers (circular with stems → stemAvailability). */
+function stemSkipsStdfPayload(stem: StemManifest["stems"][number]): boolean {
+  return stem.codingMode === "alias" || !!stem.unsupportedCodingMode;
+}
+
 export type StemAvailabilityStatus =
   | "available"
   | "not_loaded_yet"
@@ -27,6 +32,20 @@ export function auditStdfStemIndex(
 ): StemAvailabilityEntry[] {
   const grouped = groupStdfFragmentIndex(stdfIndex);
   return manifest.stems.map((stem) => {
+    if (stemSkipsStdfPayload(stem)) {
+      return {
+        stemId: stem.stemId,
+        stemName: stem.stemName,
+        status: "available" as const,
+        expectedFragmentCount: 0,
+        indexedFragmentCount: 0,
+        expectedDataLength: 0,
+        indexedInnerPayloadBytes: 0,
+        partIndexes: [] as number[],
+        hasCrcMetadata: true,
+      };
+    }
+
     const frags = grouped.get(stem.stemId) ?? [];
     const partIndexes = frags.map((f) => f.partIndex).sort((a, b) => a - b);
     const expectedParts = stem.fragmentCount ?? frags.length;

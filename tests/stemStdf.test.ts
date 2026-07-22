@@ -141,3 +141,53 @@ describe("STDF segmented storage", () => {
     expect(decoded?.stemId).toBe("id-1");
   });
 });
+
+describe("stem alias codingMode", () => {
+  it("omits alias payload from STDA and validates", () => {
+    const unique = stemBundle("instrumental", 4000);
+    const alias: StemBundleInput = {
+      stemId: "sing-along",
+      stemName: "Sing-Along",
+      stemType: "custom",
+      codecId: CodecId.PCM,
+      sampleRate: 44100,
+      channels: 2,
+      durationSamples: 100,
+      frameData: new Uint8Array(0),
+      codingMode: "alias",
+      refTarget: "AUDI",
+    };
+    const { optional, extraChunks, manifest } = buildStemOptionalChunks([alias, unique]);
+    expect(extraChunks).toHaveLength(0);
+    expect(manifest.storageMode).toBe("stda-v1");
+    expect(manifest.stems[0]!.codingMode).toBe("alias");
+    expect(manifest.stems[0]!.dataLength).toBe(0);
+    expect(manifest.stems[1]!.dataLength).toBe(4000);
+    expect(manifest.stems[1]!.dataOffset).toBe(0);
+
+    const stda = optional.get("STDA")!;
+    const { entries } = decodeStemFrameEntries(manifest, stda, []);
+    expect(entries[0]!.length).toBe(0);
+    expect(entries[1]).toEqual(unique.frameData);
+
+    const check = validateStemFromParsed(
+      parseMp5(
+        writeMp5({
+          head: {
+            codecId: CodecId.PCM,
+            channels: 2,
+            bitsPerSample: 16,
+            presetId: 0,
+            sampleRate: 44100,
+            totalSamples: 44100n,
+            encoderVersion: 1,
+          },
+          audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: new Uint8Array(100) }],
+          optional,
+          extraChunks,
+        }),
+      ),
+    );
+    expect(check.valid).toBe(true);
+  });
+});

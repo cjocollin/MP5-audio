@@ -1,4 +1,4 @@
-import { CodecId, type StemDescriptor } from "@mp5/container";
+import { CodecId, isStemAlias, type StemDescriptor } from "@mp5/container";
 
 /** Browser stem playback budgets (decoded PCM in RAM). */
 export const STEM_PLAYBACK_LIMITS = {
@@ -23,6 +23,8 @@ export const STEM_PLAYBACK_LIMITS = {
 export const STEM_MIX_LIMITS = STEM_PLAYBACK_LIMITS;
 
 export function estimateStemDecodedBytes(stem: StemDescriptor): number {
+  // Alias stems reuse AUDI PCM — no extra decoded RAM beyond the mix already loaded.
+  if (isStemAlias(stem) || stem.unsupportedCodingMode) return 0;
   const ch = Math.max(1, stem.channels);
   const samples = Math.max(0, stem.durationSamples);
   return samples * ch * 2;

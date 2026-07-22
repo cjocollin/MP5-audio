@@ -2071,6 +2071,16 @@ export function Mp5Player({
             >
               <StemsPanel
                 parsed={parsed}
+                fullMixPcm={(() => {
+                  const cached = track?.id ? decodeCache.get(track.id) : undefined;
+                  return cached
+                    ? {
+                        samples: cached.samples,
+                        sampleRate: cached.sampleRate,
+                        channels: cached.channels,
+                      }
+                    : null;
+                })()}
                 stemMixActive={stemMixActive}
                 onStemMixActiveChange={setStemMixActive}
                 onStemMixEnable={handleStemMixEnable}

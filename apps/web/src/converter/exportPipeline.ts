@@ -99,7 +99,11 @@ export async function runExportPipeline(
   let extraChunks: { fourcc: string; payload: Uint8Array }[] | undefined;
   let fingerprintWarning: string | undefined;
   if (input.stems?.length) {
-    const stemResult = await encodeStemsForExport(input.stems);
+    const stemResult = await encodeStemsForExport(input.stems, {
+      samples: input.pcm.samples,
+      sampleRate: input.pcm.sampleRate,
+      channels: input.pcm.channels,
+    });
     optional = new Map(optional);
     for (const [k, v] of stemResult.optional) optional.set(k, v);
     extraChunks = stemResult.extraChunks;

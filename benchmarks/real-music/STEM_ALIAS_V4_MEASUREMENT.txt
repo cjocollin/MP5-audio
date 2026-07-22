@@ -1,0 +1,15 @@
+# Stem pack alias + MP5-L v4 measurement
+
+Date: 2026-07-22
+Tool: scripts/pack-stem-song-mp5.mjs
+Quality: bit-exact Int16 PCM vs source FLACs (Takedown verified: AUDI + all stems exact)
+
+| File | Baseline bytes | New bytes | Ratio |
+|------|---------------:|----------:|------:|
+| Takedown.mp5 | 100035799 | 70138719 | 0.701 |
+| Your Idol.mp5 | 105886812 | 73622909 | 0.695 |
+
+Takedown stem coding: sing-along=alias(AUDI), instrumental=independent 22720344, acapella=independent 22474557
+Storage: stda-v1 (alias dropped pack under STDA safe limit; previously stdf-v1)
+
+Baselines copied beside fixtures as *.pre-alias-baseline

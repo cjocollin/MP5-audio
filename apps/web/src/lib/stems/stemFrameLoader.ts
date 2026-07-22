@@ -1,8 +1,10 @@
 import {
   decodeStdaEntries,
+  isStemAlias,
   loadStdfFragmentsForStem,
   reconstructStemFrameFromFragments,
   STDA_VERSION,
+  stdaPayloadIndexForStem,
   type StemDescriptor,
   type StdfFragmentRecord,
 } from "@mp5/container";
@@ -32,6 +34,16 @@ export async function loadStemFrameData(
 
   await yieldToMain();
 
+  if (isStemAlias(stem) || stem.unsupportedCodingMode) {
+    return {
+      frameData: new Uint8Array(0),
+      errors: stem.unsupportedCodingMode
+        ? [`Stem "${stem.stemName}" uses an unsupported codingMode.`]
+        : [`Stem "${stem.stemName}" is an AUDI alias — resolve via full-mix PCM.`],
+      warnings: [],
+    };
+  }
+
   if (file.storageMode === "stdf-v1") {
     let frags: StdfFragmentRecord[];
     if (file.lazyFile?.lazy && file.stdfIndexGrouped) {
@@ -58,7 +70,9 @@ export async function loadStemFrameData(
   if (file.stda?.length) {
     const v = new DataView(file.stda.buffer, file.stda.byteOffset, file.stda.byteLength);
     if (v.getUint8(0) === STDA_VERSION) {
-      const frameData = extractStdaFrameByIndex(file.stda, stemIndex);
+      const payloadIndex = stdaPayloadIndexForStem(file.manifest, stem.stemId);
+      const index = payloadIndex >= 0 ? payloadIndex : stemIndex;
+      const frameData = extractStdaFrameByIndex(file.stda, index);
       await yieldToMain();
       return { frameData, errors: [], warnings: [] };
     }

@@ -5,14 +5,15 @@
 
 Stems are optional. Every `.mp5` file must remain playable from the `AUDI` full-mix chunk alone. Players that do not implement stems can ignore `STEM`, `STDA`, and `STDF`.
 
-v0.28.0-beta does not change STDF/STDA semantics, playback transport, codec policy, or converter encoding behavior.
+STDA/STDF byte layout is unchanged. Stem manifests may declare `codingMode: "alias"` to omit duplicate payload bytes (see below). Converter stem encode uses MP5-L v4 when WASM is available.
 
 ## Policy
 
 - No AI stem separation in the reference app.
 - Users/artists provide stem files manually through the converter.
 - Full mix remains required in `AUDI`.
-- Stems encode as MP5-L v3 when WASM is available, with PCM reference fallback where needed.
+- Unique stems encode as MP5-L v4 when WASM is available, with PCM reference fallback where needed.
+- When a stem’s Int16 PCM is bit-exact identical to the AUDI mix, the exporter **omits duplicate stem data** (`codingMode: "alias"`, `refTarget: "AUDI"`). That is deduplication, not a better entropy coder.
 - Stem mixing is opt-in and device/browser-memory dependent.
 
 ## Chunks
@@ -42,8 +43,12 @@ Each stem entry includes:
 | `defaultVolume` | Default gain |
 | `soloMuteCapable` | UI may offer mute/solo |
 | `requiredForPlayback` | Defaults false; stems never block AUDI playback |
-| `dataOffset` / `dataLength` | Logical range in stem frame data |
-| `fragmentCount` | STDF fragment count |
+| `dataOffset` / `dataLength` | Logical range in stem frame data (`0` for alias stems) |
+| `fragmentCount` | STDF fragment count (omit / unused for alias stems) |
+| `codingMode` | Optional. Omit or `independent` = encoded frame in STDA/STDF. `alias` = no payload; reuse referent PCM |
+| `refTarget` | Required when `codingMode` is `alias`. v1 supports `"AUDI"` only |
+
+Unknown `codingMode` values: stem audio is unavailable; AUDI still plays.
 
 Recommended `stemType` values:
 
@@ -76,15 +81,16 @@ u32 payload_crc32
 u8[payload_length]
 ```
 
-The `STEM` manifest records `storageMode: "stdf-v1"` and per-stem `fragmentCount`.
+The `STEM` manifest records `storageMode: "stda-v1"` or `"stdf-v1"` and per-stem `fragmentCount` for payload stems. Alias stems are listed in `STEM` for UI but contribute no STDA/STDF bytes. If every stem is an alias, `STDA`/`STDF` may be absent.
 
 ## Converter
 
-1. Export the full mix as normal MP5-L v3.
+1. Export the full mix as MP5-L (product default; demo packer uses v4).
 2. Optionally import stem files (WAV, FLAC, MP3, M4A, OGG through the converter decode path).
 3. Validate sample rate, channels, and duration against the full mix.
 4. Offer normalization for rate/channel/duration mismatches.
-5. Export `STEM` plus `STDA` for small sets or `STEM` plus `STDF` fragments for large sets.
+5. For each stem: if PCM equals AUDI bit-exact → alias entry; else encode MP5-L v4.
+6. Export `STEM` plus `STDA` for small payload sets or `STEM` plus `STDF` fragments for large sets.
 
 Normalization is a rate/channel/duration helper only. It is not AI alignment or stem generation.
 
@@ -92,8 +98,20 @@ Normalization is a rate/channel/duration helper only. It is not AI alignment or 
 
 - Default playback is always `AUDI`.
 - Stem mix, solo, and karaoke are opt-in.
-- Large stems are prepared lazily and may use background workers.
+- Alias stems resolve to the already-decoded AUDI PCM (no extra stem download/decode).
+- Large independent stems are prepared lazily and may use background workers.
 - If stem preparation fails or is too heavy, full-mix playback still works.
+
+## Pack size (karaoke demos)
+
+Measured after alias + MP5-L v4 stems (`scripts/pack-stem-song-mp5.mjs`), bit-exact vs source FLAC PCM:
+
+| File | Before | After | Notes |
+|------|-------:|------:|-------|
+| Takedown.mp5 | ~100.0 MB | ~70.1 MB | Sing-Along → AUDI alias; Instrumental/Acapella v4 |
+| Your Idol.mp5 | ~105.9 MB | ~73.6 MB | Same pattern |
+
+Most of the cut is omitting the Sing-Along duplicate of the mix; v4 on the remaining stems adds a smaller further reduction.
 
 ## Fixture
 

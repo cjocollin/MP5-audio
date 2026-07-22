@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Pack a full-mix FLAC + karaoke / instrumental / acapella FLACs into one .mp5
- * (AUDI = original mix as MP5-L v4; stems = MP5-L v3, matching product encodeStems).
+ * (AUDI = original mix as MP5-L v4; stems = MP5-L v4, or AUDI alias when bit-exact duplicate).
  *
  * Usage:
  *   node scripts/pack-stem-song-mp5.mjs
@@ -167,6 +167,12 @@ function extractCoverJpeg(flacPath) {
   return { mime: "image/jpeg", data };
 }
 
+function pcmSamplesEqual(a, b) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 function packSong(song) {
   const mixPath = join(sourceDir, song.mix);
   if (!existsSync(mixPath)) throw new Error(`Missing mix: ${mixPath}`);
@@ -192,6 +198,7 @@ function packSong(song) {
   console.log(`  AUDI ${(mixBits.length / 1e6).toFixed(2)} MB in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
   const bundles = [];
+  let aliasCount = 0;
   for (const s of song.stems) {
     console.log(`Decoding stem: ${s.file}`);
     const pcm = decodeFlacToPcm(join(sourceDir, s.file));
@@ -200,9 +207,32 @@ function packSong(song) {
         `  WARN: stem ${pcm.sampleRate}/${pcm.channels} vs mix ${mix.sampleRate}/${mix.channels}`,
       );
     }
-    console.log(`Encoding stem ${s.stemName} as MP5-L v3…`);
+    const durationSamples = Math.floor(pcm.samples.length / pcm.channels);
+    if (
+      pcm.sampleRate === mix.sampleRate &&
+      pcm.channels === mix.channels &&
+      pcmSamplesEqual(pcm.samples, mix.samples)
+    ) {
+      console.log(`  Alias ${s.stemName} -> AUDI (bit-exact duplicate; omits stem payload)`);
+      aliasCount += 1;
+      bundles.push({
+        stemId: s.stemId,
+        stemName: s.stemName,
+        stemType: s.stemType,
+        codecId: CodecId.MP5L,
+        sampleRate: pcm.sampleRate,
+        channels: pcm.channels,
+        durationSamples,
+        frameData: new Uint8Array(0),
+        defaultVolume: 1,
+        codingMode: "alias",
+        refTarget: "AUDI",
+      });
+      continue;
+    }
+    console.log(`Encoding stem ${s.stemName} as MP5-L v4...`);
     const t1 = Date.now();
-    const frameData = mod.encode_mp5l(pcm.samples, pcm.channels);
+    const frameData = mod.encode_mp5l_v4(pcm.samples, pcm.channels);
     console.log(`  stem ${(frameData.length / 1e6).toFixed(2)} MB in ${((Date.now() - t1) / 1000).toFixed(1)}s`);
     bundles.push({
       stemId: s.stemId,
@@ -211,10 +241,13 @@ function packSong(song) {
       codecId: CodecId.MP5L,
       sampleRate: pcm.sampleRate,
       channels: pcm.channels,
-      durationSamples: Math.floor(pcm.samples.length / pcm.channels),
+      durationSamples,
       frameData,
       defaultVolume: 1,
     });
+  }
+  if (aliasCount) {
+    console.log(`  Aliased ${aliasCount} stem(s) to AUDI (omitted duplicate stem data)`);
   }
 
   const { optional, extraChunks, report } = buildStemOptionalChunks(bundles);
@@ -248,7 +281,7 @@ function packSong(song) {
       {
         key: "encoder",
         value:
-          "MP5-L WASM v4 (AUDI) + MP5-L v3 stems (Sing-Along / Instrumental / Acapella) · flac-mp5 tests pack",
+          "MP5-L WASM v4 (AUDI) + MP5-L v4 stems; omits duplicate stem data when bit-exact equal to AUDI · flac-mp5 tests pack",
       },
     ],
     optional,

@@ -1,6 +1,7 @@
-import type { StemDescriptor } from "@mp5/container";
+import { isStemAlias, type StemDescriptor } from "@mp5/container";
 import { buildStemDecodeJob } from "./buildStemJobPayload";
 import { decodeStemFrame } from "../../player/decodeStemFrame";
+import type { FullMixPcm } from "./fullMixPcm";
 import { loadStemFrameData, yieldToMain } from "./stemFrameLoader";
 import type { ParsedStemFile } from "./parseStems";
 import type { DecodedStemPcm } from "./stemDecodeCache";
@@ -198,13 +199,52 @@ export class StemWorkerClient {
     if (this.pendingJob) this.cancelJob(this.pendingJob.jobId);
   }
 
+  private resolveAliasStem(
+    stem: StemDescriptor,
+    fullMixPcm: FullMixPcm | undefined,
+    onProgress?: (p: StemDecodeProgress) => void,
+  ): DecodedStemPcm {
+    if (stem.unsupportedCodingMode) {
+      throw new Error(`Stem "${stem.stemName}" uses an unsupported codingMode.`);
+    }
+    if (stem.refTarget !== "AUDI") {
+      throw new Error(`Stem "${stem.stemName}" alias refTarget must be AUDI.`);
+    }
+    if (!fullMixPcm?.samples.length) {
+      throw new Error(
+        `Stem "${stem.stemName}" aliases AUDI but full-mix PCM is not loaded yet.`,
+      );
+    }
+    if (
+      fullMixPcm.sampleRate !== stem.sampleRate ||
+      fullMixPcm.channels !== stem.channels
+    ) {
+      throw new Error(
+        `Stem "${stem.stemName}" alias rate/channels do not match AUDI (${fullMixPcm.sampleRate}/${fullMixPcm.channels} vs ${stem.sampleRate}/${stem.channels}).`,
+      );
+    }
+    onProgress?.({ phase: "ready", stemName: stem.stemName, percent: 100 });
+    return {
+      stemId: stem.stemId,
+      samples: fullMixPcm.samples,
+      sampleRate: fullMixPcm.sampleRate,
+      channels: fullMixPcm.channels,
+      // Shared with AUDI — do not count toward stem RAM budget.
+      decodedBytes: 0,
+    };
+  }
+
   private async decodeOnMainThread(
     file: ParsedStemFile,
     stem: StemDescriptor,
     stemIndex: number,
     signal?: AbortSignal,
     onProgress?: (p: StemDecodeProgress) => void,
+    fullMixPcm?: FullMixPcm,
   ): Promise<DecodedStemPcm> {
+    if (isStemAlias(stem) || stem.unsupportedCodingMode) {
+      return this.resolveAliasStem(stem, fullMixPcm, onProgress);
+    }
     onProgress?.({ phase: "loading_fragments", stemName: stem.stemName, percent: 15 });
     const { frameData, errors } = await loadStemFrameData(file, stem, stemIndex, signal);
     if (signal?.aborted) throw new DOMException("Stem preparation cancelled", "AbortError");
@@ -240,9 +280,13 @@ export class StemWorkerClient {
       onProgress?: (p: StemDecodeProgress) => void;
       currentIndex?: number;
       total?: number;
+      fullMixPcm?: FullMixPcm;
     },
   ): Promise<DecodedStemPcm> {
-    const { signal, onProgress, currentIndex, total } = opts ?? {};
+    const { signal, onProgress, currentIndex, total, fullMixPcm } = opts ?? {};
+    if (isStemAlias(stem) || stem.unsupportedCodingMode) {
+      return this.resolveAliasStem(stem, fullMixPcm, onProgress);
+    }
     const ready = await this.ensureReady();
 
     const wrapProgress = (phase: StemWorkerTaskPhase, percent?: number) => {
@@ -257,7 +301,7 @@ export class StemWorkerClient {
 
     if (!ready || !this.worker || this.fallbackMode) {
       wrapProgress("loading_fragments", 10);
-      return this.decodeOnMainThread(file, stem, stemIndex, signal, onProgress);
+      return this.decodeOnMainThread(file, stem, stemIndex, signal, onProgress, fullMixPcm);
     }
 
     const jobId = nextJobId();

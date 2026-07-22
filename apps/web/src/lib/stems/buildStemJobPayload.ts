@@ -1,6 +1,8 @@
 import {
   decodeStdaEntries,
+  isStemAlias,
   loadStdfFragmentsForStem,
+  stdaPayloadIndexForStem,
   type StemDescriptor,
   type StdfFragmentRecord,
 } from "@mp5/container";
@@ -68,6 +70,10 @@ export async function buildStemDecodeJob(
     storageMode: file.storageMode === "stdf-v1" ? "stdf-v1" : "stda-v1",
   };
 
+  if (isStemAlias(stem) || stem.unsupportedCodingMode) {
+    return { job: base, transfer };
+  }
+
   if (file.storageMode === "stdf-v1") {
     const frags = await resolveStdfFragments(file, stem.stemId);
     const { fragments, transfer: t } = wireFragmentRecords(frags);
@@ -76,9 +82,11 @@ export async function buildStemDecodeJob(
   }
 
   if (file.stda?.length) {
-    const stdaPayload = ownedBytes(extractStdaFrame(file.stda, stemIndex));
+    const payloadIndex = stdaPayloadIndexForStem(file.manifest, stem.stemId);
+    const index = payloadIndex >= 0 ? payloadIndex : stemIndex;
+    const stdaPayload = ownedBytes(extractStdaFrame(file.stda, index));
     transfer.push(stdaPayload.buffer);
-    return { job: { ...base, stdaIndex: stemIndex, stdaPayload }, transfer };
+    return { job: { ...base, stdaIndex: index, stdaPayload }, transfer };
   }
 
   return { job: base, transfer };

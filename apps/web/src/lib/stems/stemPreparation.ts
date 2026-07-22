@@ -1,5 +1,6 @@
 import type { StemDescriptor } from "@mp5/container";
 import { StemDecodeCache, type DecodedStemPcm } from "./stemDecodeCache";
+import type { FullMixPcm } from "./fullMixPcm";
 import type { ParsedStemFile } from "./parseStems";
 import { yieldToMain } from "./stemFrameLoader";
 
@@ -20,12 +21,14 @@ export interface PrepareStemsOptions {
   cache: StemDecodeCache;
   signal?: AbortSignal;
   onProgress?: (p: StemPrepareProgress) => void;
+  /** Required to resolve codingMode: alias stems that ref AUDI. */
+  fullMixPcm?: FullMixPcm;
 }
 
 export async function prepareStemsSequential(
   opts: PrepareStemsOptions,
 ): Promise<DecodedStemPcm[]> {
-  const { file, stems, cache, signal, onProgress } = opts;
+  const { file, stems, cache, signal, onProgress, fullMixPcm } = opts;
   const out: DecodedStemPcm[] = [];
   const total = stems.length;
 
@@ -48,7 +51,7 @@ export async function prepareStemsSequential(
           percent: p.percent,
         });
       },
-      { currentIndex: i + 1, total },
+      { currentIndex: i + 1, total, fullMixPcm },
     );
     out.push(decoded);
     await yieldToMain();

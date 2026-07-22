@@ -63,6 +63,9 @@ export const STEM_TYPES = [
 
 export type StemType = (typeof STEM_TYPES)[number];
 
+/** How stem PCM is stored. Omitted / independent = encoded frame in STDA/STDF. */
+export type StemCodingMode = "independent" | "alias";
+
 export interface StemDescriptor {
   stemId: string;
   stemName: string;
@@ -84,6 +87,59 @@ export interface StemDescriptor {
   dataLength: number;
   /** STDF v1: number of STDF chunks for this stem. */
   fragmentCount?: number;
+  /**
+   * Storage coding. Omitted means independent (legacy).
+   * `alias` + `refTarget: "AUDI"` — no payload; player reuses decoded full-mix PCM.
+   */
+  codingMode?: StemCodingMode;
+  /** Referent for alias stems (`AUDI` or another stemId). */
+  refTarget?: string;
+  /** True when codingMode was present but not recognized (stem audio unavailable). */
+  unsupportedCodingMode?: boolean;
+}
+
+/** True when stem has no STDA/STDF payload and reuses AUDI (or another) PCM. */
+export function isStemAlias(stem: Pick<StemDescriptor, "codingMode">): boolean {
+  return stem.codingMode === "alias";
+}
+
+/** Stems that contribute encoded frame bytes to STDA/STDF. */
+export function stemHasEncodedPayload(stem: Pick<StemDescriptor, "codingMode" | "unsupportedCodingMode">): boolean {
+  if (stem.unsupportedCodingMode) return false;
+  return !isStemAlias(stem);
+}
+
+/**
+ * Index into STDA length-prefixed entries for a manifest stem (skips alias / unsupported).
+ * Returns -1 when the stem has no encoded payload.
+ */
+export function stdaPayloadIndexForStem(
+  manifest: StemManifest,
+  stemId: string,
+): number {
+  let idx = 0;
+  for (const s of manifest.stems) {
+    if (!stemHasEncodedPayload(s)) {
+      if (s.stemId === stemId) return -1;
+      continue;
+    }
+    if (s.stemId === stemId) return idx;
+    idx++;
+  }
+  return -1;
+}
+
+function parseCodingMode(
+  raw: unknown,
+): { codingMode?: StemCodingMode; unsupportedCodingMode?: boolean; refTarget?: string } {
+  if (raw === undefined || raw === null || raw === "") {
+    return {};
+  }
+  const v = sanitizeJsonString(raw, 32);
+  if (!v) return {};
+  if (v === "independent") return { codingMode: "independent" };
+  if (v === "alias") return { codingMode: "alias" };
+  return { unsupportedCodingMode: true };
 }
 
 export interface StemManifest {
@@ -128,6 +184,9 @@ function parseStemEntry(raw: Record<string, unknown>): StemDescriptor | null {
       ? raw.codecId
       : CodecId.MP5L;
 
+  const coding = parseCodingMode(raw.codingMode);
+  const refTarget = sanitizeJsonString(raw.refTarget, 64) || undefined;
+
   return {
     stemId,
     stemName,
@@ -146,6 +205,8 @@ function parseStemEntry(raw: Record<string, unknown>): StemDescriptor | null {
     dataOffset,
     dataLength,
     fragmentCount,
+    ...coding,
+    refTarget,
   };
 }
 
@@ -154,10 +215,30 @@ export function encodeStemManifest(manifest: StemManifest): Uint8Array {
     version: STEM_MANIFEST_VERSION,
     fullMixInAudi: manifest.fullMixInAudi,
     storageMode: manifest.storageMode,
-    stems: manifest.stems.map((s) => ({
-      ...s,
-      durationSamples: s.durationSamples,
-    })),
+    stems: manifest.stems.map((s) => {
+      const out: Record<string, unknown> = {
+        stemId: s.stemId,
+        stemName: s.stemName,
+        stemType: s.stemType,
+        codecId: s.codecId,
+        sampleRate: s.sampleRate,
+        channels: s.channels,
+        durationSamples: s.durationSamples,
+        byteLength: s.byteLength,
+        checksum: s.checksum,
+        defaultVolume: s.defaultVolume,
+        soloMuteCapable: s.soloMuteCapable,
+        requiredForPlayback: s.requiredForPlayback,
+        explicitContent: s.explicitContent,
+        cleanAlternateStemId: s.cleanAlternateStemId,
+        dataOffset: s.dataOffset,
+        dataLength: s.dataLength,
+        fragmentCount: s.fragmentCount,
+      };
+      if (s.codingMode) out.codingMode = s.codingMode;
+      if (s.refTarget) out.refTarget = s.refTarget;
+      return out;
+    }),
   });
 }
 
@@ -206,14 +287,30 @@ export function decodeStemFrameEntries(
     !!stda?.length,
     stdfFragments?.length ?? 0,
   );
-  if (mode === "stda-v1") {
-    return { entries: decodeStdaEntries(stda), errors: [], warnings: [] };
-  }
-  const grouped = groupStdfFragments(stdfFragments ?? []);
-  const entries: Uint8Array[] = [];
   const errors: string[] = [];
   const warnings: string[] = [];
+  const entries: Uint8Array[] = [];
+
+  if (mode === "stda-v1") {
+    const stdaEntries = decodeStdaEntries(stda);
+    let payloadIdx = 0;
+    for (const stem of manifest.stems) {
+      if (!stemHasEncodedPayload(stem)) {
+        entries.push(new Uint8Array(0));
+        continue;
+      }
+      const frame = stdaEntries[payloadIdx++];
+      entries.push(frame ?? new Uint8Array(0));
+    }
+    return { entries, errors, warnings };
+  }
+
+  const grouped = groupStdfFragments(stdfFragments ?? []);
   for (const stem of manifest.stems) {
+    if (!stemHasEncodedPayload(stem)) {
+      entries.push(new Uint8Array(0));
+      continue;
+    }
     const frags = grouped.get(stem.stemId) ?? [];
     const { frameData, errors: stemErrors, warnings: stemWarnings } =
       reconstructStemFrameFromFragments(stem.stemId, frags, stem.dataLength);
@@ -276,10 +373,14 @@ export interface StemBundleInput {
   sampleRate: number;
   channels: number;
   durationSamples: number;
+  /** Encoded stem frame; empty when codingMode is alias. */
   frameData: Uint8Array;
   defaultVolume?: number;
   requiredForPlayback?: boolean;
   explicitContent?: boolean;
+  codingMode?: StemCodingMode;
+  /** Required when codingMode is alias (typically `"AUDI"`). */
+  refTarget?: string;
 }
 
 export interface StemOptionalChunksResult {
@@ -291,13 +392,15 @@ export interface StemOptionalChunksResult {
 
 /** Build STEM + STDA or segmented STDF optional chunks from encoded stem frames. */
 export function buildStemOptionalChunks(stems: StemBundleInput[]): StemOptionalChunksResult {
-  const frameList = stems.map((s) => s.frameData);
-  const stda = encodeStda(frameList);
+  const payloadStems = stems.filter((s) => s.codingMode !== "alias");
+  const frameList = payloadStems.map((s) => s.frameData);
+  const stda = frameList.length ? encodeStda(frameList) : new Uint8Array(0);
   const report = buildStemExportSizeReport(frameList, stda.length);
-  const useSegmented = report.exceedsStdaSafeLimit;
+  const useSegmented = frameList.length > 0 && report.exceedsStdaSafeLimit;
 
   const descriptors: StemDescriptor[] = stems.map((s) => {
-    const dataLength = s.frameData.length;
+    const alias = s.codingMode === "alias";
+    const dataLength = alias ? 0 : s.frameData.length;
     return {
       stemId: s.stemId,
       stemName: s.stemName,
@@ -307,16 +410,19 @@ export function buildStemOptionalChunks(stems: StemBundleInput[]): StemOptionalC
       channels: s.channels,
       durationSamples: s.durationSamples,
       byteLength: dataLength,
-      checksum: crc32(s.frameData).toString(16).padStart(8, "0"),
+      checksum: alias ? undefined : crc32(s.frameData).toString(16).padStart(8, "0"),
       defaultVolume: clampVolume(s.defaultVolume ?? 1),
       soloMuteCapable: true,
       requiredForPlayback: s.requiredForPlayback === true,
       explicitContent: s.explicitContent === true,
       dataOffset: 0,
       dataLength,
-      fragmentCount: useSegmented
-        ? splitStemFrameIntoFragments(s.stemId, s.frameData).length
-        : undefined,
+      fragmentCount:
+        !alias && useSegmented
+          ? splitStemFrameIntoFragments(s.stemId, s.frameData).length
+          : undefined,
+      codingMode: alias ? "alias" : s.codingMode === "independent" ? "independent" : undefined,
+      refTarget: alias ? s.refTarget ?? "AUDI" : s.refTarget,
     };
   });
 
@@ -328,7 +434,7 @@ export function buildStemOptionalChunks(stems: StemBundleInput[]): StemOptionalC
     storageMode = "stdf-v1";
     let fragmentCount = 0;
     let largestFragment = 0;
-    for (const s of stems) {
+    for (const s of payloadStems) {
       const frags = splitStemFrameIntoFragments(s.stemId, s.frameData);
       for (const frag of frags) {
         const payload = encodeStdfFragment(frag);
@@ -341,13 +447,17 @@ export function buildStemOptionalChunks(stems: StemBundleInput[]): StemOptionalC
     report.fragmentCount = fragmentCount;
     report.largestFragmentBytes = largestFragment;
     console.info(formatStemExportSizeLog(report));
-  } else {
+  } else if (frameList.length) {
     let offset = 0;
     for (const d of descriptors) {
+      if (!stemHasEncodedPayload(d)) continue;
       d.dataOffset = offset;
       offset += d.dataLength;
     }
     optional.set(STEM_DATA_FOURCC, stda);
+    console.info(formatStemExportSizeLog(report));
+  } else {
+    report.chosenStorage = "stda-v1";
     console.info(formatStemExportSizeLog(report));
   }
 
@@ -362,6 +472,34 @@ export function buildStemOptionalChunks(stems: StemBundleInput[]): StemOptionalC
   return { optional, extraChunks, manifest, report };
 }
 
+function validateAliasStem(
+  stem: StemDescriptor,
+  manifest: StemManifest,
+  errors: string[],
+  warnings: string[],
+): void {
+  if (stem.unsupportedCodingMode) {
+    warnings.push(
+      `Stem "${stem.stemName}" has unsupported codingMode — stem audio unavailable; AUDI still plays.`,
+    );
+    return;
+  }
+  if (!manifest.fullMixInAudi) {
+    errors.push(`Stem "${stem.stemName}" is alias but fullMixInAudi is false.`);
+  }
+  if (stem.refTarget !== "AUDI") {
+    errors.push(
+      `Stem "${stem.stemName}" alias refTarget must be "AUDI" (got ${stem.refTarget ?? "missing"}).`,
+    );
+  }
+  if (stem.dataLength !== 0 || stem.byteLength !== 0) {
+    errors.push(`Stem "${stem.stemName}" alias must have dataLength/byteLength 0.`);
+  }
+  if (stem.fragmentCount != null && stem.fragmentCount !== 0) {
+    errors.push(`Stem "${stem.stemName}" alias must not declare STDF fragments.`);
+  }
+}
+
 /** Validate STEM manifest + STDA or STDF payloads (checksums, offsets, lengths). */
 export function validateStemChunks(
   manifest: StemManifest | null | undefined,
@@ -374,16 +512,17 @@ export function validateStemChunks(
     errors.push("Missing STEM manifest.");
     return { valid: false, errors, warnings };
   }
+  const payloadCount = manifest.stems.filter((s) => stemHasEncodedPayload(s)).length;
   const mode = resolveStemStorageMode(
     manifest,
     !!stda?.length,
     stdfFragments?.length ?? 0,
   );
-  if (mode === "stda-v1" && !stda?.length) {
+  if (payloadCount > 0 && mode === "stda-v1" && !stda?.length) {
     errors.push("Missing STDA stem data chunk.");
     return { valid: false, errors, warnings, storageMode: mode };
   }
-  if (mode === "stdf-v1" && !stdfFragments?.length) {
+  if (payloadCount > 0 && mode === "stdf-v1" && !stdfFragments?.length) {
     errors.push("Missing STDF stem data fragments.");
     return { valid: false, errors, warnings, storageMode: mode };
   }
@@ -409,7 +548,7 @@ export function validateStemChunks(
     errors.push("Too many stems in manifest (max 32).");
   }
 
-  if (mode === "stda-v1") {
+  if (mode === "stda-v1" || payloadCount === 0) {
     let offset = 0;
     for (let i = 0; i < manifest.stems.length; i++) {
       const stem = manifest.stems[i]!;
@@ -419,6 +558,10 @@ export function validateStemChunks(
       }
       if (stem.codecId === CodecId.MP5C) {
         errors.push(`Stem "${stem.stemName}" uses MP5-C — not recommended for stems.`);
+      }
+      if (isStemAlias(stem) || stem.unsupportedCodingMode) {
+        validateAliasStem(stem, manifest, errors, warnings);
+        continue;
       }
       if (!entry?.length) {
         errors.push(`Stem "${stem.stemName}" has no STDA audio data.`);
@@ -450,6 +593,10 @@ export function validateStemChunks(
       }
       if (stem.codecId === CodecId.MP5C) {
         errors.push(`Stem "${stem.stemName}" uses MP5-C — not recommended for stems.`);
+      }
+      if (isStemAlias(stem) || stem.unsupportedCodingMode) {
+        validateAliasStem(stem, manifest, errors, warnings);
+        continue;
       }
       if (!entry?.length) {
         errors.push(`Stem "${stem.stemName}" has no reconstructed STDF audio data.`);
@@ -487,12 +634,13 @@ export function validateStemChunksFromIndex(
     errors.push("Missing STEM manifest.");
     return { valid: false, errors, warnings };
   }
+  const payloadCount = manifest.stems.filter((s) => stemHasEncodedPayload(s)).length;
   const mode = resolveStemStorageMode(manifest, !!stda?.length, stdfIndex.length);
-  if (mode === "stda-v1" && !stda?.length) {
+  if (payloadCount > 0 && mode === "stda-v1" && !stda?.length) {
     errors.push("Missing STDA stem data chunk.");
     return { valid: false, errors, warnings, storageMode: mode };
   }
-  if (mode === "stdf-v1" && !stdfIndex.length) {
+  if (payloadCount > 0 && mode === "stdf-v1" && !stdfIndex.length) {
     errors.push("Missing STDF stem data fragments.");
     return { valid: false, errors, warnings, storageMode: mode };
   }
@@ -501,6 +649,12 @@ export function validateStemChunksFromIndex(
   }
   if (manifest.stems.length > 32) {
     errors.push("Too many stems in manifest (max 32).");
+  }
+
+  for (const stem of manifest.stems) {
+    if (isStemAlias(stem) || stem.unsupportedCodingMode) {
+      validateAliasStem(stem, manifest, errors, warnings);
+    }
   }
 
   const audit = auditStdfStemIndex(manifest, stdfIndex);
@@ -512,6 +666,7 @@ export function validateStemChunksFromIndex(
     }
     const stem = manifest.stems.find((s) => s.stemId === entry.stemId);
     if (!stem) continue;
+    if (isStemAlias(stem) || stem.unsupportedCodingMode) continue;
     if (stem.codecId === CodecId.MP5C) {
       errors.push(`Stem "${entry.stemName}" uses MP5-C — not recommended for stems.`);
     }

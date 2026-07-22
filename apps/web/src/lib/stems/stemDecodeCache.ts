@@ -1,4 +1,5 @@
 import type { StemDescriptor } from "@mp5/container";
+import type { FullMixPcm } from "./fullMixPcm";
 import type { ParsedStemFile } from "./parseStems";
 import { estimateStemsDecodedBytes } from "./stemLimits";
 import { getStemWorkerClient, type StemDecodeProgress } from "./stemWorkerClient";
@@ -80,7 +81,7 @@ export class StemDecodeCache {
     stemIndex: number,
     signal?: AbortSignal,
     onProgress?: (p: StemDecodeProgress) => void,
-    batch?: { currentIndex: number; total: number },
+    batch?: { currentIndex: number; total: number; fullMixPcm?: FullMixPcm },
   ): Promise<DecodedStemPcm> {
     const cached = this.decoded.get(stem.stemId);
     if (cached) {
@@ -93,6 +94,7 @@ export class StemDecodeCache {
       onProgress,
       currentIndex: batch?.currentIndex,
       total: batch?.total,
+      fullMixPcm: batch?.fullMixPcm,
     });
 
     this.decoded.set(stem.stemId, entry);

@@ -33,11 +33,13 @@ export function decodeStemFrameCore(
       const samples = codec.decode_mp5l(frameData);
       return { samples, sampleRate, channels };
     } catch (err) {
-      throw new Error("Stem MP5-L decode failed. Re-export stems as MP5-L v3.", { cause: err });
+      throw new Error("Stem MP5-L decode failed. Re-export stems as MP5-L (v3/v4).", {
+        cause: err,
+      });
     }
   }
 
   throw new Error(
-    `Unsupported stem codec (${codecId}). Stems should use MP5-L v3 or PCM reference.`,
+    `Unsupported stem codec (${codecId}). Stems should use MP5-L or PCM reference.`,
   );
 }
