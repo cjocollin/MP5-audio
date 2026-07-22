@@ -2143,7 +2143,6 @@ input[type="range"] {
     @apply rounded-lg;
   }
 
-  .mp5-converter-export-desk[data-stage="source"] .mp5-converter-output-rail,
   .mp5-converter-export-desk[data-stage="metadata"] .mp5-converter-output-rail {
     display: none;
   }

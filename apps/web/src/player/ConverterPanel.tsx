@@ -109,6 +109,13 @@ function metaFromEdits(edits: ManualMetadataEdits) {
 type ConverterMode = "single" | "batch";
 type ConverterStage = "source" | "metadata" | "export";
 
+function stageAfterSourceLoad(): ConverterStage {
+  if (typeof window !== "undefined" && window.matchMedia?.("(max-width: 767px)").matches) {
+    return "export";
+  }
+  return "metadata";
+}
+
 function isConverterQaDemo(): boolean {
   return import.meta.env.DEV
     && typeof window !== "undefined"
@@ -374,7 +381,7 @@ export function ConverterPanel() {
       }
       setPending({ file, pcm, extracted });
       setEdits(manualEditsFromSource(extracted));
-      setStage("metadata");
+      setStage(stageAfterSourceLoad());
       dismissOnboarding();
       resetSingle();
       const selectedCodec = codecPresentation(
