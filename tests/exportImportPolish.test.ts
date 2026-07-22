@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { CodecId, metaFieldsFromRecord, parseMp5, writeMp5 } from "@mp5/container";
 import {
   buildExportFilename,
+  normalizeExportFilename,
   sanitizeFilenamePart,
   suggestDuplicateExportFilename,
 } from "../apps/web/src/converter/exportFilename";
@@ -31,6 +32,13 @@ describe("export filename", () => {
 
   it("suggests duplicate-friendly MP5-L name", () => {
     expect(suggestDuplicateExportFilename("Song.mp5", "mp5l_v4")).toBe("Song (MP5-L v4).mp5");
+  });
+
+  it("normalizes user-edited output filenames to a safe .mp5 name", () => {
+    expect(normalizeExportFilename("mix")).toBe("mix.mp5");
+    expect(normalizeExportFilename("  My / Track.MP5  ")).toBe("My _ Track.mp5");
+    expect(normalizeExportFilename("CON.mp5")).toBe("_CON.mp5");
+    expect(normalizeExportFilename("", "Artist - Song.mp5")).toBe("Artist - Song.mp5");
   });
 });
 

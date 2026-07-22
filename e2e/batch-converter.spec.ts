@@ -48,7 +48,13 @@ test.describe("Batch converter", () => {
     await expect(select.locator('option[value="mp5c2"]')).toHaveCount(1);
     await select.selectOption("mp5c2");
     await expect(page.getByTestId("mp5c2-info")).toBeVisible();
-    await page.getByTestId("lab-codecs-toggle").click();
+    const advancedFormats = page.getByTestId("converter-advanced-formats-toggle");
+    await expect(advancedFormats).toHaveAttribute("aria-expanded", "false");
+    await advancedFormats.click();
+    await expect(advancedFormats).toHaveAttribute("aria-expanded", "true");
+    const labCodecs = page.getByTestId("lab-codecs-toggle");
+    await expect(labCodecs).toBeVisible();
+    await labCodecs.click();
     await expect(select.locator('option[value="mp5c"]')).toHaveCount(1);
     await expect(select.locator('option[value="mp5l"]')).toHaveCount(1);
     await select.selectOption("mp5c");

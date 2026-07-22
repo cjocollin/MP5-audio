@@ -9,6 +9,11 @@ const embeddedFixture = path.join(
   "test-fixtures/demo_embedded_album_package.mp5p",
 );
 const hasEmbedded = fs.existsSync(embeddedFixture);
+const wavFixture = path.join(
+  process.cwd(),
+  "test-fixtures/compatibility/wav_stereo_44k_short.wav",
+);
+const hasWavFixture = fs.existsSync(wavFixture);
 
 test.describe("Mobile smoke", () => {
   test.use({ viewport: MOBILE, isMobile: true, hasTouch: true });
@@ -72,6 +77,38 @@ test.describe("Mobile smoke", () => {
       expect(restoredPlayerBox?.height).toBeCloseTo(playerBox?.height ?? 0, 1);
       expect(restoredPlayerBox?.y).toBeCloseTo(playerBox?.y ?? 0, 1);
     }
+  });
+
+  test("converter keeps the three-stage mobile Export Desk intact", async ({ page }) => {
+    test.skip(!hasWavFixture, "run pnpm compatibility:fixtures");
+    await page.goto("/");
+    await page.getByTestId("app-tab-converter").click();
+    const panel = page.getByTestId("converter-panel");
+    await expect(panel).toBeVisible();
+    await expect(page.getByTestId("codec-select")).toHaveValue("mp5l_v4");
+
+    await page.getByTestId("converter-file-input").setInputFiles(wavFixture);
+    await expect(page.getByTestId("converter-source-card")).toBeVisible({ timeout: 60_000 });
+    await expect(panel).toHaveAttribute("data-stage", "metadata");
+    await expect(page.getByTestId("metadata-editor")).toBeVisible();
+    await expect(page.getByTestId("converter-output-rail")).not.toBeVisible();
+    await expect(page.getByTestId("convert-status-mobile")).toContainText("MP5-L v4");
+
+    await page.getByTestId("converter-mobile-metadata-done").click();
+    await expect(panel).toHaveAttribute("data-stage", "export");
+    await expect(page.getByTestId("converter-mobile-metadata-summary")).toBeVisible();
+    await expect(page.getByTestId("converter-output-rail")).toBeVisible();
+
+    const badgeBoxes = await page
+      .getByLabel("Selected format qualities")
+      .locator("span")
+      .evaluateAll((badges) => badges.map((badge) => {
+        const box = badge.getBoundingClientRect();
+        return { x: box.x, y: box.y, right: box.right, height: box.height };
+      }));
+    expect(badgeBoxes).toHaveLength(3);
+    expect(Math.max(...badgeBoxes.map((box) => box.y)) - Math.min(...badgeBoxes.map((box) => box.y))).toBeLessThan(2);
+    expect(Math.max(...badgeBoxes.map((box) => box.right))).toBeLessThanOrEqual(MOBILE.width + 1);
   });
 
   test("player controls stay reachable without horizontal overflow", async ({ page }) => {

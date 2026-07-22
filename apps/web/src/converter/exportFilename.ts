@@ -59,6 +59,13 @@ export function buildExportFilename(
   return `${base}${variant}.mp5`;
 }
 
+/** Normalize a user-edited single-file export name while preserving the `.mp5` contract. */
+export function normalizeExportFilename(input: string, fallbackFilename = "track.mp5"): string {
+  const fallbackBase = safeFilenameBase(fallbackFilename.replace(/\.mp5$/i, ""), "track");
+  const requestedBase = input.trim().replace(/\.mp5$/i, "");
+  return `${safeFilenameBase(requestedBase, fallbackBase)}.mp5`;
+}
+
 /** Suggested duplicate-friendly name when the browser may save a second copy. */
 export function suggestDuplicateExportFilename(baseFilename: string, codec: OutputCodec): string {
   if (codec !== "mp5l_v4") return baseFilename;
