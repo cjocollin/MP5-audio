@@ -1230,29 +1230,41 @@ input[type="range"] {
   }
 
   .mp5-converter-flow {
-    @apply relative px-4 py-2;
+    @apply relative px-4 pb-1 pt-2;
   }
 
   .mp5-converter-flow ol {
-    @apply relative z-[1] grid grid-cols-3 items-center;
+    @apply relative z-[1] grid grid-cols-3 items-start;
   }
 
   .mp5-converter-flow li {
-    @apply flex items-center gap-2 text-sm text-gray-500;
+    @apply flex flex-col items-start gap-1.5 text-sm text-gray-500;
   }
 
   .mp5-converter-flow li:nth-child(2) {
-    @apply justify-center;
+    @apply items-center;
   }
 
   .mp5-converter-flow li:last-child {
-    @apply justify-end;
+    @apply items-end;
   }
 
   .mp5-converter-step-mark {
     @apply inline-flex size-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold;
     border-color: var(--mp5-border-strong);
     background: var(--mp5-page);
+  }
+
+  .mp5-converter-step-label {
+    @apply leading-tight;
+  }
+
+  .mp5-converter-flow li:nth-child(2) .mp5-converter-step-label {
+    @apply text-center;
+  }
+
+  .mp5-converter-flow li:last-child .mp5-converter-step-label {
+    @apply text-right;
   }
 
   .mp5-converter-flow li.is-current {
@@ -1271,7 +1283,9 @@ input[type="range"] {
   }
 
   .mp5-converter-flow-progress {
-    @apply absolute left-[30px] right-[30px] top-1/2 block h-px -translate-y-1/2;
+    /* Align with the center of the step marks (pt-2 + half of size-7). */
+    @apply absolute left-[30px] right-[30px] block h-px;
+    top: calc(0.5rem + 0.875rem);
     z-index: 0;
     background: linear-gradient(
       90deg,

@@ -38,7 +38,7 @@ export function ConverterFlowSteps({ hasSource, exportDone, metadataOpen = false
               <span className="mp5-converter-step-mark" aria-hidden>
                 {done ? <Check size={14} weight="bold" /> : index + 1}
               </span>
-              <span>{step.label}</span>
+              <span className="mp5-converter-step-label">{step.label}</span>
             </li>
           );
         })}
