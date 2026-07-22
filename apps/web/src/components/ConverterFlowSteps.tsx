@@ -45,7 +45,13 @@ export function ConverterFlowSteps({ hasSource, exportDone, metadataOpen = false
       </ol>
       <span
         className="mp5-converter-flow-progress"
-        style={{ "--mp5-converter-progress": `${exportDone ? 100 : ((currentStep + 1) / 3) * 100}%` } as CSSProperties}
+        style={
+          {
+            "--mp5-converter-progress": `${
+              exportDone ? 100 : (currentStep / (STEPS.length - 1)) * 100
+            }%`,
+          } as CSSProperties
+        }
         aria-hidden
       />
     </div>
