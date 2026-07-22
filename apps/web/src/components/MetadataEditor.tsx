@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { MAX_COVER_SIZE, type CoverArt } from "@mp5/container";
 import {
   appendTagInput,
@@ -230,8 +231,20 @@ const TRI_STATE_OPTIONS: { id: TriStateEdit; label: string }[] = [
   { id: "unknown", label: "Unknown" },
 ];
 
+type MetadataTab = "details" | "artwork" | "lyrics" | "content" | "advanced";
+
+const METADATA_TABS: { id: MetadataTab; label: string }[] = [
+  { id: "details", label: "Details" },
+  { id: "artwork", label: "Artwork" },
+  { id: "lyrics", label: "Lyrics" },
+  { id: "content", label: "Content" },
+  { id: "advanced", label: "Advanced" },
+];
+
 export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Props) {
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [activeTab, setActiveTab] = useState<MetadataTab>("details");
+  const [legalOpen, setLegalOpen] = useState(false);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [rightsOpen, setRightsOpen] = useState(false);
   const [identifiersOpen, setIdentifiersOpen] = useState(false);
@@ -293,57 +306,92 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
 
   return (
     <div
-      className="rounded-xl border border-accent/15 bg-surface-elevated p-4 space-y-5 text-sm"
+      className="mp5-converter-metadata-editor"
       data-testid="metadata-editor"
     >
-      <div>
-        <p className="font-medium text-white">Edit metadata before export</p>
-        <p className="text-xs text-gray-500 mt-2 leading-relaxed" data-testid="metadata-guidance-intro">
+      <div className="mp5-converter-metadata-head">
+        <h3>Metadata</h3>
+        <p className="sr-only" data-testid="metadata-guidance-intro">
           {METADATA_GUIDANCE_INTRO}
-        </p>
-        <p className="text-xs text-gray-600 mt-2">
-          Empty fields are skipped. Guidance tags are manual only — never auto-generated.
         </p>
       </div>
 
-      <section className="space-y-3" data-testid="section-track-info">
-        <SectionHeader title={SECTION.trackInfo} />
-        <div className="grid sm:grid-cols-2 gap-3">
+      <div className="mp5-converter-metadata-tabs" role="tablist" aria-label="Metadata sections">
+        {METADATA_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={`metadata-panel-${tab.id}`}
+            className={activeTab === tab.id ? "is-active" : undefined}
+            onClick={() => setActiveTab(tab.id)}
+            data-testid={`metadata-tab-${tab.id}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <section
+        id="metadata-panel-details"
+        role="tabpanel"
+        className="mp5-converter-metadata-panel"
+        hidden={activeTab !== "details"}
+        data-testid="section-track-info"
+      >
+        <div className="mp5-converter-details-grid">
           <Field label="Title" value={edits.meta.title} onChange={(v) => setMeta("title", v)} testId="meta-title" />
-          <Field label="Artist" value={edits.meta.artist} onChange={(v) => setMeta("artist", v)} testId="meta-artist" />
-          <Field label="Album" value={edits.meta.album} onChange={(v) => setMeta("album", v)} testId="meta-album" />
           <Field
             label="Album artist"
             value={edits.meta.albumartist}
             onChange={(v) => setMeta("albumartist", v)}
             testId="meta-albumartist"
           />
-          <Field label="Genre" value={edits.meta.genre} onChange={(v) => setMeta("genre", v)} testId="meta-genre" />
+          <Field label="Artist" value={edits.meta.artist} onChange={(v) => setMeta("artist", v)} testId="meta-artist" />
+          <Field
+            label="Genre"
+            value={edits.meta.genre}
+            onChange={(v) => setMeta("genre", v)}
+            testId="meta-genre"
+          />
+          <Field label="Album" value={edits.meta.album} onChange={(v) => setMeta("album", v)} testId="meta-album" />
           <Field label="Year" value={edits.meta.year} onChange={(v) => setMeta("year", v)} testId="meta-year" />
-          <Field label="Date" value={edits.meta.date} onChange={(v) => setMeta("date", v)} testId="meta-date" />
-          <Field
-            label="Track #"
-            value={edits.meta.tracknumber}
-            onChange={(v) => setMeta("tracknumber", v)}
-            testId="meta-track"
-          />
-          <Field label="Disc #" value={edits.meta.discnumber} onChange={(v) => setMeta("discnumber", v)} testId="meta-disc" />
-          <Field
-            label="Composer"
-            value={edits.meta.composer}
-            onChange={(v) => setMeta("composer", v)}
-            testId="meta-composer"
-          />
-          <Field
-            label="Comments"
-            value={edits.meta.comment}
-            onChange={(v) => setMeta("comment", v)}
-            testId="meta-comment"
-          />
         </div>
+        <details className="mp5-converter-inline-disclosure">
+          <summary>More track details</summary>
+          <div className="mp5-converter-details-grid">
+            <Field label="Date" value={edits.meta.date} onChange={(v) => setMeta("date", v)} testId="meta-date" />
+            <Field
+              label="Track #"
+              value={edits.meta.tracknumber}
+              onChange={(v) => setMeta("tracknumber", v)}
+              testId="meta-track"
+            />
+            <Field label="Disc #" value={edits.meta.discnumber} onChange={(v) => setMeta("discnumber", v)} testId="meta-disc" />
+            <Field
+              label="Composer"
+              value={edits.meta.composer}
+              onChange={(v) => setMeta("composer", v)}
+              testId="meta-composer"
+            />
+            <Field
+              label="Comments"
+              value={edits.meta.comment}
+              onChange={(v) => setMeta("comment", v)}
+              testId="meta-comment"
+            />
+          </div>
+        </details>
       </section>
 
-      <section className="space-y-2" data-testid="cover-editor">
+      <section
+        id="metadata-panel-artwork"
+        role="tabpanel"
+        className="mp5-converter-metadata-panel space-y-2"
+        hidden={activeTab !== "artwork"}
+        data-testid="cover-editor"
+      >
         <SectionHeader title={SECTION.coverArt} />
         {effectiveCover ? (
           <div className="flex flex-wrap items-start gap-3">
@@ -390,7 +438,13 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         )}
       </section>
 
-      <section className="space-y-2" data-testid="lyrics-editor">
+      <section
+        id="metadata-panel-lyrics"
+        role="tabpanel"
+        className="mp5-converter-metadata-panel space-y-2"
+        hidden={activeTab !== "lyrics"}
+        data-testid="lyrics-editor"
+      >
         <SectionHeader
           title={SECTION.lyrics}
           hint="Optional — unsynced and/or synced (manual timestamps). No AI lyric generation."
@@ -424,7 +478,13 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         />
       </section>
 
-      <section className="space-y-2" data-testid="sections-editor">
+      <section
+        id="metadata-panel-advanced"
+        role="tabpanel"
+        className="mp5-converter-metadata-panel space-y-2"
+        hidden={activeTab !== "advanced"}
+        data-testid="sections-editor"
+      >
         <SectionHeader
           title="Song sections"
           hint="Optional manual song map — no AI analysis. Format: [start-end|Type] title"
@@ -452,7 +512,13 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         {edits.highlightsText.trim() && <HighlightsParseNote text={edits.highlightsText} />}
       </section>
 
-      <section className="space-y-4" data-testid="section-content-guidance">
+      <section
+        id="metadata-panel-content"
+        role="tabpanel"
+        className="mp5-converter-metadata-panel space-y-4"
+        hidden={activeTab !== "content"}
+        data-testid="section-content-guidance"
+      >
         <SectionHeader title={SECTION.contentGuidance} hint={CONTENT_GUIDANCE_HELP} />
 
         <div className="space-y-2 sm:pl-3 sm:border-l border-white/5" data-testid="expl-editor">
@@ -511,7 +577,11 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         </div>
       </section>
 
-      <section className="space-y-3" data-testid="section-mood-vibe">
+      <section
+        className="mp5-converter-metadata-panel space-y-3"
+        hidden={activeTab !== "advanced"}
+        data-testid="section-mood-vibe"
+      >
         <SectionHeader title={SECTION.moodVibe} hint="Discovery tags for playlists, DJs, educators, and apps." />
         <div className="grid sm:grid-cols-2 gap-3">
           <TagField
@@ -536,7 +606,11 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         )}
       </section>
 
-      <section className="space-y-3" data-testid="section-beat-summary">
+      <section
+        className="mp5-converter-metadata-panel space-y-3"
+        hidden={activeTab !== "advanced"}
+        data-testid="section-beat-summary"
+      >
         <SectionHeader
           title="Beat & summary"
           hint="Optional BEAT/SUMM chunks — BPM from local analysis or manual entry; summary from cloud AI or manual text."
@@ -574,7 +648,11 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         )}
       </section>
 
-      <section className="space-y-3" data-testid="section-visual-theme">
+      <section
+        className="mp5-converter-metadata-panel space-y-3"
+        hidden={activeTab !== "advanced"}
+        data-testid="section-visual-theme"
+      >
         <SectionHeader title={SECTION.visualTheme} hint={VISUAL_THEME_HELP} />
         <div className="grid sm:grid-cols-2 gap-3">
           <Field
@@ -669,6 +747,22 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         </p>
       </section>
 
+      <section className="mp5-converter-legal" data-testid="converter-credits-rights-group">
+        <button
+          type="button"
+          className="mp5-converter-disclosure-button"
+          onClick={() => setLegalOpen((open) => !open)}
+          aria-expanded={legalOpen}
+          data-testid="converter-credits-rights-toggle"
+        >
+          <span>
+            <strong>Credits, rights &amp; identifiers</strong>
+            <small>ISRC, catalog number, copyright, labels, and more.</small>
+          </span>
+          <CaretDown size={18} weight="bold" aria-hidden />
+        </button>
+        {legalOpen && (
+          <div className="mp5-converter-legal-body">
       <section className="rounded-lg border border-white/5 bg-surface/50" data-testid="section-credits">
         <button
           type="button"
@@ -678,7 +772,7 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
           data-testid="credits-metadata-toggle"
         >
           <span>{SECTION.credits}</span>
-          <span className="text-gray-600">{creditsOpen ? "−" : "+"}</span>
+          <CaretDown className={creditsOpen ? "rotate-180" : undefined} size={15} aria-hidden />
         </button>
         {creditsOpen && (
           <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
@@ -714,7 +808,7 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
           data-testid="rights-metadata-toggle"
         >
           <span>{SECTION.rightsLicense}</span>
-          <span className="text-gray-600">{rightsOpen ? "−" : "+"}</span>
+          <CaretDown className={rightsOpen ? "rotate-180" : undefined} size={15} aria-hidden />
         </button>
         {rightsOpen && (
           <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
@@ -755,7 +849,7 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
           data-testid="identifiers-metadata-toggle"
         >
           <span>{SECTION.releaseIdentifiers}</span>
-          <span className="text-gray-600">{identifiersOpen ? "−" : "+"}</span>
+          <CaretDown className={identifiersOpen ? "rotate-180" : undefined} size={15} aria-hidden />
         </button>
         {identifiersOpen && (
           <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">
@@ -776,9 +870,13 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
           </div>
         )}
       </section>
+          </div>
+        )}
+      </section>
 
       <section
         className="rounded-lg border border-white/5 bg-surface/50"
+        hidden={activeTab !== "advanced"}
         data-testid="section-specialized-app-metadata"
       >
         <button
@@ -789,7 +887,7 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
           data-testid="specialized-metadata-toggle"
         >
           <span>{SECTION.specializedAppMetadata}</span>
-          <span className="text-gray-600">{advancedOpen ? "−" : "+"}</span>
+          <CaretDown className={advancedOpen ? "rotate-180" : undefined} size={15} aria-hidden />
         </button>
         {advancedOpen && (
           <div className="px-3 pb-3 space-y-3 border-t border-white/5 pt-3">

@@ -1,4 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
+import { FileText } from "@phosphor-icons/react/FileText";
+import { LockKey } from "@phosphor-icons/react/LockKey";
+import { PencilSimple } from "@phosphor-icons/react/PencilSimple";
+import { Waveform } from "@phosphor-icons/react/Waveform";
 
 import { decodeSourceToPcm } from "../converter/decodeSourceToPcm";
 import type { OutputCodec } from "../converter/convertToMp5";
@@ -28,7 +34,6 @@ import {
   formatConverterDecodeError,
 } from "../lib/userFacingErrors";
 import { SupportedSourcesNote } from "../components/SupportedSourcesNote";
-import { ConverterEmptyState } from "../components/ConverterEmptyState";
 import { CodecModesHelper } from "../components/CodecModesHelper";
 import { dismissOnboarding } from "../lib/firstRun";
 import { FileDropZone } from "./FileDropZone";
@@ -71,6 +76,7 @@ import { cloudAiConfigured, loadAiSettings } from "../lib/ai/aiSettings";
 import { formatSectionsText } from "../lib/sections/sectionParser";
 import { formatSyncedLyricsText } from "../lib/lyrics/lyrcTimestampParser";
 import { sanitizeUnsyncedLyrics } from "../lib/ai/lyricSanitize";
+import { ConverterSourceCard } from "../components/ConverterSourceCard";
 
 type PendingPcm = {
   samples: Int16Array;
@@ -101,12 +107,87 @@ function metaFromEdits(edits: ManualMetadataEdits) {
 }
 
 type ConverterMode = "single" | "batch";
+type ConverterStage = "source" | "metadata" | "export";
+
+function stageAfterSourceLoad(): ConverterStage {
+  if (typeof window !== "undefined" && window.matchMedia?.("(max-width: 767px)").matches) {
+    return "export";
+  }
+  return "metadata";
+}
+
+function codecPresentation(codec: OutputCodec): {
+  name: string;
+  qualifier: string;
+  description: string;
+  badges: { label: string; verified?: boolean }[];
+} {
+  switch (codec) {
+    case "mp5l_v4":
+      return {
+        name: "MP5-L v4",
+        qualifier: "Recommended",
+        description: "Lossless, bit-exact audio with the current default MP5 encoder.",
+        badges: [
+          { label: "MP5-L v4" },
+          { label: "Lossless", verified: true },
+          { label: "Bit-exact", verified: true },
+        ],
+      };
+    case "mp5l":
+      return {
+        name: "MP5-L v3",
+        qualifier: "Lab / legacy",
+        description: "Lossless, bit-exact legacy MP5-L encoding.",
+        badges: [
+          { label: "MP5-L v3" },
+          { label: "Lossless", verified: true },
+          { label: "Bit-exact", verified: true },
+        ],
+      };
+    case "mp5c2":
+      return {
+        name: "MP5-C2",
+        qualifier: "Hybrid · not default",
+        description: "Quiet passages stay lossless while the loud path uses signal-relative coding.",
+        badges: [{ label: "MP5-C2" }, { label: "Hybrid" }, { label: "Not default" }],
+      };
+    case "mp5h":
+      return {
+        name: "MP5-H",
+        qualifier: "Hybrid · large",
+        description: "MP5-C base audio with a lossless correction layer when available.",
+        badges: [{ label: "MP5-H" }, { label: "Hybrid" }, { label: "CORR layer" }],
+      };
+    case "mp5c":
+      return {
+        name: "MP5-C",
+        qualifier: "Experimental / lab",
+        description: "Lossy research codec that may add audible hiss.",
+        badges: [{ label: "MP5-C" }, { label: "Lossy" }, { label: "Lab" }],
+      };
+    case "pcm":
+      return {
+        name: "PCM",
+        qualifier: "Reference / debug",
+        description: "Uncompressed reference audio for debugging and comparison.",
+        badges: [{ label: "PCM" }, { label: "Uncompressed" }, { label: "Bit-exact", verified: true }],
+      };
+  }
+}
+
+function metadataFieldCount(edits: ManualMetadataEdits | null): number {
+  if (!edits) return 0;
+  return Object.values(edits.meta).filter((value) => value.trim().length > 0).length;
+}
 
 export function ConverterPanel() {
   const [mode, setMode] = useState<ConverterMode>("single");
+  const [stage, setStage] = useState<ConverterStage>("source");
   const [codec, setCodec] = useState<OutputCodec>("mp5l_v4");
   const [preset, setPreset] = useState(2);
   const [labCodecsOpen, setLabCodecsOpen] = useState(false);
+  const [formatsOpen, setFormatsOpen] = useState(false);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [exportProgress, setExportProgress] = useState<number | null>(null);
@@ -131,6 +212,7 @@ export function ConverterPanel() {
   const [aiProgress, setAiProgress] = useState<AiAnalysisProgress | null>(null);
   const [aiError, setAiError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  const sourceInputRef = useRef<HTMLInputElement>(null);
   const { bumpCancelGeneration, setSinglePhase, resetSingle } = useConversionStore();
 
   const codecUnavailable = loadState === "unavailable";
@@ -171,6 +253,7 @@ export function ConverterPanel() {
     setExportSummary(null);
     setLastExportFile(null);
     setLastExportBlob(null);
+    setStage("source");
   }
 
   async function handleFiles(files: FileList) {
@@ -183,6 +266,7 @@ export function ConverterPanel() {
       return;
     }
     setBusy(true);
+    setStage("source");
     setError("");
     setExportDone(false);
     setExportSummary(null);
@@ -219,6 +303,7 @@ export function ConverterPanel() {
       }
       setPending({ file, pcm, extracted });
       setEdits(manualEditsFromSource(extracted));
+      setStage(stageAfterSourceLoad());
       dismissOnboarding();
       resetSingle();
       setStatus("Source loaded — edit metadata, preview tags, then export MP5-L v4.");
@@ -750,360 +835,475 @@ export function ConverterPanel() {
     }
   }
 
+  const codecView = codecPresentation(codecUnavailable ? "pcm" : codec);
+  const suggestedOutputFilename = pending && edits
+    ? buildExportFilename(metaFromEdits(edits), codecUnavailable ? "pcm" : codec, pending.file.name)
+    : "Untitled.mp5";
+  const effectiveCover = edits?.cover === null
+    ? undefined
+    : edits?.cover ?? pending?.extracted.cover;
+  const fieldCount = metadataFieldCount(edits);
+  const hasLyrics = Boolean(edits?.lyricsUnsynced.trim() || edits?.lyricsSyncedText.trim());
+  const canExport = Boolean(pending && edits && !busy);
+
   return (
-    <div className="space-y-5" data-testid="converter-panel">
-      <div className="flex gap-2" role="tablist" aria-label="Converter mode">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "single"}
-          onClick={() => setMode("single")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            mode === "single"
-              ? "bg-accent text-black"
-              : "bg-surface-elevated text-gray-400 border border-white/10"
-          }`}
-          data-testid="converter-mode-single"
-        >
-          Single file
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === "batch"}
-          onClick={() => setMode("batch")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-            mode === "batch"
-              ? "bg-accent text-black"
-              : "bg-surface-elevated text-gray-400 border border-white/10"
-          }`}
-          data-testid="converter-mode-batch"
-        >
-          Batch
-        </button>
-      </div>
-
-      {mode === "batch" ? (
-        <BatchConverterPanel />
-      ) : (
-        <>
-      <div
-        className={
-          !pending && !busy
-            ? "grid gap-4 md:grid-cols-2 md:items-stretch"
-            : undefined
-        }
-        data-testid={!pending && !busy ? "converter-intro-row" : undefined}
-      >
-        <div className="mp5-card flex h-full flex-col gap-3 p-4 sm:p-5 border-accent/15">
-          <h2 className="text-lg font-semibold text-white">Convert to MP5</h2>
-          <p className="text-sm text-gray-400 leading-relaxed" data-testid="converter-export-help">
-            Drop FLAC, WAV, MP3, M4A, or OGG. Default export is{" "}
-            <strong className="text-gray-300">MP5-L v4</strong>. Review metadata, then export and open in
-            the player.
+    <div
+      className="mp5-converter-export-desk"
+      data-testid="converter-panel"
+      data-stage={stage}
+      data-mode={mode}
+    >
+      <header className="mp5-converter-heading">
+        <div className="mp5-converter-title">
+          <h2>Convert audio</h2>
+          <p data-testid="converter-export-help">
+            Build a rich, verified MP5 file locally in your browser.
           </p>
-          <div className="mt-auto">
-            <ConverterFlowSteps hasSource={!!pending} exportDone={exportDone} />
-          </div>
         </div>
-        {!pending && !busy && <ConverterEmptyState />}
-      </div>
-
-      {loadState === "loading" && (
-        <p className="text-xs text-gray-400 bg-surface-elevated rounded-lg p-2">Loading WASM codecs…</p>
-      )}
-
-      {codecUnavailable && (
-        <p
-          className="text-xs text-amber-200/90 bg-amber-950/40 rounded-lg p-2"
-          data-testid="codec-unavailable-banner"
-        >
-          <strong>MP5 codecs require WASM.</strong> Run <code className="text-accent">pnpm wasm:build</code>{" "}
-          and refresh. Until then, only <strong>PCM reference / debug</strong> export is available — not
-          MP5-L v4.
-        </p>
-      )}
-
-      {codecReady && (
-        <p className="text-xs text-green-400/90 bg-green-950/30 rounded-lg p-2" data-testid="codec-ready-banner">
-          <strong>Default: MP5-L v4</strong> — lossless, bit-exact. Hard-fail on encode errors (no silent
-          v3 fallback). MP5-L v3 remains available as lab/legacy. MP5-H is hybrid (large). MP5-C is
-          lab-only and may hiss.
-        </p>
-      )}
-
-      <SupportedSourcesNote />
-
-      <GuardrailNotice messages={sourceGuardrails} testId="converter-source-guardrails" />
-
-      <FileDropZone
-        accept="audio/*,.mp3,.wav,.flac,.aac,.m4a,.ogg,.opus"
-        label={busy && !pending ? "Loading source…" : "1. Drop source audio (FLAC / WAV / MP3 / …)"}
-        onFiles={handleFiles}
-        disabled={busy}
-        testId="converter-file-input"
-      />
-
-      {busy && (
-        <button
-          type="button"
-          onClick={handleCancelConversion}
-          className="text-sm text-red-300/90 hover:underline"
-          data-testid="converter-cancel"
-        >
-          Cancel conversion
-        </button>
-      )}
-
-      {pending && edits && (
-        <>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">2–3. Metadata</p>
-          <MetadataEditor
-            edits={edits}
-            onChange={setEdits}
-            coverError={coverError}
-            onCoverError={setCoverError}
-          />
-          <MetadataReviewPanel extracted={pending.extracted} edits={edits} />
+        <div className="mp5-converter-mode" role="tablist" aria-label="Converter mode">
           <button
             type="button"
-            className="text-xs text-gray-500 hover:text-gray-300 underline-offset-2 hover:underline self-start"
-            onClick={() => setAdvancedToolsOpen((o) => !o)}
-            aria-expanded={advancedToolsOpen}
-            data-testid="converter-advanced-tools-toggle"
+            role="tab"
+            aria-selected={mode === "single"}
+            onClick={() => setMode("single")}
+            data-testid="converter-mode-single"
           >
-            {advancedToolsOpen ? "Hide stems & AI tools" : "Show stems & AI tools"}
+            Single file
           </button>
-          {advancedToolsOpen && (
-            <>
-              <AiSuggestionsPanel
-                suggestions={aiSuggestions}
-                busy={aiBusy}
-                progress={aiProgress}
-                error={aiError}
-                onAnalyze={() => void handleAnalyzeWithAi()}
-                onAcceptBeat={acceptBeatSuggestion}
-                onAcceptStructure={acceptStructureSuggestion}
-                onAcceptLyrics={acceptLyricsSuggestion}
-                onAcceptContentWarnings={acceptContentWarningsSuggestion}
-                onAcceptMoodVibe={acceptMoodVibeSuggestion}
-                onAcceptSummary={acceptSummarySuggestion}
-                onDismiss={() => setAiSuggestions({})}
-                aiEnabled={loadAiSettings().enabled}
-                cloudConfigured={cloudAiConfigured(loadAiSettings())}
-                cloudBeatEnabled={loadAiSettings().cloudBeat}
-                cloudStructureEnabled={loadAiSettings().cloudStructure}
-                cloudLyricsEnabled={loadAiSettings().cloudLyrics}
-                cloudContentWarningsEnabled={loadAiSettings().cloudContentWarnings}
-              />
-              <StemImportSection
-                stems={stems}
-                issues={stemIssues}
-                mix={
-                  pending
-                    ? {
-                        sampleRate: pending.pcm.sampleRate,
-                        channels: pending.pcm.channels,
-                        durationSec: mixDurationSec,
-                      }
-                    : null
-                }
-                busy={busy}
-                batchSummary={stemBatchSummary}
-                importGuardrails={stemImportGuardrails}
-                onAddStems={(files) => void handleAddStems(files)}
-                onUpdateStem={(id, patch) =>
-                  setStems((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
-                }
-                onRemoveStem={(id) => setStems((prev) => prev.filter((s) => s.id !== id))}
-                onRemoveAllStems={() => {
-                  setStems([]);
-                  setStemBatchSummary(null);
-                }}
-                onSetAllVolumesFull={() =>
-                  setStems((prev) => prev.map((s) => ({ ...s, defaultVolume: 1 })))
-                }
-                onNormalizeStems={(strategy, allowLargeTrim) => {
-                  void handleNormalizeStems(strategy, allowLargeTrim);
-                }}
-                onPadMixToStems={(sec) => {
-                  void handlePadMixToStems(sec);
-                }}
-              />
-            </>
-          )}
-        </>
-      )}
-
-      {codec === "mp5c" && codecReady && (
-        <p className="text-xs text-amber-200/90 bg-amber-950/40 rounded-lg p-2" data-testid="mp5c-hiss-warning">
-          <strong>MP5-C is experimental / lab-only.</strong> Not for normal listening — audible hiss on all
-          presets. Use MP5-L v4 (default) or PCM.
-        </p>
-      )}
-
-      {codec === "mp5c2" && codecReady && (
-        <p className="text-xs text-sky-200/90 bg-sky-950/40 rounded-lg p-2" data-testid="mp5c2-info">
-          <strong>MP5-C2</strong> (hybrid): lossless on quiet/fragile tails; signal-relative loud path with
-          CORR when needed. Not the default — prefer MP5-L for bit-exact sharing. Distinct from classic lab
-          MP5-C.
-        </p>
-      )}
-
-      {codec === "mp5h" && codecReady && (
-        <p className="text-xs text-blue-200/90 bg-blue-950/30 rounded-lg p-2" data-testid="mp5h-size-warning">
-          <strong>MP5-H is hybrid (not default).</strong> MP5-C base + lossless CORR correction. Larger than
-          MP5-L.
-        </p>
-      )}
-
-      <CodecModesHelper />
-
-      <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-start">
-        <label className="text-sm text-gray-400 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-          <span>Export format</span>
-          <select
-            value={codec}
-            onChange={(e) => setCodec(e.target.value as OutputCodec)}
-            className="bg-surface-elevated rounded-lg px-3 py-1.5 max-w-md border border-white/10 mp5-focus-ring"
-            data-testid="codec-select"
-            disabled={codecUnavailable || busy}
-            aria-label="Export format"
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "batch"}
+            onClick={() => setMode("batch")}
+            data-testid="converter-mode-batch"
           >
-            {codecUnavailable ? (
-              <option value="pcm">{codecExportOptionLabel("pcm")} (WASM required for MP5 codecs)</option>
-            ) : (
-              <>
-                <optgroup label="Recommended">
-                  <option value="mp5l_v4">{codecExportOptionLabel("mp5l_v4")}</option>
-                </optgroup>
-                <optgroup label="Debug">
-                  <option value="pcm">{codecExportOptionLabel("pcm")}</option>
-                </optgroup>
-                <optgroup label="Lossy / hybrid (not default)">
-                  <option value="mp5c2">{codecExportOptionLabel("mp5c2")}</option>
-                  <option value="mp5h">{codecExportOptionLabel("mp5h")}</option>
-                </optgroup>
-                {labCodecsOpen && (
-                  <optgroup label="Lab / advanced">
-                    <option value="mp5l">{codecExportOptionLabel("mp5l")}</option>
-                    <option value="mp5c">{codecExportOptionLabel("mp5c")}</option>
-                  </optgroup>
-                )}
-              </>
-            )}
-          </select>
-        </label>
+            Batch
+          </button>
+        </div>
+      </header>
 
-        <button
-          type="button"
-          className="text-xs text-gray-500 hover:text-gray-300 underline-offset-2 hover:underline mt-1 sm:mt-6"
-          onClick={() => setLabCodecsOpen((o) => !o)}
-          aria-expanded={labCodecsOpen}
-          data-testid="lab-codecs-toggle"
-          disabled={codecUnavailable || busy}
-        >
-          {labCodecsOpen ? "Hide lab codecs" : "Show lab / advanced codecs"}
-        </button>
+      {mode === "batch" ? (
+        <section className="mp5-converter-batch" data-testid="converter-batch-workspace">
+          <BatchConverterPanel />
+        </section>
+      ) : (
+        <>
+          <ConverterFlowSteps
+            hasSource={Boolean(pending)}
+            exportDone={exportDone}
+            metadataOpen={stage === "metadata"}
+          />
 
-        <label className="text-sm text-gray-400 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-          <span>Preset (MP5-C2 / MP5-H / lab MP5-C)</span>
-          <select
-            value={preset}
-            onChange={(e) => setPreset(Number(e.target.value))}
-            className="bg-surface-elevated rounded-lg px-3 py-1.5 border border-white/10 mp5-focus-ring"
-            disabled={codec === "mp5l" || codec === "mp5l_v4" || codec === "pcm" || busy}
-            data-testid="preset-select"
-            aria-label="Codec preset"
-          >
-            <option value={0}>Low</option>
-            <option value={1}>Standard</option>
-            <option value={2}>High (preferred MP5-C2 loud path)</option>
-            <option value={3}>Extreme (finest loud path)</option>
-          </select>
-        </label>
-      </div>
-
-      {busy && exportProgress !== null && (
-        <div
-          className="flex flex-col gap-1.5"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={exportProgress}
-          aria-label="Export progress"
-          data-testid="export-progress"
-        >
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="mp5-converter-workspace" data-testid="converter-workspace">
             <div
-              className="h-full rounded-full bg-accent transition-[width] duration-500 ease-out animate-pulse"
-              style={{ width: `${Math.max(exportProgress, 3)}%` }}
-            />
-          </div>
-        </div>
-      )}
-      {busy && status && (
-        <p className="text-sm text-accent" data-testid="convert-busy">
-          {status}
-        </p>
-      )}
-      {!busy && status && (
-        <p className="text-sm text-green-400" data-testid="convert-status">
-          {status}
-        </p>
-      )}
-      {error && (
-        <div className="space-y-2" data-testid="convert-error-block">
-          <p className="text-sm text-red-400" data-testid="convert-error">
-            {error}
-          </p>
-          {/no v3 fallback|MP5-L v4/i.test(error) && (
-            <button
-              type="button"
-              className="text-xs text-accent underline-offset-2 hover:underline disabled:opacity-40"
-              data-testid="retry-as-mp5l-v3"
-              disabled={busy || !pending}
-              onClick={() => {
-                setCodec("mp5l");
-                setLabCodecsOpen(true);
-                setError("");
-                setStatus("Switched to MP5-L v3 — click Export MP5 to retry.");
-              }}
+              className="mp5-converter-main-column"
+              data-testid={!pending && !busy ? "converter-intro-row" : undefined}
             >
-              Retry as MP5-L v3
-            </button>
-          )}
-        </div>
-      )}
+              <GuardrailNotice messages={sourceGuardrails} testId="converter-source-guardrails" />
 
-      {pending && edits && (
-        <button
-          type="button"
-          onClick={() => void handleExport()}
-          disabled={busy}
-          className="w-full py-3 rounded-xl bg-accent text-black font-semibold text-sm hover:opacity-90 disabled:opacity-40"
-          data-testid="export-mp5-button"
-        >
-          {busy ? "Exporting…" : "4. Export MP5"}
-        </button>
-      )}
+              {!pending ? (
+                <section className="mp5-converter-source-empty" data-testid="converter-empty-state">
+                  <div>
+                    <h3>Source audio</h3>
+                    <p>Choose FLAC, WAV, MP3, M4A, OGG, or Opus. Conversion runs locally in your browser.</p>
+                  </div>
+                  <FileDropZone
+                    accept="audio/*,.mp3,.wav,.flac,.aac,.m4a,.ogg,.opus"
+                    label={busy ? "Loading source…" : "Drop source audio or choose a file"}
+                    onFiles={handleFiles}
+                    disabled={busy}
+                    testId="converter-file-input"
+                  />
+                  <SupportedSourcesNote />
+                </section>
+              ) : (
+                <>
+                  <input
+                    ref={sourceInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="audio/*,.mp3,.wav,.flac,.aac,.m4a,.ogg,.opus"
+                    disabled={busy}
+                    data-testid="converter-file-input"
+                    onChange={(event) => {
+                      if (event.currentTarget.files) void handleFiles(event.currentTarget.files);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <ConverterSourceCard
+                    file={pending.file}
+                    pcm={pending.pcm}
+                    cover={effectiveCover}
+                    busy={busy}
+                    onReplace={() => sourceInputRef.current?.click()}
+                    onFiles={(files) => void handleFiles(files)}
+                  />
+                </>
+              )}
 
-      {librarySaveNote && (
-        <p className="text-xs text-gray-400" data-testid="converter-library-save-note">
-          {librarySaveNote}
-        </p>
-      )}
+              {!pending && busy && status && (
+                <div className="mp5-converter-inline-status">
+                  <p data-testid="convert-busy">{status}</p>
+                  <button type="button" onClick={handleCancelConversion} data-testid="converter-cancel">
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {!pending && !busy && status && <p className="mp5-converter-success" data-testid="convert-status">{status}</p>}
+              {!pending && error && (
+                <div className="mp5-converter-error" data-testid="convert-error-block">
+                  <p data-testid="convert-error">{error}</p>
+                </div>
+              )}
 
-      {exportSummary && exportDone && (
-        <ExportSummaryPanel
-          summary={exportSummary}
-          onDownloadAgain={handleDownloadAgain}
-          onOpenInPlayer={() => void handleOpenInPlayer()}
-          onAddToPlaylist={() => void handleAddToPlaylist()}
-          onSaveToLibrary={() => void handleSaveToLibrary()}
-          onCopySummary={handleCopySummary}
-        />
-      )}
+              {pending && edits && (
+                <section className="mp5-converter-metadata-shell">
+                  <div className="mp5-converter-mobile-metadata-summary" data-testid="converter-mobile-metadata-summary">
+                    <FileText size={22} aria-hidden />
+                    <strong>Metadata</strong>
+                    <span>{fieldCount} field{fieldCount === 1 ? "" : "s"} ready</span>
+                    <button
+                      type="button"
+                      onClick={() => setStage("metadata")}
+                      data-testid="converter-mobile-edit-metadata"
+                    >
+                      <PencilSimple size={16} /> Edit
+                    </button>
+                  </div>
+
+                  <div className="mp5-converter-metadata-workspace">
+                    <MetadataEditor
+                      edits={edits}
+                      onChange={setEdits}
+                      coverError={coverError}
+                      onCoverError={setCoverError}
+                    />
+
+                    <button
+                      type="button"
+                      className="mp5-converter-metadata-continue"
+                      onClick={() => setStage("export")}
+                      data-testid="converter-mobile-metadata-done"
+                    >
+                      Continue to Export
+                    </button>
+
+                    <button
+                      type="button"
+                      className="mp5-converter-disclosure-button mp5-converter-tools-toggle"
+                      onClick={() => setAdvancedToolsOpen((open) => !open)}
+                      aria-expanded={advancedToolsOpen}
+                      data-testid="converter-advanced-tools-toggle"
+                    >
+                      <span>
+                        <strong>Stems &amp; AI tools</strong>
+                        <small>Import stems and review optional AI suggestions.</small>
+                      </span>
+                      <CaretDown className={advancedToolsOpen ? "rotate-180" : undefined} size={18} weight="bold" />
+                    </button>
+
+                    {advancedToolsOpen && (
+                      <div className="mp5-converter-tools-body">
+                        <AiSuggestionsPanel
+                          suggestions={aiSuggestions}
+                          busy={aiBusy}
+                          progress={aiProgress}
+                          error={aiError}
+                          onAnalyze={() => void handleAnalyzeWithAi()}
+                          onAcceptBeat={acceptBeatSuggestion}
+                          onAcceptStructure={acceptStructureSuggestion}
+                          onAcceptLyrics={acceptLyricsSuggestion}
+                          onAcceptContentWarnings={acceptContentWarningsSuggestion}
+                          onAcceptMoodVibe={acceptMoodVibeSuggestion}
+                          onAcceptSummary={acceptSummarySuggestion}
+                          onDismiss={() => setAiSuggestions({})}
+                          aiEnabled={loadAiSettings().enabled}
+                          cloudConfigured={cloudAiConfigured(loadAiSettings())}
+                          cloudBeatEnabled={loadAiSettings().cloudBeat}
+                          cloudStructureEnabled={loadAiSettings().cloudStructure}
+                          cloudLyricsEnabled={loadAiSettings().cloudLyrics}
+                          cloudContentWarningsEnabled={loadAiSettings().cloudContentWarnings}
+                        />
+                        <StemImportSection
+                          stems={stems}
+                          issues={stemIssues}
+                          mix={{
+                            sampleRate: pending.pcm.sampleRate,
+                            channels: pending.pcm.channels,
+                            durationSec: mixDurationSec,
+                          }}
+                          busy={busy}
+                          batchSummary={stemBatchSummary}
+                          importGuardrails={stemImportGuardrails}
+                          onAddStems={(files) => void handleAddStems(files)}
+                          onUpdateStem={(id, patch) =>
+                            setStems((previous) => previous.map((stem) => stem.id === id ? { ...stem, ...patch } : stem))
+                          }
+                          onRemoveStem={(id) => setStems((previous) => previous.filter((stem) => stem.id !== id))}
+                          onRemoveAllStems={() => {
+                            setStems([]);
+                            setStemBatchSummary(null);
+                          }}
+                          onSetAllVolumesFull={() =>
+                            setStems((previous) => previous.map((stem) => ({ ...stem, defaultVolume: 1 })))
+                          }
+                          onNormalizeStems={(strategy, allowLargeTrim) => {
+                            void handleNormalizeStems(strategy, allowLargeTrim);
+                          }}
+                          onPadMixToStems={(seconds) => {
+                            void handlePadMixToStems(seconds);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {pending && (busy || error || status) && (
+                <div className="mp5-converter-mobile-operation-status" aria-live="polite">
+                  {busy && status && <p className="mp5-converter-busy" data-testid="convert-busy-mobile">{status}</p>}
+                  {error && <p className="mp5-converter-error" data-testid="convert-error-mobile">{error}</p>}
+                  {!busy && !error && status && (
+                    <p className="mp5-converter-success" data-testid="convert-status-mobile">{status}</p>
+                  )}
+                  {busy && (
+                    <button type="button" className="mp5-converter-cancel" onClick={handleCancelConversion}>
+                      Cancel conversion
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <aside className="mp5-converter-output-rail" data-testid="converter-output-rail">
+              <div className="mp5-converter-output-settings">
+              <h3>Output</h3>
+
+              <label className="mp5-converter-field">
+                <span>Output filename</span>
+                <input
+                  type="text"
+                  value={suggestedOutputFilename}
+                  disabled={!pending || busy}
+                  readOnly
+                  aria-readonly="true"
+                  data-testid="converter-output-filename"
+                />
+              </label>
+
+              <label className="mp5-converter-field">
+                <span>Format</span>
+                <div className="mp5-converter-format-control">
+                  <Waveform size={25} weight="duotone" aria-hidden />
+                  <span>
+                    <strong>{codecView.name}</strong>
+                    <small>{codecView.qualifier}</small>
+                  </span>
+                  <CaretDown size={18} aria-hidden />
+                  <select
+                    value={codecUnavailable ? "pcm" : codec}
+                    onChange={(event) => setCodec(event.target.value as OutputCodec)}
+                    data-testid="codec-select"
+                    disabled={codecUnavailable || busy}
+                    aria-label="Export format"
+                  >
+                    {codecUnavailable ? (
+                      <option value="pcm">{codecExportOptionLabel("pcm")} (WASM required for MP5 codecs)</option>
+                    ) : (
+                      <>
+                        <optgroup label="Recommended">
+                          <option value="mp5l_v4">{codecExportOptionLabel("mp5l_v4")}</option>
+                        </optgroup>
+                        <optgroup label="Debug">
+                          <option value="pcm">{codecExportOptionLabel("pcm")}</option>
+                        </optgroup>
+                        <optgroup label="Lossy / hybrid (not default)">
+                          <option value="mp5c2">{codecExportOptionLabel("mp5c2")}</option>
+                          <option value="mp5h">{codecExportOptionLabel("mp5h")}</option>
+                        </optgroup>
+                        {labCodecsOpen && (
+                          <optgroup label="Lab / advanced">
+                            <option value="mp5l">{codecExportOptionLabel("mp5l")}</option>
+                            <option value="mp5c">{codecExportOptionLabel("mp5c")}</option>
+                          </optgroup>
+                        )}
+                      </>
+                    )}
+                  </select>
+                </div>
+              </label>
+
+              <div className="mp5-converter-codec-badges" aria-label="Selected format qualities">
+                {codecView.badges.map((badge) => (
+                  <span key={badge.label} className={badge.verified ? "is-verified" : undefined}>
+                    {badge.verified && <CheckCircle size={14} weight="bold" aria-hidden />}
+                    {badge.label}
+                  </span>
+                ))}
+              </div>
+              <p className="mp5-converter-codec-description">{codecView.description}</p>
+
+              {loadState === "loading" && <p className="mp5-converter-codec-state">Loading MP5 codecs…</p>}
+              {codecUnavailable && (
+                <p className="mp5-converter-warning" data-testid="codec-unavailable-banner">
+                  <strong>MP5 codecs require WASM.</strong> PCM reference export is available until the codecs load.
+                </p>
+              )}
+              {codecReady && (
+                <p className="sr-only" data-testid="codec-ready-banner">
+                  Default MP5-L v4 codec is ready: lossless, bit-exact, with no silent v3 fallback.
+                </p>
+              )}
+
+              <button
+                type="button"
+                className="mp5-converter-advanced-formats"
+                onClick={() => setFormatsOpen((open) => !open)}
+                aria-expanded={formatsOpen}
+                data-testid="converter-advanced-formats-toggle"
+              >
+                Advanced formats <CaretDown className={formatsOpen ? "rotate-180" : undefined} size={18} />
+              </button>
+
+              {formatsOpen && (
+                <div className="mp5-converter-advanced-formats-body">
+                  <button
+                    type="button"
+                    onClick={() => setLabCodecsOpen((open) => !open)}
+                    aria-expanded={labCodecsOpen}
+                    data-testid="lab-codecs-toggle"
+                    disabled={codecUnavailable || busy}
+                  >
+                    {labCodecsOpen ? "Hide lab codecs" : "Show lab / advanced codecs"}
+                  </button>
+                  <label>
+                    <span>Preset (MP5-C2 / MP5-H / lab MP5-C)</span>
+                    <select
+                      value={preset}
+                      onChange={(event) => setPreset(Number(event.target.value))}
+                      disabled={codec === "mp5l" || codec === "mp5l_v4" || codec === "pcm" || busy}
+                      data-testid="preset-select"
+                      aria-label="Codec preset"
+                    >
+                      <option value={0}>Low</option>
+                      <option value={1}>Standard</option>
+                      <option value={2}>High (preferred MP5-C2 loud path)</option>
+                      <option value={3}>Extreme (finest loud path)</option>
+                    </select>
+                  </label>
+                  <CodecModesHelper />
+                </div>
+              )}
+
+              {codec === "mp5c" && codecReady && (
+                <p className="mp5-converter-warning" data-testid="mp5c-hiss-warning">
+                  <strong>MP5-C is experimental / lab-only.</strong> Not for normal listening — audible hiss on all
+                  presets. Use MP5-L v4 (default) or PCM.
+                </p>
+              )}
+              {codec === "mp5c2" && codecReady && (
+                <p className="mp5-converter-info" data-testid="mp5c2-info">
+                  <strong>MP5-C2</strong> (hybrid): lossless on quiet/fragile tails; signal-relative loud path with
+                  CORR when needed. Not the default — prefer MP5-L for bit-exact sharing. Distinct from classic lab
+                  MP5-C.
+                </p>
+              )}
+              {codec === "mp5h" && codecReady && (
+                <p className="mp5-converter-info" data-testid="mp5h-size-warning">
+                  <strong>MP5-H is hybrid (not default).</strong> MP5-C base + lossless CORR correction. Larger than
+                  MP5-L.
+                </p>
+              )}
+              </div>
+
+              <section className="mp5-converter-ready" data-testid="converter-ready-summary">
+                <h4>{pending ? "Ready to export" : "Add a source to continue"}</h4>
+                <dl>
+                  <div><dt>Metadata</dt><dd>{pending ? `${fieldCount} fields` : "—"}</dd></div>
+                  <div><dt>Artwork</dt><dd>{effectiveCover ? "Included" : "Not added"}</dd></div>
+                  <div><dt>Lyrics</dt><dd>{hasLyrics ? "Included" : "Not added"}</dd></div>
+                  <div><dt>Stems</dt><dd>{stems.length ? `${stems.length} included` : "None"}</dd></div>
+                </dl>
+                {pending && edits && (
+                  <details className="mp5-converter-review">
+                    <summary>Review embedded metadata</summary>
+                    <MetadataReviewPanel extracted={pending.extracted} edits={edits} />
+                  </details>
+                )}
+              </section>
+
+              {pending && busy && exportProgress !== null && (
+                <div
+                  className="mp5-converter-progress"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={exportProgress}
+                  aria-label="Export progress"
+                  data-testid="export-progress"
+                >
+                  <span style={{ width: `${Math.max(exportProgress, 3)}%` }} />
+                </div>
+              )}
+              {pending && busy && status && <p className="mp5-converter-busy" data-testid="convert-busy">{status}</p>}
+              {pending && !busy && status && <p className="mp5-converter-success" data-testid="convert-status">{status}</p>}
+              {pending && error && (
+                <div className="mp5-converter-error" data-testid="convert-error-block">
+                  <p data-testid="convert-error">{error}</p>
+                  {/no v3 fallback|MP5-L v4/i.test(error) && (
+                    <button
+                      type="button"
+                      data-testid="retry-as-mp5l-v3"
+                      disabled={busy}
+                      onClick={() => {
+                        setCodec("mp5l");
+                        setLabCodecsOpen(true);
+                        setFormatsOpen(true);
+                        setError("");
+                        setStatus("Switched to MP5-L v3 — click Export MP5 to retry.");
+                      }}
+                    >
+                      Retry as MP5-L v3
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => void handleExport()}
+                disabled={!canExport}
+                className="mp5-converter-export-button"
+                data-testid="export-mp5-button"
+              >
+                {busy ? "Exporting…" : "Export MP5"}
+              </button>
+
+              {busy && (
+                <button type="button" className="mp5-converter-cancel" onClick={handleCancelConversion} data-testid="converter-cancel">
+                  Cancel conversion
+                </button>
+              )}
+
+              <p className="mp5-converter-local-note">
+                <LockKey size={18} aria-hidden /> Conversion runs locally. Optional cloud AI tools may send clips to
+                your configured provider.
+              </p>
+
+              {librarySaveNote && <p className="mp5-converter-library-note" data-testid="converter-library-save-note">{librarySaveNote}</p>}
+              {exportSummary && exportDone && (
+                <ExportSummaryPanel
+                  summary={exportSummary}
+                  onDownloadAgain={handleDownloadAgain}
+                  onOpenInPlayer={() => void handleOpenInPlayer()}
+                  onAddToPlaylist={() => void handleAddToPlaylist()}
+                  onSaveToLibrary={() => void handleSaveToLibrary()}
+                  onCopySummary={handleCopySummary}
+                />
+              )}
+            </aside>
+          </div>
         </>
       )}
     </div>
