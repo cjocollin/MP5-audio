@@ -61,8 +61,16 @@ No private local paths, API keys, environment variables, or copyrighted/private 
 | Demo fixture missing | fixtures were not generated/copied | run `pnpm build` and `pnpm deploy:check` locally |
 | Stale badge after deploy | service worker cache | refresh hosted app and rerun hosted checks |
 
+## Custom Domain
+
+`mp5audio.com` is registered on Cloudflare and is being pointed at this project.
+See [MP5_DOMAIN_SETUP.md](MP5_DOMAIN_SETUP.md) for the DNS records and the
+Cloudflare proxy/SSL settings required. Until that is verified, the production
+URL above remains canonical.
+
 ## Related Docs
 
+- [Custom domain setup](MP5_DOMAIN_SETUP.md)
 - [Deployment guide](MP5_DEPLOYMENT_GUIDE.md)
 - [Hosted demo validation](MP5_HOSTED_DEMO.md)
 - [`vercel.json`](../vercel.json)
