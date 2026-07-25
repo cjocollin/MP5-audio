@@ -16,7 +16,11 @@ export async function importMp5ToPlayer(
     store.appendTracks(result.tracks);
     for (const file of files) {
       if (!file.name.toLowerCase().endsWith(".mp5")) continue;
-      recordRecentFileOpen(file);
+      try {
+        recordRecentFileOpen(file);
+      } catch {
+        /* recents are best-effort — storage failure must not abort the import */
+      }
     }
     if (opts?.playFirst) {
       const currentTracks = usePlayerStore.getState().tracks;
@@ -25,7 +29,14 @@ export async function importMp5ToPlayer(
         ? currentTracks.findIndex((track) => track.id === firstNewId)
         : prevLen;
       store.setCurrentIndex(firstNew);
-      store.setPlaying(true);
+      // Signal play intent through the owned, track-keyed channel. setPlaying(true)
+      // here was cancelled by loadFile's "not requested" guard (the playFirst-drop
+      // bug); the player consumes this only when THIS track's audio starts.
+      if (firstNewId) {
+        store.setPendingPlayTrackId(firstNewId);
+      } else {
+        store.setPlaying(true);
+      }
     }
   }
 
@@ -36,7 +47,11 @@ export async function importMp5ToPlayer(
 /** Load an .mp5p album package into the player album view. */
 export async function importAlbumPackageToPlayer(file: File): Promise<void> {
   const store = usePlayerStore.getState();
-  recordRecentFileOpen(file);
+  try {
+    recordRecentFileOpen(file);
+  } catch {
+    /* recents are best-effort — storage failure must not abort the album open */
+  }
   const ingest = await ingestAlbumPackageFiles([file], withoutDefaultDemoTracks(store.tracks));
   if (ingest.album) {
     store.setPendingAlbumPackage(ingest.album);

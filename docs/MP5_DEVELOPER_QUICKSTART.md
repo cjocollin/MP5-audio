@@ -1,6 +1,6 @@
 # MP5 Developer Quickstart
 
-**Version:** MP5 Audio v0.28.0-beta
+**Version:** MP5 Audio v0.29.0-beta
 
 This guide is for developers, testers, and contributors who want to run MP5 locally, inspect files, validate packages, and reproduce the public beta gates.
 

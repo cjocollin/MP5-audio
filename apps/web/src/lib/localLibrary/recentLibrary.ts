@@ -1,6 +1,7 @@
 import type { AlbmPackageManifest } from "@mp5/container";
 import type { UnifiedPackageType } from "./unifiedLibraryTypes";
 import { createRandomId } from "../randomId";
+import { LibraryStorageError, isQuotaExceededError } from "./errors";
 
 const STORAGE_KEY = "mp5-recent-library-v1";
 const MAX_RECENTS = 24;
@@ -41,8 +42,16 @@ function writeAll(items: RecentLibraryEntry[]): void {
   try {
     const payload: StoredPayload = { version: 1, items: items.slice(0, MAX_RECENTS) };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  } catch {
-    /* quota or private mode */
+  } catch (e) {
+    if (isQuotaExceededError(e)) {
+      throw new LibraryStorageError(
+        "Not enough browser storage to save. Remove older library items or free disk space in your browser settings.",
+        "quota",
+      );
+    }
+    throw e instanceof Error
+      ? new LibraryStorageError(e.message)
+      : new LibraryStorageError("Could not write recent library to browser storage.");
   }
 }
 

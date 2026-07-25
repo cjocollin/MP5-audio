@@ -11,7 +11,7 @@ import {
 export function providerSupportsAudio(providerId: string, apiStyle: string): boolean {
   if (apiStyle === "gemini") return true;
   if (apiStyle === "openai") {
-    return providerId === "openai" || providerId === "xai";
+    return providerId === "openai";
   }
   return false;
 }
@@ -29,17 +29,14 @@ export async function callCloudWithOptionalAudio(
       return callGeminiGenerateWithAudio(settings.apiBaseUrl, settings.apiKey, settings.model, prompt, wavBase64);
     }
     if (apiStyle === "openai") {
-      try {
-        return await callOpenAiStyleChatWithAudio(
-          settings.apiBaseUrl,
-          settings.apiKey,
-          settings.model,
-          prompt,
-          wavBase64,
-        );
-      } catch {
-        /* fall through to text */
-      }
+      // Audio failure must surface — never silent fallthrough to text-only invention.
+      return callOpenAiStyleChatWithAudio(
+        settings.apiBaseUrl,
+        settings.apiKey,
+        settings.model,
+        prompt,
+        wavBase64,
+      );
     }
   }
 

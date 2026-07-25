@@ -8,8 +8,10 @@ import { SkipForward } from "@phosphor-icons/react/SkipForward";
 import { SpeakerHigh } from "@phosphor-icons/react/SpeakerHigh";
 import type { PlaybackReadiness } from "../lib/playback/playbackState";
 import type { RepeatMode } from "../store/playerStore";
-import { formatTimelineRange, playbackStateLabel } from "./playerDisplay";
+import { usePlayerStore } from "../store/playerStore";
+import { playbackStateLabel } from "./playerDisplay";
 import { repeatModeLabel } from "./queueNavigation";
+import { SeekTimeline } from "./SeekTimeline";
 
 export type PlayerPlaybackStatus = "stopped" | "playing" | "paused" | "preparing";
 
@@ -29,11 +31,12 @@ interface Props {
   shuffle: boolean;
   onToggleShuffle: () => void;
   onCycleRepeat: () => void;
-  currentTime: number;
   duration: number;
   onSeek: (t: number) => void;
   volume: number;
   onVolume: (v: number) => void;
+  /** True while mix decode / AudioBuffer upload is in progress. */
+  loading?: boolean;
 }
 
 export function PlayerControls({
@@ -52,20 +55,27 @@ export function PlayerControls({
   shuffle,
   onToggleShuffle,
   onCycleRepeat,
-  currentTime,
   duration,
   onSeek,
   volume,
   onVolume,
+  loading = false,
 }: Props) {
-  const ready = duration > 0;
-  const timeline = formatTimelineRange(currentTime, duration);
+  const ready = duration > 0 && !loading;
+  // Ended detection selects currentTime here so Mp5Player need not subscribe.
+  const currentTime = usePlayerStore((s) => s.currentTime);
+  const ended =
+    isEnded ||
+    (duration > 0 &&
+      !isPlaying &&
+      currentTime >= Math.max(0, duration - 0.05) &&
+      playbackReadiness !== "error");
   const statusLabel = playbackStateLabel({
     readiness: playbackReadiness,
     playState: playbackStatus ?? "stopped",
     detail: playbackStatusDetail,
     hasTrack,
-    isEnded,
+    isEnded: ended,
   });
   const RepeatIcon = repeatMode === "one" ? RepeatOnce : Repeat;
 
@@ -86,24 +96,7 @@ export function PlayerControls({
         </p>
       )}
 
-      <input
-        type="range"
-        min={0}
-        max={duration || 1}
-        step={0.01}
-        value={currentTime}
-        onChange={(event) => onSeek(Number(event.target.value))}
-        className="mp5-seek-slider w-full touch-pan-x disabled:opacity-40"
-        data-testid="seek-slider"
-        aria-label="Seek"
-        disabled={!ready}
-      />
-
-      <div className="mp5-timeline-labels">
-        <span data-testid="current-time">{timeline.current}</span>
-        <span className="sr-only" data-testid="remaining-time">{timeline.remaining}</span>
-        <span data-testid="duration-time">{timeline.duration}</span>
-      </div>
+      <SeekTimeline duration={duration} onSeek={onSeek} disabled={!ready} />
 
       <div className="mp5-transport-actions">
         <button

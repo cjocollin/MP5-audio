@@ -10,9 +10,8 @@
 use std::collections::HashSet;
 
 use super::rice::{
-    best_partitioned_ks, escape_bits_for_residuals, pack_partition_ks,
-    rice_decode_partitioned_escape, rice_encode_partitioned_escape,
-    rice_estimate_bits_partitioned_escape, unpack_partition_ks,
+    best_partitioned_ks_with_bits, escape_bits_for_residuals, pack_partition_ks,
+    rice_decode_partitioned_escape, rice_encode_partitioned_escape, unpack_partition_ks,
 };
 
 pub const MAX_QLP_ORDER: usize = 12;
@@ -208,16 +207,16 @@ fn candidates(samples: &[i16], use_tukey: bool) -> Vec<Candidate> {
             if escape_bits_for_residuals(&body) > 16 {
                 continue;
             }
-            let ks = best_partitioned_ks(&body, 16);
+            let (ks, rice_bits) = best_partitioned_ks_with_bits(&body, 16);
             // Cost model: metadata + verbatim warm-ups + body Rice only.
             let estimated_bits = (4 + quantized.len() * 2 + order * 2) * 8
                 + ks.len() * 4
-                + rice_estimate_bits_partitioned_escape(&body, &ks, 16);
+                + rice_bits;
             let actual_payload_bytes = 4
                 + quantized.len() * 2
                 + order * 2
                 + ks.len().div_ceil(2)
-                + rice_estimate_bits_partitioned_escape(&body, &ks, 16).div_ceil(8);
+                + rice_bits.div_ceil(8);
             output.push(Candidate {
                 order: order as u8,
                 shift,
@@ -381,11 +380,14 @@ fn tukey_margin_is_promising(welch: &[Candidate]) -> bool {
 
 fn encode_ranked_candidates(samples: &[i16], analyzed: &[Candidate]) -> Option<Vec<u8>> {
     record_top4_coverage(analyzed);
-    analyzed
+    // `actual_payload_bytes` matches `encode_candidate` length by layout; pick the
+    // winner among the estimated-bits top-N, then materialize once (bit-identical
+    // to min_by_key(Vec::len) over those materializations).
+    let winner = analyzed
         .iter()
         .take(QLP_MATERIALIZE_TOP)
-        .filter_map(|candidate| encode_candidate(samples, candidate))
-        .min_by_key(Vec::len)
+        .min_by_key(|candidate| candidate.actual_payload_bytes)?;
+    encode_candidate(samples, winner)
 }
 
 /// Exact payload-byte estimate for the selected window's top-four policy.
@@ -408,46 +410,62 @@ pub fn encode_best_qlp_payload_with_window(samples: &[i16], prefer_tukey: bool) 
 
 /// Exact materialized-size estimate for the Welch-first/Tukey-gated search.
 pub fn estimate_best_qlp_payload_bytes(samples: &[i16]) -> Option<usize> {
-    let welch_candidates = ranked_candidates(candidates(samples, false));
-    let welch = estimated_top4_payload_bytes(&welch_candidates);
-    if !tukey_margin_is_promising(&welch_candidates) {
-        return welch;
+    prepare_best_qlp(samples).map(|prep| prep.payload_bytes())
+}
+
+/// Analyze i16 QLP once for estimate-then-encode callers.
+pub struct PreparedQlp {
+    welch: Vec<Candidate>,
+    tukey: Option<Vec<Candidate>>,
+    use_tukey: bool,
+    payload_bytes: usize,
+}
+
+impl PreparedQlp {
+    pub fn payload_bytes(&self) -> usize {
+        self.payload_bytes
     }
-    let tukey_candidates = ranked_candidates(candidates(samples, true));
-    let tukey = estimated_top4_payload_bytes(&tukey_candidates);
-    match (welch, tukey) {
-        (Some(a), Some(b)) => Some(a.min(b)),
-        (Some(a), None) => Some(a),
-        (None, Some(b)) => Some(b),
-        (None, None) => None,
+
+    pub fn encode(&self, samples: &[i16]) -> Option<Vec<u8>> {
+        if self.use_tukey {
+            encode_ranked_candidates(samples, self.tukey.as_ref()?)
+        } else {
+            encode_ranked_candidates(samples, &self.welch)
+        }
+    }
+}
+
+pub fn prepare_best_qlp(samples: &[i16]) -> Option<PreparedQlp> {
+    let welch = ranked_candidates(candidates(samples, false));
+    let welch_bytes = estimated_top4_payload_bytes(&welch)?;
+    if !tukey_margin_is_promising(&welch) {
+        return Some(PreparedQlp {
+            welch,
+            tukey: None,
+            use_tukey: false,
+            payload_bytes: welch_bytes,
+        });
+    }
+    let tukey = ranked_candidates(candidates(samples, true));
+    let tukey_bytes = estimated_top4_payload_bytes(&tukey);
+    match tukey_bytes {
+        Some(tb) if tb < welch_bytes => Some(PreparedQlp {
+            welch,
+            tukey: Some(tukey),
+            use_tukey: true,
+            payload_bytes: tb,
+        }),
+        _ => Some(PreparedQlp {
+            welch,
+            tukey: None,
+            use_tukey: false,
+            payload_bytes: welch_bytes,
+        }),
     }
 }
 
 pub fn encode_best_qlp_payload(samples: &[i16]) -> Option<Vec<u8>> {
-    // Welch is the default. Tukey candidates are materialized only when their
-    // exact metadata-and-padding estimate indicates a strict byte win.
-    let welch_candidates = ranked_candidates(candidates(samples, false));
-    let welch = encode_ranked_candidates(samples, &welch_candidates);
-    if !tukey_margin_is_promising(&welch_candidates) {
-        return welch;
-    }
-    let tukey_candidates = ranked_candidates(candidates(samples, true));
-    let tukey_estimate = estimated_top4_payload_bytes(&tukey_candidates);
-    let try_tukey = match (&welch, tukey_estimate) {
-        (Some(payload), Some(estimate)) => estimate < payload.len(),
-        (None, Some(_)) => true,
-        _ => false,
-    };
-    if !try_tukey {
-        return welch;
-    }
-    let tukey = encode_ranked_candidates(samples, &tukey_candidates);
-    match (welch, tukey) {
-        (Some(a), Some(b)) => Some(if b.len() < a.len() { b } else { a }),
-        (Some(a), None) => Some(a),
-        (None, Some(b)) => Some(b),
-        (None, None) => None,
-    }
+    prepare_best_qlp(samples)?.encode(samples)
 }
 
 pub fn decode_qlp_payload(payload: &[u8], expected_len: usize) -> Result<Vec<i16>, String> {
@@ -608,15 +626,15 @@ fn i32_candidates(samples: &[i32], use_tukey: bool) -> Vec<Candidate> {
                 continue;
             };
             let escape_bits = escape_bits_for_residuals(&body);
-            let ks = best_partitioned_ks(&body, escape_bits);
+            let (ks, rice_bits) = best_partitioned_ks_with_bits(&body, escape_bits);
             let estimated_bits = (4 + quantized.len() * 2 + order * 4) * 8
                 + ks.len() * 4
-                + rice_estimate_bits_partitioned_escape(&body, &ks, escape_bits);
+                + rice_bits;
             let actual_payload_bytes = 4
                 + quantized.len() * 2
                 + order * 4
                 + ks.len().div_ceil(2)
-                + rice_estimate_bits_partitioned_escape(&body, &ks, escape_bits).div_ceil(8);
+                + rice_bits.div_ceil(8);
             output.push(Candidate {
                 order: order as u8,
                 shift,
@@ -710,17 +728,21 @@ fn encode_i32_candidate(samples: &[i32], candidate: &Candidate) -> Option<Vec<u8
     Some(payload)
 }
 
+fn encode_ranked_i32_candidates(samples: &[i32], analyzed: &[Candidate]) -> Option<Vec<u8>> {
+    record_top4_coverage(analyzed);
+    let winner = analyzed
+        .iter()
+        .take(QLP_MATERIALIZE_TOP)
+        .min_by_key(|candidate| candidate.actual_payload_bytes)?;
+    encode_i32_candidate(samples, winner)
+}
+
 pub fn encode_best_i32_qlp_payload_with_window(
     samples: &[i32],
     prefer_tukey: bool,
 ) -> Option<Vec<u8>> {
     let analyzed = ranked_candidates(i32_candidates(samples, prefer_tukey));
-    record_top4_coverage(&analyzed);
-    analyzed
-        .iter()
-        .take(QLP_MATERIALIZE_TOP)
-        .filter_map(|candidate| encode_i32_candidate(samples, candidate))
-        .min_by_key(Vec::len)
+    encode_ranked_i32_candidates(samples, &analyzed)
 }
 
 pub fn estimate_best_i32_qlp_payload_bytes_with_window(
@@ -732,29 +754,12 @@ pub fn estimate_best_i32_qlp_payload_bytes_with_window(
 }
 
 pub fn estimate_best_i32_qlp_payload_bytes(samples: &[i32]) -> Option<usize> {
-    let welch_candidates = ranked_candidates(i32_candidates(samples, false));
-    let welch = estimated_top4_payload_bytes(&welch_candidates);
-    if !tukey_margin_is_promising(&welch_candidates) {
-        return welch;
-    }
-    let tukey_candidates = ranked_candidates(i32_candidates(samples, true));
-    let tukey = estimated_top4_payload_bytes(&tukey_candidates);
-    match (welch, tukey) {
-        (Some(a), Some(b)) => Some(a.min(b)),
-        (Some(a), None) => Some(a),
-        (None, Some(b)) => Some(b),
-        (None, None) => None,
-    }
+    prepare_best_i32_qlp(samples).map(|prep| prep.payload_bytes())
 }
 
 pub fn encode_best_i32_qlp_payload(samples: &[i32]) -> Option<Vec<u8>> {
     let welch_candidates = ranked_candidates(i32_candidates(samples, false));
-    record_top4_coverage(&welch_candidates);
-    let welch = welch_candidates
-        .iter()
-        .take(QLP_MATERIALIZE_TOP)
-        .filter_map(|candidate| encode_i32_candidate(samples, candidate))
-        .min_by_key(Vec::len);
+    let welch = encode_ranked_i32_candidates(samples, &welch_candidates);
     if !tukey_margin_is_promising(&welch_candidates) {
         return welch;
     }
@@ -768,17 +773,64 @@ pub fn encode_best_i32_qlp_payload(samples: &[i32]) -> Option<Vec<u8>> {
     if !try_tukey {
         return welch;
     }
-    record_top4_coverage(&tukey_candidates);
-    let tukey = tukey_candidates
-        .iter()
-        .take(QLP_MATERIALIZE_TOP)
-        .filter_map(|candidate| encode_i32_candidate(samples, candidate))
-        .min_by_key(Vec::len);
+    let tukey = encode_ranked_i32_candidates(samples, &tukey_candidates);
     match (welch, tukey) {
         (Some(a), Some(b)) => Some(if b.len() < a.len() { b } else { a }),
         (Some(a), None) => Some(a),
         (None, Some(b)) => Some(b),
         (None, None) => None,
+    }
+}
+
+/// Analyze i32 QLP once for estimate-then-encode callers (stereo side).
+pub struct PreparedI32Qlp {
+    welch: Vec<Candidate>,
+    tukey: Option<Vec<Candidate>>,
+    /// Which ranked list to materialize; Welch on ties.
+    use_tukey: bool,
+    payload_bytes: usize,
+}
+
+impl PreparedI32Qlp {
+    pub fn payload_bytes(&self) -> usize {
+        self.payload_bytes
+    }
+
+    pub fn encode(&self, samples: &[i32]) -> Option<Vec<u8>> {
+        if self.use_tukey {
+            encode_ranked_i32_candidates(samples, self.tukey.as_ref()?)
+        } else {
+            encode_ranked_i32_candidates(samples, &self.welch)
+        }
+    }
+}
+
+pub fn prepare_best_i32_qlp(samples: &[i32]) -> Option<PreparedI32Qlp> {
+    let welch = ranked_candidates(i32_candidates(samples, false));
+    let welch_bytes = estimated_top4_payload_bytes(&welch)?;
+    if !tukey_margin_is_promising(&welch) {
+        return Some(PreparedI32Qlp {
+            welch,
+            tukey: None,
+            use_tukey: false,
+            payload_bytes: welch_bytes,
+        });
+    }
+    let tukey = ranked_candidates(i32_candidates(samples, true));
+    let tukey_bytes = estimated_top4_payload_bytes(&tukey);
+    match tukey_bytes {
+        Some(tb) if tb < welch_bytes => Some(PreparedI32Qlp {
+            welch,
+            tukey: Some(tukey),
+            use_tukey: true,
+            payload_bytes: tb,
+        }),
+        _ => Some(PreparedI32Qlp {
+            welch,
+            tukey: None,
+            use_tukey: false,
+            payload_bytes: welch_bytes,
+        }),
     }
 }
 

@@ -1,7 +1,7 @@
 # MP5 Public Demo Copy
 
-**Version:** MP5 Audio v0.28.0-beta  
-**Badge:** `MP5 Public Beta - v0.28.0-beta`
+**Version:** MP5 Audio v0.29.0-beta  
+**Badge:** `MP5 Public Beta - v0.29.0-beta`
 
 ## Short Description
 

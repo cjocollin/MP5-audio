@@ -11,54 +11,98 @@ export interface CloudAdapterOptions {
   temperature?: number;
 }
 
+function isClientErrorStatus(status: number): boolean {
+  return status === 400 || status === 422;
+}
+
+function isJsonModeMismatch(detail: string): boolean {
+  return /response_format|json_object|json mode|structured/i.test(detail);
+}
+
+/** Newer GPT models only allow the default temperature (omit the field). */
+function isTemperatureUnsupported(detail: string): boolean {
+  return /temperature/i.test(detail) && /unsupported|does not support|only the default/i.test(detail);
+}
+
+async function openAiChatCompletion(
+  baseUrl: string,
+  apiKey: string,
+  body: Record<string, unknown>,
+): Promise<{ res: Response; detail: string }> {
+  const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey.trim()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (res.ok) return { res, detail: "" };
+  const detail = await res.text().catch(() => "");
+  return { res, detail };
+}
+
+function openAiMessageContent(body: { choices?: { message?: { content?: string } }[] }): string {
+  const content = body.choices?.[0]?.message?.content;
+  if (!content) throw new Error("Cloud AI returned an empty response.");
+  return content;
+}
+
+/**
+ * OpenAI-compatible chat/completions with retries for models that reject
+ * json_object mode and/or non-default temperature.
+ */
+async function callOpenAiCompatibleChat(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  messages: unknown[],
+  temperature: number | undefined,
+): Promise<string> {
+  async function attempt(includeJsonMode: boolean, includeTemperature: boolean): Promise<string> {
+    const body: Record<string, unknown> = {
+      model,
+      messages,
+      ...(includeTemperature && temperature !== undefined ? { temperature } : {}),
+      ...(includeJsonMode ? { response_format: { type: "json_object" } } : {}),
+    };
+
+    const { res, detail } = await openAiChatCompletion(baseUrl, apiKey, body);
+
+    if (!res.ok && includeTemperature && isClientErrorStatus(res.status) && isTemperatureUnsupported(detail)) {
+      return attempt(includeJsonMode, false);
+    }
+
+    if (!res.ok && includeJsonMode && isClientErrorStatus(res.status) && isJsonModeMismatch(detail)) {
+      return attempt(false, includeTemperature);
+    }
+
+    if (!res.ok) {
+      throw new Error(`Cloud AI request failed (${res.status})${detail ? `: ${detail.slice(0, 160)}` : ""}`);
+    }
+
+    return openAiMessageContent((await res.json()) as { choices?: { message?: { content?: string } }[] });
+  }
+
+  return attempt(true, temperature !== undefined);
+}
+
 export async function callOpenAiStyleChat(
   baseUrl: string,
   apiKey: string,
   model: string,
   userPrompt: string,
 ): Promise<string> {
-  async function request(includeJsonMode: boolean): Promise<Response> {
-    return fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey.trim()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.3,
-        ...(includeJsonMode ? { response_format: { type: "json_object" } } : {}),
-        messages: [
-          { role: "system", content: METADATA_SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-  }
-
-  let res = await request(true);
-  if (!res.ok) {
-    let detail = await res.text().catch(() => "");
-    const mayBeJsonModeMismatch =
-      (res.status === 400 || res.status === 422) &&
-      /response_format|json_object|json mode|structured/i.test(detail);
-    if (mayBeJsonModeMismatch) {
-      res = await request(false);
-      if (res.ok) {
-        const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-        const content = body.choices?.[0]?.message?.content;
-        if (!content) throw new Error("Cloud AI returned an empty response.");
-        return content;
-      }
-      detail = await res.text().catch(() => "");
-    }
-    throw new Error(`Cloud AI request failed (${res.status})${detail ? `: ${detail.slice(0, 160)}` : ""}`);
-  }
-
-  const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = body.choices?.[0]?.message?.content;
-  if (!content) throw new Error("Cloud AI returned an empty response.");
-  return content;
+  return callOpenAiCompatibleChat(
+    baseUrl,
+    apiKey,
+    model,
+    [
+      { role: "system", content: METADATA_SYSTEM_PROMPT },
+      { role: "user", content: userPrompt },
+    ],
+    0.3,
+  );
 }
 
 export async function callAnthropicMessages(
@@ -72,6 +116,7 @@ export async function callAnthropicMessages(
     headers: {
       "x-api-key": apiKey.trim(),
       "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -185,52 +230,20 @@ export async function callOpenAiStyleChatWithAudio(
   wavBase64: string,
   opts?: CloudAdapterOptions,
 ): Promise<string> {
-  async function request(includeJsonMode: boolean): Promise<Response> {
-    return fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey.trim()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: opts?.temperature ?? 0.2,
-        ...(includeJsonMode ? { response_format: { type: "json_object" } } : {}),
-        messages: [
-          { role: "system", content: opts?.systemPrompt ?? METADATA_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userPrompt },
-              { type: "input_audio", input_audio: { data: wavBase64, format: "wav" } },
-            ],
-          },
+  return callOpenAiCompatibleChat(
+    baseUrl,
+    apiKey,
+    model,
+    [
+      { role: "system", content: opts?.systemPrompt ?? METADATA_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: userPrompt },
+          { type: "input_audio", input_audio: { data: wavBase64, format: "wav" } },
         ],
-      }),
-    });
-  }
-
-  let res = await request(true);
-  if (!res.ok) {
-    let detail = await res.text().catch(() => "");
-    const mayBeJsonModeMismatch =
-      (res.status === 400 || res.status === 422) &&
-      /response_format|json_object|json mode|structured/i.test(detail);
-    if (mayBeJsonModeMismatch) {
-      res = await request(false);
-      if (res.ok) {
-        const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-        const content = body.choices?.[0]?.message?.content;
-        if (!content) throw new Error("Cloud AI returned an empty response.");
-        return content;
-      }
-      detail = await res.text().catch(() => "");
-    }
-    throw new Error(`Cloud AI request failed (${res.status})${detail ? `: ${detail.slice(0, 160)}` : ""}`);
-  }
-
-  const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = body.choices?.[0]?.message?.content;
-  if (!content) throw new Error("Cloud AI returned an empty response.");
-  return content;
+      },
+    ],
+    opts?.temperature ?? 0.2,
+  );
 }

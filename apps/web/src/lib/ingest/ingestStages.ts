@@ -83,8 +83,17 @@ export function mapParseProgressToIngestStage(p: Mp5ParseProgress): IngestLoadSt
 }
 
 export function parseStageDetail(p: Mp5ParseProgress): string | undefined {
-  if (p.stage === "parsing_chunks" && p.chunksParsed > 0) {
-    return `Parsing chunks (${p.chunksParsed})…`;
+  if (p.stage === "parsing_chunks") {
+    if (p.currentFourcc) {
+      const mb =
+        p.payloadBytes != null && p.payloadBytes >= 256 * 1024
+          ? ` (${(p.payloadBytes / (1024 * 1024)).toFixed(1)} MB)`
+          : "";
+      return `Parsing ${p.currentFourcc}${mb}…`;
+    }
+    if (p.chunksParsed > 0) {
+      return `Parsing chunks (${p.chunksParsed})…`;
+    }
   }
   if (p.stage === "indexing_stems" && p.stdfFragmentCount > 0) {
     return `Indexing stems (${p.stdfFragmentCount} STDF fragments)…`;

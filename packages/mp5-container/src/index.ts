@@ -2,6 +2,7 @@ export * from "./constants.js";
 export * from "./types.js";
 export * from "./errors.js";
 export * from "./checksum.js";
+export * from "./scheduling.js";
 export * from "./metadata.js";
 export * from "./coverArt.js";
 export * from "./chunkJson.js";
@@ -159,10 +160,12 @@ export {
   isLazyMp5,
   loadAudiFrames,
   loadAudiPayload,
+  peekAudiFramePrefix,
   loadStdfFragmentBytes,
   loadStdfFragmentRecord,
   loadStdfFragmentsForStem,
   groupStdfFragmentIndex,
+  loadCorrFrames,
   loadOptionalChunk,
   lazyChunkEntry,
 } from "./lazyMp5Load.js";

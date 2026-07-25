@@ -9,12 +9,31 @@ import { clearRecentLibrary } from "./recentLibrary";
 import type { LocalLibraryEntry, LocalLibraryRecord, StorageQuotaInfo } from "./types";
 import { createRandomId } from "../randomId";
 
-export interface SaveToLibraryResult {
-  record: LocalLibraryRecord;
-  duplicate: boolean;
-  duplicateReason?: "fingerprint" | "filename-size";
-  skipped?: boolean;
-}
+/** Structured save outcome — ok / duplicate / failed (quota still uses LibraryStorageError codes). */
+export type LibraryPersistResult =
+  | {
+      status: "ok";
+      ok: true;
+      record: LocalLibraryRecord;
+      duplicate: false;
+    }
+  | {
+      status: "duplicate";
+      ok: true;
+      record: LocalLibraryRecord;
+      duplicate: true;
+      duplicateReason: "fingerprint" | "filename-size";
+      skipped?: boolean;
+    }
+  | {
+      status: "failed";
+      ok: false;
+      message: string;
+      errorCode?: LibraryStorageError["code"];
+    };
+
+/** @deprecated Use LibraryPersistResult */
+export type SaveToLibraryResult = LibraryPersistResult;
 
 export interface SaveToLibraryOptions {
   allowUnreadable?: boolean;
@@ -44,22 +63,46 @@ function buildEntry(
   };
 }
 
+function failedFromError(err: unknown): LibraryPersistResult {
+  if (err instanceof LibraryStorageError) {
+    return { status: "failed", ok: false, message: err.message, errorCode: err.code };
+  }
+  return {
+    status: "failed",
+    ok: false,
+    message: err instanceof Error ? err.message : "Could not save to library.",
+    errorCode: "unknown",
+  };
+}
+
 /** Save MP5 bytes to the local library. Returns existing record if same filename+size already saved. */
 export async function saveMp5ToLibrary(
   source: File | Blob | ArrayBuffer,
   filename: string,
   opts?: SaveToLibraryOptions,
-): Promise<SaveToLibraryResult> {
-  const data =
-    source instanceof ArrayBuffer ? source.slice(0) : await fileToArrayBuffer(source as File | Blob);
-  const parsed = parseForLibrary(data, filename);
+): Promise<LibraryPersistResult> {
+  let data: ArrayBuffer;
+  try {
+    data =
+      source instanceof ArrayBuffer ? source.slice(0) : await fileToArrayBuffer(source as File | Blob);
+  } catch (err) {
+    return failedFromError(err);
+  }
 
+  const parsed = parseForLibrary(data, filename);
   if (parsed.parseError && !opts?.allowUnreadable) {
     throw new LibraryStorageError(parsed.parseError);
   }
 
   const store = getLibraryStore();
-  const records = await store.listRecords();
+  let records: LocalLibraryRecord[];
+  try {
+    records = await store.listMeta();
+  } catch (err) {
+    if (err instanceof LibraryStorageError) throw err;
+    return failedFromError(err);
+  }
+
   let identityKey = parsed.summary.fingerprintKey;
   if (!identityKey && parsed.parsed) {
     try {
@@ -76,6 +119,8 @@ export async function saveMp5ToLibrary(
   if (dup) {
     if (opts?.skipIfDuplicate) {
       return {
+        status: "duplicate",
+        ok: true,
         record: dup.record,
         duplicate: true,
         duplicateReason: dup.reason,
@@ -83,6 +128,8 @@ export async function saveMp5ToLibrary(
       };
     }
     return {
+      status: "duplicate",
+      ok: true,
       record: dup.record,
       duplicate: true,
       duplicateReason: dup.reason,
@@ -94,18 +141,16 @@ export async function saveMp5ToLibrary(
   try {
     await store.putEntry(entry);
   } catch (err) {
+    /* Quota / unavailable keep throwing for existing UI catch patterns. */
     if (err instanceof LibraryStorageError) throw err;
-    throw new LibraryStorageError(
-      err instanceof Error ? err.message : "Could not save to library.",
-      "unknown",
-    );
+    return failedFromError(err);
   }
   const { data: _d, ...record } = entry;
-  return { record, duplicate: false };
+  return { status: "ok", ok: true, record, duplicate: false };
 }
 
 export async function listLibraryRecords(): Promise<LocalLibraryRecord[]> {
-  return getLibraryStore().listRecords();
+  return getLibraryStore().listMeta();
 }
 
 export async function loadLibraryEntry(id: string): Promise<LocalLibraryEntry | null> {

@@ -3,12 +3,12 @@
 [![CI](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml/badge.svg)](https://github.com/cjocollin/MP5-audio/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/cjocollin/MP5-audio)](LICENSE)
 [![Status: Public Beta](https://img.shields.io/badge/status-public%20beta-blue)](docs/CURRENT_MP5_STATUS.md)
-[![Version](https://img.shields.io/badge/version-v0.28.0--beta-blue)](CHANGELOG.md#0280-beta---2026-07)
+[![Version](https://img.shields.io/badge/version-v0.28.0--beta-blue)](CHANGELOG.md#0290-beta---2026-07)
 [![Live Demo](https://img.shields.io/badge/demo-live-MP5--L-success)](https://mp5-audio.vercel.app)
 
 An experimental open-source audio format, container, codec, converter, and player project.
 
-**Version:** MP5 Audio **v0.28.0-beta** (Public Beta)  
+**Version:** MP5 Audio **v0.29.0-beta** (Public Beta)  
 **Live demo:** https://mp5-audio.vercel.app  
 **GitHub:** https://github.com/cjocollin/MP5-audio
 
@@ -35,7 +35,7 @@ Single-track `.mp5` remains the core format. Album packages use `.mp5p` in eithe
 | `.mp5p` | Experimental album package; browser memory limits apply |
 | Public claims | No beat-codec, DRM, legal-proof, telemetry, upload, or cloud-sync claims |
 
-## v0.28.0-beta Focus
+## v0.29.0-beta Focus
 
 Lab **MDCT loud path** (`mp5c3`, vNext `TAG_MDCT`) with FFT Type-IV for practical WASM, plus
 real-track MDCT validate (High ~0.214× / Extreme ~0.268× PCM, hiss risk **low** at protect 1.5).

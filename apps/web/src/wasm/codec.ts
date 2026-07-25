@@ -18,10 +18,11 @@ import init, {
   encode_mp5l_v4,
   snr_db_wasm,
 } from "./pkg/mp5_codec.js";
+import * as wasmPkg from "./pkg/mp5_codec.js";
 
 export { Mp5lStreamDecoder };
 
-type CodecModule = {
+export type CodecModule = {
   encode_mp5l: typeof encode_mp5l;
   encode_mp5l_v4: typeof encode_mp5l_v4;
   decode_mp5l: typeof decode_mp5l;
@@ -38,6 +39,30 @@ type CodecModule = {
   encode_mp5h_min: typeof encode_mp5h_min;
   decode_mp5h: typeof decode_mp5h;
   snr_db_wasm: typeof snr_db_wasm;
+  /** Present after `pnpm wasm:build` with progressive/frame APIs. */
+  Mp5lV4StreamEncoder?: new (
+    samples: Int16Array,
+    channels: number,
+  ) => {
+    free(): void;
+    frameCount(): number;
+    framesDone(): number;
+    encodeNextFrame(): boolean;
+    finish(): Uint8Array;
+  };
+  plan_mp5l_v4_boundaries?: (samples: Int16Array, channels: number) => Uint32Array;
+  encode_mp5l_v4_frame?: (
+    samples: Int16Array,
+    channels: number,
+    start: number,
+    end: number,
+  ) => Uint8Array;
+  assemble_mp5l_v4?: (
+    channels: number,
+    sampleOffsets: Uint32Array,
+    framesConcat: Uint8Array,
+    frameLengths: Uint32Array,
+  ) => Uint8Array;
 };
 
 export type CodecLoadState = "idle" | "loading" | "ready" | "unavailable";
@@ -70,6 +95,7 @@ async function tryLoadWasmModule(): Promise<CodecModule | null> {
   if (!inWindow && !inWorker) return null;
   try {
     await init({ module_or_path: wasmUrl });
+    const pkg = wasmPkg as CodecModule & typeof wasmPkg;
     return {
       encode_mp5l,
       encode_mp5l_v4,
@@ -87,6 +113,10 @@ async function tryLoadWasmModule(): Promise<CodecModule | null> {
       encode_mp5h_min,
       decode_mp5h,
       snr_db_wasm,
+      Mp5lV4StreamEncoder: pkg.Mp5lV4StreamEncoder,
+      plan_mp5l_v4_boundaries: pkg.plan_mp5l_v4_boundaries,
+      encode_mp5l_v4_frame: pkg.encode_mp5l_v4_frame,
+      assemble_mp5l_v4: pkg.assemble_mp5l_v4,
     };
   } catch (err) {
     console.warn("MP5 WASM codec failed to load:", err);
@@ -123,25 +153,31 @@ function createJsFallback(): CodecModule {
   const passthrough = (samples: Int16Array) =>
     new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength);
 
-  const decodePassthrough = (data: Uint8Array) =>
-    new Int16Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
+  // NEVER reinterpret a compressed bitstream as raw PCM — that plays full-scale
+  // noise (a hearing hazard). Without WASM, compressed codecs cannot be decoded;
+  // throw a clear error so the UI surfaces "decode failed" instead of noise.
+  const decodeUnavailable = (): never => {
+    throw new Error(
+      "MP5 codec (WASM) unavailable — cannot decode compressed audio in this browser/session. Reload the page, or use a PCM file.",
+    );
+  };
 
   return {
     encode_mp5l: passthrough,
     encode_mp5l_v4: passthrough,
-    decode_mp5l: decodePassthrough,
+    decode_mp5l: decodeUnavailable,
     encode_mp5c: passthrough,
-    decode_mp5c: decodePassthrough,
+    decode_mp5c: decodeUnavailable,
     encode_mp5c_vnext: passthrough,
     encode_mp5c_vnext_at: (s) => passthrough(s),
     encode_mp5c_vnext_protect: (s) => passthrough(s),
     encode_mp5c_vnext_mdct: passthrough,
-    decode_mp5c_vnext: decodePassthrough,
+    decode_mp5c_vnext: decodeUnavailable,
     encode_mp5c3: passthrough,
-    decode_mp5c3: decodePassthrough,
+    decode_mp5c3: decodeUnavailable,
     encode_mp5h: passthrough,
     encode_mp5h_min: passthrough,
-    decode_mp5h: (d) => decodePassthrough(d),
+    decode_mp5h: decodeUnavailable,
     snr_db_wasm: () => 0,
   };
 }

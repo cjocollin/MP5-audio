@@ -1,6 +1,6 @@
 # MP5 Moonshot Features
 
-**Version:** MP5 Audio v0.28.0-beta  
+**Version:** MP5 Audio v0.29.0-beta  
 **Status:** Spec-only reservations
 
 Moonshot chunks are reserved names only. They are not implemented product features and must never be required for playback.

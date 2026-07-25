@@ -11,18 +11,27 @@ import {
   selectCanGoPrev,
   withoutDefaultDemoTracks,
 } from "../store/playerStore";
-import { decodeMp5ToPcm } from "./decodeMp5";
+import { filesToFileList } from "../lib/pickMp5Files";
+import {
+  decodeMp5ToPcmOffthread,
+  getMixDecodeWorkerClient,
+  warmMixDecodePipeline,
+} from "./mixDecodeWorkerClient";
+import { PlaybackController } from "./engine/playbackController";
+import type { PlayIntentSource } from "./engine/playbackMachine";
+import { getCodec } from "../wasm/codec";
 import { decodeCache } from "./decodeCache";
 import { FileDropZone } from "./FileDropZone";
 import { WaveformView } from "./WaveformView";
 import { PlayerControls } from "./PlayerControls";
+import { WaveformProgress } from "./SeekTimeline";
+import { PlaybackRangeTicker } from "./PlaybackRangeTicker";
 import { MetadataDetailsPanel } from "./MetadataDetailsPanel";
 import { StemsPanel } from "./StemsPanel";
 import { LyricsPanel } from "./LyricsPanel";
 import { SongMapPanel } from "./SongMapPanel";
 import { parseStructureFromFile } from "../lib/sections/parseSections";
 import {
-  applyPlaybackRangeTick,
   loopHookRange,
   loopSectionRange,
   playHighlightRange,
@@ -30,7 +39,13 @@ import {
   type ActivePlaybackRange,
 } from "../lib/sections/playbackRange";
 import { findFirstSectionByType } from "../lib/sections/sectionPlayback";
-import type { HighlightMoment, SongSection } from "@mp5/container";
+import {
+  CodecId,
+  peekAudiFramePrefix,
+  type HighlightMoment,
+  type SongSection,
+} from "@mp5/container";
+import { mp5lBitstreamVersion } from "../lib/codecDisplay";
 import { useMp5AudioEngine } from "./useMp5AudioEngine";
 import { useStemMixerEngine, type StemPcmTrack } from "./useStemMixerEngine";
 import {
@@ -80,7 +95,10 @@ import {
   type IngestLoadStage,
 } from "../lib/ingest/ingestStages";
 import { updateIngestDiagnostics } from "../lib/ingest/ingestDiagnostics";
-import { ingestAlbumPackageFiles } from "../lib/album/ingestAlbumPackage";
+import {
+  ingestAlbumPackageFiles,
+  partitionDroppedFiles,
+} from "../lib/album/ingestAlbumPackage";
 import {
   enrichResolvedAlbum,
   resolveAlbumTracks,
@@ -138,6 +156,9 @@ import { resolveThemeForFile } from "../lib/visualTheme/themeApplication";
 
 type InspectorSection = "overview" | "format" | "lyrics" | "stems" | "metadata" | "integrity";
 
+/** First-audible window for L-v4 / PCM progressive load (Day 2). */
+const PROGRESSIVE_FIRST_SEC = 8;
+
 const INSPECTOR_TABS: { id: InspectorSection; label: string; target: InspectorSection }[] = [
   { id: "overview", label: "Overview", target: "overview" },
   { id: "format", label: "Format", target: "format" },
@@ -152,53 +173,76 @@ interface Mp5PlayerProps {
   onRequestPlayer?: () => void;
 }
 
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (target.isContentEditable) return true;
+  return !!target.closest("[contenteditable='true']");
+}
+
 export function Mp5Player({
   panelVisible = true,
   onRequestPlayer,
 }: Mp5PlayerProps) {
-  const store = usePlayerStore();
-  const {
-    tracks,
-    currentIndex,
-    isPlaying,
-    currentTime,
-    duration,
-    volume,
-    repeatMode,
-    shuffle,
-    appendTracks,
-    setTracks,
-    replacePlaylistTrack,
-    removeTrack,
-    clearTracks,
-    setCurrentIndex,
-    playNext,
-    playPrevious,
-    handleTrackEnded,
-    cycleRepeatMode,
-    toggleShuffle,
-    setPlaying,
-    setCurrentTime,
-    setDuration,
-    setVolume,
-    setRepeatMode,
-    setShuffle: setShuffleMode,
-    sessionRestored,
-    setSessionRestored,
-    dismissDefaultDemo,
-    useFileThemes,
-    pendingAlbumPackage,
-    consumePendingAlbumPackage,
-    setActiveTab,
-  } = store;
+  // Selectors — avoid full-store subscribe so currentTime ticks don't re-render this tree.
+  const tracks = usePlayerStore((s) => s.tracks);
+  const currentIndex = usePlayerStore((s) => s.currentIndex);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  // Reactive so the track-load effect re-runs (and drains this mailbox into the
+  // machine) whenever a trigger arms play intent — regardless of whether the
+  // mailbox is set before or after the track becomes current.
+  const pendingPlayTrackId = usePlayerStore((s) => s.pendingPlayTrackId);
+  const duration = usePlayerStore((s) => s.duration);
+  const volume = usePlayerStore((s) => s.volume);
+  const repeatMode = usePlayerStore((s) => s.repeatMode);
+  const shuffle = usePlayerStore((s) => s.shuffle);
+  const appendTracks = usePlayerStore((s) => s.appendTracks);
+  const setTracks = usePlayerStore((s) => s.setTracks);
+  const replacePlaylistTrack = usePlayerStore((s) => s.replacePlaylistTrack);
+  const removeTrack = usePlayerStore((s) => s.removeTrack);
+  const clearTracks = usePlayerStore((s) => s.clearTracks);
+  const setCurrentIndex = usePlayerStore((s) => s.setCurrentIndex);
+  const playNext = usePlayerStore((s) => s.playNext);
+  const playPrevious = usePlayerStore((s) => s.playPrevious);
+  const handleTrackEnded = usePlayerStore((s) => s.handleTrackEnded);
+  const cycleRepeatMode = usePlayerStore((s) => s.cycleRepeatMode);
+  const toggleShuffle = usePlayerStore((s) => s.toggleShuffle);
+  const setPlaying = usePlayerStore((s) => s.setPlaying);
+  const setCurrentTime = usePlayerStore((s) => s.setCurrentTime);
+  const setDuration = usePlayerStore((s) => s.setDuration);
+  const setVolume = usePlayerStore((s) => s.setVolume);
+  const setRepeatMode = usePlayerStore((s) => s.setRepeatMode);
+  const setShuffleMode = usePlayerStore((s) => s.setShuffle);
+  const sessionRestored = usePlayerStore((s) => s.sessionRestored);
+  const setSessionRestored = usePlayerStore((s) => s.setSessionRestored);
+  const dismissDefaultDemo = usePlayerStore((s) => s.dismissDefaultDemo);
+  const useFileThemes = usePlayerStore((s) => s.useFileThemes);
+  const pendingAlbumPackage = usePlayerStore((s) => s.pendingAlbumPackage);
+  const consumePendingAlbumPackage = usePlayerStore((s) => s.consumePendingAlbumPackage);
+  const pendingPlayerFiles = usePlayerStore((s) => s.pendingPlayerFiles);
+  const consumePendingPlayerFiles = usePlayerStore((s) => s.consumePendingPlayerFiles);
+  const setActiveTab = usePlayerStore((s) => s.setActiveTab);
+  const setPendingConverterFiles = usePlayerStore((s) => s.setPendingConverterFiles);
+  const canPrev = usePlayerStore(selectCanGoPrev);
+  const canNext = usePlayerStore(selectCanGoNext);
 
   const [parsed, setParsed] = useState<Mp5File | undefined>();
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(false);
+  /**
+   * Bumped when the decode worker frees up (background upgrade settled), to
+   * re-run the neighbour prefetch effect. Without it the effect's deps
+   * (loading/currentIndex/tracks) can never change again after a progressive
+   * load — `loading` goes false at the 8s window while the full decode still
+   * holds the worker busy — so the prefetch bailed once and never retried.
+   */
+  const [decodeIdleTick, setDecodeIdleTick] = useState(0);
   const [decodePath, setDecodePath] = useState("");
   const [mp5hInfo, setMp5hInfo] = useState<import("./decodeMp5").Mp5hDecodeInfo | undefined>();
   const [dropErrors, setDropErrors] = useState<{ name: string; message: string }[]>([]);
   const [lastDropSummary, setLastDropSummary] = useState<IngestResult | null>(null);
+  const [lastSkippedConvertibleFiles, setLastSkippedConvertibleFiles] = useState<File[]>([]);
   const [librarySaveBusy, setLibrarySaveBusy] = useState(false);
   const [librarySaveNote, setLibrarySaveNote] = useState("");
   const [stemMixActive, setStemMixActive] = useState(false);
@@ -249,21 +293,49 @@ export function Mp5Player({
     return () => window.clearTimeout(timer);
   }, [lastDropSummary]);
 
-  const playWhenReadyRef = useRef(false);
-  const playWhenReadyKaraokeRef = useRef(false);
+  // Transport-layer "resume once prepared" flag. NOT load-deferred play intent
+  // (the playback machine owns that now, keyed by trackId): this covers the
+  // narrower case where the track's PCM is already ready but the STEM MIX / karaoke
+  // graph is still being prepared, so audio must start when preparation finishes.
+  const resumeStemsWhenPreparedRef = useRef(false);
+  /** Volume before M-key mute so unmute restores the prior level. */
+  const preMuteVolumeRef = useRef(0.8);
   const embeddedHydrateGenRef = useRef(0);
   const playlistPrefetchGenRef = useRef(0);
-  const loadFileGenRef = useRef(0);
-  const loadedPcmTrackIdRef = useRef<string | null>(null);
+  const ingestProgressFlushRef = useRef(0);
+
+  // Day-1 load: warm main WASM + mix worker before the first song open.
+  useEffect(() => {
+    void getCodec();
+    warmMixDecodePipeline();
+  }, []);
   const embeddedHydratingTrackIdRef = useRef<string | null>(null);
-  const autoAdvanceRef = useRef(false);
   const seekRef = useRef<(t: number) => void>(() => {});
   const [karaokeStemPrepFailed, setKaraokeStemPrepFailed] = useState(false);
+
+  // Track ended (or a load failed mid-auto-advance): apply the queue's advance
+  // policy. `repeat_one` restarts in place; `goto` arms play intent for the next
+  // track in the shared mailbox (source "autoAdvance" so a next-track load that
+  // itself fails keeps chaining past it) and moves the index — the track-load
+  // effect drains that mailbox into the playback machine.
+  const advanceAfterEnd = useCallback(() => {
+    const result = handleTrackEnded();
+    if (result.type === "repeat_one") {
+      seekRef.current(0);
+      setPlaying(true);
+    } else if (result.type === "goto") {
+      const nextId = usePlayerStore.getState().tracks[result.index]?.id ?? null;
+      if (nextId) usePlayerStore.getState().setPendingPlayTrackId(nextId, "autoAdvance");
+      setCurrentIndex(result.index);
+    }
+    return result;
+  }, [handleTrackEnded, setCurrentIndex, setPlaying]);
 
   const useStemPlayback = stemMixActive && (stemTracks?.length ?? 0) > 0;
 
   const {
     loadPcm,
+    upgradePcm,
     seek: seekMain,
     stopSource: stopMainSource,
     getPlaybackTime: getMainPlaybackTime,
@@ -276,19 +348,7 @@ export function Mp5Player({
     setCurrentTime,
     setPlaying,
     onTrackEnded: () => {
-      const result = handleTrackEnded();
-      if (result.type === "repeat_one") {
-        seekRef.current(0);
-        setPlaying(true);
-        return;
-      }
-      if (result.type === "goto") {
-        autoAdvanceRef.current = true;
-        playWhenReadyRef.current = true;
-        setCurrentIndex(result.index);
-        return;
-      }
-      autoAdvanceRef.current = false;
+      advanceAfterEnd();
     },
   });
 
@@ -311,17 +371,7 @@ export function Mp5Player({
     setCurrentTime,
     setPlaying,
     onTrackEnded: () => {
-      const result = handleTrackEnded();
-      if (result.type === "repeat_one") {
-        seekRef.current(0);
-        setPlaying(true);
-        return;
-      }
-      if (result.type === "goto") {
-        autoAdvanceRef.current = true;
-        playWhenReadyRef.current = true;
-        setCurrentIndex(result.index);
-      }
+      advanceAfterEnd();
     },
     onOverlapDetected: (detail) => {
       tracePlayback("transport", "overlap detected", { detail });
@@ -332,15 +382,7 @@ export function Mp5Player({
     onStemMixNaturalEnd: () => {
       tracePlayback("stem_mix", "natural end — stop UI");
       setPlaying(false);
-      const result = handleTrackEnded();
-      if (result.type === "repeat_one") {
-        seekRef.current(0);
-        setPlaying(true);
-      } else if (result.type === "goto") {
-        autoAdvanceRef.current = true;
-        playWhenReadyRef.current = true;
-        setCurrentIndex(result.index);
-      }
+      advanceAfterEnd();
     },
   });
 
@@ -412,9 +454,8 @@ export function Mp5Player({
       setTransportMode(mode);
       setStemTracks(tracks);
       setStemMixActive(true);
-      const resume =
-        isPlaying || playWhenReadyKaraokeRef.current || playWhenReadyRef.current;
-      playWhenReadyKaraokeRef.current = false;
+      const resume = isPlaying || resumeStemsWhenPreparedRef.current;
+      resumeStemsWhenPreparedRef.current = false;
       void loadInitialTracksForMix(tracks, {
         offset: offsetSec,
         resume,
@@ -555,7 +596,7 @@ export function Mp5Player({
       offsetSec?: number;
       autoPlay?: boolean;
     }) => {
-      const offsetSec = opts.offsetSec ?? currentTime;
+      const offsetSec = opts.offsetSec ?? usePlayerStore.getState().currentTime;
       const autoPlay =
         opts.autoPlay ??
         (opts.reason === "play_button" || opts.reason === "resume_after_prepare");
@@ -592,13 +633,17 @@ export function Mp5Player({
         case "noop":
           return;
         case "set_playing_preparing_karaoke":
-          playWhenReadyKaraokeRef.current = true;
-          playWhenReadyRef.current = true;
+          // PCM is ready but the stem/karaoke graph is still preparing; mark the
+          // transport-resume so the resume-after-prepare effect starts audio when
+          // the graph is ready. (Load-deferred intent is the machine's job; this
+          // is the narrower transport-prep case it does not model.)
+          resumeStemsWhenPreparedRef.current = true;
           setPlaying(true);
           tracePlayback("karaoke", "preparing — play deferred");
           return;
         case "set_playing_preparing_full_mix":
-          playWhenReadyRef.current = true;
+          // Full-mix requested before PCM is ready. The machine's armed intent
+          // already drives startAudio on LOAD_READY; just reflect desired-playing.
           setPlaying(true);
           return;
         case "start_stem_mix":
@@ -632,7 +677,6 @@ export function Mp5Player({
       }
     },
     [
-      currentTime,
       karaokeMode,
       karaokePreparing,
       karaokeReady,
@@ -672,11 +716,11 @@ export function Mp5Player({
     if (useStemPlayback) {
       return hasStemActiveSources() || isPlaying
         ? getStemPlaybackTime()
-        : currentTime;
+        : usePlayerStore.getState().currentTime;
     }
     return isMainSourceActive() || isPlaying
       ? getMainPlaybackTime()
-      : currentTime;
+      : usePlayerStore.getState().currentTime;
   }, [
     useStemPlayback,
     getStemPlaybackTime,
@@ -684,7 +728,6 @@ export function Mp5Player({
     hasStemActiveSources,
     isMainSourceActive,
     isPlaying,
-    currentTime,
   ]);
 
   const hasActivePlaybackSource = useCallback(() => {
@@ -707,7 +750,7 @@ export function Mp5Player({
           ? "full_mix"
           : "none",
       activeTrackId: track?.id ?? null,
-      currentTimeSec: currentTime,
+      currentTimeSec: usePlayerStore.getState().currentTime,
       durationSec: duration,
       activeSourceCount: useStemPlayback
         ? getStemDiagnostics().activeSourceCount
@@ -734,7 +777,6 @@ export function Mp5Player({
     hasStemActiveSources,
     isMainSourceActive,
     track?.id,
-    currentTime,
     duration,
     getStemDiagnostics,
     karaokeMode,
@@ -778,13 +820,13 @@ export function Mp5Player({
   useEffect(() => {
     if (!useStemPlayback || !stemTracks?.length || !isPlaying) return;
     if (hasStemActiveSources() || isStemGraphBusy()) return;
-    if (!playWhenReadyKaraokeRef.current && !playWhenReadyRef.current) return;
-    playWhenReadyKaraokeRef.current = false;
+    if (!resumeStemsWhenPreparedRef.current) return;
+    resumeStemsWhenPreparedRef.current = false;
     tracePlayback("request_playback", "resume_after_prepare", {
       stemTracks: stemTracks.length,
     });
     void loadInitialTracksForMix(stemTracks, {
-      offset: currentTime,
+      offset: usePlayerStore.getState().currentTime,
       resume: true,
       generation: stemGraphGenRef.current,
     }).then(() => refreshTransportDiagnostics());
@@ -793,7 +835,6 @@ export function Mp5Player({
     stemTracks,
     isPlaying,
     hasStemActiveSources,
-    currentTime,
     loadInitialTracksForMix,
     refreshTransportDiagnostics,
   ]);
@@ -801,6 +842,10 @@ export function Mp5Player({
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
       tracePlayback("play_click", "pause");
+      // pauseClick drops any pending play intent in the machine (so a pause while
+      // a track is still loading won't auto-start at ready); setPlaying(false) is
+      // the universal transport stop for both the main and stem engines.
+      controllerRef.current?.pauseClick();
       setPlaying(false);
       return;
     }
@@ -812,11 +857,21 @@ export function Mp5Player({
     });
     if (!track?.file && !track?.parsed && !track?.embeddedAlbum) return;
     if (!track?.file && track?.embeddedAlbum) {
-      playWhenReadyRef.current = true;
+      // Embedded placeholder not hydrated yet: arm play in the mailbox so the
+      // track-load effect starts it once the real file loads.
+      if (track?.id) usePlayerStore.getState().setPendingPlayTrackId(track.id, "user");
       recordLastPlaybackRequest("play_button");
       return;
     }
-    requestPlayback({ reason: "play_button", autoPlay: true });
+    // Machine-owned play. If this track's load previously FAILED (machine phase
+    // "error"), PLAY_CLICK is inert, so re-arm the mailbox to make the track-load
+    // effect re-select and RETRY the load. Otherwise PLAY_CLICK starts audio if
+    // the track is ready, or defers until its in-flight load completes.
+    if (controllerRef.current?.getState().phase === "error" && track?.id) {
+      usePlayerStore.getState().setPendingPlayTrackId(track.id, "user");
+    } else {
+      controllerRef.current?.playClick();
+    }
   }, [
     isPlaying,
     track?.file,
@@ -826,7 +881,6 @@ export function Mp5Player({
     karaokeMode,
     useStemPlayback,
     transportMode,
-    requestPlayback,
     setPlaying,
   ]);
 
@@ -837,11 +891,55 @@ export function Mp5Player({
       requestPlayback({
         reason: "waveform_seek",
         offsetSec: ratio * duration,
-        autoPlay: true,
+        autoPlay: isPlaying,
       });
     },
-    [duration, requestPlayback],
+    [duration, requestPlayback, isPlaying],
   );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isEditableKeyboardTarget(event.target)) return;
+      if (event.key === " " || event.code === "Space") {
+        event.preventDefault();
+        handlePlayPause();
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        const t = usePlayerStore.getState().currentTime;
+        seek(Math.max(0, t - 5));
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        const t = usePlayerStore.getState().currentTime;
+        seek(Math.min(duration || t + 5, t + 5));
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setVolume(Math.min(1, volume + 0.05));
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setVolume(Math.max(0, volume - 0.05));
+        return;
+      }
+      if (event.key === "m" || event.key === "M") {
+        event.preventDefault();
+        if (volume > 0) {
+          preMuteVolumeRef.current = volume;
+          setVolume(0);
+        } else {
+          setVolume(preMuteVolumeRef.current > 0 ? preMuteVolumeRef.current : 0.8);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handlePlayPause, seek, duration, volume, setVolume]);
 
   const activeClockMode = clockModeForTransport(
     transportMode,
@@ -861,10 +959,11 @@ export function Mp5Player({
     if (!isPlaying) return;
     const id = window.setInterval(() => {
       const raw = getPlaybackTime();
+      const displayed = usePlayerStore.getState().currentTime;
       const diag: PlaybackClockDiagnostics = {
         activeClockMode,
         rawClockTime: raw,
-        displayedCurrentTime: currentTime,
+        displayedCurrentTime: displayed,
         duration,
         activeTransportMode: transportMode,
       };
@@ -877,7 +976,6 @@ export function Mp5Player({
     isPlaying,
     getPlaybackTime,
     activeClockMode,
-    currentTime,
     duration,
     transportMode,
     karaokeReady,
@@ -917,32 +1015,56 @@ export function Mp5Player({
   }, [tracks, currentIndex, repeatMode, shuffle, volume]);
 
   const loadFile = useCallback(
-    async (playlistTrack: PlaylistTrack) => {
+    async (playlistTrack: PlaylistTrack, loadGen: number, signal: AbortSignal) => {
       const { id: trackId, file, rawBuffer, parsed: ingestParsed } = playlistTrack;
       if (!file) return;
-      const loadGen = ++loadFileGenRef.current;
-      const wantPlayAfterLoad = playWhenReadyRef.current || autoAdvanceRef.current;
+      // The playback controller owns the load lifecycle: it aborts a prior load
+      // before starting this one and provides `signal` (aborts on supersede /
+      // clear). Report readiness/failure back by `loadGen` so the machine tracks
+      // phase and never reloads an already-ready track.
+      getMixDecodeWorkerClient().cancelActive();
+      // Play intent now lives in the playback machine (armed by the track-load
+      // effect's select({play}) and consumed on AUDIO_STARTED). loadFile just
+      // decodes and reports loadReady/loadFailed by `loadGen`; the machine's
+      // startAudio effect (via requestPlayback) is what actually starts audio.
       stopMainSource();
       setLoadError("");
       setLoading(true);
+      // Clear stale duration so Play stays disabled until this track is ready.
+      setDuration(0);
+      setCurrentTime(0);
       setIngestStage("decoding_audio");
-      setIngestStageDetail(ingestStageLabel("decoding_audio"));
-      if (!autoAdvanceRef.current && !playWhenReadyRef.current) {
-        setPlaying(false);
-      }
+      setIngestStageDetail("Preparing decode…");
+      // A new load means nothing is playing until this track reaches ready and
+      // the machine starts it. (A partial→full upgrade of an already-playing
+      // track is not a new load and never reaches here.)
+      setPlaying(false);
 
       const cached = decodeCache.get(trackId);
+      // Guard so loadReady is dispatched EXACTLY once per load: the progressive
+      // branch reports it early (at the 8s window) and the shared tail must not
+      // report it again in the same synchronous tick (a second LOAD_READY would
+      // re-emit startAudio before the isPlaying->machine bridge has consumed the
+      // intent).
+      let readyReported = false;
       const scheduleIntegrity = (pr: Mp5File, samples: Int16Array) => {
         const run = async () => {
+          // This runs on an idle callback, long after loadFile returned, so it
+          // must re-check the load's abort signal. Without this a superseded
+          // track's verify still ran (hashing tens of MB for a track the user
+          // already left) and then wrote a stale "Bit-exact" onto the new track.
+          if (!stillCurrent()) return;
           setIngestStage("checking_integrity");
           setIngestStageDetail(ingestStageLabel("checking_integrity"));
           try {
             const result = await verifyMp5Integrity(pr, undefined, {
               pcmSamples: samples,
             });
+            if (!stillCurrent()) return;
             setIntegrity(result);
             updateIngestDiagnostics({ integrityStatus: result.status });
           } catch {
+            if (!stillCurrent()) return;
             setIntegrity(null);
           }
           setIngestStage("ready");
@@ -955,8 +1077,11 @@ export function Mp5Player({
         }
       };
 
+      const stillCurrent = () => !signal.aborted;
+
       try {
         if (cached) {
+          if (!stillCurrent()) return;
           setDecodePath(cached.decodePath);
           setMp5hInfo(cached.mp5h);
           await loadPcm({
@@ -964,6 +1089,7 @@ export function Mp5Player({
             rate: cached.sampleRate,
             ch: cached.channels,
           });
+          if (!stillCurrent()) return;
           setParsed(cached.parsed);
           setDuration(cached.duration);
           setCurrentTime(0);
@@ -972,32 +1098,192 @@ export function Mp5Player({
           scheduleIntegrity(cached.parsed, cached.samples);
         } else {
           const mixStart = performance.now();
-          const buf = playlistTrack.lazyIngest ? undefined : rawBuffer ?? (await file.arrayBuffer());
-          const { samples, sampleRate, channels, parsed: pr, decodePath: path, mp5h } =
-            await decodeMp5ToPcm(buf, ingestParsed);
-          updateIngestDiagnostics({
-            readyMixMs: Math.round(performance.now() - mixStart),
-          });
-          const dur = samples.length / channels / sampleRate;
-          decodeCache.set(trackId, {
-            samples,
-            sampleRate,
-            channels,
-            parsed: pr,
-            decodePath: path,
-            mp5h,
-            duration: dur,
-          });
-          setDecodePath(path);
-          setMp5hInfo(mp5h);
-          await loadPcm({ samples, rate: sampleRate, ch: channels });
-          setParsed(pr);
-          setDuration(dur);
-          setCurrentTime(0);
-          setIngestStage("ready");
-          setIngestStageDetail("");
-          scheduleIntegrity(pr, samples);
+          // Prefer ingestParsed → load AUDI + worker frames decode (lazy + eager).
+          // Full-file arrayBuffer only when we lack a parsed HEAD.
+          const buf = ingestParsed?.head
+            ? undefined
+            : rawBuffer ?? (await file.arrayBuffer());
+          if (!stillCurrent()) return;
+
+          // Day 2: L-v4 / PCM — decode first seconds, play, finish in background.
+          let useProgressive = false;
+          let progressiveEndSample = 0;
+          let progressiveTrackDur = 0;
+          if (ingestParsed?.head) {
+            const head = ingestParsed.head;
+            const total = Number(head.totalSamples);
+            const rate = head.sampleRate;
+            if (Number.isFinite(total) && total > 0 && rate > 0) {
+              progressiveTrackDur = total / rate;
+              progressiveEndSample = Math.min(
+                total,
+                Math.ceil(PROGRESSIVE_FIRST_SEC * rate),
+              );
+              const longEnough = progressiveEndSample < total - rate * 0.25;
+              if (longEnough && head.codecId === CodecId.PCM) {
+                useProgressive = true;
+              } else if (longEnough && head.codecId === CodecId.MP5L) {
+                // Peek only — do not CRC/load full AUDI just to read the version byte.
+                const prefix = await peekAudiFramePrefix(ingestParsed, 8);
+                useProgressive = !!prefix && mp5lBitstreamVersion(prefix) === 4;
+              }
+            }
+          }
+          if (!stillCurrent()) return;
+
+          if (useProgressive && ingestParsed) {
+            setDuration(progressiveTrackDur);
+            setIngestStageDetail("Loading audio stream…");
+            // Yield so "Loading…" can paint before AUDI CRC / worker transfer.
+            await new Promise<void>((r) => setTimeout(r, 0));
+            if (!stillCurrent()) return;
+            setIngestStageDetail("Decoding first seconds…");
+            const partial = await decodeMp5ToPcmOffthread(undefined, ingestParsed, {
+              windowStartSample: 0,
+              windowEndSample: progressiveEndSample,
+            });
+            if (!stillCurrent()) return;
+            updateIngestDiagnostics({
+              readyMixMs: Math.round(performance.now() - mixStart),
+            });
+            setDecodePath(partial.decodePath);
+            setMp5hInfo(partial.mp5h);
+            setParsed(partial.parsed);
+            setCurrentTime(0);
+            setIngestStageDetail("Preparing playback…");
+            await loadPcm(
+              {
+                samples: partial.samples,
+                rate: partial.sampleRate,
+                ch: partial.channels,
+                floatChannels: partial.floatChannels,
+              },
+              { partial: true },
+            );
+            if (!stillCurrent()) return;
+            setIngestStage("ready");
+            setIngestStageDetail("Finishing full decode…");
+            // PARTIAL ready: the 8s window is playable, but the full decode is
+            // still in flight. Reporting the real `loadReady` here would have
+            // claimed the load was finished — leaving phase "readyPartial"
+            // unreachable and hiding the still-running background work from
+            // CLEAR/REMOVE. If play intent is armed, LOAD_PARTIAL_READY already
+            // emits startAudio, so playback still begins at the window.
+            controllerRef.current?.loadPartialReady(trackId, loadGen);
+            // The shared tail must not report ready either: it runs immediately
+            // (the upgrade below is fire-and-forget), long before the full
+            // decode lands. The upgrade reports loadReady/loadFailed itself.
+            readyReported = true;
+            // Unlock Play immediately; full decode continues off-thread.
+            setLoading(false);
+
+            void (async () => {
+              try {
+                // Background priority: a neighbor prefetch must never cancel this
+                // upgrade (that left the track a permanent 8s partial). Only a
+                // real track switch (interactive) supersedes it.
+                const full = await decodeMp5ToPcmOffthread(
+                  undefined,
+                  ingestParsed,
+                  undefined,
+                  "background",
+                );
+                if (!stillCurrent()) return;
+                const dur =
+                  full.samples.length / full.channels / full.sampleRate;
+                decodeCache.set(trackId, {
+                  samples: full.samples,
+                  sampleRate: full.sampleRate,
+                  channels: full.channels,
+                  parsed: full.parsed,
+                  decodePath: full.decodePath,
+                  mp5h: full.mp5h,
+                  duration: dur,
+                });
+                setDecodePath(full.decodePath);
+                setMp5hInfo(full.mp5h);
+                setDuration(dur);
+                await upgradePcm({
+                  samples: full.samples,
+                  rate: full.sampleRate,
+                  ch: full.channels,
+                  floatChannels: full.floatChannels,
+                });
+                if (!stillCurrent()) return;
+                setIngestStageDetail("");
+                // NOW the load is genuinely complete — advance the machine from
+                // readyPartial to ready.
+                controllerRef.current?.loadReady(trackId, loadGen);
+                scheduleIntegrity(full.parsed, full.samples);
+              } catch (err) {
+                if (!stillCurrent()) return;
+                if (err instanceof DOMException && err.name === "AbortError") {
+                  return;
+                }
+                setIngestStageDetail("");
+                const message =
+                  err instanceof Error
+                    ? err.message
+                    : "Background full decode failed";
+                // Tell the machine too: without this it stayed in readyPartial
+                // (previously "ready") while the UI showed an error, so its phase
+                // disagreed with what the user saw and auto-advance-on-error
+                // never ran for a failed upgrade.
+                controllerRef.current?.loadFailed(trackId, loadGen, message);
+                setLoadError(message);
+              } finally {
+                // The worker is free now — let the neighbour prefetch retry.
+                if (stillCurrent()) setDecodeIdleTick((n) => n + 1);
+              }
+            })();
+          } else {
+            setIngestStageDetail("Loading audio stream…");
+            await new Promise<void>((r) => setTimeout(r, 0));
+            if (!stillCurrent()) return;
+            setIngestStageDetail(ingestStageLabel("decoding_audio"));
+            const {
+              samples,
+              sampleRate,
+              channels,
+              parsed: pr,
+              decodePath: path,
+              mp5h,
+              floatChannels,
+            } = await decodeMp5ToPcmOffthread(buf, ingestParsed);
+            if (!stillCurrent()) return;
+            updateIngestDiagnostics({
+              readyMixMs: Math.round(performance.now() - mixStart),
+            });
+            const dur = samples.length / channels / sampleRate;
+            decodeCache.set(trackId, {
+              samples,
+              sampleRate,
+              channels,
+              parsed: pr,
+              decodePath: path,
+              mp5h,
+              duration: dur,
+            });
+            setDecodePath(path);
+            setMp5hInfo(mp5h);
+            setIngestStageDetail("Preparing playback…");
+            await loadPcm({
+              samples,
+              rate: sampleRate,
+              ch: channels,
+              floatChannels,
+            });
+            if (!stillCurrent()) return;
+            setParsed(pr);
+            setDuration(dur);
+            setCurrentTime(0);
+            setIngestStage("ready");
+            setIngestStageDetail("");
+            scheduleIntegrity(pr, samples);
+          }
         }
+
+        if (!stillCurrent()) return;
 
         const neighborIds = [
           tracks[currentIndex - 1]?.id,
@@ -1006,40 +1292,39 @@ export function Mp5Player({
         ].filter((id): id is string => !!id);
         decodeCache.retain(neighborIds);
 
-        if (loadGen === loadFileGenRef.current) {
-          loadedPcmTrackIdRef.current = trackId;
-          if (wantPlayAfterLoad) {
-            playWhenReadyRef.current = false;
-            autoAdvanceRef.current = false;
-            setPlaying(true);
-          }
-        }
+        // Full decode ready (cached / non-progressive paths). The machine starts
+        // audio iff play intent is armed for this track. Skipped when the
+        // progressive branch already reported ready at its 8s window, so
+        // loadReady fires exactly once per load.
+        if (!readyReported) controllerRef.current?.loadReady(trackId, loadGen);
       } catch (e) {
-        if (loadGen !== loadFileGenRef.current) return;
-        setLoadError(e instanceof Error ? e.message : String(e));
+        if (!stillCurrent()) return;
+        // Track switch / StrictMode cancel — clear busy UI so we never stick on
+        // "Preparing decode…" after an AbortError.
+        if (e instanceof DOMException && e.name === "AbortError") {
+          setIngestStage("ready");
+          setIngestStageDetail("");
+          return;
+        }
+        const message = e instanceof Error ? e.message : String(e);
+        // A genuine failure: the machine clears intent + surfaces the error, and
+        // (via the onLoadFailed handle) auto-advances past the track if the load
+        // was an auto-advance continuation. A superseding abort returns above, so
+        // it never reaches here and the reload keeps its intent.
+        controllerRef.current?.loadFailed(trackId, loadGen, message);
         setDecodePath("");
         setMp5hInfo(undefined);
         setParsed(undefined);
         setIntegrity(null);
-        const wasAutoAdvance = autoAdvanceRef.current;
-        playWhenReadyRef.current = false;
-        autoAdvanceRef.current = false;
-        if (wasAutoAdvance) {
-          const result = handleTrackEnded();
-          if (result.type === "goto") {
-            autoAdvanceRef.current = true;
-            playWhenReadyRef.current = true;
-            setCurrentIndex(result.index);
-          } else {
-            setPlaying(false);
-          }
-        }
+        setIngestStage("ready");
+        setIngestStageDetail("");
       } finally {
-        setLoading(false);
+        if (stillCurrent()) setLoading(false);
       }
     },
     [
       loadPcm,
+      upgradePcm,
       stopMainSource,
       setCurrentTime,
       setDuration,
@@ -1051,11 +1336,157 @@ export function Mp5Player({
     ],
   );
 
+  // Latest-callback refs for the track-load effect. loadFile/requestPlayback
+  // change identity whenever load state flips; depending on them from that
+  // effect created a feedback loop that aborted every in-flight decode
+  // (endless "Preparing decode…"). The effect must re-run on track changes
+  // only, so it calls the latest callbacks through these refs instead.
+  const loadFileRef = useRef(loadFile);
+  loadFileRef.current = loadFile;
+  const requestPlaybackRef = useRef(requestPlayback);
+  requestPlaybackRef.current = requestPlayback;
+  const tracksRef = useRef(tracks);
+  tracksRef.current = tracks;
+  const stopMainSourceRef = useRef(stopMainSource);
+  stopMainSourceRef.current = stopMainSource;
+
+  // The playback controller owns the load lifecycle (state machine + one
+  // AbortController per load). The React layer provides the side-effect handles;
+  // the track-load effect + play triggers drive it. Instantiated once.
+  const controllerRef = useRef<PlaybackController | null>(null);
+  if (!controllerRef.current) {
+    controllerRef.current = new PlaybackController({
+      startLoad: (trackId, gen, sig) => {
+        const t = tracksRef.current.find((track) => track.id === trackId);
+        if (t) void loadFileRef.current(t, gen, sig);
+      },
+      startAudio: () => {
+        // Transport (full-mix vs stems vs karaoke) is resolved at start time by
+        // requestPlayback → resolvePlaybackRequest from live engine state.
+        requestPlaybackRef.current({ reason: "play_button", autoPlay: true });
+      },
+      stopAudio: () => {
+        // setPlaying(false) is the universal stop (drives both engines); also
+        // release the main source promptly.
+        stopMainSourceRef.current();
+        setPlaying(false);
+      },
+      surfaceError: (msg) => setLoadError(msg),
+      onLoadFailed: (trackId, source) => {
+        // Only an auto-advance continuation skips past a failed track; a failed
+        // user/album pick just surfaces the error and stays put. repeat_one is
+        // intentionally NOT replayed on failure (that would loop on the bad track).
+        if (source !== "autoAdvance") return;
+        const result = handleTrackEnded();
+        if (result.type === "goto") {
+          const nextId =
+            usePlayerStore.getState().tracks[result.index]?.id ?? null;
+          if (nextId)
+            usePlayerStore.getState().setPendingPlayTrackId(nextId, "autoAdvance");
+          setCurrentIndex(result.index);
+        }
+      },
+      onStateChange: () => {},
+    });
+  }
+
+  // Bridge desired-playing (store.isPlaying — what the engines follow) into the
+  // machine's CONFIRMED-playing signal. The machine consumes armed intent and
+  // flips `playing` only on AUDIO_STARTED, so without this the machine's intent
+  // would never be consumed and its play/pause gating would be inert. One-way
+  // only (machine.playing never writes back to isPlaying) so there is no loop.
+  const currentTrackIdRef = useRef<string | null>(null);
+  currentTrackIdRef.current = track?.id ?? null;
+  useEffect(() => {
+    if (isPlaying) {
+      const id = currentTrackIdRef.current;
+      if (id) controllerRef.current?.audioStarted(id);
+    } else {
+      controllerRef.current?.audioStopped();
+    }
+  }, [isPlaying]);
+
+  // Prefetch next track into decodeCache when the active load is idle.
+  useEffect(() => {
+    if (loading) return;
+    const next = tracks[currentIndex + 1];
+    if (!next?.id || !next.parsed?.head || !next.file) return;
+    if (decodeCache.get(next.id)) return;
+    // Exact pre-decode admission test: HEAD already tells us the decoded size,
+    // so an over-budget neighbour is never decoded at all (rather than decoded,
+    // admitted, then immediately evicted — which would re-decode it forever).
+    // Charge the compressed AUDI too: prefetching forces loadAudiFrames on the
+    // neighbour, and those bytes stay pinned on its playlist track afterwards,
+    // so a PCM-only estimate understates what the prefetch actually costs.
+    const nextHead = next.parsed.head;
+    const projectedPcmBytes =
+      Number(nextHead.totalSamples) * nextHead.channels * 2;
+    const projectedAudiBytes = next.file.size;
+    const projectedBytes = projectedPcmBytes + projectedAudiBytes;
+    if (!projectedPcmBytes || !decodeCache.canAdmit(projectedBytes)) return;
+    const client = getMixDecodeWorkerClient();
+    if (client.isBusy()) return;
+
+    const genAtSchedule = controllerRef.current?.getState().loadGen;
+    const loadUnchanged = () =>
+      controllerRef.current?.getState().loadGen === genAtSchedule;
+    const nextId = next.id;
+    const nextParsed = next.parsed;
+    const timer = window.setTimeout(() => {
+      if (!loadUnchanged()) return;
+      if (client.isBusy()) return;
+      // Background priority: serializes behind (never cancels) the current
+      // track's decode/upgrade; a track switch supersedes it in the scheduler.
+      // wantFloats:false — the prefetch only caches Int16 `samples` (CachedDecode
+      // has no float field); building + transferring planar floats here allocated
+      // 2x `samples` per prefetch purely to be garbage-collected on return. The
+      // cache-hit path converts to float on demand.
+      void decodeMp5ToPcmOffthread(
+        undefined,
+        nextParsed,
+        { wantFloats: false },
+        "background",
+      )
+        .then((result) => {
+          if (!loadUnchanged()) return;
+          const dur =
+            result.samples.length / result.channels / result.sampleRate;
+          decodeCache.set(nextId, {
+            samples: result.samples,
+            sampleRate: result.sampleRate,
+            channels: result.channels,
+            parsed: result.parsed,
+            decodePath: result.decodePath,
+            mp5h: result.mp5h,
+            duration: dur,
+          });
+          decodeCache.retain(
+            [
+              tracks[currentIndex - 1]?.id,
+              tracks[currentIndex]?.id,
+              nextId,
+            ].filter((id): id is string => !!id),
+          );
+        })
+        .catch(() => {
+          /* prefetch is best-effort */
+        });
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [loading, currentIndex, tracks, decodeIdleTick]);
+
   useEffect(() => {
     setKaraokeMode(false);
     setKaraokePrepareRequest(null);
     setKaraokeStemPrepFailed(false);
     setActivePlaybackRange(null);
+  }, [track?.id]);
+
+  // Pin the current track in the decode cache: it is never evicted (the engine
+  // holds the same samples anyway, so it costs no extra RAM) and never counts
+  // against the budget for evictable neighbours.
+  useEffect(() => {
+    decodeCache.setProtected(track?.id ?? null);
   }, [track?.id]);
 
   const startPlaybackRange = useCallback(
@@ -1067,19 +1498,6 @@ export function Mp5Player({
     },
     [seek, setPlaying],
   );
-
-  useEffect(() => {
-    if (!isPlaying || !activePlaybackRange) return;
-    const tick = applyPlaybackRangeTick(currentTime, activePlaybackRange);
-    if (tick.action === "stop") {
-      setPlaying(false);
-      setActivePlaybackRange(null);
-      return;
-    }
-    if (tick.action === "loop") {
-      seek(tick.seekSec);
-    }
-  }, [currentTime, isPlaying, activePlaybackRange, seek, setPlaying]);
 
   const handlePlayHighlight = useCallback(
     (h: HighlightMoment, index: number) => {
@@ -1130,6 +1548,12 @@ export function Mp5Player({
 
   useEffect(() => {
     if (!track) {
+      // Queue emptied (Clear / removed last track): the controller aborts any
+      // in-flight load so it cannot complete into an empty queue — the "ghost
+      // load" that resurrected metadata and could auto-play a gone track.
+      controllerRef.current?.clear();
+      getMixDecodeWorkerClient().cancelActive();
+      stopMainSource();
       setParsed(undefined);
       setLoadError("");
       setDecodePath("");
@@ -1150,18 +1574,24 @@ export function Mp5Player({
       setDuration(0);
       setCurrentTime(0);
       setLoading(false);
-      if (autoAdvanceRef.current) {
+      // An unparseable track never enters the load lifecycle (no select below),
+      // so the machine can't model this skip. Drain the mailbox: if the track was
+      // reached via auto-advance, skip past it; otherwise stop.
+      const store = usePlayerStore.getState();
+      const wasAutoAdvance =
+        store.pendingPlayTrackId === track.id &&
+        store.pendingPlaySource === "autoAdvance";
+      store.consumePendingPlayTrackId(track.id);
+      if (wasAutoAdvance) {
         const result = handleTrackEnded();
         if (result.type === "goto") {
-          playWhenReadyRef.current = true;
+          const nextId = store.tracks[result.index]?.id ?? null;
+          if (nextId) store.setPendingPlayTrackId(nextId, "autoAdvance");
           setCurrentIndex(result.index);
-        } else {
-          autoAdvanceRef.current = false;
-          setPlaying(false);
+          return;
         }
-      } else {
-        setPlaying(false);
       }
+      setPlaying(false);
       return;
     }
     if (track.parsed) {
@@ -1185,7 +1615,9 @@ export function Mp5Player({
         return;
       }
       stopMainSource();
-      if (!autoAdvanceRef.current && !playWhenReadyRef.current) {
+      // Keep audio stopped while hydrating unless play is already armed for this
+      // track (peek — the intent must survive until the real file loads below).
+      if (usePlayerStore.getState().pendingPlayTrackId !== track.id) {
         setPlaying(false);
       }
       embeddedHydratingTrackIdRef.current = track.id;
@@ -1204,7 +1636,8 @@ export function Mp5Player({
           if (!loaded) {
             setLoadError("Could not load embedded track from album package.");
             setPlaying(false);
-            playWhenReadyRef.current = false;
+            // Track can't load — drop its armed play intent so it can't leak.
+            usePlayerStore.getState().consumePendingPlayTrackId(track.id);
             return;
           }
           replacePlaylistTrack(track.id, {
@@ -1227,19 +1660,39 @@ export function Mp5Player({
       return;
     }
     if (track.file) {
-      const wantPlay = playWhenReadyRef.current || autoAdvanceRef.current;
-      const pcmReady =
-        loadedPcmTrackIdRef.current === track.id && hasMainPcm() && !!decodeCache.get(track.id);
-      if (pcmReady && !wantPlay) {
+      // Drain the play-intent mailbox for this track (import/library/converter/
+      // demo/auto-advance/next-prev/album all deposit here, keyed by track id).
+      const store = usePlayerStore.getState();
+      const wantPlay = store.pendingPlayTrackId === track.id;
+      const source: PlayIntentSource = wantPlay
+        ? (store.pendingPlaySource ?? "external")
+        : "user";
+      if (wantPlay) store.consumePendingPlayTrackId(track.id);
+
+      // The machine is the single owner of load-play intent, and this is its sole
+      // select() caller, so exactly one load runs per track change and a stray
+      // effect re-run can never restart or wipe an in-flight load.
+      const machineState = controllerRef.current?.getState();
+      const machineHasTrack = machineState?.trackId === track.id;
+      const machineErrored = machineHasTrack && machineState?.phase === "error";
+
+      // Machine already owns this track LIVE (loading or ready): a play request is
+      // PLAY_CLICK (start if ready, defer if loading); a plain re-fire is a no-op.
+      if (machineHasTrack && !machineErrored) {
+        if (wantPlay) controllerRef.current?.playClick();
         if (track.parsed) setParsed(track.parsed);
         return;
       }
-      if (pcmReady && wantPlay) {
-        playWhenReadyRef.current = false;
-        requestPlayback({ reason: "play_button", autoPlay: true });
+      // A previously-FAILED current track (phase "error") is only re-loaded when
+      // the user actually asked to play it (wantPlay). An incidental re-fire with
+      // no armed intent (e.g. an activeAlbum change) must NOT spuriously re-decode.
+      if (machineErrored && !wantPlay) {
+        if (track.parsed) setParsed(track.parsed);
         return;
       }
-      void loadFile(track);
+      // A genuinely new current track, or a failed track the user asked to retry:
+      // begin its load carrying any play intent.
+      controllerRef.current?.select(track.id, { play: wantPlay, source });
     }
   }, [
     track?.id,
@@ -1248,16 +1701,15 @@ export function Mp5Player({
     track?.rawBuffer,
     track?.embeddedAlbum?.trackId,
     activeAlbum,
-      loadFile,
-      replacePlaylistTrack,
-      stopMainSource,
-      setCurrentTime,
+    pendingPlayTrackId,
+    replacePlaylistTrack,
+    stopMainSource,
+    setCurrentTime,
     setDuration,
     setPlaying,
     handleTrackEnded,
     setCurrentIndex,
     hasMainPcm,
-    requestPlayback,
   ]);
 
   const handleFiles = async (files: FileList) => {
@@ -1265,10 +1717,31 @@ export function Mp5Player({
     dismissOnboarding();
     setAlbumManifestError("");
     const fileList = Array.from(files);
+    const { mp5, manifests, other } = partitionDroppedFiles(fileList);
+
+    // Pure source-audio Open/drop → Converter handoff (Player stays for .mp5 / .mp5p).
+    if (other.length > 0 && mp5.length === 0 && manifests.length === 0) {
+      setPendingConverterFiles(other);
+      setActiveTab("converter");
+      setLastDropSummary(null);
+      setLastSkippedConvertibleFiles([]);
+      return;
+    }
+
     setIngestStage("loading_mp5");
     setIngestStageDetail(ingestStageLabel("loading_mp5"));
+    ingestProgressFlushRef.current = 0;
+    let pendingIngestStage: IngestLoadStage = "loading_mp5";
+    let pendingIngestDetail = ingestStageLabel("loading_mp5");
+    const flushIngestProgress = (force = false) => {
+      const now = performance.now();
+      if (!force && now - ingestProgressFlushRef.current < 100) return;
+      ingestProgressFlushRef.current = now;
+      setIngestStage(pendingIngestStage);
+      setIngestStageDetail(pendingIngestDetail);
+    };
     const ingest = await ingestAlbumPackageFiles(
-      fileList,
+      [...mp5, ...manifests],
       withoutDefaultDemoTracks(tracks),
       (name, progress) => {
         const isIndex = "chunksScanned" in progress;
@@ -1278,15 +1751,30 @@ export function Mp5Player({
         const detail = isIndex
           ? indexStageDetail(progress)
           : parseStageDetail(progress);
-        setIngestStage(stage);
-        setIngestStageDetail(
-          ingestStageLabel(stage, detail ?? `Loading ${name}…`),
-        );
+        pendingIngestStage = stage;
+        pendingIngestDetail = ingestStageLabel(stage, detail ?? `Loading ${name}…`);
+        // Throttle: stem files emit dozens of STDF progress events; full-tree
+        // re-renders on each one freeze the tab on the last painted label (often WAVE).
+        flushIngestProgress(stage === "ready" || stage === "indexing_stems");
       },
     );
+    flushIngestProgress(true);
     setIngestStage("ready");
     setIngestStageDetail("");
-    setLastDropSummary(ingest.mp5);
+
+    const otherErrors = other.map((file) => ({
+      name: file.name,
+      message: "Not an .mp5 / .mp5p file — use Converter for source audio.",
+      reason: "not-mp5" as const,
+    }));
+    const summary: IngestResult = {
+      ...ingest.mp5,
+      skippedCount: ingest.mp5.skippedCount + other.length,
+      dropErrors: [...ingest.mp5.dropErrors, ...otherErrors],
+    };
+    setLastDropSummary(summary);
+    setLastSkippedConvertibleFiles(other);
+
     if (ingest.manifestError) {
       setAlbumManifestError(ingest.manifestError);
       setActiveAlbum(null);
@@ -1294,8 +1782,8 @@ export function Mp5Player({
       dismissDefaultDemo();
       setActiveAlbum(ingest.album);
     }
-    if (ingest.mp5.dropErrors.length) {
-      setDropErrors((prev) => [...prev, ...ingest.mp5.dropErrors].slice(-8));
+    if (summary.dropErrors.length) {
+      setDropErrors((prev) => [...prev, ...summary.dropErrors].slice(-8));
     }
     if (ingest.mp5.tracks.length) {
       const prevTracks = withoutDefaultDemoTracks(tracks);
@@ -1312,6 +1800,14 @@ export function Mp5Player({
       }
     }
   };
+
+  useEffect(() => {
+    if (!pendingPlayerFiles?.length) return;
+    const files = consumePendingPlayerFiles();
+    if (files?.length) void handleFiles(filesToFileList(files));
+    // handleFiles is stable enough for one-shot handoff from shell/empty Open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume once per pendingPlayerFiles
+  }, [pendingPlayerFiles, consumePendingPlayerFiles]);
 
   const handleAddAlbumSidecars = async (files: FileList) => {
     if (!activeAlbum) return;
@@ -1373,7 +1869,13 @@ export function Mp5Player({
         );
       }
     } catch (e) {
-      setAlbumSaveNote(e instanceof Error ? e.message : String(e));
+      setAlbumSaveNote(
+        e instanceof LibraryStorageError && e.code === "quota"
+          ? USER_ERRORS.libraryQuota
+          : e instanceof Error
+            ? e.message
+            : String(e),
+      );
     } finally {
       setAlbumSaveBusy(false);
     }
@@ -1445,7 +1947,8 @@ export function Mp5Player({
       if (!placeholders.length) return;
       setTracks(placeholders);
       startEmbeddedPlaylistMetadataPrefetch(activeAlbum);
-      playWhenReadyRef.current = true;
+      const firstId = placeholders[0]?.id;
+      if (firstId) usePlayerStore.getState().setPendingPlayTrackId(firstId, "album");
       setCurrentIndex(0);
       recordLastAlbumAction("play_album", placeholders[0]?.id ?? null);
       tracePlayback("request_playback", "play_album", {
@@ -1465,7 +1968,7 @@ export function Mp5Player({
     if (toAdd.length) appendTracks(toAdd);
     const idx = usePlayerStore.getState().tracks.findIndex((t) => t.id === first.id);
     if (idx < 0) return;
-    playWhenReadyRef.current = true;
+    usePlayerStore.getState().setPendingPlayTrackId(first.id, "album");
     setCurrentIndex(idx);
     recordLastAlbumAction("play_album", first.id);
   };
@@ -1504,7 +2007,7 @@ export function Mp5Player({
     );
     if (queued) {
       const idx = usePlayerStore.getState().tracks.findIndex((t) => t.id === queued.id);
-      playWhenReadyRef.current = true;
+      usePlayerStore.getState().setPendingPlayTrackId(queued.id, "album");
       setCurrentIndex(idx);
       recordLastAlbumAction("select_track", trackId);
       return;
@@ -1533,15 +2036,15 @@ export function Mp5Player({
       (t) => t.id === playlistTrack!.id,
     );
     if (idx >= 0) {
-      playWhenReadyRef.current = true;
+      usePlayerStore.getState().setPendingPlayTrackId(playlistTrack.id, "album");
       setCurrentIndex(idx);
       recordLastAlbumAction("play_track", playlistTrack.id);
       return;
     }
     appendTracks([playlistTrack]);
     const nextIdx = usePlayerStore.getState().tracks.findIndex((t) => t.id === playlistTrack!.id);
+    usePlayerStore.getState().setPendingPlayTrackId(playlistTrack.id, "album");
     setCurrentIndex(nextIdx >= 0 ? nextIdx : usePlayerStore.getState().tracks.length - 1);
-    playWhenReadyRef.current = true;
     recordLastAlbumAction("play_track", playlistTrack.id);
   };
 
@@ -1637,37 +2140,29 @@ export function Mp5Player({
     (index: number) => {
       const target = tracks[index];
       if (!target || target.parseError) return;
-      playWhenReadyRef.current = true;
-      autoAdvanceRef.current = false;
       recordLastPlaybackRequest("play_button");
 
       if (index === currentIndex) {
-        if (target.file && hasMainPcm() && track?.id === target.id && !loading) {
-          playWhenReadyRef.current = false;
-          requestPlayback({ reason: "play_button", autoPlay: true });
-          return;
-        }
+        // Play the current track. PLAY_CLICK starts it if ready / defers if
+        // loading; but if its load FAILED (phase "error") re-arm the mailbox to
+        // retry, and if it is an un-hydrated embedded placeholder (no file yet)
+        // arm play so it starts once hydrated — matching handlePlayPause.
         if (target.file) {
-          void loadFile(target);
-          return;
+          if (controllerRef.current?.getState().phase === "error") {
+            usePlayerStore.getState().setPendingPlayTrackId(target.id, "user");
+          } else {
+            controllerRef.current?.playClick();
+          }
+        } else if (isEmbeddedPlaceholderTrack(target)) {
+          usePlayerStore.getState().setPendingPlayTrackId(target.id, "user");
         }
-        if (isEmbeddedPlaceholderTrack(target)) {
-          return;
-        }
+        return;
       }
-      loadedPcmTrackIdRef.current = null;
+      // Switch to and play a different queue entry.
+      usePlayerStore.getState().setPendingPlayTrackId(target.id, "user");
       setCurrentIndex(index);
     },
-    [
-      tracks,
-      currentIndex,
-      track?.id,
-      loading,
-      hasMainPcm,
-      requestPlayback,
-      loadFile,
-      setCurrentIndex,
-    ],
+    [tracks, currentIndex, setCurrentIndex],
   );
 
   const handleSaveToLibrary = async (t: (typeof tracks)[0]) => {
@@ -1700,8 +2195,14 @@ export function Mp5Player({
         }
       }
       const result = await savePlaylistTrackToLibrary(t);
+      if (result.status === "failed") {
+        setLibrarySaveNote(
+          result.errorCode === "quota" ? USER_ERRORS.libraryQuota : result.message,
+        );
+        return;
+      }
       setLibrarySaveNote(
-        result.duplicate
+        result.status === "duplicate"
           ? "Already in your local library."
           : "Saved to local library.",
       );
@@ -1725,7 +2226,6 @@ export function Mp5Player({
     setAlbumManifestError("");
     clearTracks();
     decodeCache.clear();
-    loadedPcmTrackIdRef.current = null;
     clearPlayerSession();
     setParsed(undefined);
     setIntegrity(null);
@@ -1733,7 +2233,6 @@ export function Mp5Player({
     setSessionRestored(false);
   };
 
-  const progress = duration > 0 ? currentTime / duration : 0;
   const waveformSectionMarkers = useMemo(
     () =>
       songStructure.sect?.sections.map((s) => ({
@@ -1758,9 +2257,6 @@ export function Mp5Player({
       endSec: activePlaybackRange.endSec,
     };
   }, [activePlaybackRange]);
-  const canPrev = selectCanGoPrev(store);
-  const canNext = selectCanGoNext(store);
-
   const { theme: playerTheme, status: themeStatus } = useMemo(
     () => resolveThemeForFile(parsed, useFileThemes),
     [useFileThemes, parsed],
@@ -1779,6 +2275,16 @@ export function Mp5Player({
     return row?.ref.trackId ?? null;
   }, [activeAlbum, track]);
 
+  // "Should playback continue across this skip?" Reads the machine's LIVE state
+  // (already playing OR a play-intent pending for an in-flight load) rather than
+  // the store's isPlaying, which goes transiently false during every load — so
+  // rapid Next/Prev (pressed faster than tracks load) keeps playing instead of
+  // silently stopping.
+  const playbackContinues = () => {
+    const s = controllerRef.current?.getState();
+    return isPlaying || !!s?.playing || s?.intent != null;
+  };
+
   const handlePlayerNext = () => {
     if (activeAlbum && track) {
       const rowIndex = activeAlbum.tracks.findIndex(
@@ -1789,7 +2295,14 @@ export function Mp5Player({
         return;
       }
     }
+    const wasPlaying = playbackContinues();
+    const prevId = track?.id;
     playNext();
+    if (wasPlaying) {
+      const s = usePlayerStore.getState();
+      const nextId = s.tracks[s.currentIndex]?.id;
+      if (nextId && nextId !== prevId) s.setPendingPlayTrackId(nextId, "user");
+    }
   };
 
   const handlePlayerPrev = () => {
@@ -1802,7 +2315,14 @@ export function Mp5Player({
         return;
       }
     }
+    const wasPlaying = playbackContinues();
+    const prevId = track?.id;
     playPrevious();
+    if (wasPlaying) {
+      const s = usePlayerStore.getState();
+      const nextId = s.tracks[s.currentIndex]?.id;
+      if (nextId && nextId !== prevId) s.setPendingPlayTrackId(nextId, "user");
+    }
   };
 
   const canPlaySimilar = useMemo(
@@ -1813,16 +2333,12 @@ export function Mp5Player({
   const handlePlaySimilar = () => {
     const nextIndex = findSimilarTrackIndex(tracks, currentIndex);
     if (nextIndex == null) return;
-    setCurrentIndex(nextIndex, { keepPlaying: true });
-    setPlaying(true);
+    const similarId = tracks[nextIndex]?.id;
+    if (similarId) usePlayerStore.getState().setPendingPlayTrackId(similarId, "user");
+    setCurrentIndex(nextIndex);
   };
 
   const embeddedHydratingTrackId = embeddedLoading ? embeddedHydratingTrackIdRef.current : null;
-  const isEnded =
-    duration > 0 &&
-    !isPlaying &&
-    currentTime >= Math.max(0, duration - 0.05) &&
-    playbackSnapshot.readiness !== "error";
 
   const jumpToInspector = (section: InspectorSection, target: InspectorSection = section) => {
     setInspectorSection(section);
@@ -1879,7 +2395,9 @@ export function Mp5Player({
         </p>
       )}
 
-      {lastDropSummary && <DropImportSummary summary={lastDropSummary} />}
+      {lastDropSummary && (
+        <DropImportSummary summary={lastDropSummary} skippedFiles={lastSkippedConvertibleFiles} />
+      )}
 
       {librarySaveNote && (
         <p className="text-xs text-gray-400 bg-surface-elevated rounded-lg px-3 py-2" data-testid="library-save-note">
@@ -1909,7 +2427,6 @@ export function Mp5Player({
                 loadError={loadError}
                 playerTheme={playerTheme}
                 albumContext={albumCtx}
-                currentTime={currentTime}
                 duration={duration}
                 embeddedHydrating={embeddedHydratingTrackId === track?.id}
                 integrity={integrity}
@@ -1919,19 +2436,23 @@ export function Mp5Player({
             </div>
 
             <div className="mp5-player-waveform">
-              <WaveformView
-                peaks={parsed?.waveform ?? []}
-                progress={progress}
-                durationSec={duration}
-                sectionMarkers={waveformSectionMarkers}
-                highlightMarkers={waveformHighlightMarkers}
-                activeLoopRange={waveformLoopRange}
-                playedFill={playerTheme?.waveformPlayedFill}
-                unplayedFill={playerTheme?.waveformUnplayedFill}
-                visualProfile={track?.origin === "default-demo" ? "default-demo" : undefined}
-                onSeek={handleWaveformSeek}
-                disabled={loading || duration <= 0}
-              />
+              <WaveformProgress duration={duration}>
+                {(progress) => (
+                  <WaveformView
+                    peaks={parsed?.waveform ?? []}
+                    progress={progress}
+                    durationSec={duration}
+                    sectionMarkers={waveformSectionMarkers}
+                    highlightMarkers={waveformHighlightMarkers}
+                    activeLoopRange={waveformLoopRange}
+                    playedFill={playerTheme?.waveformPlayedFill}
+                    unplayedFill={playerTheme?.waveformUnplayedFill}
+                    visualProfile={track?.origin === "default-demo" ? "default-demo" : undefined}
+                    onSeek={handleWaveformSeek}
+                    disabled={loading || duration <= 0}
+                  />
+                )}
+              </WaveformProgress>
             </div>
 
             <div className="mp5-player-controls-wrap">
@@ -1941,7 +2462,7 @@ export function Mp5Player({
                 playbackStatus={playbackSnapshot.playState}
                 playbackReadiness={playbackSnapshot.readiness}
                 hasTrack={!!track}
-                isEnded={isEnded}
+                loading={loading}
                 playbackStatusDetail={
                   playbackSnapshot.playState === "preparing"
                     ? karaokePreparing
@@ -1959,7 +2480,6 @@ export function Mp5Player({
                 shuffle={shuffle}
                 onToggleShuffle={toggleShuffle}
                 onCycleRepeat={cycleRepeatMode}
-                currentTime={currentTime}
                 duration={duration}
                 onSeek={seek}
                 volume={volume}
@@ -2024,7 +2544,6 @@ export function Mp5Player({
               <CodecModesHelper />
               <SongMapPanel
                 parsed={parsed}
-                currentTime={currentTime}
                 duration={duration}
                 activeRange={activePlaybackRange}
                 onSeek={seek}
@@ -2045,7 +2564,6 @@ export function Mp5Player({
             >
               <LyricsPanel
                 parsed={parsed}
-                currentTime={currentTime}
                 getPlaybackTime={getPlaybackTime}
                 duration={duration}
                 isPlaying={isPlaying}
@@ -2099,7 +2617,13 @@ export function Mp5Player({
                 loading={loading}
                 karaokePrepareRequest={karaokePrepareRequest}
                 onKaraokePrepareDone={() => setKaraokePrepareRequest(null)}
-                onKaraokePrepareFailed={() => setKaraokeStemPrepFailed(true)}
+                onKaraokePrepareFailed={() => {
+                  setKaraokeStemPrepFailed(true);
+                  // Prepare failed off the handleStemMixEnable happy path, so clear
+                  // the transport-resume flag here or it leaks true and spuriously
+                  // auto-starts the next stem/karaoke enable.
+                  resumeStemsWhenPreparedRef.current = false;
+                }}
               />
             </div>
 
@@ -2130,7 +2654,8 @@ export function Mp5Player({
             repeatMode={repeatMode}
             shuffle={shuffle}
             onSelect={(index) => {
-              autoAdvanceRef.current = false;
+              // Plain selection (no play): the track-load effect will select it
+              // into the machine without play intent (mailbox is empty).
               setCurrentIndex(index);
             }}
             onPlay={handlePlayIndex}
@@ -2146,7 +2671,7 @@ export function Mp5Player({
           <div className="mp5-sidebar-drop-slot">
             <FileDropZone
               testId="player-file-input"
-              label="Drag MP5 or .mp5p files here"
+              label="Drag .mp5 / .mp5p here — or source audio to convert"
               onFiles={(files) => void handleFiles(files)}
             />
           </div>
@@ -2169,6 +2694,16 @@ export function Mp5Player({
         </div>
       )}
 
+      <PlaybackRangeTicker
+        activeRange={activePlaybackRange}
+        isPlaying={isPlaying}
+        onSeek={seek}
+        onStop={() => {
+          setPlaying(false);
+          setActivePlaybackRange(null);
+        }}
+      />
+
       <PersistentTransport
         track={track}
         parsed={parsed}
@@ -2180,9 +2715,9 @@ export function Mp5Player({
         onRepeat={cycleRepeatMode}
         canPrevious={canPrev}
         canNext={canNext}
-        currentTime={currentTime}
         duration={duration}
         volume={volume}
+        loading={loading}
         onSeek={seek}
         onVolume={setVolume}
         onQueue={() => {

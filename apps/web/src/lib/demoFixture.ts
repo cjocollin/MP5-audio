@@ -2,11 +2,13 @@
  * Demo tone URL. Dev/preview: Vite fixtures middleware.
  * Production dist: copied into `dist/fixtures/` at build time when `test-fixtures/` exists.
  * Missing fixture is OK — UI fails calmly; users can drop their own `.mp5`.
+ *
+ * Primary demos are MP5-L v4 (product default). v3 fixtures remain generated for lab/compat.
  */
-export const DEMO_MP5L_FIXTURE_URL = "/fixtures/demo_mp5l_v3_tone.mp5";
-export const DEMO_MP5L_FIXTURE_NAME = "demo_mp5l_v3_tone.mp5";
-export const DEMO_STEMS_FIXTURE_URL = "/fixtures/demo_mp5l_v3_stems.mp5";
-export const DEMO_STEMS_FIXTURE_NAME = "demo_mp5l_v3_stems.mp5";
+export const DEMO_MP5L_FIXTURE_URL = "/fixtures/demo_mp5l_v4_tone.mp5";
+export const DEMO_MP5L_FIXTURE_NAME = "demo_mp5l_v4_tone.mp5";
+export const DEMO_STEMS_FIXTURE_URL = "/fixtures/demo_mp5l_v4_stems.mp5";
+export const DEMO_STEMS_FIXTURE_NAME = "demo_mp5l_v4_stems.mp5";
 export const DEMO_PITY_PARTY_CLASS_URL = "/fixtures/demo_pity_party_class.mp5";
 export const DEMO_PITY_PARTY_CLASS_NAME = "demo_pity_party_class.mp5";
 

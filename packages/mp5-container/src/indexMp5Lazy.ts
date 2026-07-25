@@ -6,19 +6,25 @@ import {
   MAJOR_VERSION,
 } from "./constants.js";
 import { crc32 } from "./checksum.js";
+import { yieldToEventLoop } from "./scheduling.js";
 import { AI_FOURCC_SET } from "./aiChunks.js";
 import { isOptionalChunk, isWarningChunk } from "./advancedChunks.js";
 import { isMoonshotChunk } from "./moonshotChunks.js";
 import { Mp5ParseError } from "./errors.js";
 import { decodeCover } from "./coverArt.js";
 import { decodeMeta } from "./metadata.js";
-import { parseAudiFrames, parseHead, parseSeek, parseWave } from "./containerParser.js";
+import { parseHead, parseSeek, parseWave } from "./containerParser.js";
 import {
   decodeStdfFragmentHeader,
   STEM_FRAGMENT_FOURCC,
   STDF_HEADER_PREFIX_MAX,
 } from "./stemStdf.js";
-import { validateChunkPayloadSize, validateFileSize, validateParsedFile } from "./validator.js";
+import {
+  assertChunkCountWithinLimit,
+  validateChunkPayloadSize,
+  validateFileSize,
+  validateParsedFile,
+} from "./validator.js";
 import type { Mp5ByteSource } from "./byteSource.js";
 import { byteSourceFromBlob } from "./byteSource.js";
 import type {
@@ -41,7 +47,8 @@ export interface Mp5IndexProgress {
   stdfFragmentCount: number;
 }
 
-export const LAZY_INGEST_BYTES = 48 * 1024 * 1024;
+/** Files at/above this size use chunk-index ingest (skip STDF bodies until needed). */
+export const LAZY_INGEST_BYTES = 2 * 1024 * 1024;
 export const EAGER_OPTIONAL_PAYLOAD_MAX = 256 * 1024;
 export const COVR_EAGER_MAX_BYTES = 1024 * 1024;
 
@@ -68,9 +75,7 @@ function readFourCC(view: DataView, offset: number): string {
   );
 }
 
-function yieldToMain(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
-}
+const yieldToMain = yieldToEventLoop;
 
 function shouldEagerPayload(fourcc: string, payloadSize: number): boolean {
   if (fourcc === "AUDI" || fourcc === STEM_FRAGMENT_FOURCC) return false;
@@ -139,6 +144,7 @@ export async function indexMp5FromByteSource(
 
   while (offset + CHUNK_HEADER_SIZE <= source.size) {
     chunkCount++;
+    assertChunkCountWithinLimit(chunkCount);
     const hdr = await source.read(offset, CHUNK_HEADER_SIZE);
     const hv = new DataView(hdr.buffer, hdr.byteOffset, hdr.byteLength);
     const fourcc = readFourCC(hv, 0);
@@ -201,15 +207,8 @@ export async function indexMp5FromByteSource(
     }
 
     if (fourcc === "AUDI") {
+      // Index only — CRC + frame walk happen in loadAudiFrames so ingest stays responsive.
       audi = { payloadOffset: payloadStart, payloadLength: payloadSize };
-      if (flags & CHUNK_FLAG_CRC) {
-        const payload = await readPayload(payloadStart, payloadSize);
-        const computed = crc32(payload);
-        if (computed !== storedCrc) {
-          throw new Mp5ParseError("CRC mismatch for chunk AUDI");
-        }
-        file.audioFrames.push(...parseAudiFrames(payload));
-      }
       continue;
     }
 

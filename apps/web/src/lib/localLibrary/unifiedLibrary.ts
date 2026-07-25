@@ -1,3 +1,4 @@
+import { albumTrackBasename } from "@mp5/container";
 import { listSavedAlbums, type SavedAlbumPackage } from "./albumLibrary";
 import { listSavedEmbeddedAlbums, type SavedEmbeddedAlbumPackage } from "./embeddedAlbumLibrary";
 import { listLibraryRecords } from "./api";
@@ -63,9 +64,35 @@ function normalizeSavedTrack(
   };
 }
 
-function normalizeManifestAlbum(saved: SavedAlbumPackage, lastOpenedAt: number | null): UnifiedLibraryItem {
+/** Sidecar refs missing from library filenames (same basename rules as openSavedAlbumInPlayer). */
+export function computeManifestMissingRefs(
+  saved: SavedAlbumPackage,
+  records: LocalLibraryRecord[],
+): string[] {
+  const missingRefs: string[] = [];
+  for (const ref of saved.manifest.tracks) {
+    const base = albumTrackBasename(ref.file).toLowerCase();
+    const rec = records.find(
+      (r) => r.filename.toLowerCase() === base && !r.summary.parseError,
+    );
+    if (!rec) missingRefs.push(ref.file);
+  }
+  return missingRefs;
+}
+
+function normalizeManifestAlbum(
+  saved: SavedAlbumPackage,
+  lastOpenedAt: number | null,
+  missingRefs: string[],
+): UnifiedLibraryItem {
   const { manifest } = saved;
   const artist = manifest.album.albumArtist ?? manifest.album.artist ?? "";
+  const warnings = ["Manifest album — sidecar .mp5 tracks must stay in library"];
+  if (missingRefs.length) {
+    warnings.push(
+      `${missingRefs.length} sidecar${missingRefs.length === 1 ? "" : "s"} missing from library`,
+    );
+  }
   return {
     id: `manifest:${saved.id}`,
     type: "album",
@@ -83,9 +110,10 @@ function normalizeManifestAlbum(saved: SavedAlbumPackage, lastOpenedAt: number |
     sizeBytes: manifestJsonByteSize(manifest),
     addedAt: saved.importedAt,
     lastOpenedAt,
-    integrityStatus: "unknown",
+    integrityStatus: missingRefs.length ? "unreadable" : "unknown",
     storageLocation: "localStorage",
-    warnings: ["Manifest album — sidecar .mp5 tracks must stay in library"],
+    warnings,
+    missingRefs,
     manifestAlbumId: saved.id,
     canReopen: true,
   };
@@ -199,7 +227,10 @@ export async function listUnifiedLibraryItems(): Promise<UnifiedLibraryItem[]> {
 
   const manifestIds = new Set(manifestAlbums.map((a) => a.id));
   for (const saved of manifestAlbums) {
-    items.push(normalizeManifestAlbum(saved, opened.get(`manifest:${saved.id}`) ?? null));
+    const missingRefs = computeManifestMissingRefs(saved, records);
+    items.push(
+      normalizeManifestAlbum(saved, opened.get(`manifest:${saved.id}`) ?? null, missingRefs),
+    );
   }
 
   const embeddedIds = new Set(embeddedAlbums.map((a) => a.id));

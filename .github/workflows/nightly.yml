@@ -1,0 +1,53 @@
+name: Nightly
+
+on:
+  schedule:
+    # 06:15 UTC daily
+    - cron: "15 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  promote-v4:
+    name: PROMOTE_V4 corpus (soft-fail without corpus)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build container + WASM
+        run: |
+          pnpm --filter @mp5/container build
+          pnpm wasm:build
+
+      - name: PROMOTE_V4 gate
+        env:
+          PROMOTE_V4: "1"
+        run: |
+          if [ ! -d benchmarks/real-music ] && [ ! -d corpus ]; then
+            echo "No PROMOTE_V4 corpus present - soft-fail stub (continue-on-error)."
+            exit 1
+          fi
+          # Prefer a dedicated promote script when present; otherwise soft-skip.
+          if [ -f scripts/promote-v4-check.mjs ]; then
+            node scripts/promote-v4-check.mjs
+          else
+            echo "PROMOTE_V4 corpus dir exists but scripts/promote-v4-check.mjs is not wired yet."
+            exit 1
+          fi

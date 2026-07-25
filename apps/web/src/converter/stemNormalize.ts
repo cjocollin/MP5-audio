@@ -1,3 +1,4 @@
+import { yieldToEventLoop } from "@mp5/container";
 import type { PendingStemPcm } from "./stemValidation";
 
 /** Mismatch under this is trimmed/padded without extra confirmation. */
@@ -291,11 +292,7 @@ export function normalizeAllStemsToMix(
 }
 
 /** Let the browser paint and GC between heavy stem normalizations. */
-export function yieldToMain(): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, 0);
-  });
-}
+export const yieldToMain = yieldToEventLoop;
 
 export interface NormalizeStemsProgress {
   index: number;

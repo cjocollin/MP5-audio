@@ -16,11 +16,11 @@ import {
 import { loopHookRange, loopSectionRange } from "../lib/sections/playbackRange";
 import { hasSongSections, parseStructureFromFile } from "../lib/sections/parseSections";
 import { scrollChildIntoContainer } from "../lib/ui/scrollWithinContainer";
+import { usePlayerStore } from "../store/playerStore";
 import { HighlightsPanel } from "./HighlightsPanel";
 
 interface Props {
   parsed?: Mp5File;
-  currentTime: number;
   duration: number;
   activeRange: ActivePlaybackRange | null;
   onSeek: (sec: number) => void;
@@ -34,7 +34,6 @@ interface Props {
 
 export function SongMapPanel({
   parsed,
-  currentTime,
   duration,
   activeRange,
   onSeek,
@@ -45,6 +44,7 @@ export function SongMapPanel({
   onLoopHook,
   onStopLoop,
 }: Props) {
+  const currentTime = usePlayerStore((s) => s.currentTime);
   const structure = useMemo(() => parseStructureFromFile(parsed), [parsed]);
   const sections = structure.sect?.sections ?? [];
   const lyrc = useMemo(() => parseLyrcFromFile(parsed), [parsed]);

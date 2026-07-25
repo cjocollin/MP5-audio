@@ -6,7 +6,8 @@ import {
   MAGIC_STR,
   MAJOR_VERSION,
 } from "./constants.js";
-import { crc32 } from "./checksum.js";
+import { crc32, crc32Async } from "./checksum.js";
+import { yieldToEventLoop } from "./scheduling.js";
 import { AI_FOURCC_SET } from "./aiChunks.js";
 import { isOptionalChunk, isWarningChunk } from "./advancedChunks.js";
 import { isMoonshotChunk } from "./moonshotChunks.js";
@@ -14,7 +15,12 @@ import { Mp5ParseError } from "./errors.js";
 import { decodeCover } from "./coverArt.js";
 import { decodeMeta } from "./metadata.js";
 import { STEM_FRAGMENT_FOURCC } from "./stemStdf.js";
-import { validateChunkPayloadSize, validateFileSize, validateParsedFile } from "./validator.js";
+import {
+  assertChunkCountWithinLimit,
+  validateChunkPayloadSize,
+  validateFileSize,
+  validateParsedFile,
+} from "./validator.js";
 import type { AudioFrame, HeadPayload, Mp5File, SeekEntry } from "./types.js";
 
 export type Mp5ParseStage =
@@ -27,9 +33,22 @@ export interface Mp5ParseProgress {
   stage: Mp5ParseStage;
   chunksParsed: number;
   stdfFragmentCount: number;
+  /** FourCC of the chunk about to be / being processed. */
+  currentFourcc?: string;
+  /** Payload size of currentFourcc when known. */
+  payloadBytes?: number;
 }
 
-export const LARGE_MP5_PARSE_BYTES = 48 * 1024 * 1024;
+export const LARGE_MP5_PARSE_BYTES = 2 * 1024 * 1024;
+
+/** Yield before slice/CRC when a chunk payload is at least this large. */
+const HEAVY_PAYLOAD_BYTES = 64 * 1024;
+/** Yield during CRC every this many bytes. */
+const CRC_YIELD_BYTES = 64 * 1024;
+/** Preview peaks — converter writes 512; cap protects against pathological WAVE payloads. */
+const MAX_WAVEFORM_PEAKS = 8192;
+
+const ALWAYS_YIELD_FOURCC = new Set(["AUDI", "WAVE", "SEEK", STEM_FRAGMENT_FOURCC]);
 
 function readFourCC(view: DataView, offset: number): string {
   return String.fromCharCode(
@@ -67,7 +86,8 @@ function parseAudiFrames(payload: Uint8Array): AudioFrame[] {
     const flags = v.getUint8(o + 9);
     o += 10;
     if (o + byteLength > payload.length) break;
-    const data = payload.slice(o, o + byteLength);
+    // View into file buffer — avoids a second full-AUDI memcpy on the UI thread.
+    const data = payload.subarray(o, o + byteLength);
     o += byteLength;
     frames.push({ frameIndex, blockType, flags, data });
   }
@@ -91,22 +111,21 @@ function parseSeek(payload: Uint8Array): SeekEntry[] {
 function parseWave(payload: Uint8Array): number[] {
   const v = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   if (payload.length < 4) return [];
-  const count = v.getUint32(0, true);
-  const peaks: number[] = [];
-  for (let i = 0; i < count && 4 + (i + 1) * 4 <= payload.length; i++) {
-    peaks.push(v.getFloat32(4 + i * 4, true));
+  const declared = v.getUint32(0, true);
+  const maxByBytes = Math.floor((payload.length - 4) / 4);
+  const count = Math.min(declared, maxByBytes, MAX_WAVEFORM_PEAKS);
+  const peaks = new Array<number>(count);
+  for (let i = 0; i < count; i++) {
+    peaks[i] = v.getFloat32(4 + i * 4, true);
   }
   return peaks;
 }
 
-function yieldToMain(): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, 0);
-  });
-}
+const yieldToMain = yieldToEventLoop;
 
 /**
- * Same semantics as parseMp5, yielding to the event loop every N chunks for UI responsiveness.
+ * Same semantics as parseMp5, yielding to the event loop so large AUDI/STDA/STDF
+ * payloads do not freeze the UI (progress can report the active FourCC).
  */
 export async function parseMp5Async(
   buffer: ArrayBuffer | Uint8Array,
@@ -127,12 +146,10 @@ export async function parseMp5Async(
   if (magic !== MAGIC_STR) {
     throw new Mp5ParseError(`Invalid magic: ${magic}`);
   }
-
   const majorVersion = data[4]!;
   if (majorVersion !== MAJOR_VERSION) {
     throw new Mp5ParseError(`Unsupported version: ${majorVersion}`);
   }
-
   const fileFlags = new DataView(data.buffer, data.byteOffset).getUint32(8, true);
 
   const file: Mp5File = {
@@ -155,6 +172,7 @@ export async function parseMp5Async(
 
   while (offset + CHUNK_HEADER_SIZE <= data.length) {
     chunkCount++;
+    assertChunkCountWithinLimit(chunkCount);
     const hv = new DataView(data.buffer, data.byteOffset + offset);
     const fourcc = readFourCC(hv, 0);
     const payloadSize = hv.getUint32(4, true);
@@ -169,11 +187,31 @@ export async function parseMp5Async(
       throw new Mp5ParseError(`Chunk ${fourcc} extends past EOF`);
     }
 
-    const payload = data.slice(payloadStart, payloadEnd);
+    // Report + yield BEFORE heavy work so UI is not stuck on the previous FourCC.
+    const heavy = payloadSize >= HEAVY_PAYLOAD_BYTES;
+    const forceYield = heavy || ALWAYS_YIELD_FOURCC.has(fourcc) || chunkCount % yieldEvery === 0;
+    if (forceYield) {
+      opts?.onProgress?.({
+        stage: "parsing_chunks",
+        chunksParsed: chunkCount,
+        stdfFragmentCount: file.stdfFragments.length,
+        currentFourcc: fourcc,
+        payloadBytes: payloadSize,
+      });
+      await yieldToMain();
+    }
+
+    // Prefer views over copies — file ArrayBuffer stays alive via ingest rawBuffer.
+    const payload = data.subarray(payloadStart, payloadEnd);
     offset = payloadEnd;
 
     if (flags & CHUNK_FLAG_CRC) {
-      const computed = crc32(payload);
+      const computed = heavy
+        ? await crc32Async(payload, {
+            chunkBytes: CRC_YIELD_BYTES,
+            yieldToMain,
+          })
+        : crc32(payload);
       if (computed !== storedCrc) {
         const optional =
           isOptionalChunk(fourcc) ||
@@ -209,12 +247,16 @@ export async function parseMp5Async(
       }
       case "AUDI":
         file.audioFrames.push(...parseAudiFrames(payload));
+        await yieldToMain();
         break;
       case "SEEK":
         file.seek = parseSeek(payload);
         break;
       case "WAVE":
         file.waveform = parseWave(payload);
+        // WAVE is tiny for normal files; still yield so the label cannot stick
+        // across the following STDF CRC storm on stem-heavy tracks.
+        await yieldToMain();
         break;
       case "INFO":
         file.info = decodeMeta(payload);
@@ -227,13 +269,14 @@ export async function parseMp5Async(
           const len = v.getUint32(o + 4, true);
           o += 8;
           if (o + len > payload.length) break;
-          file.corr.push({ frameIndex, data: payload.slice(o, o + len) });
+          file.corr.push({ frameIndex, data: payload.subarray(o, o + len) });
           o += len;
         }
         break;
       }
       case STEM_FRAGMENT_FOURCC:
         file.stdfFragments.push(payload);
+        if (heavy) await yieldToMain();
         break;
       default:
         if (file.optional.has(fourcc)) {
@@ -242,15 +285,6 @@ export async function parseMp5Async(
           file.optional.set(fourcc, payload);
         }
         break;
-    }
-
-    if (chunkCount % yieldEvery === 0) {
-      opts?.onProgress?.({
-        stage: "parsing_chunks",
-        chunksParsed: chunkCount,
-        stdfFragmentCount: file.stdfFragments.length,
-      });
-      await yieldToMain();
     }
   }
 

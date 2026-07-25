@@ -10,6 +10,7 @@ import {
 import type { PlaylistTrack } from "../store/playerStore";
 import { buildNowPlayingSummary } from "./playerDisplay";
 import { hasContentNotice, trackDisplayInfo } from "./playlistUtils";
+import { NowPlayingClock } from "./SeekTimeline";
 
 interface Props {
   track?: PlaylistTrack;
@@ -18,7 +19,6 @@ interface Props {
   loadError: string;
   playerTheme?: ResolvedPlayerTheme | null;
   albumContext?: AlbumPlaybackContext | null;
-  currentTime: number;
   duration: number;
   embeddedHydrating?: boolean;
   integrity?: IntegrityCheckResult | null;
@@ -53,7 +53,6 @@ export function NowPlayingView({
   loadError,
   playerTheme,
   albumContext,
-  currentTime,
   duration,
   embeddedHydrating = false,
   integrity,
@@ -66,7 +65,7 @@ export function NowPlayingView({
     track,
     parsed,
     albumContext,
-    currentTimeSec: currentTime,
+    currentTimeSec: 0,
     durationSec: duration,
     loading,
     embeddedHydrating,
@@ -258,10 +257,7 @@ export function NowPlayingView({
           <dd>{sampleRateLabel(head?.sampleRate)}</dd>
           <dt>Bit depth</dt>
           <dd>{head?.bitsPerSample ? `${head.bitsPerSample}-bit` : "—"}</dd>
-          <dt className="sr-only">Current time</dt>
-          <dd className="sr-only" data-testid="now-playing-current-time">{summary.currentTimeLabel}</dd>
-          <dt className="sr-only">Remaining</dt>
-          <dd className="sr-only" data-testid="now-playing-remaining">{summary.remainingLabel}</dd>
+          <NowPlayingClock duration={duration} />
         </dl>
       </div>
 

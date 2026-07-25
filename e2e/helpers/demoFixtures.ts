@@ -5,21 +5,21 @@ type LoadDemoOptions = {
   mode?: "play" | "add" | "stems";
 };
 
-/** Load a synthetic demo fixture from Settings (demos are no longer auto-seeded). */
+/** Load a synthetic demo fixture from the Demo tab (demos are no longer in Settings). */
 export async function loadDemoFromSettings(
   page: Page,
   options: LoadDemoOptions = {},
 ): Promise<void> {
   const mode = options.mode ?? "play";
-  await page.getByTestId("app-tab-settings").click();
+  await page.getByTestId("app-tab-demo").click();
   await expect(page.getByTestId("demo-fixture-actions")).toBeVisible();
 
   const testId =
     mode === "stems"
-      ? "settings-load-stems-demo"
+      ? "demo-load-stems-demo"
       : mode === "add"
-        ? "settings-load-demo-add"
-        : "settings-load-demo-play";
+        ? "demo-load-demo-add"
+        : "demo-load-demo-play";
 
   await page.getByTestId(testId).click();
   await expect(page.getByTestId("app-tab-player")).toHaveAttribute("aria-current", "page");

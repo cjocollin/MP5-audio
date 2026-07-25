@@ -27,6 +27,8 @@ export interface UnifiedLibraryItem {
   integrityStatus: UnifiedIntegrityStatus;
   storageLocation: UnifiedStorageLocation;
   warnings: string[];
+  /** Manifest album sidecar filenames missing from the local track library. */
+  missingRefs?: string[];
   trackRecordId?: string;
   manifestAlbumId?: string;
   embeddedAlbumId?: string;

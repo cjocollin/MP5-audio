@@ -13,8 +13,8 @@ test.describe("demo guide", () => {
       await expect(page.getByTestId(`demo-path-${id}`)).toBeVisible();
     }
     await expect(page.getByTestId("demo-load-embedded-album")).toBeVisible();
-    await expect(page.getByTestId("demo-open-settings-fixtures")).toBeVisible();
-    await expect(page.getByTestId("demo-fixture-actions")).toHaveCount(0);
+    await expect(page.getByTestId("demo-fixture-actions")).toBeVisible();
+    await expect(page.getByTestId("demo-open-settings-fixtures")).toHaveCount(0);
   });
 
   test("loads embedded album demo from demo tab", async ({ page }) => {
@@ -24,17 +24,17 @@ test.describe("demo guide", () => {
     await expect(page.getByTestId("album-resolved-count")).toContainText("embedded");
   });
 
-  test("load MP5-L demo from Settings", async ({ page }) => {
+  test("load MP5-L demo from Demo tab", async ({ page }) => {
     await loadDemoFromSettings(page);
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
   });
 });
 
 test.describe("first visit", () => {
-  test("opens directly into Player without auto-loading demo audio", async ({ page }) => {
+  test("shows Welcome onboarding without auto-loading demo audio", async ({ page }) => {
     await page.addInitScript(() => localStorage.removeItem("mp5-onboarding-v1"));
     await page.goto("/");
-    await expect(page.getByTestId("welcome-onboarding")).toHaveCount(0);
+    await expect(page.getByTestId("welcome-onboarding")).toBeVisible();
     await expect(page.getByTestId("public-beta-notice")).toBeVisible();
     await expect(page.getByTestId("mp5-player")).toBeVisible();
     await expect(page.getByTestId("player-empty-state")).toBeVisible();

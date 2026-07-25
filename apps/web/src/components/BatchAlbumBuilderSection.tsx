@@ -262,33 +262,37 @@ export function BatchAlbumBuilderSection({
       setExportNote("Export an album package first.");
       return;
     }
-    const filename = lastExport.packageFilename ?? `${lastExport.manifest.album.title}.mp5p`;
-    if (lastExport.exportTarget === "embedded" && lastExport.packageBytes) {
-      const sizeLabel = formatPackageBytes(lastExport.packageBytes.byteLength);
-      if (
-        !window.confirm(
-          `Save embedded album (${sizeLabel}) to browser storage?\n\n${LIBRARY_STORAGE_NOTE}`,
-        )
-      ) {
+    try {
+      const filename = lastExport.packageFilename ?? `${lastExport.manifest.album.title}.mp5p`;
+      if (lastExport.exportTarget === "embedded" && lastExport.packageBytes) {
+        const sizeLabel = formatPackageBytes(lastExport.packageBytes.byteLength);
+        if (
+          !window.confirm(
+            `Save embedded album (${sizeLabel}) to browser storage?\n\n${LIBRARY_STORAGE_NOTE}`,
+          )
+        ) {
+          return;
+        }
+        const file = new File([lastExport.packageBytes.slice().buffer], filename, {
+          type: "application/octet-stream",
+        });
+        await saveEmbeddedAlbumPackage(file, lastExport.manifest);
+        setExportNote(`Saved embedded album (${sizeLabel}) to Library → Saved albums.`);
         return;
       }
-      const file = new File([lastExport.packageBytes.slice().buffer], filename, {
-        type: "application/octet-stream",
-      });
-      await saveEmbeddedAlbumPackage(file, lastExport.manifest);
-      setExportNote(`Saved embedded album (${sizeLabel}) to Library → Saved albums.`);
-      return;
-    }
-    if (lastExport.exportTarget === "manifest") {
-      if (
-        !window.confirm(
-          `Save manifest album to browser storage?\n\nSidecar .mp5 files must remain available. ${LIBRARY_STORAGE_NOTE}`,
-        )
-      ) {
-        return;
+      if (lastExport.exportTarget === "manifest") {
+        if (
+          !window.confirm(
+            `Save manifest album to browser storage?\n\nSidecar .mp5 files must remain available. ${LIBRARY_STORAGE_NOTE}`,
+          )
+        ) {
+          return;
+        }
+        saveAlbumPackage(lastExport.manifest, filename);
+        setExportNote("Saved manifest album to Library → Saved albums.");
       }
-      saveAlbumPackage(lastExport.manifest, filename);
-      setExportNote("Saved manifest album to Library → Saved albums.");
+    } catch (e) {
+      setExportNote(e instanceof Error ? e.message : String(e));
     }
   }
 

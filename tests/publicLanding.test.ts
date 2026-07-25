@@ -24,14 +24,16 @@ describe("public experience", () => {
     expect(HONESTY_NO_BEAT_CLAIM).not.toMatch(/MP5 beats/i);
   });
 
-  it("App opens directly into the player workspace without auto-seeding demo audio", () => {
+  it("App mounts WelcomeOnboarding into the player workspace without auto-seeding demo audio", () => {
     const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
-    expect(src).toContain("DemoFixtureActions");
-    expect(src).toContain('testIdPrefix="settings"');
+    expect(src).toContain("WelcomeOnboarding");
+    expect(src).toContain("<WelcomeOnboarding");
     expect(src).not.toContain("fetchDemoMp5lFixture");
     expect(src).not.toContain("defaultDemoLoading");
     expect(src).not.toContain("<PublicLanding />");
-    expect(src).not.toContain("<WelcomeOnboarding />");
+    expect(src).not.toContain("PublicLanding");
+    expect(src).not.toContain("DemoFixtureActions");
+    expect(src).not.toContain('testIdPrefix="settings"');
   });
 
   it("About preserves the current Public Beta feature and codec guidance", () => {
@@ -69,8 +71,8 @@ describe("public experience", () => {
       "utf8",
     );
     expect(src).toContain("FIRST_USER_TIPS");
-    expect(src).not.toContain("DemoFixtureActions");
-    expect(src).toContain("demo-open-settings-fixtures");
+    expect(src).toContain("DemoFixtureActions");
+    expect(src).not.toContain("demo-open-settings-fixtures");
     expect(src).toContain('id: "a"');
     expect(src).toContain('id: "e"');
     expect(src).toContain('data-testid="demo-load-embedded-album"');

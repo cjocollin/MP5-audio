@@ -6,11 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Milestone - MP5-L v4 promoted to Converter default
+## [0.29.0-beta] - 2026-07
 
-- **Gate:** `PROMOTE_V4` on held-out (median **0.989x** FFmpeg flac-5, worst **0.999x**, bit-exact). See `MP5L_COMPRESSION.md` / `MP5L_V4_SOAK.md`.
-- **Default export:** Converter + batch use `mp5l_v4`; hard-fail retained (no silent v3 fallback); Retry as v3 remains lab/legacy.
-- **Honesty:** held-out is 10 Kesha pop tracks + 10 ORIGAMI alt-pop extracts (2 albums). Speech SPEECH_PASS archived under `corpus/speech-held-out/`.
+### Milestone - Player orchestration rebuilt on an explicit state machine
+
+**Stability before features.** The load/playback path is no longer driven by
+mutable ref-flags and React effects; a pure state machine owns it. Same UI, same
+design — the orchestration underneath changed.
+
+- **Playback state machine** (`player/engine/playbackMachine.ts`): pure reducer over
+  `idle | loading | readyPartial | ready | error`. Play intent is **data keyed by
+  track id**, consumed only when that exact track's audio starts, so a superseded
+  load can never deliver playback to the wrong track or silently drop it.
+- **Playback controller** (`playbackController.ts`): non-React owner of the machine
+  plus one `AbortController` per load; maps effects to injected handles.
+- **Scoped decode cancellation** (`decodeScheduler.ts`): interactive decodes supersede,
+  background decodes (prefetch/upgrade) queue and never cancel in-flight work. Fixes
+  the progressive upgrade being clobbered by a neighbour prefetch (a permanent 8s partial).
+- **Play intent migrated off the ref-soup:** `playWhenReadyRef` / `autoAdvanceRef` deleted;
+  a single track-keyed mailbox feeds the machine. Auto-advance on track end *and* on load
+  failure, pause-during-load, and failed-track retry are now explicit transitions.
+- **Fixed:** browser-freezing OOM on rapid open/switch of large files; the
+  "playing but no source" wedge; hidden-tab load stall (rAF starvation); ghost loads
+  completing into a cleared queue.
+
+### Also included - Memory, converter, and stems
+
+- **Memory:** neighbour prefetch no longer builds/transfers planar floats it discards;
+  SHA-256 no longer copies 27-42 MB buffers before hashing; `decodeCache` is **byte-budgeted**
+  (device-memory scaled) with the current track pinned, replacing a fixed 3-entry cap;
+  integrity verification is generation-guarded so a superseded track stops hashing.
+- **Converter:** Export Desk design applied; export runs in a background worker with a
+  progress bar; converter waveform now shows on mobile.
+- **Stems:** stem aliasing to avoid duplicate stored audio data.
+- **MP5-L v4 promoted to Converter default:** gate `PROMOTE_V4` on held-out (median
+  **0.989x** FFmpeg flac-5, worst **0.999x**, bit-exact). See `MP5L_COMPRESSION.md` /
+  `MP5L_V4_SOAK.md`. Converter + batch export `mp5l_v4`; hard-fail retained (no silent
+  v3 fallback); Retry as v3 remains lab/legacy. Demo fixtures and the deployed demo
+  now ship v4; v3 stays generated for lab/compat.
+- **Honesty:** held-out is 10 Kesha pop tracks + 10 ORIGAMI alt-pop extracts (2 albums).
+  Speech SPEECH_PASS archived under `corpus/speech-held-out/`.
 
 ## [0.28.0-beta] - 2026-07
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   batchOutputFilename,
   clearCompletedItems,
@@ -11,9 +11,17 @@ import {
   mergeBatchQueues,
   retryFailedItems,
 } from "../apps/web/src/converter/batchQueue";
+import {
+  batchOutputCacheSize,
+  clearBatchOutputCache,
+  deleteBatchOutput,
+  getBatchOutput,
+  setBatchOutput,
+} from "../apps/web/src/converter/batchOutputCache";
 import { BATCH_CODEC, type BatchQueueItem } from "../apps/web/src/converter/batchTypes";
 import { manualEditsFromSource } from "../apps/web/src/converter/manualMetadata";
 import { buildExportFilename } from "../apps/web/src/converter/exportFilename";
+import { useConversionStore } from "../apps/web/src/store/conversionStore";
 
 function mockFile(name: string, size = 1000): File {
   return new File([new Uint8Array(Math.min(size, 8))], name, { type: "audio/wav" });
@@ -71,17 +79,27 @@ describe("batch status transitions", () => {
 });
 
 describe("batch queue maintenance", () => {
-  const base = (status: BatchQueueItem["status"]): BatchQueueItem => ({
-    id: "1",
+  beforeEach(() => {
+    clearBatchOutputCache();
+  });
+
+  const base = (status: BatchQueueItem["status"], id = "1"): BatchQueueItem => ({
+    id,
     sourceName: "a.wav",
     sourceSize: 1,
     file: mockFile("a.wav"),
     status,
   });
 
-  it("clears completed items", () => {
-    const items = [base("complete"), base("pending"), base("failed")];
+  it("clears completed items and drops output cache", () => {
+    setBatchOutput("done", new Uint8Array([1, 2, 3]));
+    const items = [
+      { ...base("complete", "done"), outputFilename: "a.mp5", outputBytes: 3 },
+      base("pending", "pending"),
+      base("failed", "failed"),
+    ];
     expect(clearCompletedItems(items)).toHaveLength(2);
+    expect(getBatchOutput("done")).toBeUndefined();
   });
 
   it("retries failed and cancelled", () => {
@@ -92,6 +110,30 @@ describe("batch queue maintenance", () => {
     expect(retried[2]!.status).toBe("complete");
     expect(hasRetryableItems(items)).toBe(true);
     expect(hasCompletedItems(items)).toBe(true);
+  });
+});
+
+describe("batch output cache", () => {
+  beforeEach(() => {
+    clearBatchOutputCache();
+  });
+
+  it("stores bytes outside React item state", () => {
+    setBatchOutput("a", new Uint8Array([9]));
+    expect(getBatchOutput("a")?.[0]).toBe(9);
+    expect(batchOutputCacheSize()).toBe(1);
+    deleteBatchOutput("a");
+    expect(batchOutputCacheSize()).toBe(0);
+  });
+});
+
+describe("cancel generation epoch", () => {
+  it("bumpCancelGeneration advances epoch for stale completion guards", () => {
+    useConversionStore.setState({ cancelGeneration: 0 });
+    const start = useConversionStore.getState().cancelGeneration;
+    const next = useConversionStore.getState().bumpCancelGeneration();
+    expect(next).toBe(start + 1);
+    expect(useConversionStore.getState().cancelGeneration).toBe(start + 1);
   });
 });
 

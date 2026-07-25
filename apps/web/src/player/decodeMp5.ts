@@ -1,7 +1,14 @@
-import { CodecId, loadAudiFrames, parseMp5, type Mp5File } from "@mp5/container";
+import {
+  CodecId,
+  loadAudiFrames,
+  loadCorrFrames,
+  parseMp5,
+  type Mp5File,
+} from "@mp5/container";
 import { getCodec, Mp5lStreamDecoder } from "../wasm/codec";
 import { mp5lBitstreamVersion, mp5lVersionLabel } from "../lib/codecDisplay";
 import { updateIngestDiagnostics } from "../lib/ingest/ingestDiagnostics";
+import { alignedInt16 } from "../lib/pcm/alignedInt16";
 
 function decodeWasm(
   fn: () => Int16Array,
@@ -23,7 +30,9 @@ function decodeWasm(
 export type DecodePath =
   | "PCM (container passthrough)"
   | "MP5-L WASM v3 decode (lossless)"
-  | "MP5-L WASM v4 stream+seek decode (experimental)"
+  | "MP5-L WASM v4 decode (lossless)"
+  | "MP5-L WASM v4 windowed stream decode"
+  | "MP5-L WASM v4 progressive first-window decode"
   | "MP5-L WASM v2 decode (legacy raw blocks)"
   | "MP5-L WASM decode"
   | "MP5-C WASM v5.1 decode (experimental)"
@@ -52,6 +61,27 @@ export type DecodeResult = {
   decodePath: DecodePath;
   mp5h?: Mp5hDecodeInfo;
   mp5l?: Mp5lDecodeInfo;
+  /** Planar float PCM when built off-thread (skips main-thread Int16 loops). */
+  floatChannels?: Float32Array[];
+};
+
+export type DecodeMp5Options = {
+  /**
+   * Sample index to seek to before decode (Mp5lStreamDecoder.seek_frame).
+   * Prefer omit for full-file production decode (codec.decode_mp5l).
+   */
+  windowStartSample?: number;
+  /** @deprecated Use windowStartSample — historically misnamed as frame index. */
+  windowStartFrame?: number;
+  /** Exclusive end sample (channel-frames). With start=0, yields first N samples. */
+  windowEndSample?: number;
+  /**
+   * Build planar Float32 channels in the worker (default true). Set false when
+   * the caller only needs `samples` — e.g. the neighbor prefetch, which caches
+   * Int16 and never uploads an AudioBuffer. Floats are 2x the size of `samples`,
+   * so skipping them avoids allocating + transferring them for nothing.
+   */
+  wantFloats?: boolean;
 };
 
 function mp5cDecodePath(frameData: Uint8Array): DecodePath {
@@ -66,73 +96,100 @@ function mp5cDecodePath(frameData: Uint8Array): DecodePath {
   return "MP5-C WASM v5.1 decode (experimental)";
 }
 
-function mp5lDecodePath(frameData: Uint8Array): DecodePath {
+function mp5lDecodePath(
+  frameData: Uint8Array,
+  mode: "full" | "windowed" | "progressive",
+): DecodePath {
   const ver = mp5lBitstreamVersion(frameData);
-  if (ver === 4) return "MP5-L WASM v4 stream+seek decode (experimental)";
+  if (mode === "progressive" && ver === 4) {
+    return "MP5-L WASM v4 progressive first-window decode";
+  }
+  if (mode === "windowed" && ver === 4) return "MP5-L WASM v4 windowed stream decode";
+  if (ver === 4) return "MP5-L WASM v4 decode (lossless)";
   if (ver === 3) return "MP5-L WASM v3 decode (lossless)";
   if (ver === 2) return "MP5-L WASM v2 decode (legacy raw blocks)";
   return `MP5-L WASM decode (${mp5lVersionLabel(ver)})` as DecodePath;
 }
 
-/** Demo path for experimental v4: chunked push decode, then indexed seek smoke check. */
-function decodeMp5lV4Streaming(frameData: Uint8Array): Int16Array {
-  const decoder = new Mp5lStreamDecoder(new Uint8Array(0));
-  const mid = Math.max(1, Math.floor(frameData.length / 2));
-  const first = decoder.push(frameData.subarray(0, mid));
-  const rest = decoder.push(frameData.subarray(mid));
-  const merged = new Int16Array(first.length + rest.length);
-  merged.set(first, 0);
-  merged.set(rest, first.length);
-  if (merged.length >= 8) {
-    const channelFrames = Math.floor(merged.length / 2);
-    const target = Math.floor(channelFrames / 2);
-    decoder.seek_frame(target);
-    const fromSeek = decoder.push(new Uint8Array(0));
-    if (fromSeek.length === 0) {
-      throw new Error("MP5-L v4 seek demo produced empty output");
+/**
+ * Stream path for L-v4. Always free() the decoder — full-file decode should use
+ * codec.decode_mp5l instead.
+ */
+function decodeMp5lWindowed(
+  frameData: Uint8Array,
+  startSample: number,
+  endSampleExclusive?: number,
+): Int16Array {
+  const decoder = new Mp5lStreamDecoder(frameData);
+  try {
+    if (startSample > 0) {
+      decoder.seek_frame(startSample);
     }
+    if (endSampleExclusive != null && Number.isFinite(endSampleExclusive)) {
+      const maxSamples = Math.max(0, endSampleExclusive - startSample);
+      return decoder.push_until(new Uint8Array(0), maxSamples);
+    }
+    return decoder.push(new Uint8Array(0));
+  } finally {
+    decoder.free();
   }
-  return merged;
 }
 
+/** Decode from HEAD + first AUDI frame (and optional CORR). No container parse. */
+export type DecodeFrameInput = {
+  codecId: number;
+  channels: number;
+  sampleRate: number;
+  frameData: Uint8Array;
+  corrData?: Uint8Array;
+  windowStartSample?: number;
+  windowStartFrame?: number;
+  windowEndSample?: number;
+};
+
+export type DecodeFrameResult = {
+  samples: Int16Array;
+  sampleRate: number;
+  channels: number;
+  decodePath: DecodePath;
+  mp5h?: Mp5hDecodeInfo;
+  mp5l?: Mp5lDecodeInfo;
+};
+
 /**
- * Decode full mix to PCM. Uses pre-parsed file; lazy-indexed files load AUDI on demand.
+ * WASM decode only — used by the mix worker after main has loaded AUDI frames.
  */
-export async function decodeMp5ToPcm(
-  buffer: ArrayBuffer | undefined,
-  preParsed?: Mp5File,
-): Promise<DecodeResult> {
-  const parsed = preParsed ?? (buffer ? parseMp5(buffer) : undefined);
-  if (!parsed) throw new Error("Missing MP5 file data");
-  if (!parsed.head) throw new Error("Missing HEAD chunk");
-
-  const audioFrames = await loadAudiFrames(parsed);
-  const frameData = audioFrames[0]?.data;
-  if (!frameData) throw new Error("No audio frames");
-
-  if (parsed.lazy) {
-    updateIngestDiagnostics({
-      audiLoaded: true,
-      loadedBinaryMb:
-        parsed.lazy.loadedPayloadBytes / (1024 * 1024) +
-        frameData.byteLength / (1024 * 1024),
-    });
-  }
-
+export async function decodeFrameDataToPcm(
+  input: DecodeFrameInput,
+): Promise<DecodeFrameResult> {
+  const { codecId, channels, sampleRate, frameData } = input;
   const codec = await getCodec();
-  const ch = parsed.head.channels;
   let samples: Int16Array;
   let decodePath: DecodePath;
   let mp5h: Mp5hDecodeInfo | undefined;
   let mp5l: Mp5lDecodeInfo | undefined;
+  const startSample =
+    input.windowStartSample ?? input.windowStartFrame ?? undefined;
+  const endSample = input.windowEndSample;
+  const hasStart = startSample != null && Number.isFinite(startSample);
+  const hasEnd = endSample != null && Number.isFinite(endSample);
+  const streamMode: "full" | "windowed" | "progressive" = hasEnd
+    ? "progressive"
+    : hasStart
+      ? "windowed"
+      : "full";
 
-  switch (parsed.head.codecId) {
+  switch (codecId) {
     case CodecId.MP5L:
-      decodePath = mp5lDecodePath(frameData);
+      decodePath = mp5lDecodePath(frameData, streamMode);
       mp5l = { bitstreamVersion: mp5lBitstreamVersion(frameData) };
       samples = decodeWasm(() => {
-        if (mp5lBitstreamVersion(frameData) === 4) {
-          return decodeMp5lV4Streaming(frameData);
+        if (streamMode !== "full") {
+          return decodeMp5lWindowed(
+            frameData,
+            hasStart ? startSample! : 0,
+            hasEnd ? endSample : undefined,
+          );
         }
         return codec.decode_mp5l(frameData);
       }, "MP5-L");
@@ -146,7 +203,7 @@ export async function decodeMp5ToPcm(
       samples = decodeWasm(() => codec.decode_mp5c_vnext(frameData), "MP5-C2");
       break;
     case CodecId.MP5H: {
-      const corr = parsed.corr[0]?.data;
+      const corr = input.corrData;
       const hasCorr = !!(corr && corr.length > 0);
       const enhancedActive = hasCorr;
       mp5h = { hasCorr, enhancedActive };
@@ -161,28 +218,82 @@ export async function decodeMp5ToPcm(
       );
       break;
     }
-    case CodecId.PCM:
+    case CodecId.PCM: {
       decodePath = "PCM (container passthrough)";
-      samples = new Int16Array(
-        frameData.buffer,
-        frameData.byteOffset,
-        frameData.byteLength / 2,
-      );
+      const all = alignedInt16(frameData);
+      if (hasEnd || hasStart) {
+        const start = (hasStart ? startSample! : 0) * channels;
+        const end = hasEnd
+          ? Math.min(all.length, endSample! * channels)
+          : all.length;
+        samples = all.subarray(start, Math.max(start, end));
+      } else {
+        samples = all;
+      }
       break;
+    }
     default:
       throw new Error(
-        `Unsupported codec id ${parsed.head.codecId}. Re-export with MP5-L v4 (recommended) or PCM.`,
+        `Unsupported codec id ${codecId}. Re-export with MP5-L v4 (recommended) or PCM.`,
       );
   }
 
   return {
     samples,
-    sampleRate: parsed.head.sampleRate,
-    channels: ch,
-    parsed,
+    sampleRate,
+    channels,
     decodePath,
     mp5h,
     mp5l,
+  };
+}
+
+/**
+ * Decode full mix to PCM. Uses pre-parsed file; lazy-indexed files load AUDI on demand.
+ * Production path uses codec.decode_mp5l for MP5-L (including v4). Pass
+ * windowStartSample / windowEndSample for progressive first-audible windows.
+ */
+export async function decodeMp5ToPcm(
+  buffer: ArrayBuffer | undefined,
+  preParsed?: Mp5File,
+  opts?: DecodeMp5Options,
+): Promise<DecodeResult> {
+  const parsed = preParsed ?? (buffer ? parseMp5(buffer) : undefined);
+  if (!parsed) throw new Error("Missing MP5 file data");
+  if (!parsed.head) throw new Error("Missing HEAD chunk");
+
+  const audioFrames = await loadAudiFrames(parsed);
+  const frameData = audioFrames[0]?.data;
+  if (!frameData) throw new Error("No audio frames");
+
+  // MP5-H enhancement (CORR) is skipped by the lazy index when it exceeds the
+  // eager cap; load it before decode so >2MB files aren't silently base-only.
+  if (parsed.head.codecId === CodecId.MP5H && parsed.lazy && !parsed.corr.length) {
+    await loadCorrFrames(parsed);
+  }
+
+  if (parsed.lazy) {
+    updateIngestDiagnostics({
+      audiLoaded: true,
+      loadedBinaryMb:
+        parsed.lazy.loadedPayloadBytes / (1024 * 1024) +
+        frameData.byteLength / (1024 * 1024),
+    });
+  }
+
+  const decoded = await decodeFrameDataToPcm({
+    codecId: parsed.head.codecId,
+    channels: parsed.head.channels,
+    sampleRate: parsed.head.sampleRate,
+    frameData,
+    corrData: parsed.corr[0]?.data,
+    windowStartSample: opts?.windowStartSample ?? opts?.windowStartFrame,
+    windowEndSample: opts?.windowEndSample,
+  });
+
+  return {
+    ...decoded,
+    parsed,
   };
 }
 

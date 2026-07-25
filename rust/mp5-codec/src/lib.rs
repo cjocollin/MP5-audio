@@ -19,6 +19,72 @@ pub fn encode_mp5l_v4(samples: &[i16], channels: u8) -> Vec<u8> {
     mp5l::encode_v4(samples, channels)
 }
 
+/// Progressive v4 encoder (bit-identical to [`encode_mp5l_v4`]).
+#[wasm_bindgen]
+pub struct Mp5lV4StreamEncoder {
+    inner: mp5l::Mp5lV4StreamEncoder,
+}
+
+#[wasm_bindgen]
+impl Mp5lV4StreamEncoder {
+    #[wasm_bindgen(constructor)]
+    pub fn new(samples: &[i16], channels: u8) -> Mp5lV4StreamEncoder {
+        Self {
+            inner: mp5l::Mp5lV4StreamEncoder::new(samples, channels),
+        }
+    }
+
+    #[wasm_bindgen(js_name = frameCount)]
+    pub fn frame_count(&self) -> u32 {
+        self.inner.frame_count() as u32
+    }
+
+    #[wasm_bindgen(js_name = framesDone)]
+    pub fn frames_done(&self) -> u32 {
+        self.inner.frames_done() as u32
+    }
+
+    /// Encode one planned frame. Returns false when finished.
+    #[wasm_bindgen(js_name = encodeNextFrame)]
+    pub fn encode_next_frame(&mut self) -> bool {
+        self.inner.encode_next_frame()
+    }
+
+    pub fn finish(self) -> Vec<u8> {
+        self.inner.finish()
+    }
+}
+
+/// Flat `[start0, end0, start1, end1, …]` sample ranges for multi-worker frame encode.
+#[wasm_bindgen]
+pub fn plan_mp5l_v4_boundaries(samples: &[i16], channels: u8) -> Vec<u32> {
+    mp5l::plan_mp5l_v4_frame_ranges(samples, channels)
+        .into_iter()
+        .flat_map(|(s, e)| [s, e])
+        .collect()
+}
+
+/// Encode one v4 frame payload for `[start, end)` (sample index on channel 0).
+#[wasm_bindgen]
+pub fn encode_mp5l_v4_frame(samples: &[i16], channels: u8, start: u32, end: u32) -> Vec<u8> {
+    mp5l::encode_mp5l_v4_frame_range(samples, channels, start, end).1
+}
+
+/// Assemble ordered frame payloads into a full v4 bitstream (bit-identical when
+/// frames match serial encode order from [`plan_mp5l_v4_boundaries`]).
+#[wasm_bindgen]
+pub fn assemble_mp5l_v4(channels: u8, sample_offsets: &[u32], frames_concat: &[u8], frame_lengths: &[u32]) -> Vec<u8> {
+    let mut payloads = Vec::with_capacity(frame_lengths.len());
+    let mut cursor = 0usize;
+    for &len in frame_lengths {
+        let end = cursor + len as usize;
+        payloads.push(frames_concat[cursor..end].to_vec());
+        cursor = end;
+    }
+    let offsets: Vec<u64> = sample_offsets.iter().map(|&o| o as u64).collect();
+    mp5l::assemble_mp5l_v4_frames(channels, &offsets, &payloads)
+}
+
 #[wasm_bindgen]
 pub fn decode_mp5l(data: &[u8]) -> Result<Vec<i16>, JsValue> {
     mp5l::decode(data).map_err(|e| JsValue::from_str(&e))
@@ -42,6 +108,17 @@ impl Mp5lStreamDecoder {
     pub fn push(&mut self, data: &[u8]) -> Result<Vec<i16>, JsValue> {
         self.inner
             .push(data)
+            .map_err(|error| JsValue::from_str(&error))
+    }
+
+    /// Decode until `max_channel_samples` channel-frames are emitted (or EOF).
+    pub fn push_until(
+        &mut self,
+        data: &[u8],
+        max_channel_samples: usize,
+    ) -> Result<Vec<i16>, JsValue> {
+        self.inner
+            .push_until(data, Some(max_channel_samples))
             .map_err(|error| JsValue::from_str(&error))
     }
 

@@ -115,6 +115,15 @@ export function PerformanceDiagnosticsPanel() {
           <span className="text-gray-600">Decode cache:</span> {cacheStats.entryCount} /{" "}
           {DECODE_CACHE_MAX_ENTRIES} · ~{formatMemoryEstimate(cacheStats.estimatedBytes)}
         </p>
+        {/* Bytes are the binding limit now, not the entry count — show the budget
+            the evictable (non-pinned) entries are measured against, plus the
+            compressed AUDI those entries keep alive on their playlist tracks. */}
+        <p>
+          <span className="text-gray-600">Cache budget:</span>{" "}
+          {formatMemoryEstimate(cacheStats.nonProtectedBytes)} /{" "}
+          {formatMemoryEstimate(cacheStats.budgetBytes)} evictable · pinned audio{" "}
+          {formatMemoryEstimate(cacheStats.pinnedContainerBytes)}
+        </p>
         <p>
           <span className="text-gray-600">Library:</span> {libraryCount} entries ·{" "}
           {formatBytes(libraryBytes)}

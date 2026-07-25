@@ -104,6 +104,30 @@ const mp5lMp5 = writeMp5({
   info: [{ key: "encoder", value: "MP5-L WASM v3 (lossless · bit-exact)" }],
 });
 
+const mp5lV4Bitstream = mod.encode_mp5l_v4(samples, channels);
+if (mp5lV4Bitstream[0] !== 0x4c || mp5lV4Bitstream[1] !== 4) {
+  throw new Error(`Expected MP5-L v4, got ${mp5lV4Bitstream[0]} ${mp5lV4Bitstream[1]}`);
+}
+const mp5lV4Mp5 = writeMp5({
+  head: {
+    codecId: CodecId.MP5L,
+    channels,
+    bitsPerSample: 16,
+    presetId: 0,
+    sampleRate,
+    totalSamples,
+    encoderVersion: 1,
+  },
+  meta: [
+    { key: "title", value: "Demo tone (MP5-L v4)" },
+    { key: "artist", value: "MP5 Public Beta Demo" },
+  ],
+  audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: mp5lV4Bitstream }],
+  seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+  waveform: peaks,
+  info: [{ key: "encoder", value: "MP5-L WASM v4 (lossless · bit-exact · default)" }],
+});
+
 const mp5cBitstream = mod.encode_mp5c(samples, channels, 2);
 const mp5cMp5 = writeMp5({
   head: {
@@ -167,8 +191,8 @@ const melodyPcm = synthSine(stemN, sampleRate, 440, 3500);
 const mixPcm = mixStems(drumsPcm, bassPcm, melodyPcm);
 const stemPeaks = peaksFromSamples(mixPcm, channels);
 
-function encodeStemFrame(samples) {
-  return mod.encode_mp5l(samples, channels);
+function encodeStemFrame(samples, v4 = false) {
+  return v4 ? mod.encode_mp5l_v4(samples, channels) : mod.encode_mp5l(samples, channels);
 }
 
 const instrumentalPcm = mixStems(drumsPcm, bassPcm);
@@ -282,13 +306,74 @@ const stemsMp5 = writeMp5({
   ]),
 });
 
+const stemBundlesV4 = [
+  { id: "stem-drums", name: "Demo Drums", type: "drums", pcm: drumsPcm },
+  { id: "stem-bass", name: "Demo Bass", type: "bass", pcm: bassPcm },
+  { id: "stem-vocals", name: "Demo Vocals", type: "lead_vocals", pcm: melodyPcm },
+  {
+    id: "stem-instrumental",
+    name: "Demo Instrumental",
+    type: "instrumental",
+    pcm: instrumentalPcm,
+  },
+].map((s) => ({
+  stemId: s.id,
+  stemName: s.name,
+  stemType: s.type,
+  codecId: CodecId.MP5L,
+  sampleRate,
+  channels,
+  durationSamples: stemN,
+  frameData: encodeStemFrame(s.pcm, true),
+  defaultVolume: 1,
+}));
+
+const { optional: stemOptionalV4 } = buildStemOptionalChunks(stemBundlesV4);
+const mixBitstreamV4 = mod.encode_mp5l_v4(mixPcm, channels);
+const stemsMp5V4 = writeMp5({
+  head: {
+    codecId: CodecId.MP5L,
+    channels,
+    bitsPerSample: 16,
+    presetId: 0,
+    sampleRate,
+    totalSamples: stemTotal,
+    encoderVersion: 1,
+  },
+  meta: [
+    { key: "title", value: "Demo song map (MP5-L v4)" },
+    { key: "artist", value: "MP5 Public Beta Demo" },
+    { key: "genre", value: "Synthetic demo" },
+  ],
+  audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: mixBitstreamV4 }],
+  seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+  waveform: stemPeaks,
+  info: [
+    {
+      key: "encoder",
+      value: "MP5-L WASM v4 + STEM/STDA + LYRC + SECT/HOOK/HILT/VISU (synthetic · default)",
+    },
+  ],
+  optional: new Map([
+    ...stemOptionalV4.entries(),
+    ["LYRC", demoSyncedLyrics],
+    ["SECT", demoSections],
+    ["HOOK", demoHook],
+    ["HILT", demoHilt],
+    ["VISU", demoVisu],
+  ]),
+});
+
 const files = [
   ["demo_pcm_reference_tone.mp5", pcmMp5],
   ["demo_mp5l_v3_tone.mp5", mp5lMp5],
+  ["demo_mp5l_v4_tone.mp5", mp5lV4Mp5],
   ["demo_mp5c_lab_tone.mp5", mp5cMp5],
   ["demo_mp5l_v3_stems.mp5", stemsMp5],
+  ["demo_mp5l_v4_stems.mp5", stemsMp5V4],
   ["validation_pcm_slice.mp5", pcmMp5],
   ["validation_mp5l_v3.mp5", mp5lMp5],
+  ["validation_mp5l_v4.mp5", mp5lV4Mp5],
 ];
 
 for (const [name, buf] of files) {
@@ -298,5 +383,5 @@ for (const [name, buf] of files) {
 }
 
 console.log(
-  "\nDemo fixtures ready — demo_mp5l_v3_stems.mp5 (stems + LYRC + SECT/HOOK/HILT/VISU), no copyrighted material.",
+  "\nDemo fixtures ready — demo_mp5l_v4_tone.mp5 / demo_mp5l_v4_stems.mp5 (default), v3 retained for lab, no copyrighted material.",
 );

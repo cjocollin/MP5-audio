@@ -1,6 +1,7 @@
 import type { AlbmPackageManifest } from "@mp5/container";
 import { manifestToJson, parseAlbmPackageJson } from "@mp5/container";
 import { createRandomId } from "../randomId";
+import { LibraryStorageError, isQuotaExceededError } from "./errors";
 
 const STORAGE_KEY = "mp5-saved-albums-v1";
 
@@ -32,8 +33,16 @@ function writeAll(albums: SavedAlbumPackage[]): void {
   try {
     const payload: StoredPayload = { version: 1, albums };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  } catch {
-    /* quota or private mode */
+  } catch (e) {
+    if (isQuotaExceededError(e)) {
+      throw new LibraryStorageError(
+        "Not enough browser storage to save. Remove older library items or free disk space in your browser settings.",
+        "quota",
+      );
+    }
+    throw e instanceof Error
+      ? new LibraryStorageError(e.message)
+      : new LibraryStorageError("Could not write album library to browser storage.");
   }
 }
 

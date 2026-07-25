@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { usePlayerStore } from "../store/playerStore";
-import { importAlbumPackageToPlayer } from "../player/playerImport";
+import { importAlbumPackageToPlayer, importMp5ToPlayer } from "../player/playerImport";
 import { fetchEmbeddedAlbumFixture } from "../lib/demoFixture";
 import { FIRST_USER_TIPS } from "../lib/betaFeedback";
+import { DemoFixtureActions } from "./DemoFixtureActions";
 
 const PATHS = [
   {
     id: "a",
     title: "A. Play a smart song",
     steps: [
-      "Load the MP5-L demo from Settings, or drop your own .mp5",
+      "Load the MP5-L demo below, or drop your own .mp5",
       "Check metadata, lyrics, and VISU in Now Playing",
       "Press Play",
     ],
@@ -19,7 +20,7 @@ const PATHS = [
     id: "b",
     title: "B. Try stems & karaoke",
     steps: [
-      "Load the karaoke demo from Settings (stems + synced lyrics)",
+      "Load the karaoke demo below (stems + synced lyrics)",
       "Enable Karaoke mode in the lyrics panel",
       "Try stem checkboxes in the Stems panel",
     ],
@@ -84,7 +85,7 @@ export function DemoModePanel() {
       <div className="mp5-card p-4 border-accent/20 space-y-2">
         <h2 className="text-lg font-semibold text-white">Demo guide</h2>
         <p className="text-xs text-gray-400 leading-relaxed">
-          Short paths for Public Beta. Load synthetic demos from Settings when you want them — nothing
+          Short paths for Public Beta. Load synthetic demos below when you want them — nothing
           auto-plays on first visit. All audio here is synthetic - no copyrighted music in the repo.
           MP5-L v4 is recommended; MP5-C is lab-only; MP5 does not claim to beat MP3, AAC, Opus, or
           FLAC.
@@ -97,15 +98,15 @@ export function DemoModePanel() {
             <li key={tip}>{tip}</li>
           ))}
         </ul>
-        <button
-          type="button"
-          onClick={() => setActiveTab("settings")}
-          className="text-xs text-accent hover:underline min-h-[32px]"
-          data-testid="demo-open-settings-fixtures"
-        >
-          Open Settings for demo files →
-        </button>
       </div>
+
+      <DemoFixtureActions
+        testIdPrefix="demo"
+        onLoaded={async (file, playFirst) => {
+          setActiveTab("player");
+          await importMp5ToPlayer([file], { playFirst });
+        }}
+      />
 
       <div className="flex flex-wrap gap-2">
         <button

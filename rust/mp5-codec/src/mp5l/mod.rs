@@ -16,9 +16,9 @@ pub mod varint;
 use block::{
     decode_block_payload, decode_i32_predicted_rice_payload, decode_i32_qlp_payload,
     decode_i32_rice_payload, encode_block_payload, encode_block_payload_v4,
-    encode_i32_predicted_rice_payload, encode_i32_rice_payload, estimate_block_payload_v4_bytes,
-    estimate_i32_predicted_rice_payload_bytes, estimate_i32_rice_payload_bytes, FLAG_I32_PRED,
-    FLAG_I32_QLP, FLAG_I32_RICE, FLAG_QLP, FLAG_RAW,
+    encode_block_payload_v4_with_qlp, estimate_block_payload_v4_bytes,
+    estimate_block_payload_v4_bytes_with_qlp, prepare_i32_side, FLAG_I32_PRED, FLAG_I32_QLP,
+    FLAG_I32_RICE, FLAG_QLP, FLAG_RAW,
 };
 
 /// Stereo transform hints in the high bits of the left-channel flag byte.
@@ -78,17 +78,8 @@ pub fn encode_v3(samples: &[i16], channels: u8) -> Vec<u8> {
     encode_version(samples, channels, VERSION_V3, false)
 }
 
-/// Experimental v4 encoder. Frames are interleaved by block boundary and an
-/// absolute-offset seek table immediately follows the seven-byte header.
-pub fn encode_v4(samples: &[i16], channels: u8) -> Vec<u8> {
-    diag::reset_encode_telemetry();
-    let channel_count = channels.max(1) as usize;
-    let per_channel = if channel_count == 1 {
-        vec![samples.to_vec()]
-    } else {
-        crate::pcm::deinterleave_i16(samples, channel_count)
-    };
-    let plan = plan_blocks_v4(&per_channel);
+fn plan_v4_ranges(per_channel: &[Vec<i16>]) -> Vec<(usize, usize)> {
+    let plan = plan_blocks_v4(per_channel);
     let sample_len = per_channel.first().map(Vec::len).unwrap_or(0);
     let mut ranges = Vec::with_capacity(plan.boundaries.len());
     let mut start = 0usize;
@@ -100,6 +91,48 @@ pub fn encode_v4(samples: &[i16], channels: u8) -> Vec<u8> {
         ranges.push((start, end));
         start = end;
     }
+    ranges
+}
+
+fn assemble_v4_bitstream(
+    channel_count: usize,
+    frames: &[(u64, Vec<u8>, diag::EncodeTelemetry)],
+) -> Vec<u8> {
+    let seek_indices: Vec<usize> = (0..frames.len())
+        .filter(|&i| i % SEEK_STRIDE == 0 || i + 1 == frames.len())
+        .collect();
+    let mut out = vec![0x4c, VERSION_V4, channel_count as u8];
+    out.extend_from_slice(&(frames.len() as u32).to_le_bytes());
+    out.extend_from_slice(SEEK_MAGIC);
+    out.extend_from_slice(&(seek_indices.len() as u32).to_le_bytes());
+    let frame_data_start = 7usize + 8 + seek_indices.len() * 16;
+    let mut offset = frame_data_start as u64;
+    let mut frame_offsets = Vec::with_capacity(frames.len());
+    for (_, frame, _) in frames {
+        frame_offsets.push(offset);
+        offset += frame.len() as u64;
+    }
+    for &i in &seek_indices {
+        out.extend_from_slice(&frames[i].0.to_le_bytes());
+        out.extend_from_slice(&frame_offsets[i].to_le_bytes());
+    }
+    for (_, frame, _) in frames {
+        out.extend_from_slice(frame);
+    }
+    out
+}
+
+/// Experimental v4 encoder. Frames are interleaved by block boundary and an
+/// absolute-offset seek table immediately follows the seven-byte header.
+pub fn encode_v4(samples: &[i16], channels: u8) -> Vec<u8> {
+    diag::reset_encode_telemetry();
+    let channel_count = channels.max(1) as usize;
+    let per_channel = if channel_count == 1 {
+        vec![samples.to_vec()]
+    } else {
+        crate::pcm::deinterleave_i16(samples, channel_count)
+    };
+    let ranges = plan_v4_ranges(&per_channel);
 
     #[cfg(all(feature = "native_parallel", not(target_arch = "wasm32")))]
     let frames: Vec<_> = {
@@ -120,28 +153,110 @@ pub fn encode_v4(samples: &[i16], channels: u8) -> Vec<u8> {
         diag::merge_encode_telemetry(*telemetry);
     }
 
-    let seek_indices: Vec<usize> = (0..frames.len())
-        .filter(|&i| i % SEEK_STRIDE == 0 || i + 1 == frames.len())
+    assemble_v4_bitstream(channel_count, &frames)
+}
+
+/// Progressive MP5-L v4 encoder: same bitstream as [`encode_v4`], one frame at a time.
+///
+/// Call [`Mp5lV4StreamEncoder::encode_next_frame`] until it returns false, then
+/// [`Mp5lV4StreamEncoder::finish`]. Planning runs once up front (serial); frames
+/// encode in plan order for bit-identical output.
+pub struct Mp5lV4StreamEncoder {
+    channel_count: usize,
+    per_channel: Vec<Vec<i16>>,
+    ranges: Vec<(usize, usize)>,
+    frames: Vec<(u64, Vec<u8>, diag::EncodeTelemetry)>,
+    next: usize,
+}
+
+impl Mp5lV4StreamEncoder {
+    pub fn new(samples: &[i16], channels: u8) -> Self {
+        diag::reset_encode_telemetry();
+        let channel_count = channels.max(1) as usize;
+        let per_channel = if channel_count == 1 {
+            vec![samples.to_vec()]
+        } else {
+            crate::pcm::deinterleave_i16(samples, channel_count)
+        };
+        let ranges = plan_v4_ranges(&per_channel);
+        let frame_cap = ranges.len();
+        Self {
+            channel_count,
+            per_channel,
+            ranges,
+            frames: Vec::with_capacity(frame_cap),
+            next: 0,
+        }
+    }
+
+    pub fn frame_count(&self) -> usize {
+        self.ranges.len()
+    }
+
+    pub fn frames_done(&self) -> usize {
+        self.next
+    }
+
+    /// Encode the next planned frame. Returns `false` when all frames are done.
+    pub fn encode_next_frame(&mut self) -> bool {
+        if self.next >= self.ranges.len() {
+            return false;
+        }
+        let (start, end) = self.ranges[self.next];
+        let frame = encode_v4_frame(&self.per_channel, self.channel_count, start, end);
+        self.frames.push(frame);
+        self.next += 1;
+        true
+    }
+
+    pub fn finish(self) -> Vec<u8> {
+        diag::reset_encode_telemetry();
+        for (_, _, telemetry) in &self.frames {
+            diag::merge_encode_telemetry(*telemetry);
+        }
+        assemble_v4_bitstream(self.channel_count, &self.frames)
+    }
+}
+
+/// Public helpers for multi-worker frame encode (plan serial, concat ordered).
+pub fn plan_mp5l_v4_frame_ranges(samples: &[i16], channels: u8) -> Vec<(u32, u32)> {
+    let channel_count = channels.max(1) as usize;
+    let per_channel = if channel_count == 1 {
+        vec![samples.to_vec()]
+    } else {
+        crate::pcm::deinterleave_i16(samples, channel_count)
+    };
+    plan_v4_ranges(&per_channel)
+        .into_iter()
+        .map(|(s, e)| (s as u32, e as u32))
+        .collect()
+}
+
+pub fn encode_mp5l_v4_frame_range(
+    samples: &[i16],
+    channels: u8,
+    start: u32,
+    end: u32,
+) -> (u64, Vec<u8>) {
+    let channel_count = channels.max(1) as usize;
+    let per_channel = if channel_count == 1 {
+        vec![samples.to_vec()]
+    } else {
+        crate::pcm::deinterleave_i16(samples, channel_count)
+    };
+    let (sample_off, frame, _) =
+        encode_v4_frame(&per_channel, channel_count, start as usize, end as usize);
+    (sample_off, frame)
+}
+
+pub fn assemble_mp5l_v4_frames(channels: u8, sample_offsets: &[u64], frame_payloads: &[Vec<u8>]) -> Vec<u8> {
+    let channel_count = channels.max(1) as usize;
+    let frames: Vec<_> = sample_offsets
+        .iter()
+        .zip(frame_payloads.iter())
+        .map(|(&off, payload)| (off, payload.clone(), diag::EncodeTelemetry::default()))
         .collect();
-    let mut out = vec![0x4c, VERSION_V4, channel_count as u8];
-    out.extend_from_slice(&(frames.len() as u32).to_le_bytes());
-    out.extend_from_slice(SEEK_MAGIC);
-    out.extend_from_slice(&(seek_indices.len() as u32).to_le_bytes());
-    let frame_data_start = 7usize + 8 + seek_indices.len() * 16;
-    let mut offset = frame_data_start as u64;
-    let mut frame_offsets = Vec::with_capacity(frames.len());
-    for (_, frame, _) in &frames {
-        frame_offsets.push(offset);
-        offset += frame.len() as u64;
-    }
-    for &i in &seek_indices {
-        out.extend_from_slice(&frames[i].0.to_le_bytes());
-        out.extend_from_slice(&frame_offsets[i].to_le_bytes());
-    }
-    for (_, frame, _) in frames {
-        out.extend_from_slice(&frame);
-    }
-    out
+    assemble_v4_bitstream(channel_count, &frames)
 }
 
 fn encode_v4_frame(
@@ -173,42 +288,6 @@ fn encode_v4_frame(
     (start as u64, frame, diag::encode_telemetry())
 }
 
-fn best_i32_side_payload(side: &[i32]) -> (u8, Vec<u8>) {
-    #[derive(Clone, Copy)]
-    enum SidePayload {
-        Rice,
-        Fixed,
-        Qlp,
-    }
-
-    let mut candidates = vec![(estimate_i32_rice_payload_bytes(side), SidePayload::Rice)];
-    if let Some(bytes) = estimate_i32_predicted_rice_payload_bytes(side) {
-        candidates.push((bytes, SidePayload::Fixed));
-    }
-    if let Some(bytes) = qlp::estimate_best_i32_qlp_payload_bytes(side) {
-        candidates.push((bytes, SidePayload::Qlp));
-    }
-    candidates.sort_by_key(|(bytes, _)| *bytes);
-    for (_, candidate) in candidates {
-        match candidate {
-            SidePayload::Rice => {
-                return (FLAG_I32_RICE, encode_i32_rice_payload(side));
-            }
-            SidePayload::Fixed => {
-                if let Some(payload) = encode_i32_predicted_rice_payload(side) {
-                    return (FLAG_I32_PRED, payload);
-                }
-            }
-            SidePayload::Qlp => {
-                if let Some(payload) = qlp::encode_best_i32_qlp_payload(side) {
-                    return (FLAG_I32_QLP, payload);
-                }
-            }
-        }
-    }
-    (FLAG_I32_RICE, encode_i32_rice_payload(side))
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum StereoChoiceV4 {
     Independent,
@@ -217,59 +296,77 @@ enum StereoChoiceV4 {
     RightSide,
 }
 
+/// Estimate stereo modes, then encode only the winning channel set (bit-identical
+/// when payload estimates match materialized sizes).
 fn encode_stereo_block_best_v4(left: &[i16], right: &[i16]) -> (Vec<u8>, Vec<u8>) {
-    let (left_flag, left_payload) = encode_block_payload_v4(left);
-    let (right_flag, right_payload) = encode_block_payload_v4(right);
+    let left_qlp = qlp::prepare_best_qlp(left);
+    let right_qlp = qlp::prepare_best_qlp(right);
+    let left_bytes = estimate_block_payload_v4_bytes_with_qlp(left, &left_qlp);
+    let right_bytes = estimate_block_payload_v4_bytes_with_qlp(right, &right_qlp);
     let side = stereo::encode_side_i32(left, right);
-    let (side_flag, side_payload) = best_i32_side_payload(&side);
-    let side_total = V4_BLOCK_HDR + side_payload.len();
+    let side_prep = prepare_i32_side(&side);
+    let side_total = V4_BLOCK_HDR + side_prep.payload_bytes();
 
     let mut choice = StereoChoiceV4::Independent;
-    let mut best_len = V4_BLOCK_HDR * 2 + left_payload.len() + right_payload.len();
-    let mut mid_encoded: Option<(Vec<i16>, u8, Vec<u8>)> = None;
+    let mut best_len = V4_BLOCK_HDR * 2 + left_bytes + right_bytes;
+    let mut mid_bundle: Option<(Vec<i16>, Option<qlp::PreparedQlp>)> = None;
 
     if stereo::should_encode_mid(left, right) {
         let (mid, _) = stereo::encode_ms_i32(left, right);
-        let (mid_flag, mid_payload) = encode_block_payload_v4(&mid);
-        let total = V4_BLOCK_HDR + mid_payload.len() + side_total;
+        let mid_qlp = qlp::prepare_best_qlp(&mid);
+        let mid_bytes = estimate_block_payload_v4_bytes_with_qlp(&mid, &mid_qlp);
+        let total = V4_BLOCK_HDR + mid_bytes + side_total;
         if total < best_len {
             best_len = total;
             choice = StereoChoiceV4::MidSide;
         }
-        mid_encoded = Some((mid, mid_flag, mid_payload));
+        mid_bundle = Some((mid, mid_qlp));
     }
 
-    let left_side_len = V4_BLOCK_HDR + left_payload.len() + side_total;
+    let left_side_len = V4_BLOCK_HDR + left_bytes + side_total;
     if left_side_len < best_len {
         best_len = left_side_len;
         choice = StereoChoiceV4::LeftSide;
     }
-    let right_side_len = V4_BLOCK_HDR + right_payload.len() + side_total;
+    let right_side_len = V4_BLOCK_HDR + right_bytes + side_total;
     if right_side_len < best_len {
         choice = StereoChoiceV4::RightSide;
     }
 
     match choice {
-        StereoChoiceV4::Independent => (
-            wrap_block_v4(left, left_flag, &left_payload),
-            wrap_block_v4(right, right_flag, &right_payload),
-        ),
+        StereoChoiceV4::Independent => {
+            let (left_flag, left_payload) = encode_block_payload_v4_with_qlp(left, left_qlp);
+            let (right_flag, right_payload) = encode_block_payload_v4_with_qlp(right, right_qlp);
+            (
+                wrap_block_v4(left, left_flag, &left_payload),
+                wrap_block_v4(right, right_flag, &right_payload),
+            )
+        }
         StereoChoiceV4::MidSide => {
-            let (mid, mid_flag, mid_payload) =
-                mid_encoded.expect("mid/side choice requires an encoded mid channel");
+            let (mid, mid_qlp) = mid_bundle.expect("mid/side choice requires mid samples");
+            let (mid_flag, mid_payload) = encode_block_payload_v4_with_qlp(&mid, mid_qlp);
+            let (side_flag, side_payload) = side_prep.encode(&side);
             (
                 wrap_block_v4(&mid, mid_flag | STEREO_MS, &mid_payload),
                 wrap_i32_block_v4(&side, side_flag, &side_payload),
             )
         }
-        StereoChoiceV4::LeftSide => (
-            wrap_block_v4(left, left_flag | STEREO_LS, &left_payload),
-            wrap_i32_block_v4(&side, side_flag, &side_payload),
-        ),
-        StereoChoiceV4::RightSide => (
-            wrap_block_v4(right, right_flag | STEREO_RS, &right_payload),
-            wrap_i32_block_v4(&side, side_flag, &side_payload),
-        ),
+        StereoChoiceV4::LeftSide => {
+            let (left_flag, left_payload) = encode_block_payload_v4_with_qlp(left, left_qlp);
+            let (side_flag, side_payload) = side_prep.encode(&side);
+            (
+                wrap_block_v4(left, left_flag | STEREO_LS, &left_payload),
+                wrap_i32_block_v4(&side, side_flag, &side_payload),
+            )
+        }
+        StereoChoiceV4::RightSide => {
+            let (right_flag, right_payload) = encode_block_payload_v4_with_qlp(right, right_qlp);
+            let (side_flag, side_payload) = side_prep.encode(&side);
+            (
+                wrap_block_v4(right, right_flag | STEREO_RS, &right_payload),
+                wrap_i32_block_v4(&side, side_flag, &side_payload),
+            )
+        }
     }
 }
 
@@ -953,7 +1050,11 @@ fn try_decode_v4_frame(
 fn decode_v4(data: &[u8]) -> Result<Vec<i16>, String> {
     let (channels, frames, entries) =
         parse_v4_prefix(data)?.ok_or("truncated MP5-L v4 header or seek table")?;
-    let mut output = Vec::new();
+    // Pre-size to the exact upper bound (every frame is BLOCK_SIZE_V4 except the
+    // last, which is smaller): avoids the doubling reallocation storm that peaked
+    // ~96MB of transient wasm memory beyond the final buffer on multi-MB decodes.
+    let mut output =
+        Vec::with_capacity(frames.saturating_mul(BLOCK_SIZE_V4).saturating_mul(channels));
     let mut position = entries
         .first()
         .map(|entry| entry.byte_offset)
@@ -978,6 +1079,10 @@ pub struct StreamDecoder {
     entries: Vec<SeekEntry>,
     initialized: bool,
     skip_samples: usize,
+    /// Interleaved samples decoded past a bounded `push_until` limit, emitted
+    /// first on the next call. Without this the straddling frame's tail was
+    /// dropped, so chunked/continuation decoding lost samples at each seam.
+    pending: Vec<i16>,
 }
 
 impl StreamDecoder {
@@ -991,6 +1096,7 @@ impl StreamDecoder {
             entries: Vec::new(),
             initialized: false,
             skip_samples: 0,
+            pending: Vec::new(),
         };
         decoder.initialize_if_available()?;
         Ok(decoder)
@@ -1015,13 +1121,42 @@ impl StreamDecoder {
     }
 
     pub fn push(&mut self, data: &[u8]) -> Result<Vec<i16>, String> {
+        self.push_until(data, None)
+    }
+
+    /// Like [`push`], but stops once at least `max_channel_samples` channel-frames
+    /// have been emitted (truncated to that length). `None` drains all complete frames.
+    pub fn push_until(
+        &mut self,
+        data: &[u8],
+        max_channel_samples: Option<usize>,
+    ) -> Result<Vec<i16>, String> {
         self.buffer.extend_from_slice(data);
         self.initialize_if_available()?;
         if !self.initialized {
             return Ok(Vec::new());
         }
-        let mut output = Vec::new();
+        let max_interleaved = match max_channel_samples {
+            Some(n) => Some(
+                n.checked_mul(self.channels)
+                    .ok_or("max_channel_samples * channels overflow")?,
+            ),
+            None => None,
+        };
+        // Emit samples held back from a previous bounded call before decoding more.
+        let mut output = std::mem::take(&mut self.pending);
+        if let Some(limit) = max_interleaved {
+            if output.len() >= limit {
+                self.pending = output.split_off(limit);
+                return Ok(output);
+            }
+        }
         while self.frame_index < self.frame_count {
+            if let Some(limit) = max_interleaved {
+                if output.len() >= limit {
+                    break;
+                }
+            }
             let Some((pcm, next, frame_samples)) =
                 try_decode_v4_frame(&self.buffer, self.position, self.channels)?
             else {
@@ -1035,6 +1170,14 @@ impl StreamDecoder {
             self.skip_samples = self.skip_samples.saturating_sub(frame_samples);
             self.position = next;
             self.frame_index += 1;
+            if let Some(limit) = max_interleaved {
+                if output.len() >= limit {
+                    // Hold the straddling frame's tail for the next call instead
+                    // of dropping it (keeps chunked decoding sample-exact).
+                    self.pending = output.split_off(limit);
+                    break;
+                }
+            }
         }
         Ok(output)
     }
@@ -1047,6 +1190,8 @@ impl StreamDecoder {
         if !self.initialized {
             return Err("v4 seek table is not available yet".into());
         }
+        // A seek invalidates any tail buffered from a prior bounded push.
+        self.pending.clear();
         let target = sample_index as u64;
         let entry = self
             .entries
@@ -1322,6 +1467,82 @@ mod tests {
     }
 
     #[test]
+    fn v4_native_encode_is_byte_deterministic() {
+        let samples: Vec<i16> = (0..1536)
+            .flat_map(|i| {
+                let left = ((i as f64 * 0.023).sin() * 22_000.0) as i16;
+                let right = left.saturating_sub(((i % 11) as i16) - 5);
+                [left, right]
+            })
+            .collect();
+        let first = encode_v4(&samples, 2);
+        let second = encode_v4(&samples, 2);
+        assert_eq!(first, second);
+        assert_eq!(first[0], b'L');
+        assert_eq!(first[1], 4);
+    }
+
+    #[test]
+    #[ignore = "native-only golden; WASM golden is written by vitest WRITE_MP5L_V4_GOLDEN=1"]
+    fn write_v4_encode_golden_fixture() {
+        let samples: Vec<i16> = (0..1536)
+            .flat_map(|i| {
+                let left = ((i as f64 * 0.023).sin() * 22_000.0) as i16;
+                let right = left.saturating_sub(((i % 11) as i16) - 5);
+                [left, right]
+            })
+            .collect();
+        let encoded = encode_v4(&samples, 2);
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/fixtures/mp5l_v4_encode_golden.bin");
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        // Layout: magic "MP5LGOLD" | u32 pcm_i16_len | pcm LE i16s | bitstream
+        let mut out = Vec::new();
+        out.extend_from_slice(b"MP5LGOLD");
+        out.extend_from_slice(&(samples.len() as u32).to_le_bytes());
+        for s in &samples {
+            out.extend_from_slice(&s.to_le_bytes());
+        }
+        out.extend_from_slice(&encoded);
+        std::fs::write(&path, &out).expect("write golden");
+        eprintln!(
+            "wrote {} (pcm={} samples, bitstream={} bytes)",
+            path.display(),
+            samples.len(),
+            encoded.len()
+        );
+    }
+
+    #[test]
+    fn v4_stream_encoder_matches_oneshot_bytes() {
+        let samples: Vec<i16> = (0..4096)
+            .flat_map(|i| {
+                let left = ((i as f64 * 0.031).sin() * 18_000.0) as i16;
+                let right = left.saturating_add(((i % 7) as i16) - 3);
+                [left, right]
+            })
+            .collect();
+        let oneshot = encode_v4(&samples, 2);
+        let mut stream = Mp5lV4StreamEncoder::new(&samples, 2);
+        while stream.encode_next_frame() {}
+        let streamed = stream.finish();
+        assert_eq!(streamed, oneshot);
+
+        let ranges = plan_mp5l_v4_frame_ranges(&samples, 2);
+        let mut offsets = Vec::new();
+        let mut payloads = Vec::new();
+        for &(start, end) in &ranges {
+            let (off, payload) = encode_mp5l_v4_frame_range(&samples, 2, start, end);
+            offsets.push(off);
+            payloads.push(payload);
+        }
+        let assembled = assemble_mp5l_v4_frames(2, &offsets, &payloads);
+        assert_eq!(assembled, oneshot);
+    }
+
+    #[test]
     #[ignore = "manual release-mode speed smoke"]
     fn v4_two_second_stereo_speed_smoke() {
         let sample_rate = 48_000usize;
@@ -1415,6 +1636,19 @@ mod tests {
         stream.seek_frame(target).unwrap();
         let got = stream.push(&[]).unwrap();
         assert_eq!(got, samples[target * 2..]);
+    }
+
+    #[test]
+    fn stream_decoder_push_until_bounds_first_window() {
+        let samples: Vec<i16> = (0..20_000)
+            .flat_map(|i| [i as i16, (i as i16).wrapping_neg()])
+            .collect();
+        let enc = encode_v4(&samples, 2);
+        let mut stream = StreamDecoder::new(&enc).unwrap();
+        let want_frames = 8192usize; // one v4 block
+        let got = stream.push_until(&[], Some(want_frames)).unwrap();
+        assert_eq!(got.len(), want_frames * 2);
+        assert_eq!(got, samples[..want_frames * 2]);
     }
 
     #[test]

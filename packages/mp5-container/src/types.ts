@@ -77,6 +77,8 @@ export interface Mp5LazyHandle {
   /** Bytes copied from blob via slice (diagnostics). */
   loadedPayloadBytes: number;
   readPayload: (offset: number, length: number) => Promise<Uint8Array>;
+  /** Single-flight AUDI load — concurrent callers must share one payload copy. */
+  audiLoadPromise?: Promise<AudioFrame[]>;
 }
 
 export interface Mp5File {

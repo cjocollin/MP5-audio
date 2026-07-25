@@ -1,0 +1,6 @@
+# P0 WASM build: release profile uses codegen-units=1 + panic=abort (workspace
+# Cargo.toml). wasm-pack runs wasm-opt -O3 (mp5-codec package.metadata).
+#
+# +simd128 is intentionally NOT enabled: auto-vectorized f64 QLP/Levinson can
+# change bitstreams vs scalar WASM. Integer SIMD kernels can be feature-gated
+# later without float reduction drift.

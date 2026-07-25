@@ -5,16 +5,12 @@ import {
   getMetaValue,
   getLazyIngestThresholdBytes,
   indexMp5FromBlob,
-  parseMp5,
   parseMp5Async,
   type Mp5File,
   type Mp5IndexProgress,
   type Mp5ParseProgress,
 } from "@mp5/container";
 import type { PlaylistTrack } from "../store/playerStore";
-
-/** Yield during eager parse so medium STDF fixtures do not freeze the UI thread. */
-const EAGER_PARSE_ASYNC_BYTES = 12 * 1024 * 1024;
 import { USER_ERRORS, formatPlaylistParseError } from "../lib/userFacingErrors";
 import {
   resetIngestDiagnostics,
@@ -205,7 +201,7 @@ export async function ingestMp5Files(
     if (!isMp5FileName(file.name)) {
       dropErrors.push({
         name: file.name,
-        message: "Not an .mp5 file — skipped.",
+        message: "Not an .mp5 / .mp5p file — use Converter for source audio.",
         reason: "not-mp5",
       });
       continue;
@@ -238,13 +234,11 @@ export async function ingestMp5Files(
         });
       } else {
         const buf = await file.arrayBuffer();
-        const useAsyncParse = buf.byteLength >= EAGER_PARSE_ASYNC_BYTES;
-        parsed = useAsyncParse
-          ? await parseMp5Async(buf, {
-              yieldEveryChunks: 2,
-              onProgress: (p) => onProgress?.(file.name, p),
-            })
-          : parseMp5(buf);
+        // Always async-parse: sync parseMp5 freezes the tab on multi‑MB files.
+        parsed = await parseMp5Async(buf, {
+          yieldEveryChunks: 2,
+          onProgress: (p) => onProgress?.(file.name, p),
+        });
         updateIngestDiagnostics({
           chunkCount: parsed.stdfFragments.length + parsed.audioFrames.length,
           stdfIndexed: parsed.stdfFragments.length,

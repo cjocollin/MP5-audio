@@ -1,5 +1,6 @@
 import type { CoverArt } from "@mp5/container";
 import type { BatchQueueItem } from "../../converter/batchTypes";
+import { hasBatchOutput } from "../../converter/batchOutputCache";
 import type { ManualMetadataEdits } from "../../converter/manualMetadata";
 import { manualEditsFromSource } from "../../converter/manualMetadata";
 import type { SourceMetadata } from "../../converter/extractSourceMetadata";
@@ -257,7 +258,9 @@ export function moveInOrder(order: string[], index: number, direction: -1 | 1): 
 }
 
 export function completedBatchItems(items: BatchQueueItem[]): BatchQueueItem[] {
-  return items.filter((i) => i.status === "complete" && i.mp5 && i.outputFilename);
+  return items.filter(
+    (i) => i.status === "complete" && !!i.outputFilename && (hasBatchOutput(i.id) || !!i.mp5),
+  );
 }
 
 export function albumExportModeFromTarget(

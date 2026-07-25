@@ -1,6 +1,6 @@
 import { fetchFile } from "@ffmpeg/util";
 import type { CoverArt, LyrcPayload } from "@mp5/container";
-import { getFfmpeg } from "./ffmpegLoader";
+import { nextFfmpegJobId, withFfmpegLock } from "./ffmpegLoader";
 import type { DecodeProgress } from "./decodeSourceToPcm";
 
 export interface SourceMetadata {
@@ -87,61 +87,61 @@ export async function extractSourceMetadata(
   const base: SourceMetadata = { meta: { title: fallbackTitle } };
 
   try {
-    const ffmpeg = await getFfmpeg(onProgress);
-    const input = `meta_in${extOf(file.name)}`;
-    const metaOut = "meta.ffmeta";
-    const coverOut = "meta_cover.jpg";
+    const jobId = nextFfmpegJobId();
+    const input = `meta_in_${jobId}${extOf(file.name)}`;
+    const metaOut = `meta_${jobId}.ffmeta`;
+    const coverOut = `meta_cover_${jobId}.jpg`;
 
-    onProgress?.("Reading metadata…");
-    await ffmpeg.writeFile(input, await fetchFile(file));
+    await withFfmpegLock(async (ffmpeg) => {
+      onProgress?.("Reading metadata…");
+      await ffmpeg.writeFile(input, await fetchFile(file));
 
-    try {
-      const exit = await ffmpeg.exec(["-i", input, "-f", "ffmetadata", "-y", metaOut], 60_000);
-      if (exit === 0) {
-        const raw = await ffmpeg.readFile(metaOut);
-        const text =
-          raw instanceof Uint8Array
-            ? new TextDecoder().decode(raw)
-            : String(raw);
-        const mapped = mapFfToStandard(parseFfmetadata(text));
-        if (mapped.title) base.meta = { ...base.meta, ...mapped };
-        else base.meta = { ...mapped, title: base.meta.title ?? fallbackTitle };
-        if (mapped._lyrics_unsynced) {
-          base.lyrics = {
-            unsynced: mapped._lyrics_unsynced,
-            source: "embedded",
-          };
-          delete base.meta._lyrics_unsynced;
+      try {
+        const exit = await ffmpeg.exec(["-i", input, "-f", "ffmetadata", "-y", metaOut], 60_000);
+        if (exit === 0) {
+          const raw = await ffmpeg.readFile(metaOut);
+          const text =
+            raw instanceof Uint8Array ? new TextDecoder().decode(raw) : String(raw);
+          const mapped = mapFfToStandard(parseFfmetadata(text));
+          if (mapped.title) base.meta = { ...base.meta, ...mapped };
+          else base.meta = { ...mapped, title: base.meta.title ?? fallbackTitle };
+          if (mapped._lyrics_unsynced) {
+            base.lyrics = {
+              unsynced: mapped._lyrics_unsynced,
+              source: "embedded",
+            };
+            delete base.meta._lyrics_unsynced;
+          }
         }
+      } catch {
+        /* metadata file optional */
       }
-    } catch {
-      /* metadata file optional */
-    }
 
-    try {
-      onProgress?.("Extracting cover art…");
-      const coverExit = await ffmpeg.exec(
-        ["-i", input, "-an", "-map", "0:v:0", "-c:v", "copy", "-frames:v", "1", coverOut],
-        60_000,
-      );
-      if (coverExit === 0) {
-        const img = await ffmpeg.readFile(coverOut);
-        const bytes = img instanceof Uint8Array ? img : new TextEncoder().encode(String(img));
-        if (bytes.length > 0 && bytes.length <= 2 * 1024 * 1024) {
-          base.cover = { mime: sniffImageMime(bytes), data: bytes };
+      try {
+        onProgress?.("Extracting cover art…");
+        const coverExit = await ffmpeg.exec(
+          ["-i", input, "-an", "-map", "0:v:0", "-c:v", "copy", "-frames:v", "1", coverOut],
+          60_000,
+        );
+        if (coverExit === 0) {
+          const img = await ffmpeg.readFile(coverOut);
+          const bytes = img instanceof Uint8Array ? img : new TextEncoder().encode(String(img));
+          if (bytes.length > 0 && bytes.length <= 2 * 1024 * 1024) {
+            base.cover = { mime: sniffImageMime(bytes), data: bytes.slice() };
+          }
         }
+      } catch {
+        /* no embedded cover */
       }
-    } catch {
-      /* no embedded cover */
-    }
 
-    try {
-      await ffmpeg.deleteFile(input);
-      await ffmpeg.deleteFile(metaOut);
-      await ffmpeg.deleteFile(coverOut);
-    } catch {
-      /* cleanup */
-    }
+      try {
+        await ffmpeg.deleteFile(input);
+        await ffmpeg.deleteFile(metaOut);
+        await ffmpeg.deleteFile(coverOut);
+      } catch {
+        /* cleanup */
+      }
+    });
   } catch {
     /* FFmpeg metadata path failed — keep filename title only */
   }

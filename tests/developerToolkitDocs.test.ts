@@ -149,7 +149,7 @@ describe("developer toolkit docs", () => {
     ];
     for (const rel of docs) {
       const text = read(rel);
-      expect(text, rel).toContain("v0.28.0-beta");
+      expect(text, rel).toContain("v0.29.0-beta");
       expect(text, rel).not.toMatch(/\bv0\.19\.0-beta\b/);
       expect(text, rel).not.toMatch(/\bv0\.16\.1-beta\b/);
       expect(text, rel).not.toMatch(/production-ready(?! for archival|,)/i);

@@ -21,6 +21,11 @@ import {
   retryFailedItems,
 } from "../converter/batchQueue";
 import { runBatchItemConversion } from "../converter/runBatchItem";
+import {
+  deleteBatchOutput,
+  getBatchOutput,
+  setBatchOutput,
+} from "../converter/batchOutputCache";
 import { saveMp5ToLibrary } from "../lib/localLibrary/api";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
 import { downloadBlob } from "../lib/performance/downloadBlob";
@@ -63,7 +68,15 @@ function patchItem(
   return items.map((i) => (i.id === id ? { ...i, ...patch } : i));
 }
 
-export function BatchConverterPanel() {
+interface BatchConverterPanelProps {
+  seedFiles?: File[] | null;
+  onSeedConsumed?: () => void;
+}
+
+export function BatchConverterPanel({
+  seedFiles = null,
+  onSeedConsumed,
+}: BatchConverterPanelProps = {}) {
   const [items, setItems] = useState<BatchQueueItem[]>([]);
   const [running, setRunning] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -76,6 +89,7 @@ export function BatchConverterPanel() {
   const [trackMetas, setTrackMetas] = useState<Record<string, BatchTrackAlbumMeta>>({});
   const [trackOrder, setTrackOrder] = useState<string[]>([]);
   const abortRef = useRef<AbortController | null>(null);
+  const seedAppliedRef = useRef(false);
   const { bumpCancelGeneration, setBatchActivity } = useConversionStore();
   const pausedRef = useRef(false);
 
@@ -101,7 +115,7 @@ export function BatchConverterPanel() {
     };
   }, []);
 
-  function handleAddFiles(files: FileList) {
+  function handleAddFiles(files: FileList | File[]) {
     const list = Array.from(files);
     const { items: added, skipped } = createBatchItemsFromFiles(list);
     setItems((prev) => {
@@ -116,24 +130,40 @@ export function BatchConverterPanel() {
   }
 
   useEffect(() => {
+    if (!seedFiles?.length || seedAppliedRef.current) return;
+    seedAppliedRef.current = true;
+    handleAddFiles(seedFiles);
+    onSeedConsumed?.();
+  }, [seedFiles, onSeedConsumed]);
+
+  useEffect(() => {
     const pending = items.filter((i) => i.status === "pending").length;
     setQueueGuardrails(assessBatchQueue(pending, items.length));
   }, [items]);
 
   async function saveItemToLibrary(item: BatchQueueItem): Promise<Partial<BatchQueueItem>> {
-    if (!item.mp5 || !item.outputFilename) return {};
-    const blob = new Blob([new Uint8Array(item.mp5)], { type: "audio/mp5" });
+    const bytes = getBatchOutput(item.id) ?? item.mp5;
+    if (!bytes || !item.outputFilename) return {};
+    const blob = new Blob([new Uint8Array(bytes)], { type: "audio/mp5" });
     const file = new File([blob], item.outputFilename, { type: "audio/mp5" });
     try {
       const result = await saveMp5ToLibrary(file, item.outputFilename, {
         skipIfDuplicate: autoSaveLibrary,
       });
-      if (result.skipped) {
-        return { libraryDuplicate: true, librarySkipped: true };
+      if (result.status === "failed") {
+        return {
+          errorMessage:
+            result.errorCode === "quota" ? "Storage quota exceeded" : result.message,
+        };
       }
-      if (result.duplicate) {
+      if (result.status === "duplicate") {
+        if (result.skipped) {
+          return { libraryDuplicate: true, librarySkipped: true };
+        }
         return { libraryDuplicate: true, librarySaved: false };
       }
+      /* Drop retained bytes after a successful library write. */
+      deleteBatchOutput(item.id);
       return { librarySaved: true, libraryDuplicate: false };
     } catch (e) {
       const msg =
@@ -163,77 +193,108 @@ export function BatchConverterPanel() {
     const startGen = useConversionStore.getState().cancelGeneration;
     setBatchActivity({ running: true, pendingCount: items.filter((i) => i.status === "pending").length });
 
+    /* Serialize FFmpeg decode; one item in flight (encode pool is separate). */
+    const batchConcurrency = 1;
+
     try {
       while (!controller.signal.aborted) {
         if (useConversionStore.getState().cancelGeneration !== startGen) break;
-        let current: BatchQueueItem | undefined;
+        if (pausedRef.current) break;
+
+        const claimed: BatchQueueItem[] = [];
         await new Promise<void>((resolve) => {
           setItems((prev) => {
-            current = nextPendingItem(prev);
+            let next = prev;
+            for (let i = 0; i < batchConcurrency; i++) {
+              const item = nextPendingItem(next);
+              if (!item) break;
+              claimed.push(item);
+              next = patchItem(next, item.id, { status: "decoding", errorMessage: undefined });
+            }
             resolve();
-            return prev;
+            return next;
           });
         });
 
-        if (!current || pausedRef.current) break;
+        if (!claimed.length) break;
 
-        const id = current.id;
-        const file = current.file;
         setBatchActivity({
           running: true,
-          currentName: file.name,
-          pendingCount: items.filter((i) => i.status === "pending").length,
+          currentName: claimed.map((c) => c.file.name).join(", "),
+          pendingCount: Math.max(0, items.filter((i) => i.status === "pending").length - claimed.length),
         });
-        setItems((prev) =>
-          patchItem(prev, id, { status: "decoding", errorMessage: undefined }),
-        );
 
-        const meta = trackMetas[id];
-        const itemSnapshot = {
-          ...current,
-          file,
-          ...(batchAlbumMode && meta
-            ? {
-                outputFilename: batchOutputFilenameForTrack(meta, album, file.name),
-                detectedTitle: meta.title,
-                detectedArtist: meta.artist,
+        await Promise.all(
+          claimed.map(async (current) => {
+            const id = current.id;
+            const file = current.file;
+            const meta = trackMetas[id];
+            const itemSnapshot = {
+              ...current,
+              file,
+              ...(batchAlbumMode && meta
+                ? {
+                    outputFilename: batchOutputFilenameForTrack(meta, album, file.name),
+                    detectedTitle: meta.title,
+                    detectedArtist: meta.artist,
+                  }
+                : {}),
+            };
+            const edits =
+              batchAlbumMode && meta
+                ? trackMetaToManualEdits(meta, album)
+                : undefined;
+            try {
+              const result = await runBatchItemConversion(itemSnapshot, {
+                signal: controller.signal,
+                edits,
+                onProgress: (patch) => {
+                  if (useConversionStore.getState().cancelGeneration !== startGen) return;
+                  setItems((prev) => patchItem(prev, id, patch));
+                },
+              });
+
+              if (useConversionStore.getState().cancelGeneration !== startGen) {
+                return;
               }
-            : {}),
-        };
-        const edits =
-          batchAlbumMode && meta
-            ? trackMetaToManualEdits(meta, album)
-            : undefined;
-        const result = await runBatchItemConversion(itemSnapshot, {
-          signal: controller.signal,
-          edits,
-          onProgress: (patch) => {
-            setItems((prev) => patchItem(prev, id, patch));
-          },
-        });
 
-        let libraryPatch: Partial<BatchQueueItem> = {};
-        if (result.status === "complete" && result.mp5 && result.outputFilename) {
-          if (autoSaveLibrary) {
-            libraryPatch = await saveItemToLibrary({
-              ...itemSnapshot,
-              mp5: result.mp5,
-              outputFilename: result.outputFilename,
-              status: "complete",
-            });
-          }
-        }
+              let libraryPatch: Partial<BatchQueueItem> = {};
+              if (result.status === "complete" && result.mp5 && result.outputFilename) {
+                setBatchOutput(id, result.mp5);
+                if (autoSaveLibrary) {
+                  libraryPatch = await saveItemToLibrary({
+                    ...itemSnapshot,
+                    outputFilename: result.outputFilename,
+                    outputBytes: result.outputBytes,
+                    status: "complete",
+                  });
+                  if (useConversionStore.getState().cancelGeneration !== startGen) return;
+                }
+              }
 
-        setItems((prev) =>
-          patchItem(prev, id, {
-            status: result.status,
-            detectedTitle: result.detectedTitle,
-            detectedArtist: result.detectedArtist,
-            outputFilename: result.outputFilename,
-            outputBytes: result.outputBytes,
-            mp5: result.mp5,
-            errorMessage: result.errorMessage,
-            ...libraryPatch,
+              if (useConversionStore.getState().cancelGeneration !== startGen) return;
+
+              setItems((prev) =>
+                patchItem(prev, id, {
+                  status: result.status,
+                  detectedTitle: result.detectedTitle,
+                  detectedArtist: result.detectedArtist,
+                  outputFilename: result.outputFilename,
+                  outputBytes: result.outputBytes,
+                  errorMessage: result.errorMessage,
+                  ...libraryPatch,
+                }),
+              );
+            } catch (e) {
+              if (e instanceof DOMException && e.name === "AbortError") throw e;
+              if (useConversionStore.getState().cancelGeneration !== startGen) return;
+              setItems((prev) =>
+                patchItem(prev, id, {
+                  status: "failed",
+                  errorMessage: e instanceof Error ? e.message : String(e),
+                }),
+              );
+            }
           }),
         );
       }
@@ -258,6 +319,7 @@ export function BatchConverterPanel() {
   }
 
   function handleCancel() {
+    bumpCancelGeneration();
     abortRef.current?.abort();
     setRunning(false);
     setPaused(false);
@@ -273,28 +335,35 @@ export function BatchConverterPanel() {
   }
 
   function handleDownloadItem(item: BatchQueueItem) {
-    if (!item.mp5 || !item.outputFilename) return;
-    downloadBlob(
-      new Blob([new Uint8Array(item.mp5)], { type: "audio/mp5" }),
-      item.outputFilename,
-    );
+    const bytes = getBatchOutput(item.id) ?? item.mp5;
+    if (!bytes || !item.outputFilename) return;
+    downloadBlob(new Blob([new Uint8Array(bytes)], { type: "audio/mp5" }), item.outputFilename);
+    deleteBatchOutput(item.id);
+    setItems((prev) => [...prev]);
   }
 
   async function handleDownloadAll() {
-    const done = items.filter((i) => i.status === "complete" && i.mp5 && i.outputFilename);
+    const done = items.filter(
+      (i) => i.status === "complete" && i.outputFilename && (getBatchOutput(i.id) || i.mp5),
+    );
     const names = dedupeExportFilenames(done.map((i) => i.outputFilename!));
     for (let i = 0; i < done.length; i++) {
       const item = done[i]!;
-      downloadBlob(new Blob([new Uint8Array(item.mp5!)], { type: "audio/mp5" }), names[i]!);
+      const bytes = getBatchOutput(item.id) ?? item.mp5;
+      if (!bytes) continue;
+      downloadBlob(new Blob([new Uint8Array(bytes)], { type: "audio/mp5" }), names[i]!);
+      deleteBatchOutput(item.id);
       if (i < done.length - 1) {
         await new Promise((r) => setTimeout(r, 300));
       }
     }
+    setItems((prev) => [...prev]);
   }
 
   async function handleSaveAllToLibrary() {
     for (const item of items) {
-      if (item.status !== "complete" || !item.mp5 || item.librarySaved) continue;
+      if (item.status !== "complete" || item.librarySaved) continue;
+      if (!getBatchOutput(item.id) && !item.mp5) continue;
       const patch = await saveItemToLibrary(item);
       setItems((prev) => patchItem(prev, item.id, patch));
     }
@@ -565,7 +634,9 @@ export function BatchConverterPanel() {
               {item.errorMessage && (
                 <p className="text-xs text-red-400/90">{item.errorMessage}</p>
               )}
-              {item.status === "complete" && item.mp5 && (
+              {item.status === "complete" &&
+                item.outputFilename &&
+                (getBatchOutput(item.id) || item.mp5) && (
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="button"

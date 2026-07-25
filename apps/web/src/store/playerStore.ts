@@ -12,6 +12,7 @@ import {
   resolveAutoAdvanceIndex,
 } from "../player/queueNavigation";
 import type { ResolvedAlbumPackage } from "../lib/album/resolveAlbum";
+import type { PlayIntentSource } from "../player/engine/playbackMachine";
 
 export type { RepeatMode };
 
@@ -81,6 +82,25 @@ interface PlayerState {
   defaultDemoDismissed: boolean;
   /** Set from Library when opening a saved album; consumed by Mp5Player. */
   pendingAlbumPackage: ResolvedAlbumPackage | null;
+  /** Source audio staged from Player Open/drop for Converter handoff. */
+  pendingConverterFiles: File[] | null;
+  /** Files picked from shell/empty Open (named picker); consumed by Mp5Player. */
+  pendingPlayerFiles: File[] | null;
+  /**
+   * Owned "play when ready" intent, keyed by track id. Set by out-of-component
+   * play requests (import playFirst, library/converter/demo open-and-play) that
+   * cannot reach the player's refs; consumed only when playback actually starts
+   * for that exact track, so an aborted/superseded load can never deliver it to
+   * the wrong track or drop it.
+   */
+  pendingPlayTrackId: string | null;
+  /**
+   * Source tag paired with `pendingPlayTrackId` — how the play was requested
+   * (import/library/converter default to "external"; auto-advance tags
+   * "autoAdvance" so a failed skip can chain to the next track). Read alongside
+   * the id when the track-load effect drains the mailbox into the machine.
+   */
+  pendingPlaySource: PlayIntentSource | null;
   setTracks: (t: PlaylistTrack[]) => void;
   replacePlaylistTrack: (id: string, next: PlaylistTrack) => void;
   appendTracks: (t: PlaylistTrack[]) => void;
@@ -105,6 +125,13 @@ interface PlayerState {
   dismissDefaultDemo: () => void;
   setPendingAlbumPackage: (album: ResolvedAlbumPackage | null) => void;
   consumePendingAlbumPackage: () => ResolvedAlbumPackage | null;
+  setPendingConverterFiles: (files: File[] | null) => void;
+  consumePendingConverterFiles: () => File[] | null;
+  setPendingPlayerFiles: (files: File[] | null) => void;
+  consumePendingPlayerFiles: () => File[] | null;
+  setPendingPlayTrackId: (id: string | null, source?: PlayIntentSource) => void;
+  /** Clear + return true iff the pending play intent is for this exact track. */
+  consumePendingPlayTrackId: (trackId: string) => boolean;
   syncShuffleOrder: () => void;
   navArgs: () => {
     tracks: PlaylistTrack[];
@@ -166,6 +193,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   sessionRestored: false,
   defaultDemoDismissed: false,
   pendingAlbumPackage: null,
+  pendingConverterFiles: null,
+  pendingPlayerFiles: null,
+  pendingPlayTrackId: null,
+  pendingPlaySource: null,
   navArgs: () => {
     const s = get();
     return {
@@ -256,6 +287,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         duration: 0,
         shuffleOrder: [],
         defaultDemoDismissed: true,
+        pendingPlayTrackId: null,
+        pendingPlaySource: null,
       };
     }),
   setCurrentIndex: (currentIndex, opts) =>
@@ -265,16 +298,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       currentTime: opts?.keepPlaying ? s.currentTime : 0,
     })),
   playNext: () => {
-    const args = get().navArgs();
-    const next = computeManualNextIndex(args);
+    const s = get();
+    const next = computeManualNextIndex(s.navArgs());
     if (next === null) return;
-    set({ currentIndex: next, isPlaying: false, currentTime: 0 });
+    const keep = s.isPlaying;
+    set({
+      currentIndex: next,
+      isPlaying: keep,
+      currentTime: 0,
+    });
   },
   playPrevious: () => {
-    const args = get().navArgs();
-    const prev = computeManualPrevIndex(args);
+    const s = get();
+    const prev = computeManualPrevIndex(s.navArgs());
     if (prev === null) return;
-    set({ currentIndex: prev, isPlaying: false, currentTime: 0 });
+    const keep = s.isPlaying;
+    set({
+      currentIndex: prev,
+      isPlaying: keep,
+      currentTime: 0,
+    });
   },
   handleTrackEnded: () => {
     const s = get();
@@ -371,6 +414,33 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const album = get().pendingAlbumPackage;
     set({ pendingAlbumPackage: null });
     return album;
+  },
+  setPendingConverterFiles: (pendingConverterFiles) => set({ pendingConverterFiles }),
+  consumePendingConverterFiles: () => {
+    const files = get().pendingConverterFiles;
+    set({ pendingConverterFiles: null });
+    return files;
+  },
+  setPendingPlayerFiles: (pendingPlayerFiles) => {
+    if (pendingPlayerFiles?.length) get().dismissDefaultDemo();
+    set({ pendingPlayerFiles });
+  },
+  consumePendingPlayerFiles: () => {
+    const files = get().pendingPlayerFiles;
+    set({ pendingPlayerFiles: null });
+    return files;
+  },
+  setPendingPlayTrackId: (pendingPlayTrackId, source) =>
+    set({
+      pendingPlayTrackId,
+      pendingPlaySource: pendingPlayTrackId ? (source ?? "external") : null,
+    }),
+  consumePendingPlayTrackId: (trackId) => {
+    if (get().pendingPlayTrackId === trackId) {
+      set({ pendingPlayTrackId: null, pendingPlaySource: null });
+      return true;
+    }
+    return false;
   },
 }));
 

@@ -48,11 +48,12 @@ try {
     if (mp5Wasm) pass(`precache lists MP5 WASM: /${mp5Wasm}`);
     else fail("service worker precache missing mp5_codec wasm");
 
-    if (ffmpegWasm) pass(`precache lists FFmpeg WASM: /${ffmpegWasm}`);
-    else fail("service worker precache missing ffmpeg-core wasm");
+    // FFmpeg core is intentionally excluded from Workbox precache (size + lazy load).
+    if (ffmpegWasm) fail(`service worker must not precache ffmpeg-core (found /${ffmpegWasm})`);
+    else pass("precache excludes ffmpeg-core (runtime fetch)");
 
-    for (const rel of [mp5Wasm, ffmpegWasm].filter(Boolean)) {
-      const path = rel.startsWith("/") ? rel : `/${rel}`;
+    if (mp5Wasm) {
+      const path = mp5Wasm.startsWith("/") ? mp5Wasm : `/${mp5Wasm}`;
       const asset = await get(path);
       if (asset.ok) pass(`GET ${path} → ${asset.status}`);
       else fail(`${path} → ${asset.status}`);
@@ -63,7 +64,7 @@ try {
   if (icon.ok) pass(`GET /icons/mp5-192.png → ${icon.status}`);
   else fail(`icon → ${icon.status}`);
 
-  const fixture = await get("/fixtures/demo_mp5l_v3_tone.mp5");
+  const fixture = await get("/fixtures/demo_mp5l_v4_tone.mp5");
   if (fixture.ok) pass(`GET demo fixture → ${fixture.status}`);
   else
     console.log(

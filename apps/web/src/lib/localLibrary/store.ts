@@ -3,6 +3,8 @@ import { MemoryLibraryStore } from "./memoryStore";
 import type { LocalLibraryEntry, LocalLibraryRecord } from "./types";
 
 export interface LibraryStore {
+  /** Meta-only list — must not load blob ArrayBuffers. */
+  listMeta(): Promise<LocalLibraryRecord[]>;
   listRecords(): Promise<LocalLibraryRecord[]>;
   getEntry(id: string): Promise<LocalLibraryEntry | null>;
   putEntry(entry: LocalLibraryEntry): Promise<void>;

@@ -40,6 +40,21 @@ jobs:
       - name: Build WASM codecs
         run: pnpm wasm:build
 
+      # Fail if checked-in wasm pkg drifts from a fresh wasm:build (byte-identical gate).
+      # Key files only — package.json / .gitignore under pkg/ may be rewritten by wasm-pack.
+      - name: Check WASM pkg is up to date
+        run: |
+          git diff --exit-code -- \
+            apps/web/src/wasm/pkg/mp5_codec.js \
+            apps/web/src/wasm/pkg/mp5_codec.d.ts \
+            apps/web/src/wasm/pkg/mp5_codec_bg.wasm \
+            apps/web/src/wasm/pkg/mp5_codec_bg.wasm.d.ts \
+          || {
+            echo "::error::Checked-in WASM pkg differs from pnpm wasm:build. Commit regenerated apps/web/src/wasm/pkg artifacts (or run pnpm wasm:check)."
+            git --no-pager diff --stat -- apps/web/src/wasm/pkg/
+            exit 1
+          }
+
       - name: TypeScript lint
         run: pnpm lint
 

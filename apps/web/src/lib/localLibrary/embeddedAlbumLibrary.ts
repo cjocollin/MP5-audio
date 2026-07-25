@@ -3,6 +3,7 @@ import { indexEmbeddedAlbumPackage } from "@mp5/container";
 import { getLibraryStore } from "./store";
 import type { LocalLibraryEntry } from "./types";
 import { createRandomId } from "../randomId";
+import { LibraryStorageError, isQuotaExceededError } from "./errors";
 
 const METADATA_KEY = "mp5-saved-embedded-albums-v1";
 
@@ -37,8 +38,16 @@ function writeMeta(albums: SavedEmbeddedAlbumPackage[]): void {
   try {
     const payload: StoredPayload = { version: 1, albums };
     localStorage.setItem(METADATA_KEY, JSON.stringify(payload));
-  } catch {
-    /* quota */
+  } catch (e) {
+    if (isQuotaExceededError(e)) {
+      throw new LibraryStorageError(
+        "Not enough browser storage to save. Remove older library items or free disk space in your browser settings.",
+        "quota",
+      );
+    }
+    throw e instanceof Error
+      ? new LibraryStorageError(e.message)
+      : new LibraryStorageError("Could not write embedded album metadata to browser storage.");
   }
 }
 
@@ -88,7 +97,12 @@ export async function saveEmbeddedAlbumPackage(
     blobEntryId: id,
   };
   albums.unshift(saved);
-  writeMeta(albums);
+  try {
+    writeMeta(albums);
+  } catch (e) {
+    await getLibraryStore().deleteEntry(id);
+    throw e;
+  }
   return saved;
 }
 

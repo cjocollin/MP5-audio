@@ -1,5 +1,6 @@
 import { CodecId, writeMp5, type AudioFrame, type CodecIdValue, type CoverArt, type MetaField } from "@mp5/container";
 import { getCodec, CodecPreset, isWasmCodecReady } from "../wasm/codec";
+import { encodeMp5lV4Progressive } from "./encodeMp5lV4Progressive";
 import { generateWaveform } from "./generateWaveform";
 
 export type OutputCodec = "pcm" | "mp5c" | "mp5l" | "mp5l_v4" | "mp5h" | "mp5c2";
@@ -15,6 +16,9 @@ export interface ConvertOptions {
   cover?: CoverArt | Uint8Array;
   optional?: Map<string, Uint8Array>;
   extraChunks?: { fourcc: string; payload: Uint8Array }[];
+  /** Reuse peaks from a prior `generateWaveform` call (avoids a second full PCM scan). */
+  waveformPeaks?: number[];
+  onEncodeProgress?: (framesDone: number, frameCount: number) => void;
 }
 
 export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
@@ -47,7 +51,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     encoderLabel = "MP5-L WASM v3 (lossless · lab/legacy)";
   } else if (opts.codec === "mp5l_v4") {
     // Default lossless. NO silent fallback: if v4 can't encode, the export fails loudly.
-    bitstream = codec.encode_mp5l_v4(opts.samples, ch);
+    bitstream = encodeMp5lV4Progressive(codec, opts.samples, ch, opts.onEncodeProgress);
     if (bitstream.length < 2 || bitstream[0] !== 0x4c || bitstream[1] !== 4) {
       throw new Error(
         "MP5-L v4 encode failed — no v3 fallback by design. " +
@@ -57,9 +61,9 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     codecId = CodecId.MP5L;
     encoderLabel = "MP5-L WASM v4 (lossless · default · bit-exact)";
   } else if (opts.codec === "mp5h") {
-    // Size-gate: build best H (≥ requested preset) vs pure MP5-L v4; emit smaller with honest CodecId.
+    // Size-gate: compare AUDI(+CORR) sizes (keep honest L encode; avoid dual full writeMp5).
     const wrapped = codec.encode_mp5h_min(opts.samples, ch, preset);
-    const lBitstream = codec.encode_mp5l_v4(opts.samples, ch);
+    const lBitstream = encodeMp5lV4Progressive(codec, opts.samples, ch, opts.onEncodeProgress);
 
     let hBase: Uint8Array;
     let hCorr: Uint8Array | null = null;
@@ -74,15 +78,41 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
       hBase = wrapped;
     }
 
-    const hFrames: AudioFrame[] = [{ frameIndex: 0, blockType: 0, flags: 0, data: hBase }];
-    const lFrames: AudioFrame[] = [{ frameIndex: 0, blockType: 0, flags: 0, data: lBitstream }];
+    const hAudiBytes = hBase.length + (hCorr?.length ?? 0);
+    const useL = lBitstream.length <= hAudiBytes;
     const totalSamples = BigInt(Math.floor(opts.samples.length / ch));
-    const wave = generateWaveform(opts.samples, ch);
+    const wavePeaks = opts.waveformPeaks ?? generateWaveform(opts.samples, ch).peaks;
     const meta =
       opts.metaFields ??
       Object.entries(opts.metadata ?? {}).map(([key, value]) => ({ key, value }));
 
-    const hFile = writeMp5({
+    if (useL) {
+      return writeMp5({
+        head: {
+          codecId: CodecId.MP5L as CodecIdValue,
+          channels: ch,
+          bitsPerSample: 16,
+          presetId: 0,
+          sampleRate: opts.sampleRate,
+          totalSamples,
+          encoderVersion: 1,
+        },
+        meta,
+        cover: opts.cover,
+        audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: lBitstream }],
+        seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+        waveform: wavePeaks,
+        info: [
+          {
+            key: "encoder",
+            value: "MP5-L WASM v4 (lossless · bit-exact; H request resolved to smaller L)",
+          },
+        ],
+        optional: opts.optional,
+        extraChunks: opts.extraChunks,
+      });
+    }
+    return writeMp5({
       head: {
         codecId: CodecId.MP5H as CodecIdValue,
         channels: ch,
@@ -94,43 +124,14 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
       },
       meta,
       cover: opts.cover,
-      audioFrames: hFrames,
+      audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: hBase }],
       seek: [{ sampleOffset: 0n, byteOffset: 0n }],
-      waveform: wave.peaks,
+      waveform: wavePeaks,
       info: [{ key: "encoder", value: "MP5-H WASM (MP5-C base + lossless CORR)" }],
       corr: hCorr ? [{ frameIndex: 0, data: hCorr }] : undefined,
       optional: opts.optional,
       extraChunks: opts.extraChunks,
     });
-    const lFile = writeMp5({
-      head: {
-        codecId: CodecId.MP5L as CodecIdValue,
-        channels: ch,
-        bitsPerSample: 16,
-        presetId: 0,
-        sampleRate: opts.sampleRate,
-        totalSamples,
-        encoderVersion: 1,
-      },
-      meta,
-      cover: opts.cover,
-      audioFrames: lFrames,
-      seek: [{ sampleOffset: 0n, byteOffset: 0n }],
-      waveform: wave.peaks,
-      info: [
-        {
-          key: "encoder",
-          value: "MP5-L WASM v4 (lossless · bit-exact; H request resolved to smaller L)",
-        },
-      ],
-      optional: opts.optional,
-      extraChunks: opts.extraChunks,
-    });
-
-    if (lFile.length <= hFile.length) {
-      return lFile;
-    }
-    return hFile;
   } else if (opts.codec === "mp5c2") {
     const encodeAt =
       typeof codec.encode_mp5c_vnext_at === "function"
@@ -147,10 +148,10 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     encoderLabel = "MP5-C WASM v5.1 (experimental — may hiss)";
   }
 
-  const frames: AudioFrame[] = [{ frameIndex: 0, blockType: 0, flags: 0, data: bitstream }];
+  const frames: AudioFrame[] = [{ frameIndex: 0, streamType: 0, flags: 0, data: bitstream }];
 
   const totalSamples = BigInt(Math.floor(opts.samples.length / ch));
-  const wave = generateWaveform(opts.samples, ch);
+  const wavePeaks = opts.waveformPeaks ?? generateWaveform(opts.samples, ch).peaks;
 
   const meta =
     opts.metaFields ??
@@ -173,7 +174,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     cover: opts.cover,
     audioFrames: frames,
     seek: [{ sampleOffset: 0n, byteOffset: 0n }],
-    waveform: wave.peaks,
+    waveform: wavePeaks,
     info: [{ key: "encoder", value: encoderLabel }],
     corr: corrFrames,
     optional: opts.optional,

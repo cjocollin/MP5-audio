@@ -165,32 +165,6 @@ function buildAudioPrompt(
     .join("\n");
 }
 
-function buildTextFallbackPrompt(
-  ctx: CloudMetadataContext,
-  opts: CloudAudioAnalysisOptions,
-  localHintBpm?: number,
-): string {
-  const keys: string[] = [];
-  if (opts.bpm) keys.push("bpm (number)", "timeSignature (string)", "confidence (0-1)");
-  if (opts.key) keys.push('key (string like "Am")');
-  if (opts.structure) keys.push("sections (array — best effort from metadata only)");
-
-  return [
-    "Estimate musical metadata for this track from title/artist/genre and any known recording info.",
-    `Return JSON only with keys: ${keys.join(", ")}.`,
-    opts.bpm ? "Prefer published quarter-note BPM when known." : "",
-    "",
-    `Title: ${ctx.title || "Unknown"}`,
-    `Artist: ${ctx.artist || "Unknown"}`,
-    ctx.album ? `Album: ${ctx.album}` : "",
-    ctx.genre ? `Genre: ${ctx.genre}` : "",
-    ctx.comment ? `Comment: ${ctx.comment}` : "",
-    localHintBpm != null && opts.bpm ? `Local analyzer estimate: ${localHintBpm} BPM` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
 export async function suggestCloudAudioAnalysis(
   pcm: Int16Array,
   sampleRate: number,
@@ -274,9 +248,17 @@ export async function suggestCloudAudioAnalysis(
     return out;
   }
 
+  if (!useAudio) {
+    throw new Error(
+      "Cloud audio analysis requires an audio-capable provider (Google Gemini or OpenAI). Text-only BPM/key invention is disabled.",
+    );
+  }
+
   const wav = pcmToWavClip(pcm, sampleRate, channels, BPM_CLIP_SEC, 0.25);
   const wavBase64 = wav.length > 0 ? bytesToBase64(wav) : undefined;
-  const hasAudio = !!wavBase64 && useAudio;
+  if (!wavBase64) {
+    throw new Error("Could not prepare an audio clip for cloud analysis.");
+  }
 
   const promptOpts: CloudAudioAnalysisOptions = {
     bpm: wantBpm,
@@ -284,18 +266,14 @@ export async function suggestCloudAudioAnalysis(
     structure: wantStructure,
   };
 
-  const prompt = hasAudio
-    ? buildAudioPrompt(ctx, promptOpts, localHintBpm)
-    : buildTextFallbackPrompt(ctx, promptOpts, localHintBpm);
+  const prompt = buildAudioPrompt(ctx, promptOpts, localHintBpm);
 
   progress?.start(
     wantStructure ? "Cloud audio analysis" : "Cloud BPM and key",
-    hasAudio
-      ? "Sending a ~30s audio clip to your AI provider. Waiting for response…"
-      : "Estimating from metadata (no audio model available).",
+    "Sending a ~30s audio clip to your AI provider. Waiting for response…",
   );
 
-  const content = await callCloudWithOptionalAudio(settings, prompt, hasAudio ? wavBase64 : undefined);
+  const content = await callCloudWithOptionalAudio(settings, prompt, wavBase64);
   const parsed = extractJsonObject<CloudAudioJson>(content);
   if (!parsed) throw new Error("Cloud AI audio response was not valid JSON.");
 

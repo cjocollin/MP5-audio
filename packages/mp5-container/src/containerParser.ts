@@ -14,7 +14,12 @@ import { Mp5ParseError } from "./errors.js";
 import { decodeCover } from "./coverArt.js";
 import { decodeMeta } from "./metadata.js";
 import { STEM_FRAGMENT_FOURCC } from "./stemStdf.js";
-import { validateChunkPayloadSize, validateFileSize, validateParsedFile } from "./validator.js";
+import {
+  assertChunkCountWithinLimit,
+  validateChunkPayloadSize,
+  validateFileSize,
+  validateParsedFile,
+} from "./validator.js";
 import type {
   AudioFrame,
   HeadPayload,
@@ -79,13 +84,17 @@ export function parseSeek(payload: Uint8Array): SeekEntry[] {
   return entries;
 }
 
+const MAX_WAVEFORM_PEAKS = 8192;
+
 export function parseWave(payload: Uint8Array): number[] {
   const v = new DataView(payload.buffer, payload.byteOffset, payload.byteLength);
   if (payload.length < 4) return [];
-  const count = v.getUint32(0, true);
-  const peaks: number[] = [];
-  for (let i = 0; i < count && 4 + (i + 1) * 4 <= payload.length; i++) {
-    peaks.push(v.getFloat32(4 + i * 4, true));
+  const declared = v.getUint32(0, true);
+  const maxByBytes = Math.floor((payload.length - 4) / 4);
+  const count = Math.min(declared, maxByBytes, MAX_WAVEFORM_PEAKS);
+  const peaks = new Array<number>(count);
+  for (let i = 0; i < count; i++) {
+    peaks[i] = v.getFloat32(4 + i * 4, true);
   }
   return peaks;
 }
@@ -128,6 +137,7 @@ export function parseMp5(buffer: ArrayBuffer | Uint8Array): Mp5File {
 
   while (offset + CHUNK_HEADER_SIZE <= data.length) {
     chunkCount++;
+    assertChunkCountWithinLimit(chunkCount);
     const hv = new DataView(data.buffer, data.byteOffset + offset);
     const fourcc = readFourCC(hv, 0);
     const payloadSize = hv.getUint32(4, true);

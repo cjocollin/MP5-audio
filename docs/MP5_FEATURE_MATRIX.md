@@ -1,6 +1,6 @@
 # MP5 Feature Matrix
 
-**Version:** MP5 Audio v0.28.0-beta  
+**Version:** MP5 Audio v0.29.0-beta  
 **Status:** Public Beta summary
 
 For the detailed compatibility table, see [MP5_COMPATIBILITY_MATRIX.md](MP5_COMPATIBILITY_MATRIX.md).

@@ -1,6 +1,6 @@
 # MP5 Compatibility Matrix
 
-**Version:** MP5 Audio v0.28.0-beta
+**Version:** MP5 Audio v0.29.0-beta
 
 This matrix describes current Public Beta support. It does not change MP5, STDF, MP5P, LYRC, VISU, or metadata semantics.
 
@@ -18,6 +18,7 @@ Status key:
 | Item | Status | Notes | Validation |
 |------|--------|-------|------------|
 | MP5-L v4 | Public Beta | Recommended/default lossless path; bit-exact roundtrip; packed Rice (`FLAG_RICE_PACKED`) needs current decoder. | `inspect:mp5`, `validate:mp5`, unit/compat gates |
+| MP5-L v3 | Lab-only | Prior lossless version; still generated for lab/compat fixtures and decodes bit-exact, but not the product default. | `validate:mp5`, golden fixtures |
 | MP5-C | Lab-only | Experimental lossy codec; may hiss; not default. | Reports as lab codec with warnings |
 | MP5-C2 (vNext) | Lab-only / advanced UI | Hybrid quiet→MP5-L + loud→MP5-C; AUDI `0x43 0x34`; CodecId 5; not default; batch stays MP5-L. | Converter advanced toggle; player `decode_mp5c_vnext` |
 | MP5-H | Experimental | Hybrid/CORR path can be large; not default. | Playable when structure validates |

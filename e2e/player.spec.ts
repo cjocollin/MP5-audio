@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { loadDemoFromSettings } from "./helpers/demoFixtures";
+import { dismissWelcomeOnboarding } from "./helpers/onboarding";
 
 const pcmFixture = path.join(process.cwd(), "test-fixtures", "validation_pcm_slice.mp5");
 const mp5lFixture = path.join(process.cwd(), "test-fixtures", "validation_mp5l_v3.mp5");
@@ -16,6 +17,7 @@ async function openFormatInspector(page: import("@playwright/test").Page) {
 
 test.describe("MP5 player playback", () => {
   test.beforeEach(async ({ page }) => {
+    await dismissWelcomeOnboarding(page);
     await page.goto("/");
     await expect(page.getByTestId("mp5-player")).toBeVisible();
     await expect(page.getByTestId("player-file-input")).toBeAttached();
@@ -31,24 +33,30 @@ test.describe("MP5 player playback", () => {
     return seek;
   }
 
-  test("shows an empty Player and codec helper on first load", async ({ page }) => {
+  test("shows full empty Player chrome with queue tip", async ({ page }) => {
+    await expect(page.getByTestId("player-theme-root")).toBeVisible();
+    await expect(page.getByTestId("now-playing-title")).toBeVisible();
+    await expect(page.getByTestId("seek-slider")).toBeVisible();
+    await expect(page.locator(".mp5-inspector-tabs")).toBeVisible();
     await expect(page.getByTestId("player-empty-state")).toBeVisible();
+    await expect(page.getByTestId("player-empty-actions")).toHaveCount(0);
     await expect(page.getByTestId("playlist-item")).toHaveCount(0);
     await expect(page.getByTestId("demo-fixture-actions")).toHaveCount(0);
-    await openFormatInspector(page);
-    await expect(page.getByTestId("codec-modes-helper")).toBeVisible();
+    await expect(page.getByTestId("player-empty-workspace")).toHaveCount(0);
   });
 
-  test("loads the synthetic demo fixture from Settings when available", async ({ page }) => {
-    const demoPath = path.join(process.cwd(), "test-fixtures", "demo_mp5l_v3_tone.mp5");
+  test("loads the synthetic demo fixture from Demo tab when available", async ({ page }) => {
+    const demoPath = path.join(process.cwd(), "test-fixtures", "demo_mp5l_v4_tone.mp5");
     test.skip(!fs.existsSync(demoPath), "run pnpm fixtures:generate first");
     await loadDemoFromSettings(page);
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
     await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
+    await expect(page.getByTestId("now-playing-title")).toContainText("v4");
     await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
     await expect(page.getByTestId("now-playing-badges")).toContainText("Bit-exact");
     await openFormatInspector(page);
     await expect(page.getByTestId("codec-label")).toContainText(/MP5-L/i);
+    await expect(page.getByTestId("codec-label")).toContainText(/v4/i);
   });
 
   test("loads fixture and toggles play/pause", async ({ page }) => {

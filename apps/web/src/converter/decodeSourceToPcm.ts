@@ -1,6 +1,6 @@
 import { fetchFile } from "@ffmpeg/util";
 import { decodeFailureHint } from "./supportedSources";
-import { getFfmpeg } from "./ffmpegLoader";
+import { nextFfmpegJobId, withFfmpegLock } from "./ffmpegLoader";
 
 export interface PcmResult {
   samples: Int16Array;
@@ -99,53 +99,54 @@ async function decodeWithFfmpegWasm(
   signal?: AbortSignal,
 ): Promise<PcmResult> {
   throwIfAborted(signal);
-  let ffmpeg;
+  const jobId = nextFfmpegJobId();
+  const input = `in_${jobId}${extOf(file.name)}`;
+  const output = `out_${jobId}.pcm`;
+
   try {
-    ffmpeg = await getFfmpeg(onProgress);
+    return await withFfmpegLock(async (ffmpeg) => {
+      throwIfAborted(signal);
+      onProgress?.("Reading file…");
+      await ffmpeg.writeFile(input, await fetchFile(file));
+      throwIfAborted(signal);
+
+      onProgress?.("Transcoding to PCM (FFmpeg)…");
+      const exit = await ffmpeg.exec(
+        ["-i", input, "-vn", "-f", "s16le", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", output],
+        300_000,
+      );
+      if (exit !== 0) {
+        throw new Error(`${decodeFailureHint(file.name)} (FFmpeg exit ${exit}).`);
+      }
+
+      const data = await ffmpeg.readFile(output);
+      const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data as string);
+      if (bytes.byteLength < 2) {
+        throw new Error("FFmpeg produced no audio output.");
+      }
+
+      try {
+        await ffmpeg.deleteFile(input);
+        await ffmpeg.deleteFile(output);
+      } catch {
+        /* ignore cleanup errors */
+      }
+
+      const copy = bytes.slice();
+      const samples = new Int16Array(copy.buffer, copy.byteOffset, copy.byteLength / 2);
+      return {
+        samples,
+        sampleRate: 44100,
+        channels: 2,
+        metadata: { title: file.name.replace(/\.[^.]+$/, "") },
+      };
+    });
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") throw e;
     const msg = e instanceof Error ? e.message : String(e);
+    if (/FFmpeg exit|produced no audio|could not load/i.test(msg)) throw e instanceof Error ? e : new Error(msg);
     throw new Error(
       `FFmpeg could not load (${msg}). Refresh the page, check your network, or use WAV. Hosted demos need FFmpeg WASM assets in the build.`,
     );
   }
-  throwIfAborted(signal);
-
-  const input = `input${extOf(file.name)}`;
-  const output = "out.pcm";
-
-  onProgress?.("Reading file…");
-  await ffmpeg.writeFile(input, await fetchFile(file));
-  throwIfAborted(signal);
-
-  onProgress?.("Transcoding to PCM (FFmpeg)…");
-  const exit = await ffmpeg.exec(
-    ["-i", input, "-vn", "-f", "s16le", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", output],
-    300_000,
-  );
-  if (exit !== 0) {
-    throw new Error(
-      `${decodeFailureHint(file.name)} (FFmpeg exit ${exit}).`,
-    );
-  }
-
-  const data = await ffmpeg.readFile(output);
-  const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(data as string);
-  if (bytes.byteLength < 2) {
-    throw new Error("FFmpeg produced no audio output.");
-  }
-
-  try {
-    await ffmpeg.deleteFile(input);
-    await ffmpeg.deleteFile(output);
-  } catch {
-    /* ignore cleanup errors */
-  }
-
-  const samples = new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
-  return {
-    samples,
-    sampleRate: 44100,
-    channels: 2,
-    metadata: { title: file.name.replace(/\.[^.]+$/, "") },
-  };
 }

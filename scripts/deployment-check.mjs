@@ -44,11 +44,11 @@ requirePath("sw.js", "service worker");
 requirePath("icons/mp5-192.png", "PWA icon");
 requirePath("icons/mp5-512.png", "PWA icon");
 
-const demoFixture = join(dist, "fixtures/demo_mp5l_v3_tone.mp5");
+const demoFixture = join(dist, "fixtures/demo_mp5l_v4_tone.mp5");
 if (existsSync(demoFixture)) {
   ok(`demo fixture bundled (${statSync(demoFixture).size} bytes)`);
 } else {
-  warn("dist/fixtures/demo_mp5l_v3_tone.mp5 missing — run pnpm fixtures:generate && pnpm build");
+  warn("dist/fixtures/demo_mp5l_v4_tone.mp5 missing — run pnpm fixtures:generate && pnpm build");
 }
 
 if (!existsSync(assetsDir)) {

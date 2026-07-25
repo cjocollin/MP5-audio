@@ -1,7 +1,7 @@
 {
   "name": "mp5",
   "private": true,
-  "version": "0.28.0-beta",
+  "version": "0.29.0-beta",
   "description": "MP5 experimental audio format ecosystem",
   "license": "MIT",
   "scripts": {
@@ -16,6 +16,7 @@
     "dev": "node scripts/sync-app-version.mjs && pnpm --filter @mp5/web dev",
     "demo": "node scripts/demo.mjs",
     "wasm:build": "wasm-pack build rust/mp5-codec --target web --out-dir ../../apps/web/src/wasm/pkg --release",
+    "wasm:check": "pnpm wasm:build && git diff --exit-code -- apps/web/src/wasm/pkg/mp5_codec.js apps/web/src/wasm/pkg/mp5_codec.d.ts apps/web/src/wasm/pkg/mp5_codec_bg.wasm apps/web/src/wasm/pkg/mp5_codec_bg.wasm.d.ts",
     "bench:mp5c": "cargo test -p mp5-codec mp5c_bench_report -- --nocapture",
     "bench:real-music": "cargo run --release -p mp5-codec --features bench_tools --bin bench_real_music",
     "export:origami-listening": "cargo run --release -p mp5-codec --features bench_tools --bin export_listening_set",

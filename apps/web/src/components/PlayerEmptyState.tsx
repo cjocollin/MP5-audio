@@ -4,7 +4,7 @@ export function PlayerEmptyState() {
       <p className="mp5-player-empty-tip-title">Queue is empty</p>
       <p className="mp5-player-empty-tip-copy">
         Drop <strong>.mp5</strong> / <strong>.mp5p</strong> below, or open files from the header.
-        Optional demo tone lives in <strong>Settings</strong>.
+        Source audio (FLAC, WAV, MP3…) belongs in Converter.
       </p>
       <details className="mp5-player-empty-tip-more">
         <summary>More tips</summary>

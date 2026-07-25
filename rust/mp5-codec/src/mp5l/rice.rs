@@ -149,10 +149,13 @@ impl EscapedRiceCostTable {
 }
 
 /// Pick partition count + per-partition k minimizing header + escaped Rice bits.
-pub fn best_partitioned_ks(residuals: &[i32], escape_bits: u8) -> Vec<u8> {
+///
+/// Returns `(ks, rice_bits)` where `rice_bits` is the escaped-Rice body size for
+/// the winning partition layout (excluding the 16-bit partition header and k nibbles).
+pub fn best_partitioned_ks_with_bits(residuals: &[i32], escape_bits: u8) -> (Vec<u8>, usize) {
     let costs = EscapedRiceCostTable::new(residuals, escape_bits);
-    let (mut best_ks, initial_bits) = costs.partition_ks_and_bits(residuals.len(), 1);
-    let mut best_total = 16 + best_ks.len() * 4 + initial_bits;
+    let (mut best_ks, mut best_rice_bits) = costs.partition_ks_and_bits(residuals.len(), 1);
+    let mut best_total = 16 + best_ks.len() * 4 + best_rice_bits;
     for &parts in PARTITION_CANDIDATES {
         if parts > residuals.len().max(1) {
             continue;
@@ -163,9 +166,15 @@ pub fn best_partitioned_ks(residuals: &[i32], escape_bits: u8) -> Vec<u8> {
         if total < best_total {
             best_total = total;
             best_ks = ks;
+            best_rice_bits = rice_bits;
         }
     }
-    best_ks
+    (best_ks, best_rice_bits)
+}
+
+/// Pick partition count + per-partition k minimizing header + escaped Rice bits.
+pub fn best_partitioned_ks(residuals: &[i32], escape_bits: u8) -> Vec<u8> {
+    best_partitioned_ks_with_bits(residuals, escape_bits).0
 }
 
 fn best_k_for_residuals_unescaped(residuals: &[i32]) -> u8 {

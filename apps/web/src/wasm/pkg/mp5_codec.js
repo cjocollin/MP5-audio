@@ -41,6 +41,23 @@ export class Mp5lStreamDecoder {
         return v2;
     }
     /**
+     * Decode until `max_channel_samples` channel-frames are emitted (or EOF).
+     * @param {Uint8Array} data
+     * @param {number} max_channel_samples
+     * @returns {Int16Array}
+     */
+    push_until(data, max_channel_samples) {
+        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.mp5lstreamdecoder_push_until(this.__wbg_ptr, ptr0, len0, max_channel_samples);
+        if (ret[3]) {
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        var v2 = getArrayI16FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
+        return v2;
+    }
+    /**
      * @param {number} sample_index
      */
     seek_frame(sample_index) {
@@ -51,6 +68,89 @@ export class Mp5lStreamDecoder {
     }
 }
 if (Symbol.dispose) Mp5lStreamDecoder.prototype[Symbol.dispose] = Mp5lStreamDecoder.prototype.free;
+
+/**
+ * Progressive v4 encoder (bit-identical to [`encode_mp5l_v4`]).
+ */
+export class Mp5lV4StreamEncoder {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        Mp5lV4StreamEncoderFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_mp5lv4streamencoder_free(ptr, 0);
+    }
+    /**
+     * Encode one planned frame. Returns false when finished.
+     * @returns {boolean}
+     */
+    encodeNextFrame() {
+        const ret = wasm.mp5lv4streamencoder_encodeNextFrame(this.__wbg_ptr);
+        return ret !== 0;
+    }
+    /**
+     * @returns {Uint8Array}
+     */
+    finish() {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.mp5lv4streamencoder_finish(ptr);
+        var v1 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+        wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+        return v1;
+    }
+    /**
+     * @returns {number}
+     */
+    frameCount() {
+        const ret = wasm.mp5lv4streamencoder_frameCount(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    framesDone() {
+        const ret = wasm.mp5lv4streamencoder_framesDone(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {Int16Array} samples
+     * @param {number} channels
+     */
+    constructor(samples, channels) {
+        const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.mp5lv4streamencoder_new(ptr0, len0, channels);
+        this.__wbg_ptr = ret;
+        Mp5lV4StreamEncoderFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+}
+if (Symbol.dispose) Mp5lV4StreamEncoder.prototype[Symbol.dispose] = Mp5lV4StreamEncoder.prototype.free;
+
+/**
+ * Assemble ordered frame payloads into a full v4 bitstream (bit-identical when
+ * frames match serial encode order from [`plan_mp5l_v4_boundaries`]).
+ * @param {number} channels
+ * @param {Uint32Array} sample_offsets
+ * @param {Uint8Array} frames_concat
+ * @param {Uint32Array} frame_lengths
+ * @returns {Uint8Array}
+ */
+export function assemble_mp5l_v4(channels, sample_offsets, frames_concat, frame_lengths) {
+    const ptr0 = passArray32ToWasm0(sample_offsets, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ptr1 = passArray8ToWasm0(frames_concat, wasm.__wbindgen_malloc);
+    const len1 = WASM_VECTOR_LEN;
+    const ptr2 = passArray32ToWasm0(frame_lengths, wasm.__wbindgen_malloc);
+    const len2 = WASM_VECTOR_LEN;
+    const ret = wasm.assemble_mp5l_v4(channels, ptr0, len0, ptr1, len1, ptr2, len2);
+    var v4 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v4;
+}
 
 /**
  * @param {Uint8Array} data
@@ -327,6 +427,38 @@ export function encode_mp5l_v4(samples, channels) {
 }
 
 /**
+ * Encode one v4 frame payload for `[start, end)` (sample index on channel 0).
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} start
+ * @param {number} end
+ * @returns {Uint8Array}
+ */
+export function encode_mp5l_v4_frame(samples, channels, start, end) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5l_v4_frame(ptr0, len0, channels, start, end);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * Flat `[start0, end0, start1, end1, …]` sample ranges for multi-worker frame encode.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @returns {Uint32Array}
+ */
+export function plan_mp5l_v4_boundaries(samples, channels) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.plan_mp5l_v4_boundaries(ptr0, len0, channels);
+    var v2 = getArrayU32FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
+    return v2;
+}
+
+/**
  * @param {Int16Array} original
  * @param {Int16Array} decoded
  * @returns {number}
@@ -369,10 +501,18 @@ function __wbg_get_imports() {
 const Mp5lStreamDecoderFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_mp5lstreamdecoder_free(ptr, 1));
+const Mp5lV4StreamEncoderFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_mp5lv4streamencoder_free(ptr, 1));
 
 function getArrayI16FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getInt16ArrayMemory0().subarray(ptr / 2, ptr / 2 + len);
+}
+
+function getArrayU32FromWasm0(ptr, len) {
+    ptr = ptr >>> 0;
+    return getUint32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
 }
 
 function getArrayU8FromWasm0(ptr, len) {
@@ -400,6 +540,14 @@ function getUint16ArrayMemory0() {
     return cachedUint16ArrayMemory0;
 }
 
+let cachedUint32ArrayMemory0 = null;
+function getUint32ArrayMemory0() {
+    if (cachedUint32ArrayMemory0 === null || cachedUint32ArrayMemory0.byteLength === 0) {
+        cachedUint32ArrayMemory0 = new Uint32Array(wasm.memory.buffer);
+    }
+    return cachedUint32ArrayMemory0;
+}
+
 let cachedUint8ArrayMemory0 = null;
 function getUint8ArrayMemory0() {
     if (cachedUint8ArrayMemory0 === null || cachedUint8ArrayMemory0.byteLength === 0) {
@@ -411,6 +559,13 @@ function getUint8ArrayMemory0() {
 function passArray16ToWasm0(arg, malloc) {
     const ptr = malloc(arg.length * 2, 2) >>> 0;
     getUint16ArrayMemory0().set(arg, ptr / 2);
+    WASM_VECTOR_LEN = arg.length;
+    return ptr;
+}
+
+function passArray32ToWasm0(arg, malloc) {
+    const ptr = malloc(arg.length * 4, 4) >>> 0;
+    getUint32ArrayMemory0().set(arg, ptr / 4);
     WASM_VECTOR_LEN = arg.length;
     return ptr;
 }
@@ -451,6 +606,7 @@ function __wbg_finalize_init(instance, module) {
     wasmModule = module;
     cachedInt16ArrayMemory0 = null;
     cachedUint16ArrayMemory0 = null;
+    cachedUint32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;

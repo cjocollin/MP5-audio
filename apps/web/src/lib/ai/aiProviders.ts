@@ -57,7 +57,8 @@ export const AI_PROVIDERS: AiProviderDefinition[] = [
     keyHint: "aistudio.google.com API key",
     models: [
       { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", model: "gemini-3.1-flash-lite", hint: "Fast, low cost" },
-      { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "gemini-3.5-flash", hint: "Fast" },
+      { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash", model: "gemini-3.6-flash", hint: "Fast" },
+      { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "gemini-3.5-flash", hint: "Previous" },
       { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", model: "gemini-3.1-pro-preview", hint: "Preview" },
       { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", model: "gemini-2.5-flash", hint: "Legacy" },
       { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", model: "gemini-2.5-pro", hint: "Legacy" },
@@ -154,7 +155,8 @@ export const AI_PROVIDERS: AiProviderDefinition[] = [
       { id: "openrouter-auto", label: "Auto Router", model: "openrouter/auto", hint: "Model-dependent JSON support" },
       { id: "or-gpt-5.6-luna", label: "OpenAI GPT-5.6 Luna", model: "openai/gpt-5.6-luna", hint: "Fast, low cost" },
       { id: "or-claude-sonnet-5", label: "Claude Sonnet 5", model: "anthropic/claude-sonnet-5" },
-      { id: "or-gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "google/gemini-3.5-flash", hint: "Fast" },
+      { id: "or-gemini-3.6-flash", label: "Gemini 3.6 Flash", model: "google/gemini-3.6-flash", hint: "Fast" },
+      { id: "or-gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "google/gemini-3.5-flash", hint: "Previous" },
     ],
   },
   {

@@ -1,12 +1,26 @@
 import type { IngestResult } from "../player/playlistUtils";
+import { usePlayerStore } from "../store/playerStore";
 
 interface Props {
   summary: IngestResult;
+  /** Skipped non-.mp5 source files available for Convert handoff. */
+  skippedFiles?: File[];
 }
 
-export function DropImportSummary({ summary }: Props) {
+export function DropImportSummary({ summary, skippedFiles = [] }: Props) {
   const { addedCount, skippedCount, unreadableCount, dropErrors } = summary;
+  const setPendingConverterFiles = usePlayerStore((s) => s.setPendingConverterFiles);
+  const setActiveTab = usePlayerStore((s) => s.setActiveTab);
+
   if (addedCount === 0 && skippedCount === 0 && unreadableCount === 0) return null;
+
+  const convertible = skippedFiles.length > 0 && skippedCount > 0;
+
+  function handleConvertInstead() {
+    if (!skippedFiles.length) return;
+    setPendingConverterFiles(skippedFiles);
+    setActiveTab("converter");
+  }
 
   return (
     <div
@@ -21,7 +35,7 @@ export function DropImportSummary({ summary }: Props) {
       )}
       {skippedCount > 0 && (
         <p data-testid="drop-skipped-count">
-          Skipped {skippedCount} file{skippedCount === 1 ? "" : "s"} (not .mp5).
+          Skipped {skippedCount} file{skippedCount === 1 ? "" : "s"} (not .mp5 / .mp5p).
         </p>
       )}
       {unreadableCount > 0 && (
@@ -29,6 +43,22 @@ export function DropImportSummary({ summary }: Props) {
           {unreadableCount} file{unreadableCount === 1 ? "" : "s"} could not be read — still listed as
           unreadable in the queue.
         </p>
+      )}
+      {convertible && (
+        <div className="pt-1 space-y-1.5" data-testid="drop-convert-handoff">
+          <p className="text-gray-500">
+            Player plays <strong className="text-gray-400 font-normal">.mp5 / .mp5p</strong> only;
+            source audio goes to Converter (Public Beta).
+          </p>
+          <button
+            type="button"
+            className="mp5-btn-secondary text-xs min-h-[32px]"
+            onClick={handleConvertInstead}
+            data-testid="drop-convert-cta"
+          >
+            Convert these files instead
+          </button>
+        </div>
       )}
       {dropErrors.length > 0 && (
         <ul className="text-gray-500 space-y-0.5" data-testid="drop-skip-reasons">

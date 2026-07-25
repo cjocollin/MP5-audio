@@ -43,6 +43,67 @@ function densifyPeaks(peaks: number[], targetLength = 512) {
   });
 }
 
+/** Deterministic ghost peaks for the empty-state placeholder (not real audio). */
+function placeholderPeaks(count = 160): number[] {
+  return Array.from({ length: count }, (_, i) => {
+    const t = i / (count - 1);
+    const envelope = 0.35 + 0.55 * Math.sin(Math.PI * t);
+    const detail =
+      0.55 +
+      0.25 * Math.sin(i * 0.37) +
+      0.2 * Math.sin(i * 0.91 + 1.2);
+    const hash = Math.sin((i + 3) * 12.9898) * 43758.5453;
+    const jitter = 0.7 + (hash - Math.floor(hash)) * 0.3;
+    return Math.max(0.08, envelope * detail * jitter);
+  });
+}
+
+function WaveformPlaceholder() {
+  const peaks = placeholderPeaks();
+  const w = peaks.length;
+  const peakMax = peaks.reduce((max, peak) => Math.max(max, peak), 0.001);
+
+  return (
+    <div
+      className="mp5-waveform-shell mp5-waveform-placeholder"
+      data-testid="waveform-empty"
+      aria-label="Waveform preview unavailable"
+    >
+      <svg
+        className="h-12 w-full sm:h-14"
+        viewBox={`0 0 ${w} 32`}
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        <line
+          x1={0}
+          x2={w}
+          y1={16}
+          y2={16}
+          stroke="currentColor"
+          strokeOpacity={0.12}
+          strokeWidth={0.6}
+        />
+        {peaks.map((p, i) => {
+          const h = Math.max(1, (p / peakMax) * 22);
+          return (
+            <rect
+              key={i}
+              x={i + 0.15}
+              y={16 - h / 2}
+              width={0.45}
+              height={h}
+              fill="currentColor"
+              fillOpacity={0.22}
+            />
+          );
+        })}
+      </svg>
+      <span className="mp5-waveform-placeholder-label">Waveform preview</span>
+    </div>
+  );
+}
+
 export function WaveformView({
   peaks,
   progress,
@@ -59,14 +120,7 @@ export function WaveformView({
   const [previewRatio, setPreviewRatio] = useState<number | null>(null);
 
   if (!peaks.length) {
-    return (
-      <div
-        className="mp5-waveform-shell flex h-12 items-center justify-center text-xs text-gray-600 sm:h-14"
-        data-testid="waveform-empty"
-      >
-        Waveform preview unavailable
-      </div>
-    );
+    return <WaveformPlaceholder />;
   }
 
   const densePeaks = densifyPeaks(peaks);

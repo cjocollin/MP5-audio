@@ -34,6 +34,7 @@ export interface BatchQueueItem {
   outputFilename?: string;
   outputBytes?: number;
   errorMessage?: string;
+  /** @deprecated Output bytes live in batchOutputCache by id — do not retain in React state. */
   mp5?: Uint8Array;
   librarySaved?: boolean;
   libraryDuplicate?: boolean;

@@ -17,10 +17,10 @@ import {
   lyricsEmptyMessage,
   lyricsModeLabel,
 } from "../lib/lyrics/lyricsDisplay";
+import { usePlayerStore } from "../store/playerStore";
 
 interface Props {
   parsed?: Mp5File;
-  currentTime: number;
   getPlaybackTime: () => number;
   duration: number;
   isPlaying: boolean;
@@ -35,7 +35,6 @@ interface Props {
 
 export function LyricsPanel({
   parsed,
-  currentTime,
   getPlaybackTime,
   duration,
   isPlaying,
@@ -44,6 +43,7 @@ export function LyricsPanel({
   onKaraokeModeChange,
   onKaraokePrepare,
 }: Props) {
+  const currentTime = usePlayerStore((s) => s.currentTime);
   const lyrc = useMemo(() => parseLyrcFromFile(parsed), [parsed]);
   const stems = useMemo(
     () => decodeStemManifest(parsed?.optional.get("STEM"))?.stems,

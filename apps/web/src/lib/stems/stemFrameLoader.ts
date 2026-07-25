@@ -7,15 +7,12 @@ import {
   stdaPayloadIndexForStem,
   type StemDescriptor,
   type StdfFragmentRecord,
+  yieldToEventLoop,
 } from "@mp5/container";
 import { recordStdfFragmentLoaded } from "../ingest/ingestDiagnostics";
 import type { ParsedStemFile } from "./parseStems";
 
-export function yieldToMain(): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, 0);
-  });
-}
+export const yieldToMain = yieldToEventLoop;
 
 function extractStdaFrameByIndex(stda: Uint8Array, index: number): Uint8Array {
   const entries = decodeStdaEntries(stda);

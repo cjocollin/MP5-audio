@@ -61,7 +61,7 @@ export function DemoFixtureActions({ onLoaded, compact, testIdPrefix = "demo" }:
           className="mp5-btn-primary text-xs sm:text-sm"
           data-testid={`${testIdPrefix}-load-demo-play`}
         >
-          {loading ? "Loading…" : "Load MP5-L demo & play"}
+          {loading ? "Loading…" : "Load MP5-L v4 demo & play"}
         </button>
         <button
           type="button"

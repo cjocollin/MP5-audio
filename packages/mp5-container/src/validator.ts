@@ -20,6 +20,17 @@ export function validateChunkPayloadSize(size: number): void {
   }
 }
 
+/**
+ * Enforce the chunk-count cap DURING the parse loop, not only after it — a
+ * hostile file of millions of tiny chunks otherwise grinds through the whole
+ * scan (and, when lazy, an unbounded index) before the post-scan check fires.
+ */
+export function assertChunkCountWithinLimit(chunkCount: number): void {
+  if (chunkCount > MAX_CHUNKS) {
+    throw new Mp5SecurityError(`Too many chunks: ${chunkCount}`);
+  }
+}
+
 export function validateSeekTable(entries: SeekEntry[]): void {
   let lastSample = -1n;
   let lastByte = -1n;
@@ -38,6 +49,12 @@ export function validateParsedFile(file: Mp5File, chunkCount: number): void {
   }
   if (!file.head) {
     throw new Mp5ValidationError("Missing HEAD chunk");
+  }
+  if (file.head.channels < 1 || file.head.channels > 32) {
+    throw new Mp5ValidationError(`HEAD channel count out of range: ${file.head.channels}`);
+  }
+  if (file.head.sampleRate < 1 || file.head.sampleRate > 768000) {
+    throw new Mp5ValidationError(`HEAD sample rate out of range: ${file.head.sampleRate}`);
   }
   if (file.audioFrames.length === 0 && !file.lazy?.audi) {
     throw new Mp5ValidationError("Missing AUDI chunk");

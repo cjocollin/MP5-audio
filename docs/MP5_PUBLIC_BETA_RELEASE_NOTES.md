@@ -1,6 +1,6 @@
 # MP5 Public Beta Release Notes
 
-**Current release:** MP5 Audio v0.28.0-beta  
+**Current release:** MP5 Audio v0.29.0-beta  
 **Hosted demo:** https://mp5-audio.vercel.app  
 **Last updated:** 2026-07-18
 
@@ -10,7 +10,7 @@ MP5 is an experimental, browser-based open-source audio format, container, codec
 
 MP5 is Public Beta, not production-ready for archival or legal use.
 
-## v0.28.0-beta Highlights
+## v0.29.0-beta Highlights
 
 - **Lab MDCT loud path** (`mp5c3` / `TAG_MDCT`) with FFT Type-IV for practical WASM lab modes.
 - Real-track MDCT validate at protect 1.5: hiss risk **low**, High ~0.214× / Extreme ~0.268× PCM.
@@ -45,7 +45,7 @@ See [MP5_KNOWN_ISSUES.md](./MP5_KNOWN_ISSUES.md).
 ## How To Test
 
 1. Open https://mp5-audio.vercel.app.
-2. Confirm the badge reads `MP5 Public Beta - v0.28.0-beta`.
+2. Confirm the badge reads `MP5 Public Beta - v0.29.0-beta`.
 3. Try the MP5-L demo, karaoke demo, and embedded album demo.
 4. Open Converter and Batch.
 5. Optional: convert your own local file with MP5-L v4 default.

@@ -1,11 +1,11 @@
 # MP5 Format Specification
 
-**Version:** MP5 Audio v0.28.0-beta  
+**Version:** MP5 Audio v0.29.0-beta  
 **Status:** Public Beta reference spec
 
 MP5 is an experimental open-source audio format ecosystem. The core `.mp5` file is a chunked container with audio plus optional metadata/enrichment chunks. Public Beta playback requires only `HEAD` and `AUDI`.
 
-This document is descriptive of the current reference implementation. v0.28.0-beta does not change codec policy, playback transport, MP5/STDF/MP5P semantics, or converter encoding behavior.
+This document is descriptive of the current reference implementation. v0.29.0-beta does not change codec policy, playback transport, MP5/STDF/MP5P semantics, or converter encoding behavior.
 
 ## File Model
 

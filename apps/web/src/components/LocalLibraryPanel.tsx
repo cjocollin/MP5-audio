@@ -8,9 +8,9 @@ import {
   downloadManifestAlbumPackage,
   openEmbeddedAlbumFromLibrary,
   openManifestAlbumFromLibrary,
+  importLibraryFile,
   playLibraryEntry,
   reopenRecentLibraryItem,
-  saveFileToLibrary,
 } from "../lib/localLibrary/libraryActions";
 import { clearAllLibraryData, deleteLibraryEntry, loadLibraryEntry } from "../lib/localLibrary/api";
 import { deleteSavedAlbum } from "../lib/localLibrary/albumLibrary";
@@ -28,6 +28,7 @@ import type {
   UnifiedLibraryItem,
 } from "../lib/localLibrary/unifiedLibraryTypes";
 import { LibraryStorageError } from "../lib/localLibrary/errors";
+import { isAlbumPackageFileName } from "../lib/album/createAlbumPackage";
 import { isMp5FileName } from "../player/playlistUtils";
 import { decodeCache } from "../player/decodeCache";
 import { assessLibraryStorage, type GuardrailMessage } from "../lib/performance/guardrails";
@@ -156,24 +157,39 @@ export function LocalLibraryPanel() {
   const handleImport = async (files: FileList) => {
     setError("");
     setStatus("");
-    const mp5Files = Array.from(files).filter((f) => isMp5FileName(f.name));
-    if (!mp5Files.length) {
-      setError("No .mp5 files selected.");
+    const libraryFiles = Array.from(files).filter(
+      (f) => isMp5FileName(f.name) || isAlbumPackageFileName(f.name),
+    );
+    if (!libraryFiles.length) {
+      setError("No .mp5 or .mp5p files selected.");
       return;
     }
     setBusy(true);
     let saved = 0;
     let skipped = 0;
+    let albums = 0;
     try {
-      for (const file of mp5Files) {
-        const result = await saveFileToLibrary(file);
-        if (result.duplicate) skipped += 1;
-        else saved += 1;
+      for (const file of libraryFiles) {
+        const imported = await importLibraryFile(file);
+        if (imported.kind === "track") {
+          if (imported.result.status === "failed") {
+            if (imported.result.errorCode === "quota") throw new LibraryStorageError(imported.result.message, "quota");
+            throw new Error(imported.result.message);
+          }
+          if (imported.result.status === "duplicate") skipped += 1;
+          else saved += 1;
+        } else {
+          albums += 1;
+        }
       }
       await refresh();
+      const parts: string[] = [];
+      if (saved > 0) parts.push(`Saved ${saved} track${saved === 1 ? "" : "s"}`);
+      if (albums > 0) parts.push(`saved ${albums} album package${albums === 1 ? "" : "s"}`);
+      if (skipped > 0) parts.push(`${skipped} already in library`);
       setStatus(
-        saved > 0
-          ? `Saved ${saved} file${saved === 1 ? "" : "s"} to library.${skipped ? ` ${skipped} already saved.` : ""}`
+        parts.length
+          ? `${parts.join("; ")}.`
           : skipped
             ? "Those files are already in your library."
             : "",
@@ -310,8 +326,8 @@ export function LocalLibraryPanel() {
       </div>
 
       <FileDropZone
-        accept=".mp5,audio/*"
-        label="Add .mp5 files to library"
+        accept=".mp5,.mp5p,audio/mp5"
+        label="Add .mp5 tracks or .mp5p album packages to library"
         onFiles={(files) => void handleImport(files)}
         disabled={busy}
         testId="local-library-file-input"

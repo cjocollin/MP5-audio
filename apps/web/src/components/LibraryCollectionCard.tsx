@@ -132,6 +132,17 @@ export function LibraryCollectionCard({
               {item.reopenHint}
             </p>
           )}
+          {!!item.missingRefs?.length && (
+            <p className="text-[10px] text-amber-200/90 mt-0.5" data-testid="library-missing-refs">
+              {item.missingRefs.length} sidecar{item.missingRefs.length === 1 ? "" : "s"} missing
+              — keep .mp5 files in this library with the manifest.
+            </p>
+          )}
+          {item.warnings.length > 0 && !item.missingRefs?.length && item.source === "saved" && item.type === "album" && (
+            <p className="text-[10px] text-gray-500 mt-0.5" data-testid="library-item-warnings">
+              {item.warnings[0]}
+            </p>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap gap-1 shrink-0">

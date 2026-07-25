@@ -12,9 +12,11 @@ import { CodecId, type Mp5File } from "@mp5/container";
 import { SignalMarkSprite } from "../components/SignalMarkSprite";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import type { PlaylistTrack } from "../store/playerStore";
+import { usePlayerStore } from "../store/playerStore";
 import { trackDisplayInfo } from "./playlistUtils";
 import { codecLabel } from "../lib/codecDisplay";
 import { formatTimelineRange } from "./playerDisplay";
+import { SeekTimeline } from "./SeekTimeline";
 
 function coverFromParsed(parsed?: Mp5File) {
   if (parsed?.coverArt?.data.length) return parsed.coverArt;
@@ -35,12 +37,12 @@ interface Props {
   onRepeat: () => void;
   canPrevious: boolean;
   canNext: boolean;
-  currentTime: number;
   duration: number;
   volume: number;
   onSeek: (time: number) => void;
   onVolume: (volume: number) => void;
   onQueue: () => void;
+  loading?: boolean;
 }
 
 export function PersistentTransport({
@@ -54,18 +56,20 @@ export function PersistentTransport({
   onRepeat,
   canPrevious,
   canNext,
-  currentTime,
   duration,
   volume,
   onSeek,
   onVolume,
   onQueue,
+  loading = false,
 }: Props) {
   const coverUrl = useCoverObjectUrl(coverFromParsed(parsed));
   const hasTrack = !!track;
   const info = track ? trackDisplayInfo(track) : null;
+  // Mobile time label — isolated currentTime subscription.
+  const currentTime = usePlayerStore((s) => s.currentTime);
   const timeline = formatTimelineRange(currentTime, duration);
-  const playbackReady = hasTrack && duration > 0;
+  const playbackReady = hasTrack && duration > 0 && !loading;
 
   return (
     <section
@@ -132,7 +136,13 @@ export function PersistentTransport({
         >
           <Shuffle size={18} />
         </button>
-        <button type="button" onClick={onPrevious} disabled={!canPrevious} aria-label="Previous">
+        <button
+          type="button"
+          className="mp5-persistent-prev"
+          onClick={onPrevious}
+          disabled={!canPrevious}
+          aria-label="Previous"
+        >
           <SkipBack size={20} weight="fill" />
         </button>
         <button
@@ -144,7 +154,13 @@ export function PersistentTransport({
         >
           {isPlaying ? <Pause size={21} weight="fill" /> : <Play size={21} weight="fill" />}
         </button>
-        <button type="button" onClick={onNext} disabled={!canNext} aria-label="Next">
+        <button
+          type="button"
+          className="mp5-persistent-next"
+          onClick={onNext}
+          disabled={!canNext}
+          aria-label="Next"
+        >
           <SkipForward size={20} weight="fill" />
         </button>
         <button
@@ -158,20 +174,16 @@ export function PersistentTransport({
         </button>
       </div>
 
-      <div className="mp5-persistent-timeline">
-        <span>{timeline.current}</span>
-        <input
-          type="range"
-          min={0}
-          max={duration || 1}
-          step={0.01}
-          value={currentTime}
-          onChange={(event) => onSeek(Number(event.target.value))}
-          aria-label="Persistent seek"
-          disabled={!playbackReady}
-        />
-        <span>{timeline.duration}</span>
-      </div>
+      <SeekTimeline
+        duration={duration}
+        onSeek={onSeek}
+        disabled={!playbackReady}
+        layout="inline"
+        className="mp5-persistent-seek-input"
+        testId="persistent-seek"
+        ariaLabel="Persistent seek"
+        showLabels={false}
+      />
 
       <label className="mp5-persistent-volume">
         <SpeakerHigh size={18} />

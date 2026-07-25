@@ -1,6 +1,6 @@
 # MP5 Fixture Catalog
 
-**Version:** MP5 Audio v0.28.0-beta
+**Version:** MP5 Audio v0.29.0-beta
 **Status:** Public Beta synthetic fixture policy
 
 All committed fixtures must be synthetic/demo-safe. Do not commit copyrighted, private, downloaded, or personally identifying audio. Local real-music packages such as HADES or Pity Party are manual-only and must remain outside the repo.

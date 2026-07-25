@@ -13,13 +13,22 @@ import {
   matchesUnifiedLibraryQuery,
   packageBadgeLabel,
 } from "../apps/web/src/lib/localLibrary/unifiedLibrarySearch";
-import { isEmbeddedAlbumBlobRecord, listUnifiedLibraryItems } from "../apps/web/src/lib/localLibrary/unifiedLibrary";
+import {
+  computeManifestMissingRefs,
+  isEmbeddedAlbumBlobRecord,
+  listUnifiedLibraryItems,
+} from "../apps/web/src/lib/localLibrary/unifiedLibrary";
 import { albumCoverDataUrlFromManifest, albumDurationMsFromManifest } from "../apps/web/src/lib/localLibrary/albumCoverFromManifest";
 import type { UnifiedLibraryItem } from "../apps/web/src/lib/localLibrary/unifiedLibraryTypes";
 import { MemoryLibraryStore } from "../apps/web/src/lib/localLibrary/memoryStore";
 import { resetLibraryStore, setLibraryStoreForTests } from "../apps/web/src/lib/localLibrary/store";
-import { saveMp5ToLibrary, clearLocalLibrary } from "../apps/web/src/lib/localLibrary/api";
+import { saveMp5ToLibrary, clearLocalLibrary, listLibraryRecords } from "../apps/web/src/lib/localLibrary/api";
 import { saveAlbumPackage } from "../apps/web/src/lib/localLibrary/albumLibrary";
+import {
+  CodecId,
+  writeMp5,
+  metaFieldsFromRecord,
+} from "@mp5/container";
 
 function trackItem(overrides: Partial<UnifiedLibraryItem> = {}): UnifiedLibraryItem {
   return {
@@ -208,5 +217,41 @@ describe("unified library normalization", () => {
     };
     expect(albumCoverDataUrlFromManifest(manifest)).toBe("data:image/png;base64,abc");
     expect(albumDurationMsFromManifest(manifest)).toBe(1000);
+  });
+
+  it("computes missingRefs for manifest albums on list", async () => {
+    const saved = saveAlbumPackage(
+      {
+        format: ALBUM_MANIFEST_FORMAT,
+        album: { title: "Sidecar Album", artist: "Band" },
+        tracks: [
+          { trackId: "1", file: "present.mp5", trackNumber: 1 },
+          { trackId: "2", file: "missing.mp5", trackNumber: 2 },
+        ],
+      },
+      "sidecar.mp5p",
+    );
+    const mp5 = writeMp5({
+      head: {
+        codecId: CodecId.PCM,
+        channels: 1,
+        bitsPerSample: 16,
+        presetId: 0,
+        sampleRate: 48000,
+        totalSamples: 48000n,
+        encoderVersion: 1,
+      },
+      audioFrames: [{ frameIndex: 0, frameType: 0, flags: 0, data: new Uint8Array(96000) }],
+      meta: metaFieldsFromRecord({ title: "Present" }),
+    });
+    await saveMp5ToLibrary(new File([mp5], "present.mp5"), "present.mp5");
+    const records = await listLibraryRecords();
+    const missing = computeManifestMissingRefs(saved, records);
+    expect(missing).toEqual(["missing.mp5"]);
+
+    const items = await listUnifiedLibraryItems();
+    const album = items.find((i) => i.manifestAlbumId === saved.id);
+    expect(album?.missingRefs).toEqual(["missing.mp5"]);
+    expect(album?.warnings.some((w) => w.includes("missing"))).toBe(true);
   });
 });

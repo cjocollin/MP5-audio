@@ -1,6 +1,6 @@
 # Optional Metadata Registry
 
-**Version:** MP5 Audio v0.28.0-beta  
+**Version:** MP5 Audio v0.29.0-beta  
 **Status:** Legacy filename; optional metadata reference (includes opt-in AI suggestions)
 
 This file keeps the historical `AI_METADATA_SPEC.md` path working. The listed chunks are optional metadata/enrichment chunks. Files without them decode and play normally.

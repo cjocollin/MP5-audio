@@ -39,7 +39,7 @@ describe("first-run onboarding", () => {
 
 describe("demo fixture", () => {
   it("uses stable fixture path", () => {
-    expect(DEMO_MP5L_FIXTURE_URL).toBe("/fixtures/demo_mp5l_v3_tone.mp5");
-    expect(DEMO_MP5L_FIXTURE_NAME).toBe("demo_mp5l_v3_tone.mp5");
+    expect(DEMO_MP5L_FIXTURE_URL).toBe("/fixtures/demo_mp5l_v4_tone.mp5");
+    expect(DEMO_MP5L_FIXTURE_NAME).toBe("demo_mp5l_v4_tone.mp5");
   });
 });

@@ -27,11 +27,14 @@ const {
 } = await import(pathToFileURL(join(root, "packages/mp5-container/dist/index.js")).href);
 
 const DEMO_FIXTURES = [
-  { file: "demo_mp5l_v3_tone.mp5", codec: CodecId.MP5L, magic: 0x4c, profile: "rich" },
-  { file: "demo_mp5l_v3_stems.mp5", codec: CodecId.MP5L, magic: 0x4c, stems: true, profile: "rich" },
+  { file: "demo_mp5l_v4_tone.mp5", codec: CodecId.MP5L, magic: 0x4c, mp5lVersion: 4, profile: "rich" },
+  { file: "demo_mp5l_v4_stems.mp5", codec: CodecId.MP5L, magic: 0x4c, mp5lVersion: 4, stems: true, profile: "rich" },
+  { file: "demo_mp5l_v3_tone.mp5", codec: CodecId.MP5L, magic: 0x4c, mp5lVersion: 3, profile: "rich" },
+  { file: "demo_mp5l_v3_stems.mp5", codec: CodecId.MP5L, magic: 0x4c, mp5lVersion: 3, stems: true, profile: "rich" },
   { file: "demo_pcm_reference_tone.mp5", codec: CodecId.PCM, profile: "playable" },
   { file: "demo_mp5c_lab_tone.mp5", codec: CodecId.MP5C, magic: 0x43, profile: "playable" },
-  { file: "validation_mp5l_v3.mp5", codec: CodecId.MP5L, profile: "rich" },
+  { file: "validation_mp5l_v4.mp5", codec: CodecId.MP5L, mp5lVersion: 4, profile: "rich" },
+  { file: "validation_mp5l_v3.mp5", codec: CodecId.MP5L, mp5lVersion: 3, profile: "rich" },
   { file: "validation_pcm_slice.mp5", codec: CodecId.PCM, profile: "playable" },
 ];
 
@@ -73,8 +76,13 @@ for (const spec of DEMO_FIXTURES) {
     fail(`${spec.file}: bad frame magic`);
     continue;
   }
-  if (spec.codec === CodecId.MP5L && frame && frame[1] !== 3) {
-    fail(`${spec.file}: expected MP5-L v3`);
+  if (
+    spec.codec === CodecId.MP5L &&
+    frame &&
+    spec.mp5lVersion != null &&
+    frame[1] !== spec.mp5lVersion
+  ) {
+    fail(`${spec.file}: expected MP5-L v${spec.mp5lVersion}, got v${frame[1]}`);
     continue;
   }
   if (spec.stems) {

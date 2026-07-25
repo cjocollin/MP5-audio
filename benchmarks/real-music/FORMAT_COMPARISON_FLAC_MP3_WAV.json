@@ -1,0 +1,353 @@
+﻿{
+    "generatedAt":  "2026-07-22T06:53:34.8646984Z",
+    "method":  {
+                   "sourceFolder":  "C:\\Users\\colli\\Music\\flac-mp5 tests",
+                   "tempFolder":  "C:\\Users\\colli\\Music\\flac-mp5 tests\\_compare_tmp",
+                   "trackSelection":  "11 single-track pairs with both .flac and .mp5; excluded multi-stem Takedown/Your Idol and *.pre-alias-baseline",
+                   "wav":  "ffmpeg -i SOURCE.flac -c:a pcm_s16le OUT.wav (16-bit LE PCM at source sample rate and channels)",
+                   "mp3":  "ffmpeg -i SOURCE.flac -map 0:a:0 -vn -c:a libmp3lame -b:a 320k OUT.mp3 (audio-only, CBR 320 kbps; cover art excluded)",
+                   "mp3BitrateTargetKbps":  320,
+                   "mp3BitrateMeasuredBps":  320000,
+                   "flac":  "original source files (not re-encoded)",
+                   "mp5":  "existing paired .mp5 files (not re-encoded); project default recommended mode is MP5-L (lossless)",
+                   "bitsNote":  "All WAVs are pcm_s16le. Nine sources are 24-bit FLAC; two (Nicki Minaj tracks) are 16-bit. For 24-bit sources, FLAC size can exceed 16-bit WAV because FLAC retains 24-bit sample depth."
+               },
+    "tracks":  [
+                   {
+                       "name":  "- ORIGAMI!",
+                       "durationSec":  154.566,
+                       "sampleRate":  48000,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  29676974,
+                                     "flac":  35810707,
+                                     "mp3":  6190168,
+                                     "mp5":  21533447
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.2067,
+                                           "mp3":  0.2086,
+                                           "mp5":  0.7256
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1536013,
+                                                   "flac":  1853481,
+                                                   "mp3":  320000,
+                                                   "mp5":  1114522
+                                               }
+                   },
+                   {
+                       "name":  "02-is-this-a-cult",
+                       "durationSec":  187.179,
+                       "sampleRate":  48000,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  35938592,
+                                     "flac":  39306243,
+                                     "mp3":  7490178,
+                                     "mp5":  21385109
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.0937,
+                                           "mp3":  0.2084,
+                                           "mp5":  0.595
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1536008,
+                                                   "flac":  1679941,
+                                                   "mp3":  320000,
+                                                   "mp5":  913995
+                                               }
+                   },
+                   {
+                       "name":  "06-grudges",
+                       "durationSec":  217.531,
+                       "sampleRate":  48000,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  41766060,
+                                     "flac":  48489751,
+                                     "mp3":  8703611,
+                                     "mp5":  27853905
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.161,
+                                           "mp3":  0.2084,
+                                           "mp5":  0.6669
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1536007,
+                                                   "flac":  1783280,
+                                                   "mp3":  320000,
+                                                   "mp5":  1024367
+                                               }
+                   },
+                   {
+                       "name":  "08-avoidant",
+                       "durationSec":  269.672,
+                       "sampleRate":  48000,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  51777244,
+                                     "flac":  57184409,
+                                     "mp3":  10789691,
+                                     "mp5":  31759096
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.1044,
+                                           "mp3":  0.2084,
+                                           "mp5":  0.6134
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1536005,
+                                                   "flac":  1696413,
+                                                   "mp3":  320000,
+                                                   "mp5":  942154
+                                               }
+                   },
+                   {
+                       "name":  "Britney Spears - Break the Ice",
+                       "durationSec":  196.044,
+                       "sampleRate":  44100,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  34582336,
+                                     "flac":  42996923,
+                                     "mp3":  7844536,
+                                     "mp5":  26072595
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.2433,
+                                           "mp3":  0.2268,
+                                           "mp5":  0.7539
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1411210,
+                                                   "flac":  1754587,
+                                                   "mp3":  320000,
+                                                   "mp5":  1063951
+                                               }
+                   },
+                   {
+                       "name":  "Britney Spears - Get Naked (I Got a Plan)",
+                       "durationSec":  285.076,
+                       "sampleRate":  44100,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  50287664,
+                                     "flac":  62164374,
+                                     "mp3":  11406589,
+                                     "mp5":  37282293
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.2362,
+                                           "mp3":  0.2268,
+                                           "mp5":  0.7414
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1411208,
+                                                   "flac":  1744500,
+                                                   "mp3":  320000,
+                                                   "mp5":  1046242
+                                               }
+                   },
+                   {
+                       "name":  "Britney Spears - Gimme More_01",
+                       "durationSec":  251.244,
+                       "sampleRate":  44100,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  44319706,
+                                     "flac":  52403410,
+                                     "mp3":  10052402,
+                                     "mp5":  30588808
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.1824,
+                                           "mp3":  0.2268,
+                                           "mp5":  0.6902
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1411208,
+                                                   "flac":  1668606,
+                                                   "mp3":  320000,
+                                                   "mp5":  973995
+                                               }
+                   },
+                   {
+                       "name":  "ILLENIUM - Good Things Fall Apart (with Jon Bellion)",
+                       "durationSec":  216.668,
+                       "sampleRate":  48000,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  41600716,
+                                     "flac":  50336202,
+                                     "mp3":  8669479,
+                                     "mp5":  29903510
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.21,
+                                           "mp3":  0.2084,
+                                           "mp5":  0.7188
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1536015,
+                                                   "flac":  1858553,
+                                                   "mp3":  320000,
+                                                   "mp5":  1104121
+                                               }
+                   },
+                   {
+                       "name":  "Jon Bellion - Jim Morrison",
+                       "durationSec":  199.4,
+                       "sampleRate":  44100,
+                       "channels":  2,
+                       "bitsPerSample":  24,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  35174456,
+                                     "flac":  38644594,
+                                     "mp3":  7979360,
+                                     "mp5":  20848915
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  1.0987,
+                                           "mp3":  0.2269,
+                                           "mp5":  0.5927
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1411212,
+                                                   "flac":  1550435,
+                                                   "mp3":  320000,
+                                                   "mp5":  836466
+                                               }
+                   },
+                   {
+                       "name":  "Nicki Minaj - Itty Bitty Piggy",
+                       "durationSec":  246.753,
+                       "sampleRate":  44100,
+                       "channels":  2,
+                       "bitsPerSample":  16,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  43527502,
+                                     "flac":  30006319,
+                                     "mp3":  9872756,
+                                     "mp5":  29314257
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  0.6894,
+                                           "mp3":  0.2268,
+                                           "mp5":  0.6735
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1411211,
+                                                   "flac":  972839,
+                                                   "mp3":  320000,
+                                                   "mp5":  950401
+                                               }
+                   },
+                   {
+                       "name":  "Nicki Minaj - Only",
+                       "durationSec":  312.027,
+                       "sampleRate":  44100,
+                       "channels":  2,
+                       "bitsPerSample":  16,
+                       "flacCodec":  "flac",
+                       "sizes":  {
+                                     "wav":  55041830,
+                                     "flac":  34634622,
+                                     "mp3":  12484036,
+                                     "mp5":  34904891
+                                 },
+                       "ratiosVsWav":  {
+                                           "flac":  0.6292,
+                                           "mp3":  0.2268,
+                                           "mp5":  0.6342
+                                       },
+                       "effectiveBitrateBps":  {
+                                                   "wav":  1411208,
+                                                   "flac":  887991,
+                                                   "mp3":  320000,
+                                                   "mp5":  894921
+                                               }
+                   }
+               ],
+    "totals":  {
+                   "wav":  463693080,
+                   "flac":  491977554,
+                   "mp3":  101482806,
+                   "mp5":  311446826,
+                   "durationSec":  2536.16,
+                   "trackCount":  11
+               },
+    "ratiosVsWav":  {
+                        "flac":  1.061,
+                        "mp3":  0.2189,
+                        "mp5":  0.6717,
+                        "averagePerTrack":  {
+                                                "flac":  1.0777,
+                                                "mp3":  0.2185,
+                                                "mp5":  0.6732
+                                            }
+                    },
+    "averageEffectiveBitrateBps":  {
+                                       "wav":  1462662,
+                                       "flac":  1551882,
+                                       "mp3":  320115,
+                                       "mp5":  982420
+                                   },
+    "subsetsBySourceBitDepth":  {
+                                    "bits16":  {
+                                                   "trackCount":  2,
+                                                   "wav":  98569332,
+                                                   "flac":  64640941,
+                                                   "mp3":  22356792,
+                                                   "mp5":  64219148,
+                                                   "ratiosVsWav":  {
+                                                                       "flac":  0.6558,
+                                                                       "mp3":  0.2268,
+                                                                       "mp5":  0.6515
+                                                                   }
+                                               },
+                                    "bits24":  {
+                                                   "trackCount":  9,
+                                                   "wav":  365123748,
+                                                   "flac":  427336613,
+                                                   "mp3":  79126014,
+                                                   "mp5":  247227678,
+                                                   "ratiosVsWav":  {
+                                                                       "flac":  1.1704,
+                                                                       "mp3":  0.2167,
+                                                                       "mp5":  0.6771
+                                                                   },
+                                                   "note":  "WAV baseline is 16-bit PCM; 24-bit FLAC stores more sample data than this WAV, so FLAC\u003eWAV is expected and not a compression failure"
+                                               }
+                                },
+    "notes":  [
+                  "WAV/MP3 under: C:\\Users\\colli\\Music\\flac-mp5 tests\\_compare_tmp (outside git repo)",
+                  "MP3: libmp3lame 320k CBR, -vn/-map audio only; measured stream bit_rate=320000 bps for all tracks",
+                  "Ratios = size(format)/size(16-bit WAV); lower means smaller than that WAV baseline",
+                  "9/11 FLACs are 24-bit: FLAC total \u003e WAV total is expected (bit-depth mismatch), not FLAC expanding 16-bit PCM",
+                  "On the 2 true 16-bit sources, FLAC and MP5 are both smaller than WAV; FLAC slightly smaller than MP5 on those two",
+                  "Across all 11, MP5 total is smaller than FLAC total and larger than MP3 (lossy)",
+                  "MP5 bit-exact / lossless verify: not verified in this run",
+                  "Excluded: Takedown/Your Idol multi-stem sets and *.pre-alias-baseline"
+              ]
+}

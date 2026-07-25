@@ -1,6 +1,6 @@
 # MP5 Public Beta Hosted Demo Validation
 
-**Version:** MP5 Audio v0.28.0-beta (Public Beta)  
+**Version:** MP5 Audio v0.29.0-beta (Public Beta)  
 **Canonical URL:** https://mp5-audio.vercel.app  
 **Last updated:** 2026-06-16
 
@@ -71,7 +71,7 @@ MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted
 | Check | Method | Expected |
 |-------|--------|----------|
 | App shell | GET `/` | 200 and MP5 Audio app shell |
-| Version badge | `data-testid="app-version"` | `MP5 Public Beta - v0.28.0-beta` |
+| Version badge | `data-testid="app-version"` | `MP5 Public Beta - v0.29.0-beta` |
 | PWA manifest | GET `/manifest.webmanifest` | `name: MP5 Player` |
 | Service worker | GET `/sw.js` | 200 and precache data |
 | MP5 codec WASM | GET built WASM asset | 200 |
@@ -85,14 +85,14 @@ MP5_HOSTED_URL=https://mp5-audio.vercel.app pnpm test:e2e:hosted
 | VISU containment | Hosted e2e/local e2e | Visual theme stays inside player area |
 | Public claims | Docs/tests | Honest experimental wording preserved |
 
-## v0.28.0-beta Hosted Record
+## v0.29.0-beta Hosted Record
 
 | Field | Value |
 |-------|-------|
 | Production URL | Pending deployment |
 | Deployment URL | Pending deployment |
 | Deploy ID | Pending deployment |
-| Badge | `MP5 Public Beta - v0.28.0-beta` |
+| Badge | `MP5 Public Beta - v0.29.0-beta` |
 | `hosted:verify` | Pending |
 | `test:e2e:hosted` | Pending |
 | Private/copyrighted audio | Not used for release gates |

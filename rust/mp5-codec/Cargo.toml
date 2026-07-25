@@ -73,5 +73,10 @@ name = "alpha_origami_parity"
 path = "src/bin/alpha_origami_parity.rs"
 required-features = ["bench_tools"]
 
+[package.metadata.wasm-pack.profile.release]
+# Prefer Binaryen wasm-opt when installed (no --enable-simd: global +simd128 is off
+# to keep f64 QLP ranking bit-identical across native/WASM).
+wasm-opt = ["-O3"]
+
 [dev-dependencies]
 approx = "0.5.1"

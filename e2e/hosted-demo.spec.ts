@@ -22,7 +22,7 @@ test.describe("MP5 hosted demo", () => {
     await expect(header).toBeVisible();
     await expect(header).toContainText("MP5 Audio");
     await expect(header).toContainText("Public Beta");
-    await expect(header).toContainText("v0.28.0-beta");
+    await expect(header).toContainText("v0.29.0-beta");
   });
 
   test("app shell and honest tagline", async ({ page }) => {

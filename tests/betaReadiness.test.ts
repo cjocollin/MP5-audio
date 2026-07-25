@@ -103,7 +103,7 @@ describe("Public Beta hardening", () => {
       decodeCacheSummary: "0/3",
       librarySummary: "0 entries",
     });
-    expect(report).toMatch(/0.28.0-beta/);
+    expect(report).toMatch(/0.29.0-beta/);
     expect(report).toMatch(/No telemetry/i);
   });
 });
@@ -190,13 +190,14 @@ describe("user-facing error messages", () => {
     expect(USER_ERRORS.stemWorkerUnavailable).toMatch(/Background stem/i);
   });
 
-  it("App keeps onboarding out of the concept-first player route", () => {
+  it("App mounts WelcomeOnboarding without PublicLanding", () => {
     const app = scanFile("apps/web/src/App.tsx");
-    expect(app).toContain("DemoFixtureActions");
-    expect(app).toContain('testIdPrefix="settings"');
+    expect(app).toContain("WelcomeOnboarding");
+    expect(app).toContain("<WelcomeOnboarding");
     expect(app).not.toContain("fetchDemoMp5lFixture");
-    expect(app).not.toContain("WelcomeOnboarding");
     expect(app).not.toContain("PublicLanding");
+    expect(app).not.toContain("DemoFixtureActions");
+    expect(app).not.toContain('testIdPrefix="settings"');
   });
 
   it("App mounts BetaFeedbackPanel", () => {
@@ -206,7 +207,8 @@ describe("user-facing error messages", () => {
 
   it("persistent player observes album packages opened from other tabs", () => {
     const player = scanFile("apps/web/src/player/Mp5Player.tsx");
-    expect(player).toContain("pendingAlbumPackage,");
+    expect(player).toContain("pendingAlbumPackage");
+    expect(player).toContain("consumePendingAlbumPackage");
     expect(player).toContain("[consumePendingAlbumPackage, pendingAlbumPackage]");
   });
 
@@ -216,12 +218,21 @@ describe("user-facing error messages", () => {
     expect(demo).toContain("FIRST_USER_TIPS");
   });
 
-  it("DemoModePanel has guided paths A-E", () => {
+  it("DemoModePanel has guided paths A-E and demo fixtures", () => {
     const demo = scanFile("apps/web/src/components/DemoModePanel.tsx");
     expect(demo).toMatch(/demo-path-\$\{path\.id\}/);
     expect(demo).toContain('id: "e"');
     expect(demo).toContain("demo-load-embedded-album");
+    expect(demo).toContain("DemoFixtureActions");
+    expect(demo).not.toContain("demo-open-settings-fixtures");
     expect(demo).not.toMatch(/â|Â/);
+  });
+
+  it("playerStore exposes Open→Convert pendingConverterFiles handoff", () => {
+    const store = scanFile("apps/web/src/store/playerStore.ts");
+    expect(store).toContain("pendingConverterFiles");
+    expect(store).toContain("setPendingConverterFiles");
+    expect(store).toContain("consumePendingConverterFiles");
   });
 
   it("keeps mobile queue and album package actions reachable", () => {
@@ -251,8 +262,8 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.28.0-beta", () => {
-    expect(packageJson.version).toBe("0.28.0-beta");
+  it("package.json is 0.29.0-beta", () => {
+    expect(packageJson.version).toBe("0.29.0-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {

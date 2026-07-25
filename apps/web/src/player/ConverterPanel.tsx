@@ -63,6 +63,7 @@ import { downloadBlob } from "../lib/performance/downloadBlob";
 import { assessSourceFile, type GuardrailMessage } from "../lib/performance/guardrails";
 import { GuardrailNotice } from "../components/GuardrailNotice";
 import { useConversionStore } from "../store/conversionStore";
+import { usePlayerStore } from "../store/playerStore";
 import { recordUserFacingError } from "../lib/sessionDiagnostics";
 import { AiSuggestionsPanel } from "../components/AiSuggestionsPanel";
 import {
@@ -181,6 +182,12 @@ function metadataFieldCount(edits: ManualMetadataEdits | null): number {
   return Object.values(edits.meta).filter((value) => value.trim().length > 0).length;
 }
 
+function toFileList(files: File[]): FileList {
+  const transfer = new DataTransfer();
+  for (const file of files) transfer.items.add(file);
+  return transfer.files;
+}
+
 export function ConverterPanel() {
   const [mode, setMode] = useState<ConverterMode>("single");
   const [stage, setStage] = useState<ConverterStage>("source");
@@ -211,9 +218,12 @@ export function ConverterPanel() {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiProgress, setAiProgress] = useState<AiAnalysisProgress | null>(null);
   const [aiError, setAiError] = useState("");
+  const [seedBatchFiles, setSeedBatchFiles] = useState<File[] | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
   const { bumpCancelGeneration, setSinglePhase, resetSingle } = useConversionStore();
+  const pendingConverterFiles = usePlayerStore((s) => s.pendingConverterFiles);
+  const consumePendingConverterFiles = usePlayerStore((s) => s.consumePendingConverterFiles);
 
   const codecUnavailable = loadState === "unavailable";
   const codecReady = loadState === "ready";
@@ -259,6 +269,7 @@ export function ConverterPanel() {
   async function handleFiles(files: FileList) {
     const file = files[0];
     if (!file || busy) return;
+    dismissOnboarding();
     const guardrails = assessSourceFile(file);
     setSourceGuardrails(guardrails);
     if (guardrails.some((g) => g.level === "block")) {
@@ -321,6 +332,21 @@ export function ConverterPanel() {
       abortRef.current = null;
     }
   }
+
+  // Open→Convert handoff: consume staged source files when Converter mounts/tab focuses.
+  useEffect(() => {
+    if (!pendingConverterFiles?.length || busy) return;
+    const files = consumePendingConverterFiles();
+    if (!files?.length) return;
+    if (files.length === 1) {
+      void handleFiles(toFileList(files));
+      return;
+    }
+    setMode("batch");
+    setSeedBatchFiles(files);
+    // handleFiles is intentionally omitted — run once per pendingConverterFiles change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingConverterFiles, consumePendingConverterFiles, busy]);
 
   const mixDurationSec =
     pending != null
@@ -817,8 +843,14 @@ export function ConverterPanel() {
     setLibrarySaveNote("");
     try {
       const result = await saveMp5ToLibrary(lastExportFile, lastExportFile.name);
+      if (result.status === "failed") {
+        setLibrarySaveNote(
+          result.errorCode === "quota" ? USER_ERRORS.libraryQuota : result.message,
+        );
+        return;
+      }
       setLibrarySaveNote(
-        result.duplicate
+        result.status === "duplicate"
           ? result.duplicateReason === "fingerprint"
             ? "Already in library (same fingerprint)."
             : "Already in library (same name and size)."
@@ -884,7 +916,10 @@ export function ConverterPanel() {
 
       {mode === "batch" ? (
         <section className="mp5-converter-batch" data-testid="converter-batch-workspace">
-          <BatchConverterPanel />
+          <BatchConverterPanel
+            seedFiles={seedBatchFiles}
+            onSeedConsumed={() => setSeedBatchFiles(null)}
+          />
         </section>
       ) : (
         <>

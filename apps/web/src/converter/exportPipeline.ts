@@ -1,4 +1,10 @@
-import { parseMp5, validateParsedFile, writeMp5 } from "@mp5/container";
+import {
+  CodecId,
+  parseMp5,
+  validateParsedFile,
+  writeMp5,
+  type CodecIdValue,
+} from "@mp5/container";
 import { convertToMp5, type OutputCodec } from "./convertToMp5";
 import { buildExportMetadataBundle, type ExportMetadataBundle } from "./buildExportBundles";
 import { generateWaveform } from "./generateWaveform";
@@ -8,6 +14,8 @@ import type { SourceMetadata } from "./extractSourceMetadata";
 import { encodeStemsForExport } from "./encodeStems";
 import type { PendingStemPcm } from "./stemValidation";
 import { attachFingerprintOptional } from "../lib/fingerprint/build";
+import { encodeMp5lV4Progressive } from "./encodeMp5lV4Progressive";
+import { getCodec, isWasmCodecReady } from "../wasm/codec";
 
 export type ExportPhase =
   | "building-waveform"
@@ -98,35 +106,104 @@ export async function runExportPipeline(
   let optional = bundle.optional;
   let extraChunks: { fourcc: string; payload: Uint8Array }[] | undefined;
   let fingerprintWarning: string | undefined;
-  if (input.stems?.length) {
-    const stemResult = await encodeStemsForExport(input.stems, {
-      samples: input.pcm.samples,
-      sampleRate: input.pcm.sampleRate,
-      channels: input.pcm.channels,
-    });
+
+  const hasStems = !!input.stems?.length;
+  const stemPromise = hasStems
+    ? encodeStemsForExport(input.stems!, {
+        samples: input.pcm.samples,
+        sampleRate: input.pcm.sampleRate,
+        channels: input.pcm.channels,
+      })
+    : null;
+
+  await report("encoding");
+
+  let mp5: Uint8Array;
+
+  // Default L v4 + stems: encode mix ∥ stems, then one container write.
+  if (input.codec === "mp5l_v4" && stemPromise && isWasmCodecReady()) {
+    const codec = await getCodec();
+    const ch = input.pcm.channels;
+    const [stemResult, bitstream] = await Promise.all([
+      stemPromise,
+      Promise.resolve(
+        encodeMp5lV4Progressive(codec, input.pcm.samples, ch, (done, total) => {
+          if (total > 0) {
+            const pct =
+              EXPORT_PHASE_PERCENT.encoding +
+              Math.floor((done / total) * (EXPORT_PHASE_PERCENT.validating - EXPORT_PHASE_PERCENT.encoding - 1));
+            onPhase("encoding", phaseLabel(input.codec, "encoding"), pct);
+          }
+        }),
+      ),
+    ]);
     optional = new Map(optional);
     for (const [k, v] of stemResult.optional) optional.set(k, v);
     extraChunks = stemResult.extraChunks;
     if (stemResult.warnings.length) {
       fingerprintWarning = stemResult.warnings.join(" ");
     }
+    if (bitstream.length < 2 || bitstream[0] !== 0x4c || bitstream[1] !== 4) {
+      throw new Error(
+        "MP5-L v4 encode failed — no v3 fallback by design. " +
+          "Retry as MP5-L v3 (lab) for a legacy lossless file.",
+      );
+    }
+    const totalSamples = BigInt(Math.floor(input.pcm.samples.length / ch));
+    mp5 = writeMp5({
+      head: {
+        codecId: CodecId.MP5L as CodecIdValue,
+        channels: ch,
+        bitsPerSample: 16,
+        presetId: 0,
+        sampleRate: input.pcm.sampleRate,
+        totalSamples,
+        encoderVersion: 1,
+      },
+      meta: bundle.metaFields,
+      cover: bundle.cover,
+      audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: bitstream }],
+      seek: [{ sampleOffset: 0n, byteOffset: 0n }],
+      waveform: wave.peaks,
+      info: [{ key: "encoder", value: "MP5-L WASM v4 (lossless · default · bit-exact)" }],
+      optional,
+      extraChunks,
+    });
+  } else {
+    if (stemPromise) {
+      const stemResult = await stemPromise;
+      optional = new Map(optional);
+      for (const [k, v] of stemResult.optional) optional.set(k, v);
+      extraChunks = stemResult.extraChunks;
+      if (stemResult.warnings.length) {
+        fingerprintWarning = stemResult.warnings.join(" ");
+      }
+    }
+    mp5 = await convertToMp5({
+      samples: input.pcm.samples,
+      sampleRate: input.pcm.sampleRate,
+      channels: input.pcm.channels,
+      codec: input.codec,
+      preset: input.preset,
+      metaFields: bundle.metaFields,
+      cover: bundle.cover,
+      optional,
+      extraChunks,
+      waveformPeaks: wave.peaks,
+      onEncodeProgress: (done, total) => {
+        if (total > 0) {
+          const pct =
+            EXPORT_PHASE_PERCENT.encoding +
+            Math.floor((done / total) * (EXPORT_PHASE_PERCENT.validating - EXPORT_PHASE_PERCENT.encoding - 1));
+          onPhase("encoding", phaseLabel(input.codec, "encoding"), pct);
+        }
+      },
+    });
   }
-
-  await report("encoding");
-  let mp5 = await convertToMp5({
-    samples: input.pcm.samples,
-    sampleRate: input.pcm.sampleRate,
-    channels: input.pcm.channels,
-    codec: input.codec,
-    preset: input.preset,
-    metaFields: bundle.metaFields,
-    cover: bundle.cover,
-    optional,
-    extraChunks,
-  });
 
   await report("validating");
   let validated = parseMp5(mp5);
+  // parseMp5 already validates structure; keep a light check for writer bugs.
   validateParsedFile(validated, 16);
 
   if (input.codec === "mp5l" || input.codec === "mp5l_v4") {
@@ -142,6 +219,7 @@ export async function runExportPipeline(
         ? `${fingerprintWarning} ${fpNote.warning}`
         : fpNote.warning;
     } else if (fpOptional.has("FING")) {
+      // One rewrite with FING/HASH; skip a second parse+validate (writer is trusted here).
       mp5 = writeMp5({
         head: validated.head!,
         meta: validated.meta,
@@ -157,8 +235,6 @@ export async function runExportPipeline(
           payload,
         })),
       });
-      validated = parseMp5(mp5);
-      validateParsedFile(validated, 16);
     }
   }
 

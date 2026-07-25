@@ -1,5 +1,33 @@
 import { useId, useRef, useState } from "react";
+import {
+  FORMAT_COMPARISON_TABLE,
+  rowsForCompareView,
+  type FormatComparisonRow,
+  type Mp5CompareView,
+} from "../lib/formatComparison";
 import { usePlayerStore } from "../store/playerStore";
+
+/** Public About columns — focused subset of the shared table payload. */
+const ABOUT_COMPARE_COLUMNS = [
+  { key: "format", label: "Format" },
+  { key: "type", label: "Type" },
+  { key: "bitExact", label: "Fidelity" },
+  { key: "ratioVsWav", label: "Size vs WAV/PCM" },
+  { key: "use", label: "Typical use" },
+] as const;
+
+const COMPARE_VIEWS: Mp5CompareView[] = ["peers", "modes", "legacy"];
+
+function sizeVsWavDisplay(row: FormatComparisonRow): {
+  text: string;
+  pending: boolean;
+} {
+  const { measured } = row;
+  if (measured.status === "pending" || measured.ratioVsWavLabel.includes("{{")) {
+    return { text: "Pending measurement", pending: true };
+  }
+  return { text: measured.ratioVsWavLabel, pending: false };
+}
 
 type ModeId = "l" | "c2" | "h" | "c" | "pcm";
 
@@ -46,8 +74,13 @@ const SECONDARY_MODES: {
 export function AboutMp5Panel() {
   const setActiveTab = usePlayerStore((s) => s.setActiveTab);
   const spectrumLabelId = useId();
+  const compareViewId = useId();
   const [selectedMode, setSelectedMode] = useState<ModeId>("l");
+  const [compareView, setCompareView] = useState<Mp5CompareView>("peers");
   const modeRefs = useRef<Partial<Record<ModeId, HTMLElement | null>>>({});
+  const compareRows = rowsForCompareView(compareView);
+  const showModeMethod =
+    compareView === "modes" || compareView === "legacy";
 
   const selectMode = (id: ModeId) => {
     setSelectedMode(id);
@@ -171,6 +204,101 @@ export function AboutMp5Panel() {
             );
           })}
         </ul>
+      </section>
+
+      <section className="mp5-about-compare" aria-labelledby="mp5-about-compare-heading">
+        <div className="mp5-about-compare-head">
+          <h3 id="mp5-about-compare-heading">{FORMAT_COMPARISON_TABLE.title}</h3>
+          <p>{FORMAT_COMPARISON_TABLE.honestyLead}</p>
+        </div>
+
+        <div className="mp5-about-compare-toolbar">
+          <label htmlFor={compareViewId} className="mp5-about-compare-label">
+            Show
+          </label>
+          <select
+            id={compareViewId}
+            className="mp5-about-compare-select"
+            value={compareView}
+            onChange={(e) => setCompareView(e.target.value as Mp5CompareView)}
+          >
+            {COMPARE_VIEWS.map((view) => (
+              <option key={view} value={view}>
+                {FORMAT_COMPARISON_TABLE.viewLabels[view]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mp5-about-compare-scroll">
+          <table className="mp5-about-compare-table">
+            <caption className="mp5-about-compare-caption">
+              Format comparison: WAV, FLAC, MP3, MP5-L
+              {compareView !== "peers"
+                ? ", and selected MP5 modes / legacy variants"
+                : ""}{" "}
+              versus a WAV/PCM baseline
+            </caption>
+            <colgroup>
+              <col className="mp5-about-compare-col-format" />
+              <col className="mp5-about-compare-col-type" />
+              <col className="mp5-about-compare-col-fidelity" />
+              <col className="mp5-about-compare-col-size" />
+              <col className="mp5-about-compare-col-use" />
+            </colgroup>
+            <thead>
+              <tr>
+                {ABOUT_COMPARE_COLUMNS.map((col) => (
+                  <th
+                    key={col.key}
+                    scope="col"
+                    className={`mp5-about-compare-th mp5-about-compare-th-${col.key}`}
+                  >
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {compareRows.map((row) => {
+                const size = sizeVsWavDisplay(row);
+                const rowClass =
+                  row.group === "legacy"
+                    ? "mp5-about-compare-legacy"
+                    : row.group === "mp5_mode"
+                      ? "mp5-about-compare-mode"
+                      : undefined;
+                return (
+                  <tr key={row.id} className={rowClass}>
+                    <th scope="row" className="mp5-about-compare-cell-format">
+                      {row.format}
+                    </th>
+                    <td className="mp5-about-compare-cell-type">{row.typeLabel}</td>
+                    <td className="mp5-about-compare-cell-fidelity">
+                      {row.bitExactLabel}
+                    </td>
+                    <td
+                      className={`mp5-about-compare-cell-size${
+                        size.pending ? " mp5-about-compare-pending" : ""
+                      }`}
+                    >
+                      {size.text}
+                    </td>
+                    <td className="mp5-about-compare-cell-use">{row.typicalUse}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mp5-about-compare-method">{FORMAT_COMPARISON_TABLE.howWeMeasured}</p>
+        {showModeMethod ? (
+          <p className="mp5-about-compare-method">
+            {FORMAT_COMPARISON_TABLE.howWeMeasuredModes}
+          </p>
+        ) : null}
+        <p className="mp5-about-compare-method">{FORMAT_COMPARISON_TABLE.labOnlyNote}</p>
       </section>
 
       <details className="mp5-about-disclosure">

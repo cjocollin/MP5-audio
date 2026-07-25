@@ -237,7 +237,7 @@ describe("player store queue", () => {
     expect(state.defaultDemoDismissed).toBe(true);
   });
 
-  it("plays the first imported track when a multi-file import replaces the demo", async () => {
+  it("arms owned play intent for the first imported track (playFirst)", async () => {
     usePlayerStore.getState().appendTracks([
       { ...mk("demo", "demo_mp5l_v3_tone.mp5"), origin: "default-demo" },
     ]);
@@ -249,7 +249,15 @@ describe("player store queue", () => {
     const state = usePlayerStore.getState();
     expect(state.tracks.map((track) => track.name)).toEqual(["first.mp5", "second.mp5"]);
     expect(state.currentIndex).toBe(0);
-    expect(state.isPlaying).toBe(true);
+    // playFirst now signals an owned, track-keyed intent (consumed by the player
+    // when the track's audio actually starts) rather than flipping isPlaying
+    // synchronously — which loadFile's "not requested" guard used to cancel.
+    const firstId = state.tracks[0]!.id;
+    expect(state.pendingPlayTrackId).toBe(firstId);
+    // The intent is consumed only for the exact track it targets.
+    expect(usePlayerStore.getState().consumePendingPlayTrackId("someone-else")).toBe(false);
+    expect(usePlayerStore.getState().consumePendingPlayTrackId(firstId)).toBe(true);
+    expect(usePlayerStore.getState().pendingPlayTrackId).toBeNull();
   });
 
   it("dismisses the first-load demo when a valid album package is opened", () => {
@@ -282,6 +290,16 @@ describe("player store queue", () => {
     expect(state.isPlaying).toBe(false);
     expect(state.currentTime).toBe(0);
     expect(state.pendingAlbumPackage).toBe(album);
+  });
+
+  it("stages and consumes pending converter handoff files", () => {
+    const files = [new File([new Uint8Array([1])], "a.flac", { type: "audio/flac" })];
+    usePlayerStore.getState().setPendingConverterFiles(files);
+    expect(usePlayerStore.getState().pendingConverterFiles).toEqual(files);
+    const consumed = usePlayerStore.getState().consumePendingConverterFiles();
+    expect(consumed).toEqual(files);
+    expect(usePlayerStore.getState().pendingConverterFiles).toBeNull();
+    expect(usePlayerStore.getState().consumePendingConverterFiles()).toBeNull();
   });
 
   it("handleTrackEnded advances with repeat all", () => {

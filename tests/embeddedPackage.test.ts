@@ -36,7 +36,9 @@ function tinyManifest(): AlbmPackageManifest {
 
 describe("embedded album package", () => {
   beforeEach(() => {
-    setEmbeddedFragmentPayloadTargetForTests(64 * 1024);
+    // 16 KiB target so the ~38 KB demo tone fixture still splits into multiple
+    // fragments (exercising fragment roundtrip); the fixture is now under 64 KiB.
+    setEmbeddedFragmentPayloadTargetForTests(16 * 1024);
   });
   afterEach(() => {
     resetEmbeddedFragmentPayloadTarget();

@@ -86,8 +86,11 @@ describe("local library storage", () => {
       meta: metaFieldsFromRecord({ title: "Saved Track", artist: "Lib Artist" }),
     });
     const file = fileFromBuffer("saved.mp5", buf);
-    const { record, duplicate } = await saveMp5ToLibrary(file, file.name);
-    expect(duplicate).toBe(false);
+    const result = await saveMp5ToLibrary(file, file.name);
+    expect(result.status).toBe("ok");
+    expect(result.duplicate).toBe(false);
+    if (result.status !== "ok") throw new Error("expected ok");
+    const { record } = result;
     expect(record.filename).toBe("saved.mp5");
     expect(record.summary.title).toBe("Saved Track");
 
@@ -102,12 +105,16 @@ describe("local library storage", () => {
     const file = fileFromBuffer("dup.mp5", minimalMp5());
     await saveMp5ToLibrary(file, file.name);
     const second = await saveMp5ToLibrary(file, file.name);
+    expect(second.status).toBe("duplicate");
     expect(second.duplicate).toBe(true);
     expect((await listLibraryRecords()).length).toBe(1);
   });
 
   it("deletes a library item", async () => {
-    const { record } = await saveMp5ToLibrary(fileFromBuffer("del.mp5", minimalMp5()), "del.mp5");
+    const saved = await saveMp5ToLibrary(fileFromBuffer("del.mp5", minimalMp5()), "del.mp5");
+    expect(saved.status).toBe("ok");
+    if (saved.status !== "ok") throw new Error("expected ok");
+    const { record } = saved;
     await deleteLibraryEntry(record.id);
     expect(await listLibraryRecords()).toHaveLength(0);
     expect(await loadLibraryEntry(record.id)).toBeNull();
@@ -140,6 +147,8 @@ describe("local library storage", () => {
       ),
       "lossless.mp5",
     );
+    expect(l.status).toBe("ok");
+    if (l.status !== "ok") throw new Error("expected ok");
     await saveMp5ToLibrary(
       fileFromBuffer(
         "pcm.mp5",
@@ -192,7 +201,10 @@ describe("local library storage", () => {
     const buf = minimalMp5({
       meta: metaFieldsFromRecord({ title: "Playable", artist: "Test" }),
     });
-    const { record } = await saveMp5ToLibrary(buf.buffer, "playable.mp5");
+    const saved = await saveMp5ToLibrary(buf.buffer, "playable.mp5");
+    expect(saved.status).toBe("ok");
+    if (saved.status !== "ok") throw new Error("expected ok");
+    const { record } = saved;
     const entry = await loadLibraryEntry(record.id);
     expect(entry).not.toBeNull();
     if (entry) {
@@ -200,5 +212,19 @@ describe("local library storage", () => {
       expect(decoded.sampleRate).toBe(48000);
       expect(record.summary.codecLabel).toContain("PCM");
     }
+  });
+
+  it("listMeta returns records without blob data fields", async () => {
+    await saveMp5ToLibrary(fileFromBuffer("meta.mp5", minimalMp5()), "meta.mp5");
+    const store = new MemoryLibraryStore();
+    // Re-bind and re-save into a fresh split store then listMeta
+    resetLibraryStore();
+    setLibraryStoreForTests(store);
+    await saveMp5ToLibrary(fileFromBuffer("meta2.mp5", minimalMp5()), "meta2.mp5");
+    const meta = await store.listMeta();
+    expect(meta).toHaveLength(1);
+    expect(meta[0]).not.toHaveProperty("data");
+    const entry = await store.getEntry(meta[0]!.id);
+    expect(entry?.data.byteLength).toBeGreaterThan(0);
   });
 });

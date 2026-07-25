@@ -2,33 +2,43 @@ import type { LocalLibraryEntry, LocalLibraryRecord } from "./types";
 
 /** In-memory library store for unit tests and environments without IndexedDB. */
 export class MemoryLibraryStore {
-  private records = new Map<string, LocalLibraryEntry>();
+  private meta = new Map<string, LocalLibraryRecord>();
+  private blobs = new Map<string, ArrayBuffer>();
+
+  async listMeta(): Promise<LocalLibraryRecord[]> {
+    return [...this.meta.values()].sort((a, b) => b.importedAt - a.importedAt);
+  }
 
   async listRecords(): Promise<LocalLibraryRecord[]> {
-    return [...this.records.values()]
-      .map(({ data: _d, ...rec }) => rec)
-      .sort((a, b) => b.importedAt - a.importedAt);
+    return this.listMeta();
   }
 
   async getEntry(id: string): Promise<LocalLibraryEntry | null> {
-    return this.records.get(id) ?? null;
+    const record = this.meta.get(id);
+    const data = this.blobs.get(id);
+    if (!record || !data) return null;
+    return { ...record, data };
   }
 
   async putEntry(entry: LocalLibraryEntry): Promise<void> {
-    this.records.set(entry.id, entry);
+    const { data, ...record } = entry;
+    this.meta.set(entry.id, record);
+    this.blobs.set(entry.id, data);
   }
 
   async deleteEntry(id: string): Promise<void> {
-    this.records.delete(id);
+    this.meta.delete(id);
+    this.blobs.delete(id);
   }
 
   async clearAll(): Promise<void> {
-    this.records.clear();
+    this.meta.clear();
+    this.blobs.clear();
   }
 
   async totalBytes(): Promise<number> {
     let sum = 0;
-    for (const e of this.records.values()) {
+    for (const e of this.meta.values()) {
       sum += e.fileSize;
     }
     return sum;

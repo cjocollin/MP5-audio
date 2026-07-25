@@ -22,9 +22,10 @@ export default defineConfig({
         "icons/apple-touch-icon.png",
       ],
       workbox: {
-        maximumFileSizeToCacheInBytes: 35 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: "index.html",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2,wasm}"],
+        globIgnores: ["**/ffmpeg-core*", "**/@ffmpeg/**"],
       },
       manifest: {
         id: "/",
@@ -77,7 +78,9 @@ export default defineConfig({
     exclude: ["@ffmpeg/ffmpeg", "@ffmpeg/util", "./src/wasm/pkg/mp5_codec.js"],
   },
   server: {
-    port: 5173,
+    // Default 5173 (what `pnpm dev` and src-tauri's devUrl expect), but honor
+    // PORT so a harness/preview can assign a free port when 5173 is taken.
+    port: Number(process.env.PORT) || 5173,
   },
   preview: {
     port: 4173,

@@ -6,6 +6,7 @@ import {
   type BatchProgressSummary,
   type BatchQueueItem,
 } from "./batchTypes";
+import { deleteBatchOutput, deleteBatchOutputs } from "./batchOutputCache";
 import { formatLabelForExtension } from "./supportedSources";
 import type { ManualMetadataEdits } from "./manualMetadata";
 import { createRandomId } from "../lib/randomId";
@@ -85,25 +86,27 @@ export function batchOutputFilename(
 }
 
 export function clearCompletedItems(items: BatchQueueItem[]): BatchQueueItem[] {
+  const completedIds = items.filter((i) => i.status === "complete").map((i) => i.id);
+  deleteBatchOutputs(completedIds);
   return items.filter((i) => i.status !== "complete");
 }
 
 export function retryFailedItems(items: BatchQueueItem[]): BatchQueueItem[] {
-  return items.map((i) =>
-    i.status === "failed" || i.status === "cancelled"
-      ? {
-          ...i,
-          status: "pending" as const,
-          errorMessage: undefined,
-          outputFilename: undefined,
-          outputBytes: undefined,
-          mp5: undefined,
-          librarySaved: undefined,
-          libraryDuplicate: undefined,
-          librarySkipped: undefined,
-        }
-      : i,
-  );
+  return items.map((i) => {
+    if (i.status !== "failed" && i.status !== "cancelled") return i;
+    deleteBatchOutput(i.id);
+    return {
+      ...i,
+      status: "pending" as const,
+      errorMessage: undefined,
+      outputFilename: undefined,
+      outputBytes: undefined,
+      mp5: undefined,
+      librarySaved: undefined,
+      libraryDuplicate: undefined,
+      librarySkipped: undefined,
+    };
+  });
 }
 
 export function cancelInProgressItems(items: BatchQueueItem[]): BatchQueueItem[] {

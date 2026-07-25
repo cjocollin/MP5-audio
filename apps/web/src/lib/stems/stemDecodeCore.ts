@@ -1,4 +1,5 @@
 import { CodecId } from "@mp5/container";
+import { alignedInt16 } from "../pcm/alignedInt16";
 
 export interface StemCodecFns {
   decode_mp5l: (data: Uint8Array) => Int16Array;
@@ -17,12 +18,7 @@ export function decodeStemFrameCore(
   }
 
   if (codecId === CodecId.PCM) {
-    const samples = new Int16Array(
-      frameData.buffer,
-      frameData.byteOffset,
-      frameData.byteLength / 2,
-    );
-    return { samples, sampleRate, channels };
+    return { samples: alignedInt16(frameData), sampleRate, channels };
   }
 
   if (codecId === CodecId.MP5L) {

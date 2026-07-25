@@ -129,4 +129,47 @@ describe("MP5-L v4 WASM parity + seek", () => {
       stream.free();
     }
   });
+
+  it("stream push_until bounds first window without draining EOF", () => {
+    if (!wasm) throw new Error("WASM not loaded");
+    const ch = 2;
+    const frames = 20_000;
+    const samples = makeSine(frames, ch);
+    const bitstream = wasm.encode_mp5l_v4(samples, ch);
+    const want = 8192;
+    const stream = new wasm.Mp5lStreamDecoder(bitstream);
+    try {
+      const got = stream.push_until(new Uint8Array(0), want);
+      expect(got.length).toBe(want * ch);
+      for (let i = 0; i < got.length; i++) {
+        expect(got[i]).toBe(samples[i]);
+      }
+    } finally {
+      stream.free();
+    }
+  });
+
+  it("chunked push_until concatenates sample-exact (no dropped seam tail)", () => {
+    if (!wasm) throw new Error("WASM not loaded");
+    const ch = 2;
+    const frames = 20_000;
+    const samples = makeSine(frames, ch);
+    const bitstream = wasm.encode_mp5l_v4(samples, ch);
+    // A window boundary (5000) that deliberately falls mid-block (block = 8192)
+    // so the straddling frame's tail must be carried to the next call.
+    const stream = new wasm.Mp5lStreamDecoder(bitstream);
+    try {
+      const first = stream.push_until(new Uint8Array(0), 5000);
+      const rest = stream.push(new Uint8Array(0));
+      const joined = new Int16Array(first.length + rest.length);
+      joined.set(first, 0);
+      joined.set(rest, first.length);
+      expect(joined.length).toBe(samples.length);
+      for (let i = 0; i < samples.length; i++) {
+        expect(joined[i]).toBe(samples[i]);
+      }
+    } finally {
+      stream.free();
+    }
+  });
 });

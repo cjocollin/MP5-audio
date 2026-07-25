@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef } from "react";
 import { tracePlayback } from "../lib/playback/playbackTrace";
 import { computePlaybackTime } from "./playbackTime";
+import {
+  int16ToPlanarFloat,
+  int16ToPlanarFloatAsync,
+  planarFloatToAudioBuffer,
+} from "./pcmConvert";
 
 interface PcmData {
   samples: Int16Array;
   rate: number;
   ch: number;
+  /** Prefer worker-built planar floats — avoids multi-second UI freezes. */
+  floatChannels?: Float32Array[];
 }
 
 interface Options {
@@ -18,17 +25,22 @@ interface Options {
   onPcmReady?: () => void;
 }
 
+/** Sync path for rare AudioContext rebuilds. */
 function pcmToAudioBuffer(ctx: AudioContext, pcm: PcmData): AudioBuffer {
-  const { samples, rate, ch } = pcm;
-  const frames = samples.length / ch;
-  const buffer = ctx.createBuffer(ch, frames, rate);
-  for (let c = 0; c < ch; c++) {
-    const channel = buffer.getChannelData(c);
-    for (let i = 0; i < frames; i++) {
-      channel[i] = samples[i * ch + c]! / 32768;
-    }
-  }
-  return buffer;
+  const planar =
+    pcm.floatChannels ?? int16ToPlanarFloat(pcm.samples, pcm.ch);
+  return planarFloatToAudioBuffer(ctx, planar, pcm.rate);
+}
+
+/** Async path for load — yields during Int16 convert when floats are missing. */
+async function pcmToAudioBufferAsync(
+  ctx: AudioContext,
+  pcm: PcmData,
+): Promise<AudioBuffer> {
+  const planar =
+    pcm.floatChannels ??
+    (await int16ToPlanarFloatAsync(pcm.samples, pcm.ch));
+  return planarFloatToAudioBuffer(ctx, planar, pcm.rate);
 }
 
 function isContextUsable(ctx: AudioContext | null): ctx is AudioContext {
@@ -58,6 +70,17 @@ export function useMp5AudioEngine({
   const offsetRef = useRef(0);
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
+  const trackDurationRef = useRef(duration);
+  trackDurationRef.current = duration;
+  /** True while AudioBuffer is only a progressive first window. */
+  const partialBufferRef = useRef(false);
+
+  const clampDuration = useCallback(() => {
+    const track = trackDurationRef.current;
+    const buf = bufferRef.current?.duration ?? track;
+    if (partialBufferRef.current) return Math.min(track || buf, buf);
+    return track || buf;
+  }, []);
 
   const rebuildBuffer = useCallback((ctx: AudioContext) => {
     if (!pcmRef.current) return;
@@ -88,7 +111,7 @@ export function useMp5AudioEngine({
         offsetRef.current,
         ctx.currentTime,
         startedAtRef.current,
-        duration,
+        clampDuration(),
       );
     }
     try {
@@ -98,7 +121,7 @@ export function useMp5AudioEngine({
     }
     srcRef.current = null;
     tracePlayback("main_source", "stop");
-  }, [duration]);
+  }, [clampDuration]);
 
   const startAt = useCallback(
     async (offset: number) => {
@@ -115,22 +138,47 @@ export function useMp5AudioEngine({
       }
       if (!bufferRef.current || !gainRef.current) return;
 
+      // Refuse to start within ~50ms of a progressive partial buffer's end:
+      // it would play a ~1ms blip and immediately re-fire onended (the wedge's
+      // "Play does nothing" symptom). Park and wait for the full-decode upgrade,
+      // which rebuilds the buffer and restarts playback from here.
+      const partialEnd = bufferRef.current.duration;
+      if (
+        partialBufferRef.current &&
+        offset >= partialEnd - 0.05 &&
+        partialEnd + 0.05 < trackDurationRef.current
+      ) {
+        offsetRef.current = Math.min(offset, partialEnd);
+        tracePlayback("main_source", "start deferred — at partial end, awaiting full decode");
+        return;
+      }
+
       const gain = gainRef.current;
       gain.gain.value = volumeRef.current;
 
       const src = ctx.createBufferSource();
       src.buffer = bufferRef.current;
       src.connect(gain);
-      offsetRef.current = offset;
+      const maxOff = bufferRef.current.duration;
+      const safeOffset = Math.max(0, Math.min(offset, Math.max(0, maxOff - 0.001)));
+      offsetRef.current = safeOffset;
       startedAtRef.current = ctx.currentTime;
       src.onended = () => {
         if (srcRef.current !== src) return;
         srcRef.current = null;
-        const naturalEnd = duration > 0;
-        offsetRef.current = duration;
-        setCurrentTime(duration);
+        const bufDur = bufferRef.current?.duration ?? 0;
+        const trackDur = trackDurationRef.current;
+        // Progressive window ended before full PCM arrived — wait for upgrade.
+        if (partialBufferRef.current && bufDur + 0.05 < trackDur) {
+          offsetRef.current = bufDur;
+          setCurrentTime(bufDur);
+          tracePlayback("main_source", "partial buffer ended — waiting for full decode");
+          return;
+        }
+        offsetRef.current = trackDur;
+        setCurrentTime(trackDur);
         setPlaying(false);
-        if (naturalEnd) {
+        if (trackDur > 0) {
           onTrackEndedRef.current?.();
         }
       };
@@ -142,11 +190,15 @@ export function useMp5AudioEngine({
         }
         return;
       }
-      src.start(0, offset);
+      src.start(0, safeOffset);
       srcRef.current = src;
-      tracePlayback("main_source", "start", { offset, bufferSec: bufferRef.current.duration });
+      tracePlayback("main_source", "start", {
+        offset: safeOffset,
+        bufferSec: bufferRef.current.duration,
+        partial: partialBufferRef.current,
+      });
     },
-    [duration, ensureContext, rebuildBuffer, setCurrentTime, setPlaying, stopSource],
+    [ensureContext, rebuildBuffer, setCurrentTime, setPlaying, stopSource],
   );
 
   const isPlayingRef = useRef(isPlaying);
@@ -156,19 +208,25 @@ export function useMp5AudioEngine({
   startAtRef.current = startAt;
 
   const loadPcm = useCallback(
-    async (pcm: PcmData) => {
+    async (pcm: PcmData, opts?: { partial?: boolean }) => {
       pcmRef.current = pcm;
+      partialBufferRef.current = !!opts?.partial;
       stopSource();
       // Browsers are allowed to keep a new AudioContext suspended until a user
       // gesture. Building the buffer must not wait for that gesture, otherwise
       // a first-load track remains stuck in the "Decoding audio" state.
       const ctx = await ensureContext(false);
-      bufferRef.current = pcmToAudioBuffer(ctx, pcm);
+      bufferRef.current = await pcmToAudioBufferAsync(ctx, pcm);
+      // The AudioBuffer now owns its own copy of the samples; release our ~80MB
+      // planar float set (a rare AudioContext rebuild regenerates it from
+      // pcm.samples). This is the single biggest per-track retention drop.
+      pcm.floatChannels = undefined;
       offsetRef.current = 0;
       tracePlayback("main_source", "pcm loaded", {
         frames: pcm.samples.length / pcm.ch,
         rate: pcm.rate,
         bufferSec: bufferRef.current.duration,
+        partial: partialBufferRef.current,
       });
       onPcmReadyRef.current?.();
       if (isPlayingRef.current) {
@@ -178,9 +236,46 @@ export function useMp5AudioEngine({
     [ensureContext, stopSource],
   );
 
+  /**
+   * Replace PCM with a longer (full) buffer without resetting playhead.
+   * Used when progressive first-window decode upgrades to full decode.
+   */
+  const upgradePcm = useCallback(
+    async (pcm: PcmData) => {
+      const ctxClock = ctxRef.current;
+      let t = offsetRef.current;
+      if (ctxClock && srcRef.current && isContextUsable(ctxClock)) {
+        t = computePlaybackTime(
+          offsetRef.current,
+          ctxClock.currentTime,
+          startedAtRef.current,
+          clampDuration(),
+        );
+      }
+      const wasPlaying = isPlayingRef.current;
+      pcmRef.current = pcm;
+      partialBufferRef.current = false;
+      const ctx = await ensureContext(false);
+      bufferRef.current = await pcmToAudioBufferAsync(ctx, pcm);
+      pcm.floatChannels = undefined;
+      offsetRef.current = Math.min(t, bufferRef.current.duration);
+      setCurrentTime(offsetRef.current);
+      tracePlayback("main_source", "pcm upgraded", {
+        frames: pcm.samples.length / pcm.ch,
+        at: offsetRef.current,
+        bufferSec: bufferRef.current.duration,
+      });
+      if (wasPlaying) {
+        void startAtRef.current(offsetRef.current);
+      }
+    },
+    [clampDuration, ensureContext, setCurrentTime],
+  );
+
   const seek = useCallback(
     (seconds: number, _opts?: { start?: boolean }) => {
-      const clamped = Math.max(0, Math.min(seconds, duration || 0));
+      const max = clampDuration();
+      const clamped = Math.max(0, Math.min(seconds, max || 0));
       offsetRef.current = clamped;
       setCurrentTime(clamped);
       // Only restart when already playing; play-from-pause is handled by the isPlaying effect.
@@ -188,13 +283,17 @@ export function useMp5AudioEngine({
         void startAt(clamped);
       }
     },
-    [duration, isPlaying, setCurrentTime, startAt],
+    [clampDuration, isPlaying, setCurrentTime, startAt],
   );
 
   useEffect(() => {
-    if (gainRef.current && isContextUsable(ctxRef.current)) {
-      gainRef.current.gain.value = volume;
-    }
+    const gain = gainRef.current;
+    const ctx = ctxRef.current;
+    if (!gain || !isContextUsable(ctx)) return;
+    // Short ramp avoids clicks when scrubbing volume (~20ms).
+    const now = ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setTargetAtTime(volume, now, 0.02 / 3);
   }, [volume]);
 
   const stopSourceRef = useRef(stopSource);
@@ -227,15 +326,23 @@ export function useMp5AudioEngine({
         offsetRef.current,
         ctx.currentTime,
         startedAtRef.current,
-        duration,
+        clampDuration(),
       );
     }
     return offsetRef.current;
-  }, [duration]);
+  }, [clampDuration]);
 
   const isSourceActive = useCallback(() => srcRef.current !== null, []);
 
   const hasPcm = useCallback(() => pcmRef.current !== null, []);
 
-  return { loadPcm, seek, stopSource, getPlaybackTime, isSourceActive, hasPcm };
+  return {
+    loadPcm,
+    upgradePcm,
+    seek,
+    stopSource,
+    getPlaybackTime,
+    isSourceActive,
+    hasPcm,
+  };
 }

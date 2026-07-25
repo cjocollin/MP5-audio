@@ -4,6 +4,7 @@ import {
   encodeStdfFragment,
   indexMp5FromByteSource,
   loadAudiFrames,
+  peekAudiFramePrefix,
   loadStdfFragmentBytes,
   parseMp5,
   setLazyIngestThresholdForTests,
@@ -76,10 +77,15 @@ describe("lazy MP5 chunk index", () => {
     });
     const indexed = await indexMp5FromByteSource(byteSourceFromArrayBuffer(mp5.buffer));
     expect(indexed.stdfFragments).toHaveLength(0);
+    expect(indexed.audioFrames).toHaveLength(0);
+    expect(indexed.lazy?.audi).toBeDefined();
+    const peek = await peekAudiFramePrefix(indexed, 4);
+    expect(peek).toEqual(new Uint8Array([9, 8, 7, 6]));
+    expect(indexed.audioFrames).toHaveLength(0);
     const bytesBeforeAudi = indexed.lazy!.loadedPayloadBytes;
     const frames = await loadAudiFrames(indexed);
     expect(frames[0]?.data).toEqual(audioFrames[0]!.data);
-    expect(indexed.lazy!.loadedPayloadBytes).toBeGreaterThanOrEqual(bytesBeforeAudi);
+    expect(indexed.lazy!.loadedPayloadBytes).toBeGreaterThan(bytesBeforeAudi);
   });
 
   it("loads single STDF fragment on demand", async () => {

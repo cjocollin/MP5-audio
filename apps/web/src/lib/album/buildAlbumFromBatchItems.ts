@@ -9,6 +9,7 @@ import {
   type PreflightTrack,
 } from "./packageValidation";
 import type { BatchQueueItem } from "../../converter/batchTypes";
+import { getBatchOutput } from "../../converter/batchOutputCache";
 import { downloadBlob } from "../performance/downloadBlob";
 import type { PlaylistTrack } from "../../store/playerStore";
 import { dedupeExportFilenames } from "../../converter/exportFilename";
@@ -46,9 +47,15 @@ export interface BatchAlbumPackagePreview {
   missingArtist: number;
 }
 
-function mp5FileFromItem(item: BatchQueueItem): File {
-  const blob = new Blob([new Uint8Array(item.mp5!)], { type: "audio/mp5" });
-  return new File([blob], item.outputFilename!, { type: "audio/mp5" });
+function itemMp5Bytes(item: BatchQueueItem): Uint8Array | undefined {
+  return getBatchOutput(item.id) ?? item.mp5;
+}
+
+function mp5FileFromItem(item: BatchQueueItem): File | null {
+  const bytes = itemMp5Bytes(item);
+  if (!bytes || !item.outputFilename) return null;
+  const blob = new Blob([new Uint8Array(bytes)], { type: "audio/mp5" });
+  return new File([blob], item.outputFilename, { type: "audio/mp5" });
 }
 
 export function batchItemsToPlaylistTracks(
@@ -59,11 +66,14 @@ export function batchItemsToPlaylistTracks(
   const tracks: PlaylistTrack[] = [];
   for (const id of order) {
     const item = byId.get(id);
-    if (!item?.mp5 || !item.outputFilename) continue;
+    if (!item?.outputFilename) continue;
+    const bytes = itemMp5Bytes(item);
+    if (!bytes) continue;
     const file = mp5FileFromItem(item);
+    if (!file) continue;
     let parsed;
     try {
-      parsed = parseMp5(new Uint8Array(item.mp5));
+      parsed = parseMp5(new Uint8Array(bytes));
     } catch {
       parsed = undefined;
     }
@@ -97,8 +107,10 @@ export function computeBatchAlbumPreview(
 
   for (const id of ordered) {
     const item = done.find((i) => i.id === id);
-    if (!item?.mp5) continue;
-    totalBytes += item.mp5.byteLength;
+    if (!item) continue;
+    const bytes = itemMp5Bytes(item);
+    if (!bytes) continue;
+    totalBytes += bytes.byteLength;
     const meta = trackMetas[id];
     if (!meta?.title?.trim()) missingTitle++;
     if (!meta?.artist?.trim()) missingArtist++;
@@ -156,10 +168,9 @@ export async function downloadIndividualBatchTracks(
   const names = dedupeExportFilenames(list.map((item) => item.outputFilename!));
   for (let i = 0; i < list.length; i++) {
     const item = list[i]!;
-    downloadBlob(
-      new Blob([new Uint8Array(item.mp5!)], { type: "audio/mp5" }),
-      names[i]!,
-    );
+    const bytes = itemMp5Bytes(item);
+    if (!bytes) continue;
+    downloadBlob(new Blob([new Uint8Array(bytes)], { type: "audio/mp5" }), names[i]!);
     if (i < list.length - 1) {
       await new Promise((r) => setTimeout(r, staggerMs));
     }

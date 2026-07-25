@@ -1,6 +1,6 @@
 # MP5 Stems
 
-**Version:** MP5 Audio v0.28.0-beta  
+**Version:** MP5 Audio v0.29.0-beta  
 **Status:** Optional experimental metadata/audio enrichment
 
 Stems are optional. Every `.mp5` file must remain playable from the `AUDI` full-mix chunk alone. Players that do not implement stems can ignore `STEM`, `STDA`, and `STDF`.

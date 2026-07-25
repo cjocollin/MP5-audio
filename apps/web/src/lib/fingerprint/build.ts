@@ -50,7 +50,7 @@ export async function buildFingerprintChunks(
 
   const durationMs =
     head.totalSamples > 0n
-      ? Math.round(Number(head.totalSamples) / (head.sampleRate * head.channels) * 1000)
+      ? Math.round(Number(head.totalSamples) / head.sampleRate * 1000)
       : undefined;
 
   const fing: FingPayload = {

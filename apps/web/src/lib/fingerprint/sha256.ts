@@ -1,7 +1,8 @@
 /** SHA-256 hex digest for Uint8Array (browser Web Crypto). */
 export async function sha256Hex(data: Uint8Array): Promise<string> {
-  const copy = new Uint8Array(data);
-  const digest = await crypto.subtle.digest("SHA-256", copy);
+  // No defensive copy — digest() snapshots the BufferSource synchronously, so
+  // copying first only doubled peak heap on multi-MB fingerprint inputs.
+  const digest = await crypto.subtle.digest("SHA-256", data);
   return bytesToHex(new Uint8Array(digest));
 }
 

@@ -47,67 +47,67 @@ export async function encodeStemsForExport(
   }
 
   const codec = wasmReady ? await getCodec() : null;
-  const bundles: StemBundleInput[] = [];
-  let aliasCount = 0;
 
-  for (const stem of stems) {
-    const ch = stem.channels;
-    const durationSamples = Math.floor(stem.samples.length / ch);
+  // Encode non-alias stems concurrently (independent bitstreams).
+  const bundles: StemBundleInput[] = await Promise.all(
+    stems.map(async (stem) => {
+      const ch = stem.channels;
+      const durationSamples = Math.floor(stem.samples.length / ch);
 
-    const canAlias =
-      !!mix &&
-      mix.sampleRate === stem.sampleRate &&
-      mix.channels === ch &&
-      pcmSamplesEqual(stem.samples, mix.samples);
+      const canAlias =
+        !!mix &&
+        mix.sampleRate === stem.sampleRate &&
+        mix.channels === ch &&
+        pcmSamplesEqual(stem.samples, mix.samples);
 
-    if (canAlias) {
-      aliasCount++;
-      bundles.push({
+      if (canAlias) {
+        return {
+          stemId: stem.id,
+          stemName: stem.name.trim() || stem.fileName,
+          stemType: stem.stemType as StemType,
+          codecId: CodecId.MP5L,
+          sampleRate: stem.sampleRate,
+          channels: ch,
+          durationSamples,
+          frameData: new Uint8Array(0),
+          defaultVolume: stem.defaultVolume,
+          explicitContent: stem.explicitContent,
+          codingMode: "alias" as const,
+          refTarget: "AUDI" as const,
+        };
+      }
+
+      let frameData: Uint8Array;
+      let codecId: number;
+
+      if (wasmReady && codec) {
+        frameData = codec.encode_mp5l_v4(stem.samples, ch);
+        codecId = CodecId.MP5L;
+      } else {
+        frameData = new Uint8Array(
+          stem.samples.buffer,
+          stem.samples.byteOffset,
+          stem.samples.byteLength,
+        );
+        codecId = CodecId.PCM;
+      }
+
+      return {
         stemId: stem.id,
         stemName: stem.name.trim() || stem.fileName,
         stemType: stem.stemType as StemType,
-        codecId: CodecId.MP5L,
+        codecId,
         sampleRate: stem.sampleRate,
         channels: ch,
         durationSamples,
-        frameData: new Uint8Array(0),
+        frameData,
         defaultVolume: stem.defaultVolume,
         explicitContent: stem.explicitContent,
-        codingMode: "alias",
-        refTarget: "AUDI",
-      });
-      continue;
-    }
+      };
+    }),
+  );
 
-    let frameData: Uint8Array;
-    let codecId: number;
-
-    if (wasmReady && codec) {
-      frameData = codec.encode_mp5l_v4(stem.samples, ch);
-      codecId = CodecId.MP5L;
-    } else {
-      frameData = new Uint8Array(
-        stem.samples.buffer,
-        stem.samples.byteOffset,
-        stem.samples.byteLength,
-      );
-      codecId = CodecId.PCM;
-    }
-
-    bundles.push({
-      stemId: stem.id,
-      stemName: stem.name.trim() || stem.fileName,
-      stemType: stem.stemType as StemType,
-      codecId,
-      sampleRate: stem.sampleRate,
-      channels: ch,
-      durationSamples,
-      frameData,
-      defaultVolume: stem.defaultVolume,
-      explicitContent: stem.explicitContent,
-    });
-  }
-
+  const aliasCount = bundles.filter((b) => b.codingMode === "alias").length;
   if (aliasCount > 0) {
     warnings.push(
       `Omitted duplicate stem data for ${aliasCount} stem(s) identical to the full mix (AUDI alias).`,

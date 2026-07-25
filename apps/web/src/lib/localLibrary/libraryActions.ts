@@ -1,5 +1,11 @@
+import {
+  detectMp5pPackageKind,
+  indexEmbeddedAlbumPackage,
+  parseAlbmPackageJson,
+} from "@mp5/container";
 import type { PlaylistTrack } from "../../store/playerStore";
 import { importMp5ToPlayer } from "../../player/playerImport";
+import { isAlbumPackageFileName } from "../album/createAlbumPackage";
 import { openSavedAlbumInPlayer } from "../album/openSavedAlbum";
 import { openSavedEmbeddedAlbumInPlayer } from "../album/openSavedEmbeddedAlbum";
 import {
@@ -7,16 +13,18 @@ import {
   libraryEntryToFile,
   loadLibraryEntry,
 } from "./api";
-import type { SaveToLibraryResult } from "./api";
+import type { LibraryPersistResult } from "./api";
 import { downloadBlob } from "../performance/downloadBlob";
 import {
   getSavedAlbum,
+  saveAlbumPackage,
   savedAlbumToFile,
   type SavedAlbumPackage,
 } from "./albumLibrary";
 import {
   getEmbeddedAlbumBlob,
   getSavedEmbeddedAlbum,
+  saveEmbeddedAlbumPackage,
   type SavedEmbeddedAlbumPackage,
 } from "./embeddedAlbumLibrary";
 import {
@@ -24,8 +32,15 @@ import {
   recordRecentTrackOpen,
 } from "./recentLibrary";
 import { manifestJsonByteSize } from "./albumCoverFromManifest";
+import { isMp5FileName } from "../../player/playlistUtils";
+import { LibraryStorageError } from "./errors";
 
-export async function savePlaylistTrackToLibrary(track: PlaylistTrack): Promise<SaveToLibraryResult> {
+export type LibraryImportResult =
+  | { kind: "track"; result: LibraryPersistResult }
+  | { kind: "manifest"; saved: SavedAlbumPackage }
+  | { kind: "embedded"; saved: SavedEmbeddedAlbumPackage };
+
+export async function savePlaylistTrackToLibrary(track: PlaylistTrack): Promise<LibraryPersistResult> {
   if (!track.file) {
     throw new Error("This track has no file data to save.");
   }
@@ -34,8 +49,39 @@ export async function savePlaylistTrackToLibrary(track: PlaylistTrack): Promise<
   });
 }
 
-export async function saveFileToLibrary(file: File): Promise<SaveToLibraryResult> {
+export async function saveFileToLibrary(file: File): Promise<LibraryPersistResult> {
   return saveMp5ToLibrary(file, file.name, { allowUnreadable: true });
+}
+
+/** Import .mp5 track or .mp5p album package into the local library. */
+export async function importLibraryFile(file: File): Promise<LibraryImportResult> {
+  if (isMp5FileName(file.name)) {
+    return { kind: "track", result: await saveFileToLibrary(file) };
+  }
+  if (!isAlbumPackageFileName(file.name)) {
+    throw new LibraryStorageError("Only .mp5 and .mp5p files can be added to the library.");
+  }
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const kind = detectMp5pPackageKind(bytes);
+
+  if (kind === "embedded-binary") {
+    const index = indexEmbeddedAlbumPackage(bytes);
+    const saved = await saveEmbeddedAlbumPackage(file, index.manifest);
+    return { kind: "embedded", saved };
+  }
+
+  if (kind === "json-manifest") {
+    const text = new TextDecoder().decode(bytes);
+    const { manifest, errors } = parseAlbmPackageJson(text);
+    if (!manifest) {
+      throw new LibraryStorageError(errors[0]?.message ?? "Invalid album manifest (.mp5p).");
+    }
+    const saved = saveAlbumPackage(manifest, file.name);
+    return { kind: "manifest", saved };
+  }
+
+  throw new LibraryStorageError("Unrecognized .mp5p package (expected manifest JSON or embedded album).");
 }
 
 export async function playLibraryEntry(id: string, opts?: { playFirst?: boolean }): Promise<void> {

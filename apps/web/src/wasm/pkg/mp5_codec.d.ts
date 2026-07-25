@@ -6,8 +6,34 @@ export class Mp5lStreamDecoder {
     [Symbol.dispose](): void;
     constructor(data_prefix: Uint8Array);
     push(data: Uint8Array): Int16Array;
+    /**
+     * Decode until `max_channel_samples` channel-frames are emitted (or EOF).
+     */
+    push_until(data: Uint8Array, max_channel_samples: number): Int16Array;
     seek_frame(sample_index: number): void;
 }
+
+/**
+ * Progressive v4 encoder (bit-identical to [`encode_mp5l_v4`]).
+ */
+export class Mp5lV4StreamEncoder {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Encode one planned frame. Returns false when finished.
+     */
+    encodeNextFrame(): boolean;
+    finish(): Uint8Array;
+    frameCount(): number;
+    framesDone(): number;
+    constructor(samples: Int16Array, channels: number);
+}
+
+/**
+ * Assemble ordered frame payloads into a full v4 bitstream (bit-identical when
+ * frames match serial encode order from [`plan_mp5l_v4_boundaries`]).
+ */
+export function assemble_mp5l_v4(channels: number, sample_offsets: Uint32Array, frames_concat: Uint8Array, frame_lengths: Uint32Array): Uint8Array;
 
 export function decode_mp5c(data: Uint8Array): Int16Array;
 
@@ -72,6 +98,16 @@ export function encode_mp5l(samples: Int16Array, channels: number): Uint8Array;
  */
 export function encode_mp5l_v4(samples: Int16Array, channels: number): Uint8Array;
 
+/**
+ * Encode one v4 frame payload for `[start, end)` (sample index on channel 0).
+ */
+export function encode_mp5l_v4_frame(samples: Int16Array, channels: number, start: number, end: number): Uint8Array;
+
+/**
+ * Flat `[start0, end0, start1, end1, …]` sample ranges for multi-worker frame encode.
+ */
+export function plan_mp5l_v4_boundaries(samples: Int16Array, channels: number): Uint32Array;
+
 export function snr_db_wasm(original: Int16Array, decoded: Int16Array): number;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -79,6 +115,8 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
     readonly __wbg_mp5lstreamdecoder_free: (a: number, b: number) => void;
+    readonly __wbg_mp5lv4streamencoder_free: (a: number, b: number) => void;
+    readonly assemble_mp5l_v4: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
     readonly decode_mp5c: (a: number, b: number) => [number, number, number, number];
     readonly decode_mp5c3: (a: number, b: number) => [number, number, number, number];
     readonly decode_mp5c_vnext: (a: number, b: number) => [number, number, number, number];
@@ -96,14 +134,22 @@ export interface InitOutput {
     readonly encode_mp5h_min: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5l: (a: number, b: number, c: number) => [number, number];
     readonly encode_mp5l_v4: (a: number, b: number, c: number) => [number, number];
+    readonly encode_mp5l_v4_frame: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly mp5lstreamdecoder_new: (a: number, b: number) => [number, number, number];
     readonly mp5lstreamdecoder_push: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly mp5lstreamdecoder_push_until: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly mp5lstreamdecoder_seek_frame: (a: number, b: number) => [number, number];
+    readonly mp5lv4streamencoder_encodeNextFrame: (a: number) => number;
+    readonly mp5lv4streamencoder_finish: (a: number) => [number, number];
+    readonly mp5lv4streamencoder_frameCount: (a: number) => number;
+    readonly mp5lv4streamencoder_framesDone: (a: number) => number;
+    readonly mp5lv4streamencoder_new: (a: number, b: number, c: number) => number;
+    readonly plan_mp5l_v4_boundaries: (a: number, b: number, c: number) => [number, number];
     readonly snr_db_wasm: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
-    readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
+    readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

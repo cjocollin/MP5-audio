@@ -9,6 +9,7 @@ import { Info } from "@phosphor-icons/react/Info";
 import { List } from "@phosphor-icons/react/List";
 import { X } from "@phosphor-icons/react/X";
 import { APP_VERSION } from "../generated/appVersion";
+import { MP5_AND_AUDIO_ACCEPT, pickMp5Files } from "../lib/pickMp5Files";
 import { MP5_GITHUB_URL } from "../lib/publicLinks";
 import { usePlayerStore } from "../store/playerStore";
 import { SignalMarkSprite } from "./SignalMarkSprite";
@@ -40,13 +41,21 @@ export function AppShell({ activeTab, onTabChange }: Props) {
   const [noticeVisible, setNoticeVisible] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const setPendingPlayerFiles = usePlayerStore((s) => s.setPendingPlayerFiles);
 
   const openFilePicker = () => {
-    onTabChange("player");
-    window.setTimeout(() => {
-      const input = document.querySelector<HTMLInputElement>('[data-testid="player-file-input"]');
-      input?.click();
-    }, 0);
+    // Pick first (keeps user gesture for showOpenFilePicker), then hand off to Player.
+    void (async () => {
+      const picked = await pickMp5Files({ accept: MP5_AND_AUDIO_ACCEPT });
+      onTabChange("player");
+      if (picked === null) {
+        window.setTimeout(() => {
+          document.querySelector<HTMLInputElement>('[data-testid="player-file-input"]')?.click();
+        }, 0);
+        return;
+      }
+      if (picked.length) setPendingPlayerFiles(picked);
+    })();
   };
 
   const changeTab = (tab: AppTab) => {
@@ -106,8 +115,8 @@ export function AppShell({ activeTab, onTabChange }: Props) {
             data-testid="shell-open-mp5"
           >
             <FolderOpen size={18} weight="bold" />
-            <span className="hidden lg:inline">Open MP5 / Add files</span>
-            <span className="hidden sm:inline lg:hidden">Open MP5</span>
+            <span className="hidden lg:inline">Open / Add files</span>
+            <span className="hidden sm:inline lg:hidden">Open files</span>
             <span className="sm:hidden">Open</span>
           </button>
           <button

@@ -5,8 +5,11 @@ import type { Plugin } from "vite";
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const DEMO_FIXTURES = [
-  "demo_mp5l_v3_tone.mp5",
-  "demo_mp5l_v3_stems.mp5",
+  // Must match what the app actually fetches (see apps/web/src/lib/demoFixture.ts):
+  // MP5-L v4 is the product default; v3 stays generated for lab/compat but is no
+  // longer fetched by the deployed demo buttons, so it does not need copying to dist.
+  "demo_mp5l_v4_tone.mp5",
+  "demo_mp5l_v4_stems.mp5",
   "demo_pity_party_class.mp5",
   "demo_embedded_album_package.mp5p",
 ] as const;

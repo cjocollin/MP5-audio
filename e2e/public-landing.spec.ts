@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { loadDemoFromSettings } from "./helpers/demoFixtures";
+import { dismissWelcomeOnboarding } from "./helpers/onboarding";
 
 test.describe("direct-entry public experience", () => {
   test.beforeEach(async ({ page }) => {
+    await dismissWelcomeOnboarding(page);
     await page.goto("/");
   });
 
@@ -15,9 +17,10 @@ test.describe("direct-entry public experience", () => {
     await expect(page.getByTestId("player-empty-state")).toBeVisible();
     await expect(page.getByTestId("playlist-item")).toHaveCount(0);
     await expect(page.getByTestId("demo-fixture-actions")).toHaveCount(0);
+    await expect(page.locator(".mp5-inspector-tabs")).toHaveCount(0);
   });
 
-  test("Settings can load the synthetic MP5-L demo", async ({ page }) => {
+  test("Demo tab can load the synthetic MP5-L demo", async ({ page }) => {
     await loadDemoFromSettings(page);
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
     await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
@@ -46,13 +49,15 @@ test.describe("direct-entry public experience", () => {
 
     await page.getByTestId("app-tab-demo").click();
     await expect(page.getByTestId("demo-mode-panel")).toBeVisible();
+    await expect(page.getByTestId("demo-fixture-actions")).toBeVisible();
 
     await page.getByTestId("app-tab-library").click();
     await expect(page.getByTestId("local-library-panel")).toBeVisible();
 
     await page.getByTestId("app-tab-settings").click();
     await expect(page.getByTestId("performance-diagnostics")).toBeVisible();
-    await expect(page.getByTestId("demo-fixture-actions")).toBeVisible();
+    await expect(page.getByTestId("demo-fixture-actions")).toHaveCount(0);
+    await expect(page.getByTestId("settings-demo-tab-link")).toBeVisible();
 
     await page.getByTestId("app-tab-player").click();
     await expect(page.getByTestId("mp5-player")).toBeVisible();
@@ -62,6 +67,6 @@ test.describe("direct-entry public experience", () => {
     const header = page.getByTestId("app-shell-header");
     await expect(header).toContainText("MP5 Audio");
     await expect(header).toContainText("Public Beta");
-    await expect(header).toContainText("v0.28.0-beta");
+    await expect(header).toContainText("v0.29.0-beta");
   });
 });
