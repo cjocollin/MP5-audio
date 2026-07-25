@@ -162,7 +162,7 @@ export async function runExportPipeline(
       },
       meta: bundle.metaFields,
       cover: bundle.cover,
-      audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: bitstream }],
+      audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: bitstream }],
       seek: [{ sampleOffset: 0n, byteOffset: 0n }],
       waveform: wave.peaks,
       info: [{ key: "encoder", value: "MP5-L WASM v4 (lossless · default · bit-exact)" }],

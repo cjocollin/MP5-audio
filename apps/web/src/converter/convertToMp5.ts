@@ -99,7 +99,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
         },
         meta,
         cover: opts.cover,
-        audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: lBitstream }],
+        audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: lBitstream }],
         seek: [{ sampleOffset: 0n, byteOffset: 0n }],
         waveform: wavePeaks,
         info: [
@@ -124,7 +124,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
       },
       meta,
       cover: opts.cover,
-      audioFrames: [{ frameIndex: 0, streamType: 0, flags: 0, data: hBase }],
+      audioFrames: [{ frameIndex: 0, blockType: 0, flags: 0, data: hBase }],
       seek: [{ sampleOffset: 0n, byteOffset: 0n }],
       waveform: wavePeaks,
       info: [{ key: "encoder", value: "MP5-H WASM (MP5-C base + lossless CORR)" }],
@@ -148,7 +148,7 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
     encoderLabel = "MP5-C WASM v5.1 (experimental — may hiss)";
   }
 
-  const frames: AudioFrame[] = [{ frameIndex: 0, streamType: 0, flags: 0, data: bitstream }];
+  const frames: AudioFrame[] = [{ frameIndex: 0, blockType: 0, flags: 0, data: bitstream }];
 
   const totalSamples = BigInt(Math.floor(opts.samples.length / ch));
   const wavePeaks = opts.waveformPeaks ?? generateWaveform(opts.samples, ch).peaks;
