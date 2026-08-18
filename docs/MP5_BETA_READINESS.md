@@ -50,7 +50,8 @@ Allowed wording:
 - Public Beta.
 - Experimental and browser-based.
 - MP5-L v4 default/recommended.
-- MP5-C lab-only; MP5-H large/experimental; PCM reference/debug.
+- MP5-C classic (legacy) lab-only; MP5-C2 lossless/bit-exact but lab-gated and not default;
+  MP5-H large/experimental hybrid; PCM reference/debug.
 - `.mp5p` experimental; large albums/stems can be heavy.
 - Not production-ready for archival/legal use.
 

@@ -20,7 +20,8 @@ Status key:
 | MP5-L v4 | Public Beta | Recommended/default lossless path; bit-exact roundtrip; packed Rice (`FLAG_RICE_PACKED`) needs current decoder. | `inspect:mp5`, `validate:mp5`, unit/compat gates |
 | MP5-L v3 | Lab-only | Prior lossless version; still generated for lab/compat fixtures and decodes bit-exact, but not the product default. | `validate:mp5`, golden fixtures |
 | MP5-C | Lab-only | Experimental lossy codec; may hiss; not default. | Reports as lab codec with warnings |
-| MP5-C2 (vNext) | Lab-only / advanced UI | Hybrid quiet→MP5-L + loud→MP5-C; AUDI `0x43 0x34`; CodecId 5; not default; batch stays MP5-L. | Converter advanced toggle; player `decode_mp5c_vnext` |
+| MP5-C2 (vNext) | Lab-only / advanced UI | **Lossless / bit-exact**: quiet→MP5-L, loud→`min(TAG_SR+CORR, TAG_LOSSLESS)`; AUDI `0x43 0x34`; CodecId 5; not default; batch stays MP5-L. | Converter advanced toggle; player `decode_mp5c_vnext` |
+| MP5-C (CodecId 6) | Lab-only / advanced UI | **Lossy, experimental, bitstream not frozen.** MDCT loud path (`TAG_MDCT`) with bit-exact protect islands (`TAG_LOSSLESS` / `TAG_BAND`); AUDI `0x43 0x36`; 28-byte CRC-protected header and per-unit CRC; fails closed on truncation or corruption; not default; batch stays MP5-L. See [MP5C_NEXT_SPEC.md](MP5C_NEXT_SPEC.md). | Converter advanced toggle; player `decode_mp5c6`; `inspect_unit_mix` for protect/rate reporting |
 | MP5-H | Experimental | Hybrid/CORR path can be large; not default. | Playable when structure validates |
 | PCM | Reference/debug | Fallback/reference payload for tests and debug flows. | `validate:mp5` basic/playable |
 | External passthrough | Future/registry | Codec ID reserved; not a distribution promise. | Not a beta workflow |

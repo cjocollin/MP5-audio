@@ -1,9 +1,11 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useMemo } from "react";
 import { usePlayerStore } from "./store/playerStore";
 import { Mp5Player } from "./player/Mp5Player";
 import { WasmSetupBanner } from "./components/WasmSetupBanner";
 import { AppShell } from "./components/AppShell";
 import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
+import { resolveThemeForFile } from "./lib/visualTheme/themeApplication";
+import { appChromeThemeStyle } from "./lib/visualTheme/applyVisualTheme";
 
 const ConverterPanel = lazy(() =>
   import("./player/ConverterPanel").then((m) => ({ default: m.ConverterPanel })),
@@ -44,6 +46,11 @@ export default function App() {
   const setTheme = usePlayerStore((s) => s.setTheme);
   const useFileThemes = usePlayerStore((s) => s.useFileThemes);
   const setUseFileThemes = usePlayerStore((s) => s.setUseFileThemes);
+  const activeParsedFile = usePlayerStore((s) => s.tracks[s.currentIndex]?.parsed);
+  const appFileTheme = useMemo(
+    () => resolveThemeForFile(activeParsedFile, useFileThemes).theme,
+    [activeParsedFile, useFileThemes],
+  );
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -68,7 +75,12 @@ export default function App() {
   }, [activeTab]);
 
   return (
-    <div className="mp5-app-shell">
+    <div
+      className="mp5-app-shell"
+      data-testid="app-theme-root"
+      data-file-theme-active={appFileTheme ? "true" : "false"}
+      style={appChromeThemeStyle(appFileTheme)}
+    >
       <AppShell activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="mb-3">
@@ -105,7 +117,7 @@ export default function App() {
                 </select>
               </label>
               <label className="flex items-center justify-between gap-4 text-sm" data-testid="use-file-themes-setting">
-                <span className="text-gray-400">Apply VISU file themes (Now Playing only)</span>
+                <span className="text-gray-400">Apply VISU file themes across the app</span>
                 <input
                   type="checkbox"
                   checked={useFileThemes}
@@ -115,8 +127,9 @@ export default function App() {
                 />
               </label>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Optional content guidance and visual themes (VISU) tint the active Now Playing card
-                only — not the global app shell, tabs, or other panels. They never affect playback.
+                The active file's VISU primary, secondary, and accent colors theme app identity,
+                supporting chrome, controls, and the Now Playing view. Main surfaces stay neutral for
+                readability, and themes never affect playback.
               </p>
               <p className="text-xs text-gray-500 leading-relaxed" data-testid="settings-demo-tab-link">
                 Load synthetic demos on the{" "}

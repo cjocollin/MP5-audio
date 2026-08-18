@@ -73,12 +73,19 @@ The `data` bytes are a **codec-specific bitstream**. Interpreters must use `HEAD
 | CodecId | Typical `data` magic (first bytes) | Notes |
 |---------|--------------------------------------|-------|
 | MP5-L (2) | `0x4c` + version | See [MP5L.md](MP5L.md) |
-| MP5-C (1) | `0x43` + `0x02`…`0x06` | Public MP5-C pack versions |
-| MP5-C2 (5) | `0x43 0x34` | vNext hybrid; **not** a valid MP5-C stream |
+| MP5-C (1) | `0x43` + `0x02`…`0x06` | MP5-C classic (legacy) pack versions |
+| MP5-C2 (5) | `0x43 0x34` | vNext, **lossless / bit-exact**; **not** a valid MP5-C stream |
+| MP5-C (6) | `0x43 0x36` | **Lossy, experimental, lab-only.** MDCT loud path with bit-exact protect islands; 28-byte CRC-protected header, per-unit CRC. Bitstream **not frozen** — see [MP5C_NEXT_SPEC.md](MP5C_NEXT_SPEC.md) |
 | MP5-H (3) | wrapper `0x48` + base/CORR | See [MP5H.md](MP5H.md) |
 | PCM (0) | raw i16 LE | Debug/reference |
 
-Cross-decoding MP5-C ↔ MP5-C2 must fail closed (distinct magic).
+Cross-decoding between CodecIds 1, 5 and 6 must fail closed (distinct magic). CodecId 6
+decoders additionally reject any stream whose header CRC, unit CRC, unit bounds, declared
+frame count or declared MDCT hop count does not verify; a truncated CodecId 6 stream is an
+error, never a short decode.
+
+CodecId 4 is `PASSTHROUGH` and CodecId 255 is `PRIVATE`; both are reserved and are not
+written by the shipping encoder.
 
 ## Common Optional Payloads
 
@@ -106,3 +113,4 @@ Cross-decoding MP5-C ↔ MP5-C2 must fail closed (distinct magic).
 - `pnpm validate:mp5p <file> --profile package`
 - [MP5_CHUNK_REGISTRY.md](MP5_CHUNK_REGISTRY.md)
 - [MP5_COMPATIBILITY_MATRIX.md](MP5_COMPATIBILITY_MATRIX.md)
+- [MP5C_NEXT_SPEC.md](MP5C_NEXT_SPEC.md) — normative CodecId 6 bitstream spec

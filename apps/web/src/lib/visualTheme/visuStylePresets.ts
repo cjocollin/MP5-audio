@@ -98,6 +98,7 @@ function hslToHex(hsl: string): string | undefined {
 export function visuHasExplicitColors(visu: VisuPayload): boolean {
   return !!(
     parseHexColor(visu.primaryColor) ||
+    parseHexColor(visu.secondaryColor) ||
     parseHexColor(visu.accentColor) ||
     parseHexColor(visu.backgroundColor) ||
     visu.gradientStops?.some((s) => parseHexColor(s))

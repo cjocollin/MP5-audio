@@ -121,7 +121,7 @@ Sources: `AboutMp5Panel.tsx`, `docs/MP5_CODEC_STATUS.md`, `docs/MP5_FORMAT_SPEC.
 
 ### Lab-only (not a table row)
 
-> MP5-C (and related hybrid lab modes such as MP5-C2 / MP5-H) are research paths — not peer rows here. MP5-C may add audible hiss and is lab-only; it is not recommended for normal listening or demos unless you are explicitly showing lab limits.
+> Classic MP5-C (legacy, CodecId 1), MP5-C2, and hybrid MP5-H are research paths — not peer rows here. Classic MP5-C may add audible hiss and is lab-only; it is not recommended for normal listening or demos unless you are explicitly showing lab limits. MP5-C2 is bit-exact lossless but lands near MP5-L size, so it stays lab-gated rather than being offered as a peer.
 
 ### How we measured
 

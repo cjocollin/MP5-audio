@@ -1,5 +1,6 @@
 import { getMetaValue, type IntegrityCheckResult, type Mp5File } from "@mp5/container";
 import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
+import { audiKbps, bitrateDetailLabel, c6BitrateInfo } from "../lib/c6Bitrate";
 import { codecLabel } from "../lib/codecDisplay";
 import type { PlaylistTrack } from "../store/playerStore";
 import { formatDuration, trackDisplayInfo } from "./playlistUtils";
@@ -24,6 +25,15 @@ export function PlayerInspectorOverview({ track, parsed, duration, integrity }: 
   const fullCodecLabel = head
     ? codecLabel(head.codecId, parsed?.audioFrames[0]?.data)
     : "";
+  const audiFrame = parsed?.audioFrames[0]?.data;
+  const bitrateLabel = audiFrame
+    ? (head?.codecId === 6
+        ? bitrateDetailLabel(c6BitrateInfo(audiFrame))
+        : (() => {
+            const kbps = audiKbps(audiFrame.length, duration || info?.durationSec || null);
+            return kbps == null ? null : `${Math.round(kbps)} kbps`;
+          })())
+    : null;
   const isLossless = /lossless/i.test(fullCodecLabel);
   const isDefaultDemo = track?.origin === "default-demo";
   const integrityLabel = !track
@@ -51,6 +61,7 @@ export function PlayerInspectorOverview({ track, parsed, duration, integrity }: 
   const rightRows: OverviewRow[] = [
     ["Codec", head ? fullCodecLabel.replace(/\s*\(.+\)$/, "") : null],
     ["Mode", head ? (isLossless ? "Lossless" : fullCodecLabel.replace(/^MP5-/, "")) : null],
+    ["Bitrate", bitrateLabel],
     ["Integrity", integrityLabel],
     ["Container", track ? "MP5" : null],
     ["Channels", head ? `${head.channels}${head.channels === 1 ? " (mono)" : head.channels === 2 ? " (stereo)" : ""}` : null],
@@ -61,6 +72,7 @@ export function PlayerInspectorOverview({ track, parsed, duration, integrity }: 
     rightRows[0]!,
     rightRows[1]!,
     rightRows[2]!,
+    rightRows[3]!,
     leftRows[4]!,
     rightRows[4]!,
     rightRows[5]!,

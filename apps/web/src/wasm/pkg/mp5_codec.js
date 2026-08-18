@@ -185,6 +185,44 @@ export function decode_mp5c3(data) {
 }
 
 /**
+ * MP5-C (CodecId 6) decode. Fails closed on bad magic, CRC, bounds or frame counts.
+ * @param {Uint8Array} data
+ * @returns {Int16Array}
+ */
+export function decode_mp5c6(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decode_mp5c6(ptr0, len0);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayI16FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
+    return v2;
+}
+
+/**
+ * MP5-C (CodecId 6) seek decode (Phase 5.4): decode only the units covering
+ * `[start_frame, start_frame + num_frames)`. Same fail-closed validation as
+ * `decode_mp5c6`; units are indexable and need no preroll.
+ * @param {Uint8Array} data
+ * @param {number} start_frame
+ * @param {number} num_frames
+ * @returns {Int16Array}
+ */
+export function decode_mp5c6_range(data, start_frame, num_frames) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decode_mp5c6_range(ptr0, len0, start_frame, num_frames);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayI16FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 2, 2);
+    return v2;
+}
+
+/**
  * @param {Uint8Array} data
  * @returns {Int16Array}
  */
@@ -260,6 +298,103 @@ export function encode_mp5c3(samples, channels, preset) {
     const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.encode_mp5c3(ptr0, len0, channels, preset);
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * MP5-C (CodecId 6) encode: MDCT loud path, bit-exact protect islands.
+ * Experimental lossy stream — see `docs/MP5C_NEXT_SPEC.md`.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @param {number} sample_rate
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c6(samples, channels, preset, sample_rate) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c6(ptr0, len0, channels, preset, sample_rate);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * MP5-C (CodecId 6) encode with a deterministic rate target (Phase 4.3).
+ * `rate_mode`: 0 = unconstrained (ignores `target_kbps`), 1 = ABR, 2 = CBR.
+ * ABR/CBR hit the target within ±3% track-average; protect islands consume
+ * budget ahead of the MDCT pool and are disclosed via `inspect_unit_mix`.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @param {number} sample_rate
+ * @param {number} target_kbps
+ * @param {number} rate_mode
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c6_at(samples, channels, preset, sample_rate, target_kbps, rate_mode) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c6_at(ptr0, len0, channels, preset, sample_rate, target_kbps, rate_mode);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * MP5-C (CodecId 6) with full options: rate target plus Phase 5 features.
+ * `rate_mode`: 0 = unconstrained, 1 = ABR, 2 = CBR. `joint_stereo` enables
+ * the Phase 5.1 per-band M/S coding; `window_switching` enables the Phase
+ * 5.2 long/start/short/stop block sequence; `psycho` enables the Phase 5.3
+ * psychoacoustic step allocation (all profile 3).
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @param {number} sample_rate
+ * @param {number} target_kbps
+ * @param {number} rate_mode
+ * @param {boolean} joint_stereo
+ * @param {boolean} window_switching
+ * @param {boolean} psycho
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c6_opt(samples, channels, preset, sample_rate, target_kbps, rate_mode, joint_stereo, window_switching, psycho) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c6_opt(ptr0, len0, channels, preset, sample_rate, target_kbps, rate_mode, joint_stereo, window_switching, psycho);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
+    var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
+    wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
+    return v2;
+}
+
+/**
+ * MP5-C (CodecId 6) VBR encode: `qi` is a quality index in 1/4-log2 step-grid
+ * units (positive = finer/larger, negative = coarser/smaller). No rate target.
+ * @param {Int16Array} samples
+ * @param {number} channels
+ * @param {number} preset
+ * @param {number} sample_rate
+ * @param {number} qi
+ * @returns {Uint8Array}
+ */
+export function encode_mp5c6_vbr(samples, channels, preset, sample_rate, qi) {
+    const ptr0 = passArray16ToWasm0(samples, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.encode_mp5c6_vbr(ptr0, len0, channels, preset, sample_rate, qi);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
     var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v2;
@@ -441,6 +576,66 @@ export function encode_mp5l_v4_frame(samples, channels, start, end) {
     var v2 = getArrayU8FromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 1, 1);
     return v2;
+}
+
+/**
+ * Walk a CodecId 6 (or CodecId 5) codec stream and report its unit mix as JSON.
+ * Shape is documented in `docs/MP5C_NEXT_SPEC.md` sec. 4.4.
+ * @param {Uint8Array} data
+ * @returns {string}
+ */
+export function inspect_unit_mix(data) {
+    let deferred3_0;
+    let deferred3_1;
+    try {
+        const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.inspect_unit_mix(ptr0, len0);
+        var ptr2 = ret[0];
+        var len2 = ret[1];
+        if (ret[3]) {
+            ptr2 = 0; len2 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred3_0 = ptr2;
+        deferred3_1 = len2;
+        return getStringFromWasm0(ptr2, len2);
+    } finally {
+        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
+    }
+}
+
+/**
+ * NMR reject-filter screen (Phase 5.3, spec §5): per-band noise vs masking
+ * threshold of the source. JSON: {maxNmrDb, meanNmrDb, frames, channels}.
+ * Reject filter only — never a transparency proof.
+ * @param {Int16Array} original
+ * @param {Int16Array} decoded
+ * @param {number} channels
+ * @param {number} sample_rate
+ * @returns {string}
+ */
+export function nmr_screen_wasm(original, decoded, channels, sample_rate) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passArray16ToWasm0(original, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passArray16ToWasm0(decoded, wasm.__wbindgen_malloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.nmr_screen_wasm(ptr0, len0, ptr1, len1, channels, sample_rate);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
 }
 
 /**

@@ -112,12 +112,7 @@ export function NowPlayingView({
               data-testid="now-playing-cover-placeholder"
               aria-hidden
             >
-              <img
-                src="/brand/mp5-brand-icon.svg"
-                alt=""
-                className="mp5-now-playing-cover-mark"
-                decoding="async"
-              />
+              <span className="mp5-now-playing-cover-mark" />
             </div>
           )}
           {playerTheme && coverUrl && (

@@ -37,7 +37,9 @@ export type MeasurementCorpus =
   | "peer_16bit_subset"
   | "origami_pcm_ref"
   | "origami_listening"
-  | "vnext_real_track_gate";
+  | "vnext_real_track_gate"
+  /** 19 ORIGAMI segment excerpts, 48 kHz stereo — c2-real-track-remeasure.json. */
+  | "origami_segments_c2";
 
 /**
  * Measured size fields.
@@ -251,24 +253,24 @@ export const FORMAT_COMPARISON_MODE_ROWS: ReadonlyArray<FormatComparisonRow> = [
     id: "mp5c2",
     group: "mp5_mode",
     format: "MP5-C2",
-    type: "hybrid",
-    typeLabel: "Hybrid",
-    typicalUse: "Converter Lossy / hybrid option (not default; batch stays MP5-L)",
+    type: "lossless",
+    typeLabel: "Lossless · lab",
+    typicalUse: "Converter lab / advanced option (not default; batch stays MP5-L)",
     compression:
-      "Quiet/fragile/tail stay MP5-L; mid/loud use C2 signal-relative path (optional CORR). Size near PCM on dense material.",
-    bitExact: "no",
-    bitExactLabel: "No (hybrid)",
+      "Quiet/fragile/tail units are MP5-L; loud units take whichever is smaller — signal-relative + lossless CORR, or plain MP5-L. Every unit restores the source exactly, so it is larger than MP5-L rather than smaller.",
+    bitExact: "yes",
+    bitExactLabel: "Yes (bit-exact)",
     browserSupport: "MP5 web app (CodecId MP5C2 / AUDI 0x43 0x34).",
     projectStance:
-      "First-class non-default hybrid. Not a claim to beat FLAC or MP3. Distinct from classic MP5-C.",
+      "Bit-exact but no size win over MP5-L, so it stays lab-gated and non-default. Not a claim to beat FLAC or MP3. Distinct from classic MP5-C.",
     measured: {
       status: "measured",
-      sizeBytes: 32272179,
-      ratioVsWav: 0.9773,
+      sizeBytes: 22581388,
+      ratioVsWav: 0.7738,
       ratioVsFlac5: null,
-      ratioVsWavLabel: "0.98x",
-      note: "Real-track gate protect-scale 1.5 (vnext-real-track-gate.json) — ~0.98x PCM.",
-      corpus: "vnext_real_track_gate",
+      ratioVsWavLabel: "0.77x",
+      note: "Fresh remeasure of the shipping CodecId 5 encoder (preset 2) over 19 ORIGAMI segment excerpts (152 s, 48 kHz stereo): 22,581,388 B vs 29,184,000 B PCM = 0.77x PCM, and 1.07x MP5-L v4 on the same PCM. Decode verified sample-for-sample equal to the source; every emitted unit was bit-exact (no lossy units). Source: benchmarks/audio-quality/c2-real-track-remeasure.json.",
+      corpus: "origami_segments_c2",
     },
   },
   {
@@ -298,7 +300,7 @@ export const FORMAT_COMPARISON_MODE_ROWS: ReadonlyArray<FormatComparisonRow> = [
   {
     id: "mp5c",
     group: "mp5_mode",
-    format: "MP5-C (High v4)",
+    format: "MP5-C classic (legacy, High v4)",
     type: "lossy",
     typeLabel: "Lossy · lab",
     typicalUse: "Lab listening / research only",
@@ -326,7 +328,7 @@ export const FORMAT_COMPARISON_LEGACY_ROWS: ReadonlyArray<FormatComparisonRow> =
   {
     id: "mp5c_v3",
     group: "legacy",
-    format: "MP5-C Standard v3",
+    format: "MP5-C classic Standard v3",
     type: "lossy",
     typeLabel: "Lossy · legacy",
     typicalUse: "Historical A/B only — do not use",
@@ -357,19 +359,20 @@ export const FORMAT_COMPARISON_HOW_WE_MEASURED = [
 
 export const FORMAT_COMPARISON_HOW_WE_MEASURED_MODES = [
   "MP5 modes / legacy sizes use published ORIGAMI benches (vs PCM), not the 16-bit peer corpus — so mode rows compare to each other fairly.",
-  "Sources: benchmarks/real-music/MP5H_VALIDATION.md, listening/LISTENING_VALIDATION.md, benchmarks/audio-quality/vnext-real-track-gate.json.",
+  "Sources: benchmarks/real-music/MP5H_VALIDATION.md, listening/LISTENING_VALIDATION.md, benchmarks/audio-quality/c2-real-track-remeasure.json.",
+  "The MP5-C2 row is a separate fresh run over 19 ORIGAMI segment excerpts (152 s, 48 kHz), so treat it as same-material rather than same-file against the other mode rows.",
 ].join(" ");
 
 export const FORMAT_COMPARISON_LAB_ONLY_NOTE =
-  "MP5-C is lab-only and may add audible hiss. MP5-C2 and MP5-H are non-default research/hybrid paths. MP5-L remains the recommended export.";
+  "MP5-C classic (legacy) is lab-only and may add audible hiss. MP5-C2 is bit-exact lossless but larger than MP5-L, and MP5-H is a bit-exact hybrid that is larger again — both are non-default lab paths. MP5-L remains the recommended export.";
 
 export const FORMAT_COMPARISON_HONESTY_LEAD =
   "MP5 is an experimental Public Beta. It does not claim to beat MP3, AAC, Opus, or FLAC. WAV is the uncompressed size reference — not a higher listening-quality tier than FLAC or MP5-L when all are lossless from the same source.";
 
 export const FORMAT_COMPARISON_VIEW_LABELS: Record<Mp5CompareView, string> = {
   peers: "Peers only (WAV / FLAC / MP3 / MP5-L)",
-  modes: "Include current MP5 modes (C2 / H / C / PCM)",
-  legacy: "Include current + legacy (adds MP5-C v3)",
+  modes: "Include current MP5 modes (C2 / H / classic C / PCM)",
+  legacy: "Include current + legacy (adds MP5-C classic v3)",
 };
 
 export const FORMAT_COMPARISON_FOOTNOTES: ReadonlyArray<FormatComparisonFootnote> = [

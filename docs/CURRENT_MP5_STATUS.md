@@ -11,9 +11,10 @@ MP5 is an experimental, browser-based music format and player stack. The hosted 
 
 | Format | Role |
 |--------|------|
-| MP5-L v3 | Default and recommended for playback/export |
-| MP5-C | Lab/research only; may hiss; not default |
-| MP5-C2 (vNext) | Lab/advanced hybrid (`CodecId` 5, AUDI `0x43 0x34`); gated; not default |
+| MP5-L v4 | Default and recommended for playback/export (Converter default; batch export) |
+| MP5-L v3 | Lab/legacy bitstream; still decodable and offered under lab/advanced, not default |
+| MP5-C classic (legacy) | Lab/research only (`CodecId` 1); may hiss; not default |
+| MP5-C2 (vNext) | Lab/advanced **lossless / bit-exact** (`CodecId` 5, AUDI `0x43 0x34`); gated; not default; ~1.07x MP5-L size |
 | MP5-H | Large/experimental hybrid; not default |
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
@@ -24,14 +25,14 @@ Lab MDCT loud path + FFT + real-track validate ([MP5C_VNEXT_RESULTS.md](./MP5C_V
 
 - **`mp5c3` / `TAG_MDCT`:** opt-in vNext loud path (`encode_mp5c_vnext_mdct`); quiet/fragile/tail stay MP5-L (protect 1.5).
 - **FFT Type-IV MDCT** for practical WASM; `dense_music` ~0.167× PCM; real-track MDCT High ~0.214× / Extreme ~0.268× with hiss risk **low**.
-- **Default unchanged:** `encode_mp5c_vnext` still uses legacy MP5-C loud; MP5-L stays default/batch. No mainstream-codec claims.
+- **Default C2 loud path is bit-exact:** `encode_mp5c_vnext` picks `min(TAG_SR+CORR, TAG_LOSSLESS)` per loud unit, so shipping CodecId 5 output is lossless. `TAG_MDCT` stays opt-in lab only. MP5-L stays default/batch. No mainstream-codec claims.
 
 ## v0.26.0-beta Milestone (previous)
 
 Quality-preserving compression and vNext size/UX pass:
 
 - **MP5-L:** `FLAG_RICE_PACKED`, rice-aware LPC order, FLAC-style 4-mode stereo.
-- **vNext:** protect **1.5**, lossy + L/B coalesce, prefer High loud preset; gated `CodecId.MP5C2`.
+- **vNext:** protect **1.5**, loud + L/B coalesce, prefer High loud preset; gated `CodecId.MP5C2`.
 
 ## v0.25.0-beta Milestone (previous)
 
@@ -69,7 +70,7 @@ v0.20.0-beta was a spec / developer toolkit polish release:
 
 - Now Playing shows normalized title, artist, album, cover fallback, codec/profile, source type, album track position, time/duration/remaining, embedded hydration, and local integrity state when available.
 - Queue and album views distinguish `.mp5`, manifest `.mp5p`, and embedded `.mp5p` sources.
-- Timeline, waveform, lyrics/karaoke, stems, and VISU remain UI/display polish only. VISU stays contained to the player visual area.
+- Timeline, waveform, lyrics/karaoke, stems, and VISU remain UI/display polish only. VISU can theme app accents while neutral surfaces and cover-art containment are preserved.
 - Diagnostics remain manual/copyable and path-redacted.
 
 ## Honest Limits

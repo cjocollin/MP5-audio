@@ -290,6 +290,12 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
 
   const effectiveCover: CoverArt | undefined =
     edits.cover === null ? undefined : edits.cover ?? undefined;
+  const visualThemeColors = [
+    ["Primary", edits.visualTheme.primaryColor],
+    ["Secondary", edits.visualTheme.secondaryColor],
+    ["Accent", edits.visualTheme.accentColor],
+    ["Background", edits.visualTheme.backgroundColor],
+  ].filter((entry) => /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(entry[1]));
 
   async function handleCoverFile(file: File) {
     onCoverError("");
@@ -654,6 +660,28 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
         data-testid="section-visual-theme"
       >
         <SectionHeader title={SECTION.visualTheme} hint={VISUAL_THEME_HELP} />
+        {visualThemeColors.length > 0 && (
+          <div
+            className="flex flex-wrap items-center gap-3 rounded-lg border border-white/5 bg-black/10 px-3 py-2"
+            data-testid="visu-palette-preview"
+          >
+            {visualThemeColors.map(([label, color]) => (
+              <span key={label} className="inline-flex items-center gap-1.5 text-[10px] text-gray-400">
+                <span
+                  className="h-4 w-4 rounded border border-white/20"
+                  style={{ backgroundColor: color }}
+                  aria-hidden
+                />
+                {label} {color}
+              </span>
+            ))}
+            {edits.visualTheme.coverArtDerived && (
+              <span className="text-[10px] text-emerald-300" data-testid="visu-cover-derived">
+                Generated locally from cover art
+              </span>
+            )}
+          </div>
+        )}
         <div className="grid sm:grid-cols-2 gap-3">
           <Field
             label="Theme name"
@@ -675,15 +703,32 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
             label="Primary color (#rrggbb)"
             value={edits.visualTheme.primaryColor}
             onChange={(v) =>
-              onChange({ ...edits, visualTheme: { ...edits.visualTheme, primaryColor: v } })
+              onChange({
+                ...edits,
+                visualTheme: { ...edits.visualTheme, primaryColor: v, coverArtDerived: false },
+              })
             }
             testId="visu-primary-color"
+          />
+          <Field
+            label="Secondary color (#rrggbb)"
+            value={edits.visualTheme.secondaryColor}
+            onChange={(v) =>
+              onChange({
+                ...edits,
+                visualTheme: { ...edits.visualTheme, secondaryColor: v, coverArtDerived: false },
+              })
+            }
+            testId="visu-secondary-color"
           />
           <Field
             label="Accent color (#rrggbb)"
             value={edits.visualTheme.accentColor}
             onChange={(v) =>
-              onChange({ ...edits, visualTheme: { ...edits.visualTheme, accentColor: v } })
+              onChange({
+                ...edits,
+                visualTheme: { ...edits.visualTheme, accentColor: v, coverArtDerived: false },
+              })
             }
             testId="visu-accent-color"
           />
@@ -691,7 +736,10 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
             label="Background color (#rrggbb)"
             value={edits.visualTheme.backgroundColor}
             onChange={(v) =>
-              onChange({ ...edits, visualTheme: { ...edits.visualTheme, backgroundColor: v } })
+              onChange({
+                ...edits,
+                visualTheme: { ...edits.visualTheme, backgroundColor: v, coverArtDerived: false },
+              })
             }
             testId="visu-background-color"
           />
@@ -743,7 +791,8 @@ export function MetadataEditor({ edits, onChange, coverError, onCoverError }: Pr
           </label>
         </div>
         <p className="text-[10px] text-gray-600">
-          Hex colors only. Invalid values are ignored on export. No AI color extraction in this MVP.
+          Hex colors only. Invalid values are ignored on export. Analyze with AI can suggest a local cover-art
+          palette; artwork never leaves this browser.
         </p>
       </section>
 

@@ -1271,7 +1271,9 @@ fn crc32_i32(data: &[i32]) -> u32 {
     crc32_bytes(data.iter().flat_map(|sample| sample.to_le_bytes()))
 }
 
-fn crc32_bytes(bytes: impl IntoIterator<Item = u8>) -> u32 {
+/// CRC-32/IEEE (reflected poly `0xEDB88320`, init/final `0xFFFFFFFF`).
+/// Shared with container chunk CRCs and the CodecId 6 header/unit CRCs.
+pub(crate) fn crc32_bytes(bytes: impl IntoIterator<Item = u8>) -> u32 {
     let mut crc = 0xffffffffu32;
     for b in bytes {
         crc ^= b as u32;

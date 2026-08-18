@@ -40,7 +40,8 @@ export type DecodePath =
   | "MP5-C WASM v4 decode (legacy)"
   | "MP5-C WASM v3 decode (legacy)"
   | "MP5-C WASM v2 decode (legacy)"
-  | "MP5-C2 WASM decode (hybrid quiet-lossless + SR loud)"
+  | "MP5-C2 WASM decode (lossless · bit-exact)"
+  | "MP5-C v6 WASM decode (lossy · experimental · protect islands bit-exact)"
   | "MP5-H WASM enhanced decode (CORR applied)"
   | "MP5-H WASM base-only decode (CORR missing)";
 
@@ -199,8 +200,12 @@ export async function decodeFrameDataToPcm(
       samples = decodeWasm(() => codec.decode_mp5c(frameData), "MP5-C");
       break;
     case CodecId.MP5C2:
-      decodePath = "MP5-C2 WASM decode (hybrid quiet-lossless + SR loud)";
+      decodePath = "MP5-C2 WASM decode (lossless · bit-exact)";
       samples = decodeWasm(() => codec.decode_mp5c_vnext(frameData), "MP5-C2");
+      break;
+    case CodecId.MP5C6:
+      decodePath = "MP5-C v6 WASM decode (lossy · experimental · protect islands bit-exact)";
+      samples = decodeWasm(() => codec.decode_mp5c6(frameData), "MP5-C v6");
       break;
     case CodecId.MP5H: {
       const corr = input.corrData;

@@ -1,0 +1,42 @@
+{
+  "schema": "mp5.c6-perf.v1",
+  "measuredAt": "2026-07-26T20:22:10.043Z",
+  "machine": {
+    "os": "win32 x64",
+    "cpuModel": "13th Gen Intel(R) Core(TM) i5-13420H",
+    "cpuCount": 12,
+    "memoryBytes": 16791048192,
+    "nodeVersion": "v24.14.0",
+    "note": "Node+WASM desktop proxy; browser worker not directly measured"
+  },
+  "gitCommit": "6ed7d65a7fbcee47c7424c608a0a4457ad3cb6f8",
+  "signalSeconds": 6,
+  "streamBytes": 73523,
+  "encodeDefaultMs": 309.75588,
+  "encodeAbr320Ms": 1020.0658999999999,
+  "decodeMs": 66.54375999999993,
+  "seekFirstAudioMs": 61.822145,
+  "realtime": {
+    "encodeDefault": 19.370092344978247,
+    "encodeAbr320": 5.881972919592744,
+    "decode": 90.16623046248071
+  },
+  "peakMemEstimateBytes": 648712,
+  "budgets": {
+    "encode2xRt320": {
+      "required": 2,
+      "measured": 5.881972919592744,
+      "pass": true
+    },
+    "decode10xRtDesktop": {
+      "required": 10,
+      "measured": 90.16623046248071,
+      "pass": true
+    },
+    "firstAudio250ms": {
+      "required": 250,
+      "measured": 61.822145,
+      "pass": true
+    }
+  }
+}

@@ -1,6 +1,7 @@
 pub mod mp5c;
 pub mod mp5c2;
 pub mod mp5c3;
+pub mod mp5c6;
 pub mod mp5h;
 pub mod mp5l;
 pub mod pcm;
@@ -269,9 +270,163 @@ pub fn decode_mp5c3(data: &[u8]) -> Result<Vec<i16>, JsValue> {
     mp5c3::decode(data).map_err(|e| JsValue::from_str(&e))
 }
 
+/// MP5-C (CodecId 6) encode: MDCT loud path, bit-exact protect islands.
+/// Experimental lossy stream — see `docs/MP5C_NEXT_SPEC.md`.
+#[wasm_bindgen]
+pub fn encode_mp5c6(
+    samples: &[i16],
+    channels: u8,
+    preset: u8,
+    sample_rate: u32,
+) -> Result<Vec<u8>, JsValue> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::High);
+    mp5c6::encode(samples, channels, p, sample_rate).map_err(|e| JsValue::from_str(&e))
+}
+
+/// MP5-C (CodecId 6) decode. Fails closed on bad magic, CRC, bounds or frame counts.
+#[wasm_bindgen]
+pub fn decode_mp5c6(data: &[u8]) -> Result<Vec<i16>, JsValue> {
+    mp5c6::decode(data).map_err(|e| JsValue::from_str(&e))
+}
+
+/// MP5-C (CodecId 6) seek decode (Phase 5.4): decode only the units covering
+/// `[start_frame, start_frame + num_frames)`. Same fail-closed validation as
+/// `decode_mp5c6`; units are indexable and need no preroll.
+#[wasm_bindgen]
+pub fn decode_mp5c6_range(
+    data: &[u8],
+    start_frame: u32,
+    num_frames: u32,
+) -> Result<Vec<i16>, JsValue> {
+    mp5c6::decode_range(data, start_frame, num_frames).map_err(|e| JsValue::from_str(&e))
+}
+
+/// MP5-C (CodecId 6) encode with a deterministic rate target (Phase 4.3).
+/// `rate_mode`: 0 = unconstrained (ignores `target_kbps`), 1 = ABR, 2 = CBR.
+/// ABR/CBR hit the target within ±3% track-average; protect islands consume
+/// budget ahead of the MDCT pool and are disclosed via `inspect_unit_mix`.
+#[wasm_bindgen]
+pub fn encode_mp5c6_at(
+    samples: &[i16],
+    channels: u8,
+    preset: u8,
+    sample_rate: u32,
+    target_kbps: u16,
+    rate_mode: u8,
+) -> Result<Vec<u8>, JsValue> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::High);
+    let mode = match rate_mode {
+        0 => mp5c6::RateMode::Off,
+        1 => mp5c6::RateMode::Abr {
+            kbps: target_kbps as u32,
+        },
+        2 => mp5c6::RateMode::Cbr {
+            kbps: target_kbps as u32,
+        },
+        other => return Err(JsValue::from_str(&format!("unknown rate_mode {other} (0=off, 1=ABR, 2=CBR)"))),
+    };
+    mp5c6::encode_with_rate(samples, channels, p, sample_rate, mode).map_err(|e| JsValue::from_str(&e))
+}
+
+/// MP5-C (CodecId 6) VBR encode: `qi` is a quality index in 1/4-log2 step-grid
+/// units (positive = finer/larger, negative = coarser/smaller). No rate target.
+#[wasm_bindgen]
+pub fn encode_mp5c6_vbr(
+    samples: &[i16],
+    channels: u8,
+    preset: u8,
+    sample_rate: u32,
+    qi: i32,
+) -> Result<Vec<u8>, JsValue> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::High);
+    mp5c6::encode_with_rate(samples, channels, p, sample_rate, mp5c6::RateMode::Vbr { qi })
+        .map_err(|e| JsValue::from_str(&e))
+}
+
+/// MP5-C (CodecId 6) with full options: rate target plus Phase 5 features.
+/// `rate_mode`: 0 = unconstrained, 1 = ABR, 2 = CBR. `joint_stereo` enables
+/// the Phase 5.1 per-band M/S coding; `window_switching` enables the Phase
+/// 5.2 long/start/short/stop block sequence; `psycho` enables the Phase 5.3
+/// psychoacoustic step allocation (all profile 3).
+#[wasm_bindgen]
+pub fn encode_mp5c6_opt(
+    samples: &[i16],
+    channels: u8,
+    preset: u8,
+    sample_rate: u32,
+    target_kbps: u16,
+    rate_mode: u8,
+    joint_stereo: bool,
+    window_switching: bool,
+    psycho: bool,
+) -> Result<Vec<u8>, JsValue> {
+    let p = Preset::from_u8(preset).unwrap_or(Preset::High);
+    let mode = match rate_mode {
+        0 => mp5c6::RateMode::Off,
+        1 => mp5c6::RateMode::Abr {
+            kbps: target_kbps as u32,
+        },
+        2 => mp5c6::RateMode::Cbr {
+            kbps: target_kbps as u32,
+        },
+        other => {
+            return Err(JsValue::from_str(&format!(
+                "unknown rate_mode {other} (0=off, 1=ABR, 2=CBR)"
+            )))
+        }
+    };
+    let options = mp5c6::EncodeOptions {
+        profile_id: if joint_stereo || window_switching || psycho {
+            mp5c6::PROFILE_PHASE5
+        } else {
+            mp5c6::DEFAULT_PROFILE
+        },
+        joint_stereo,
+        window_switching,
+        psycho,
+    };
+    mp5c6::encode_with_options(
+        samples,
+        channels,
+        p,
+        mp5c2::ProtectParams::widened(mp5c6::PROTECT_SCALE),
+        sample_rate,
+        mode,
+        options,
+    )
+    .map_err(|e| JsValue::from_str(&e))
+}
+
+/// Walk a CodecId 6 (or CodecId 5) codec stream and report its unit mix as JSON.
+/// Shape is documented in `docs/MP5C_NEXT_SPEC.md` sec. 4.4.
+#[wasm_bindgen]
+pub fn inspect_unit_mix(data: &[u8]) -> Result<String, JsValue> {
+    mp5c6::inspect_unit_mix(data)
+        .map(|m| m.to_json())
+        .map_err(|e| JsValue::from_str(&e))
+}
+
 #[wasm_bindgen]
 pub fn snr_db_wasm(original: &[i16], decoded: &[i16]) -> f64 {
     let o = pcm::i16_to_f32(original);
     let d = pcm::i16_to_f32(decoded);
     pcm::snr_db(&o, &d)
+}
+
+/// NMR reject-filter screen (Phase 5.3, spec §5): per-band noise vs masking
+/// threshold of the source. JSON: {maxNmrDb, meanNmrDb, frames, channels}.
+/// Reject filter only — never a transparency proof.
+#[wasm_bindgen]
+pub fn nmr_screen_wasm(
+    original: &[i16],
+    decoded: &[i16],
+    channels: u8,
+    sample_rate: u32,
+) -> Result<String, JsValue> {
+    let r = mp5c3::nmr_screen(original, decoded, channels, sample_rate)
+        .map_err(|e| JsValue::from_str(&e))?;
+    Ok(format!(
+        "{{\"maxNmrDb\":{:.3},\"meanNmrDb\":{:.3},\"frames\":{},\"channels\":{}}}",
+        r.max_nmr_db, r.mean_nmr_db, r.frames, r.channels
+    ))
 }

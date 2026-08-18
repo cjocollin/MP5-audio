@@ -9,7 +9,7 @@ For the detailed compatibility table, see [MP5_COMPATIBILITY_MATRIX.md](MP5_COMP
 |---------|--------|-------|
 | MP5-L v3 convert/play | Public Beta | Recommended lossless path; packed Rice + 4-mode stereo |
 | MP5-C | Lab-only | May hiss; not default |
-| MP5-C2 (vNext) | Lab/advanced | Quiet-lossless hybrid; Converter gated; protect-scale 1.5 |
+| MP5-C2 (vNext) | Lab/advanced | Lossless / bit-exact; Converter gated; protect-scale 1.5; ~1.07x MP5-L size (no size win) |
 | MP5-H | Experimental | Large hybrid mode; not default |
 | PCM | Reference/debug | Fallback and tests |
 | Metadata / cover / lyrics | Public Beta | Optional; never required for playback |

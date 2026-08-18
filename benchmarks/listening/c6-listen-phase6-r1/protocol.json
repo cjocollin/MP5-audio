@@ -1,0 +1,141 @@
+{
+  "schema": "mp5.listening.protocol.v1",
+  "experimentId": "c6-listen-phase6-r1",
+  "createdAt": "2026-07-26T20:05:21.889Z",
+  "gitCommit": "6ed7d65a7fbcee47c7424c608a0a4457ad3cb6f8",
+  "encoder": "CodecId 6 (MP5-C), ABR, profile 3 defaults (joint stereo + window switching)",
+  "fixtures": [
+    {
+      "id": "killer_castanets",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 3
+    },
+    {
+      "id": "killer_glockenspiel",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 4
+    },
+    {
+      "id": "killer_harpsichord",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 4
+    },
+    {
+      "id": "killer_applause",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 3
+    },
+    {
+      "id": "killer_hard_pan",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 3
+    },
+    {
+      "id": "killer_anti_phase",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 3
+    },
+    {
+      "id": "killer_birdies",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 4
+    },
+    {
+      "id": "killer_protect_threshold_alt",
+      "channels": 2,
+      "sampleRate": 44100,
+      "durationSec": 4
+    },
+    {
+      "id": "ex_transient_attacks",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_steady_tonal",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_reverb_tails",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_wide_stereo",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_vocals",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_cymbals_hats",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_low_bitrate_stress",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_applause_like",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_castanet_like",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_harpsichord_like",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    },
+    {
+      "id": "ex_sparse_quiet",
+      "channels": 2,
+      "sampleRate": 48000,
+      "durationSec": 8
+    }
+  ],
+  "arms": {
+    "abx320": {
+      "design": "ABX vs decoded reference, 16 trials/fixture",
+      "hypothesis": "listeners cannot identify X better than the binomial critical value at alpha=0.05 (transparency at 320)",
+      "passRule": "correct <= binomialCritical(16, 0.05) per fixture AND overall"
+    },
+    "mushra192": {
+      "design": "MUSHRA: hidden reference, LAME CBR 320 anchor, LAME CBR 128 anchor, C6 ABR 192 candidate",
+      "hypothesis": "C6 ABR 192 scores non-inferior to LAME CBR 128 anchor (size-matched comparison)",
+      "passRule": "median candidate score >= median LAME-128 anchor score on >= 80% of fixtures, no fixture with systematic artifact reports (hiss/pre-echo/stereo collapse/clip/duration drift)"
+    },
+    "mushra128": {
+      "design": "as mushra192 with C6 ABR 128 candidate",
+      "hypothesis": "C6 ABR 128 scores non-inferior to LAME CBR 128 anchor",
+      "passRule": "as mushra192; failure here MUST NOT block a qualified 320/192"
+    }
+  },
+  "resultsFile": "results.json (fill after listening; do not edit stimuli)"
+}

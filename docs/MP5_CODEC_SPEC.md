@@ -15,7 +15,7 @@ This page is a short public summary.
 
 See [MP5L.md](MP5L.md).
 
-## MP5-C (lossy) — lab-only
+## MP5-C classic (legacy, lossy) — lab-only
 
 - Time-domain quantization with full-scale-relative step (not MDCT in the shipping pack)
 - Known quiet-passage hiss — see [MP5C_HISS_AUDIT.md](MP5C_HISS_AUDIT.md)
@@ -24,12 +24,22 @@ See [MP5L.md](MP5L.md).
 
 **Not competitive with AAC/Opus.** Not the default export.
 
-## MP5-C2 / vNext (hybrid) — lab/advanced
+## MP5-C2 / vNext (lossless, bit-exact) — lab/advanced
 
-- Quiet/fragile/tail sub-blocks → MP5-L; loud → MP5-C (coalesced lossy runs)
+- Quiet/fragile/tail sub-blocks → MP5-L; loud → `min(TAG_SR+CORR, TAG_LOSSLESS)` by payload
+  size. Every unit the shipping encoder emits restores the source PCM sample-for-sample, so
+  **C2 output is bit-exact**. `TAG_LOSSY` (`0x43`) and `TAG_MDCT` (`0x4d`) are decode-only
+  legacy / lab paths that the shipping encoder never writes.
 - Distinct AUDI magic `0x43 0x34`; CodecId **5**
 - Converter: gated behind **Show lab / advanced codecs**; batch stays MP5-L
-- Shipping protect-scale **1.5** (real-track hiss risk low at ~0.97× PCM)
+- Shipping protect-scale **1.5**
+- Measured on a real-music corpus C2 is **0.77x PCM but ~1.07x MP5-L v4** — slightly *larger*
+  than MP5-L with no quality advantage, so MP5-L v4 stays the recommended export. C2 correctness
+  is verified by **sample equality**, not ABX/SNR.
+
+Measured size: [`benchmarks/audio-quality/c2-real-track-remeasure.json`](../benchmarks/audio-quality/c2-real-track-remeasure.json).
+The older `vnext-real-track-gate.json` C2 figures predate the bit-exact loud path — see
+[`benchmarks/audio-quality/README.md`](../benchmarks/audio-quality/README.md).
 
 See [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md).
 

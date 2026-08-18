@@ -79,9 +79,12 @@ export function WelcomeOnboarding() {
 
       <div className="rounded-xl border border-white/[0.04] bg-black/10 px-4 py-3 text-xs text-gray-500 space-y-1">
         <p>
-          <strong className="text-gray-400 font-normal">MP5-C</strong> — experimental lab codec, may
-          hiss. <strong className="text-gray-400 font-normal">MP5-H</strong> — hybrid, large, not
-          default. <strong className="text-gray-400 font-normal">PCM</strong> — reference/debug only.
+          <strong className="text-gray-400 font-normal">MP5-C2</strong> — lossless/bit-exact, lab
+          only, no size win over MP5-L.{" "}
+          <strong className="text-gray-400 font-normal">MP5-C classic</strong> — experimental lab
+          codec, may hiss. <strong className="text-gray-400 font-normal">MP5-H</strong> — hybrid,
+          large, not default. <strong className="text-gray-400 font-normal">PCM</strong> —
+          reference/debug only.
         </p>
       </div>
 

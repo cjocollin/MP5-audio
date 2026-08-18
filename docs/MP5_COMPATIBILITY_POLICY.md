@@ -23,7 +23,8 @@ MP5 is an experimental Public Beta. This policy defines how the reference parser
 |-------|------|
 | MP5-L v3 | Default/recommended lossless path |
 | MP5-C | Lab-only; may hiss; not a distribution default |
-| MP5-C2 (vNext) | Lab/advanced only (CodecId 5); quiet-lossless hybrid; not default |
+| MP5-C2 (vNext) | Lab/advanced only (CodecId 5); lossless / bit-exact; not default |
+| MP5-C (CodecId 6) | Lab/advanced only; **lossy** MDCT loud path with bit-exact protect islands; bitstream **not frozen** (no forever-decode promise yet); not default. See [MP5C_NEXT_SPEC.md](MP5C_NEXT_SPEC.md) |
 | MP5-H | Experimental hybrid; large; not default |
 | PCM | Reference/debug fallback |
 

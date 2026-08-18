@@ -371,12 +371,21 @@ describe("AI feature helpers", () => {
     expect(modelPresetIdForProvider("openai", "gpt-5.6-luna")).toBe("gpt-5.6-luna");
     expect(modelPresetIdForProvider("openai", "unknown-model")).toBe(AI_MODEL_CUSTOM_ID);
     expect(modelFromProviderPreset("anthropic", "claude-sonnet-5")).toBe("claude-sonnet-5");
+    expect(modelFromProviderPreset("anthropic", "claude-opus-5")).toBe("claude-opus-5");
+    expect(modelFromProviderPreset("gemini", "gemini-3.7-flash")).toBe("gemini-3.7-flash");
     expect(inferProviderId("https://api.anthropic.com/v1", "claude-sonnet-5")).toBe("anthropic");
     expect(inferProviderId("https://api.deepseek.com", "deepseek-v4-flash")).toBe("deepseek");
     expect(inferProviderId("https://api.mistral.ai/v1", "ministral-3b-latest")).toBe("mistral");
     expect(inferProviderId("https://api.groq.com/openai/v1", "openai/gpt-oss-20b")).toBe("groq");
     expect(inferProviderId("https://openrouter.ai/api/v1", "openrouter/auto")).toBe("openrouter");
     expect(inferProviderId("https://api.x.ai/v1", "grok-4.5")).toBe("xai");
+
+    const { unionCatalogAndLive } = await import("../apps/web/src/lib/ai/fetchAiModels");
+    const merged = unionCatalogAndLive(
+      [{ id: "gemini-3.7-flash", label: "Gemini 3.7 Flash", model: "gemini-3.7-flash" }],
+      [{ id: "gemini-3.6-flash", label: "Gemini 3.6 Flash", model: "gemini-3.6-flash" }],
+    );
+    expect(merged.map((m) => m.model)).toEqual(["gemini-3.7-flash", "gemini-3.6-flash"]);
   });
 
   it("AI model settings migrate retired saved defaults", async () => {

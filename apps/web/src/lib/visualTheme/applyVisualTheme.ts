@@ -1,6 +1,12 @@
 import type { CSSProperties } from "react";
 import type { VisuPayload } from "@mp5/container";
-import { ensureReadableText, hexWithAlpha, parseHexColor } from "./colorUtils";
+import {
+  ensureReadableAccent,
+  ensureReadableText,
+  hexToRgb,
+  hexWithAlpha,
+  parseHexColor,
+} from "./colorUtils";
 import { enrichVisuColors } from "./visuStylePresets";
 import { DEFAULT_APP_ACCENT } from "./themeApplication";
 
@@ -38,7 +44,7 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
   const accent =
     parseHexColor(filled.accentColor) ?? parseHexColor(filled.primaryColor) ?? DEFAULT_APP_ACCENT;
   const primary = parseHexColor(filled.primaryColor);
-  const secondary = parseHexColor(filled.secondaryColor);
+  const secondary = parseHexColor(filled.secondaryColor) ?? primary ?? accent;
   const background = parseHexColor(filled.backgroundColor);
   const text = background
     ? ensureReadableText(background, filled.textColor)
@@ -49,9 +55,9 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
   if (stops.length >= 2) {
     cardBackground = `linear-gradient(145deg, ${stops.join(", ")})`;
   } else if (background && primary) {
-    cardBackground = `linear-gradient(145deg, ${hexWithAlpha(background, 0.95)} 0%, ${hexWithAlpha(primary, 0.55)} 55%, ${hexWithAlpha(accent, 0.35)} 100%)`;
+    cardBackground = `linear-gradient(145deg, ${hexWithAlpha(background, 0.95)} 0%, ${hexWithAlpha(primary, 0.5)} 48%, ${hexWithAlpha(secondary, 0.4)} 76%, ${hexWithAlpha(accent, 0.3)} 100%)`;
   } else if (background) {
-    cardBackground = `linear-gradient(160deg, ${hexWithAlpha(background, 0.92)} 0%, ${hexWithAlpha(accent, 0.28)} 100%)`;
+    cardBackground = `linear-gradient(160deg, ${hexWithAlpha(background, 0.92)} 0%, ${hexWithAlpha(secondary, 0.32)} 70%, ${hexWithAlpha(accent, 0.24)} 100%)`;
   } else if (primary) {
     cardBackground = `linear-gradient(160deg, ${hexWithAlpha(primary, 0.45)} 0%, ${hexWithAlpha(accent, 0.22)} 100%)`;
   } else {
@@ -99,7 +105,7 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
     "--mp5-visu-accent": accent,
   };
   if (primary) vars["--mp5-visu-primary"] = primary;
-  if (secondary) vars["--mp5-visu-secondary"] = secondary;
+  vars["--mp5-visu-secondary"] = secondary;
   if (background) vars["--mp5-visu-bg"] = background;
   vars["--mp5-visu-text"] = text;
 
@@ -122,7 +128,7 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
     titleStyle,
     vars,
     waveformPlayedFill: accent,
-    waveformUnplayedFill: hexWithAlpha(secondary ?? accent, 0.52),
+    waveformUnplayedFill: hexWithAlpha(secondary, 0.52),
   };
 }
 
@@ -132,6 +138,43 @@ export function themeRootStyle(theme: ResolvedPlayerTheme | null): CSSProperties
     ...(theme.vars as CSSProperties),
     ...theme.shellStyle,
   };
+}
+
+/** App-wide identity and interaction tokens derived from the active file theme. */
+export function appChromeThemeStyle(theme: ResolvedPlayerTheme | null): CSSProperties | undefined {
+  if (!theme) return undefined;
+  const accentRgb = hexToRgb(theme.accent);
+  const accentBright = ensureReadableAccent(theme.accent);
+  const primary = theme.primary ?? theme.accent;
+  const primaryRgb = hexToRgb(primary);
+  const primaryBright = ensureReadableAccent(primary);
+  const secondary = theme.secondary ?? primary;
+  const secondaryRgb = hexToRgb(secondary);
+  const secondaryBright = ensureReadableAccent(secondary);
+  return {
+    "--mp5-accent": theme.accent,
+    "--mp5-accent-rgb": accentRgb
+      ? `${accentRgb.r} ${accentRgb.g} ${accentRgb.b}`
+      : "112 77 184",
+    "--mp5-accent-bright": accentBright,
+    "--mp5-primary": primary,
+    "--mp5-primary-rgb": primaryRgb
+      ? `${primaryRgb.r} ${primaryRgb.g} ${primaryRgb.b}`
+      : "154 109 215",
+    "--mp5-primary-bright": primaryBright,
+    "--mp5-secondary": secondary,
+    "--mp5-secondary-rgb": secondaryRgb
+      ? `${secondaryRgb.r} ${secondaryRgb.g} ${secondaryRgb.b}`
+      : "167 139 250",
+    "--mp5-secondary-bright": secondaryBright,
+    "--mp5-logo-primary": primaryBright,
+    "--mp5-primary-control": `color-mix(in srgb, ${theme.accent} 62%, #242026)`,
+    "--mp5-primary-control-hover": `color-mix(in srgb, ${accentBright} 72%, #242026)`,
+    "--mp5-theme-wash": hexWithAlpha(primary, 0.14),
+    "--mp5-theme-border": hexWithAlpha(primary, 0.42),
+    "--mp5-theme-secondary-wash": hexWithAlpha(secondary, 0.12),
+    "--mp5-theme-secondary-border": hexWithAlpha(secondary, 0.38),
+  } as CSSProperties;
 }
 
 /** Cover card styles — when art is present, skip full gradient fill so the image stays contained. */

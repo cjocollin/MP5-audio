@@ -1,0 +1,13 @@
+{
+  "schema": "mp5.c6-parity.v1",
+  "sampleRate": 44100,
+  "fixtures": {
+    "p0_transitional": { "streamSha256": "2c2025def768319d14c9f0ca930aea4fc0afaac46232aebe7f795b58a351266e", "pcmSha256": "dc8a967a93494550c2d6c56fdb1dab9eb1ffd817ce729598b04e5447c5b4f848", "bytes": 8991 },
+    "p1_coded_sf": { "streamSha256": "a1f3cd96d415e6b7a8f77d0b70e83a24ae10c8cf8d3ff8f1392837ba2b81d8c3", "pcmSha256": "91d6d0db06c5130d36a543795e9826bc982bf683da90655fb83df2367f6fba0c", "bytes": 7512 },
+    "p2_partitioned": { "streamSha256": "14ae31db2baf28f9571b67b9f1af83b54a141d15cd12b8bb8a912bb0bcbf7598", "pcmSha256": "91d6d0db06c5130d36a543795e9826bc982bf683da90655fb83df2367f6fba0c", "bytes": 2969 },
+    "p3_default": { "streamSha256": "8e1986ea416dbc0c14223f6575d7d6e7f09518ae6e2c68b240801a89256aead6", "pcmSha256": "61e5cdd48b713e923fa7c208ef98565b03df9aa8cc1fdca7f8b61c6570370053", "bytes": 2948 },
+    "p3_independent_nowin": { "streamSha256": "d15a0316ba56a92a45caba7edbf8257c373084f6b77706057e455dc333c519ff", "pcmSha256": "91d6d0db06c5130d36a543795e9826bc982bf683da90655fb83df2367f6fba0c", "bytes": 2969 },
+    "p3_full_stack_abr192": { "streamSha256": "216d121000e0db0f00f1a887dfd7e0fc42013b513ff002d2f22461d60008279a", "pcmSha256": "780682738e587b1197dacd9dbc8f2f48750151fff81b98a320d4999aac8ab3e7", "bytes": 3330 },
+    "p3_mono_window": { "streamSha256": "35736c0146442164ca3dcd32bf35b18e1099b0ab9e1b71c0e240ea514101107b", "pcmSha256": "93764b2c871bd9ec82d39221a64478df0ebcbfe0b82106ec2793f25444d265f7", "bytes": 1568 }
+  }
+}

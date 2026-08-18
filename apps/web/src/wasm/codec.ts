@@ -4,6 +4,8 @@ import init, {
   decode_mp5c,
   decode_mp5c_vnext,
   decode_mp5c3,
+  decode_mp5c6,
+  decode_mp5c6_range,
   decode_mp5h,
   decode_mp5l,
   encode_mp5c,
@@ -12,10 +14,16 @@ import init, {
   encode_mp5c_vnext_protect,
   encode_mp5c_vnext_mdct,
   encode_mp5c3,
+  encode_mp5c6,
+  encode_mp5c6_at,
+  encode_mp5c6_opt,
+  encode_mp5c6_vbr,
   encode_mp5h,
   encode_mp5h_min,
   encode_mp5l,
   encode_mp5l_v4,
+  inspect_unit_mix,
+  nmr_screen_wasm,
   snr_db_wasm,
 } from "./pkg/mp5_codec.js";
 import * as wasmPkg from "./pkg/mp5_codec.js";
@@ -35,10 +43,25 @@ export type CodecModule = {
   decode_mp5c_vnext: typeof decode_mp5c_vnext;
   encode_mp5c3: typeof encode_mp5c3;
   decode_mp5c3: typeof decode_mp5c3;
+  /** MP5-C v6 (CodecId 6): experimental lossy MDCT with bit-exact protect islands. */
+  encode_mp5c6: typeof encode_mp5c6;
+  /** CodecId 6 with a deterministic rate target (rate_mode 0=off, 1=ABR, 2=CBR). */
+  encode_mp5c6_at: typeof encode_mp5c6_at;
+  /** CodecId 6 VBR encode (quality index, no rate target). */
+  encode_mp5c6_vbr: typeof encode_mp5c6_vbr;
+  /** CodecId 6 full options: rate target + Phase 5 joint stereo. */
+  encode_mp5c6_opt: typeof encode_mp5c6_opt;
+  decode_mp5c6: typeof decode_mp5c6;
+  /** CodecId 6 seek decode: only the units covering [start_frame, +num_frames). */
+  decode_mp5c6_range: typeof decode_mp5c6_range;
+  /** JSON unit-mix report for a CodecId 6 or CodecId 5 codec stream. */
+  inspect_unit_mix: typeof inspect_unit_mix;
   encode_mp5h: typeof encode_mp5h;
   encode_mp5h_min: typeof encode_mp5h_min;
   decode_mp5h: typeof decode_mp5h;
   snr_db_wasm: typeof snr_db_wasm;
+  /** NMR reject-filter screen (Phase 5.3): JSON {maxNmrDb, meanNmrDb, ...}. */
+  nmr_screen_wasm: typeof nmr_screen_wasm;
   /** Present after `pnpm wasm:build` with progressive/frame APIs. */
   Mp5lV4StreamEncoder?: new (
     samples: Int16Array,
@@ -109,10 +132,18 @@ async function tryLoadWasmModule(): Promise<CodecModule | null> {
       decode_mp5c_vnext,
       encode_mp5c3,
       decode_mp5c3,
+      encode_mp5c6,
+      encode_mp5c6_at,
+      encode_mp5c6_opt,
+      encode_mp5c6_vbr,
+      decode_mp5c6,
+      decode_mp5c6_range,
+      inspect_unit_mix,
       encode_mp5h,
       encode_mp5h_min,
       decode_mp5h,
       snr_db_wasm,
+      nmr_screen_wasm,
       Mp5lV4StreamEncoder: pkg.Mp5lV4StreamEncoder,
       plan_mp5l_v4_boundaries: pkg.plan_mp5l_v4_boundaries,
       encode_mp5l_v4_frame: pkg.encode_mp5l_v4_frame,
@@ -162,6 +193,12 @@ function createJsFallback(): CodecModule {
     );
   };
 
+  const encodeUnavailable = (): never => {
+    throw new Error(
+      "MP5 codec (WASM) unavailable — cannot encode MP5-C v6 (CodecId 6) in this browser/session. Reload the page, or export MP5-L.",
+    );
+  };
+
   return {
     encode_mp5l: passthrough,
     encode_mp5l_v4: passthrough,
@@ -175,10 +212,20 @@ function createJsFallback(): CodecModule {
     decode_mp5c_vnext: decodeUnavailable,
     encode_mp5c3: passthrough,
     decode_mp5c3: decodeUnavailable,
+    // CodecId 6 is CRC-framed: a PCM passthrough would be a stream that lies
+    // about its identity, so refuse rather than emit one.
+    encode_mp5c6: encodeUnavailable,
+    encode_mp5c6_at: encodeUnavailable,
+    encode_mp5c6_opt: encodeUnavailable,
+    encode_mp5c6_vbr: encodeUnavailable,
+    decode_mp5c6: decodeUnavailable,
+    decode_mp5c6_range: decodeUnavailable,
+    inspect_unit_mix: decodeUnavailable,
     encode_mp5h: passthrough,
     encode_mp5h_min: passthrough,
     decode_mp5h: decodeUnavailable,
     snr_db_wasm: () => 0,
+    nmr_screen_wasm: decodeUnavailable,
   };
 }
 

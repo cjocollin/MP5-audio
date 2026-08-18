@@ -2447,7 +2447,6 @@ export function Mp5Player({
                     activeLoopRange={waveformLoopRange}
                     playedFill={playerTheme?.waveformPlayedFill}
                     unplayedFill={playerTheme?.waveformUnplayedFill}
-                    visualProfile={track?.origin === "default-demo" ? "default-demo" : undefined}
                     onSeek={handleWaveformSeek}
                     disabled={loading || duration <= 0}
                   />

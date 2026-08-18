@@ -80,3 +80,8 @@ wasm-opt = ["-O3"]
 
 [dev-dependencies]
 approx = "0.5.1"
+
+[[bin]]
+name = "c6_parity"
+path = "src/bin/c6_parity.rs"
+required-features = ["bench_tools"]

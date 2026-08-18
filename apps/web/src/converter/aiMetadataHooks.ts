@@ -1,11 +1,13 @@
 import type {
   BeatPayload,
+  CoverArt,
   ExplPayload,
   LyrcPayload,
   MoodPayload,
   SafePayload,
   SectPayload,
   SummPayload,
+  VisuPayload,
   VibePayload,
 } from "@mp5/container";
 import {
@@ -20,6 +22,7 @@ import { analyzeBeatFromPcm } from "../lib/ai/providers/localBeat";
 import { suggestCloudAudioAnalysis } from "../lib/ai/providers/cloudAudioAnalysis";
 import { suggestCloudLyrics } from "../lib/ai/providers/cloudLyrics";
 import { suggestCloudMetadata, type CloudMetadataContext } from "../lib/ai/providers/cloudMetadata";
+import { deriveCoverPalette, suggestCoverThemeName } from "../lib/visualTheme/coverPalette";
 
 export type { AiAnalysisProgress } from "../lib/ai/aiAnalysisProgress";
 
@@ -33,6 +36,8 @@ export interface AiMetadataSuggestions {
   mood?: MoodPayload;
   vibe?: VibePayload;
   summ?: SummPayload;
+  visu?: VisuPayload;
+  coverPaletteError?: string;
   cloudBeatError?: string;
   cloudStructureError?: string;
   cloudLyricsError?: string;
@@ -43,6 +48,7 @@ export interface AiEnrichmentInput {
   pcm: Int16Array;
   sampleRate: number;
   channels: number;
+  cover?: CoverArt;
   context: CloudMetadataContext;
   onProgress?: (progress: AiAnalysisProgress) => void;
 }
@@ -69,10 +75,28 @@ export async function enrichWithAi(input: AiEnrichmentInput): Promise<AiMetadata
   if (!settings.enabled) return {};
 
   const durationSec = pcmDurationFromInput(input.pcm, input.sampleRate, input.channels);
-  const totalSteps = estimateAiAnalysisSteps(settings, durationSec);
+  const totalSteps = estimateAiAnalysisSteps(settings, durationSec, input.cover ? 1 : 0);
   const progress = createAiProgressReporter(totalSteps, input.onProgress);
 
   const out: AiMetadataSuggestions = {};
+
+  if (input.cover) {
+    progress.start("Local cover palette", "Extracting theme colors on-device — no artwork upload.");
+    try {
+      const palette = await deriveCoverPalette(input.cover);
+      out.visu = {
+        ...palette,
+        themeName: suggestCoverThemeName(palette, input.context),
+        visualIntensity: "medium",
+        playerStyle: "custom",
+        coverArtDerived: true,
+        source: "app",
+      };
+    } catch (err) {
+      out.coverPaletteError = err instanceof Error ? err.message : String(err);
+    }
+    progress.done();
+  }
 
   if (settings.localBeat) {
     progress.start("Local tempo analysis", "Estimating BPM on-device — no API call.");

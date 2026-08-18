@@ -10,6 +10,8 @@ MP5C_HISS_REPORT.md
 mp5c-hiss-report.json
 compare-report.md
 compare-report.json
+lame-matched-bench.json
+lame-matched-bench-*.json
 listening/
 local-listening/
 local/

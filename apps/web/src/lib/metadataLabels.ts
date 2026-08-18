@@ -73,7 +73,7 @@ export const IDENTIFIERS_HELP =
   "Optional release identifiers (ISRC, UPC, URLs). URLs must use http or https.";
 
 export const VISUAL_THEME_HELP =
-  "Optional colors and mood for the player UI. Does not affect audio decode or playback.";
+  "Optional primary, secondary, accent, and background colors for the player UI. Does not affect audio decode or playback.";
 
 export const SPECIALIZED_APP_HELP =
   "Optional app-specific metadata. Most music files and players do not need this.";

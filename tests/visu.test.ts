@@ -32,6 +32,7 @@ describe("VISU chunk", () => {
     const payload = {
       themeName: "Night drive",
       primaryColor: "#6366f1",
+      secondaryColor: "#a78bfa",
       accentColor: "#8b5cf6",
       backgroundColor: "#1e1b4b",
       moodLabel: "calm",
@@ -42,6 +43,7 @@ describe("VISU chunk", () => {
     };
     const decoded = decodeVisu(encodeVisu(payload));
     expect(decoded?.themeName).toBe("Night drive");
+    expect(decoded?.secondaryColor).toBe("#a78bfa");
     expect(decoded?.accentColor).toBe("#8b5cf6");
     expect(decoded?.visualIntensity).toBe("low");
     expect(decoded?.gradientStops).toEqual(["#1e1b4b", "#6366f1"]);

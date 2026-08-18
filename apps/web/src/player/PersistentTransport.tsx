@@ -14,6 +14,7 @@ import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
 import type { PlaylistTrack } from "../store/playerStore";
 import { usePlayerStore } from "../store/playerStore";
 import { trackDisplayInfo } from "./playlistUtils";
+import { audiKbps, bitrateBadgeLabel, c6BitrateInfo } from "../lib/c6Bitrate";
 import { codecLabel } from "../lib/codecDisplay";
 import { formatTimelineRange } from "./playerDisplay";
 import { SeekTimeline } from "./SeekTimeline";
@@ -66,6 +67,15 @@ export function PersistentTransport({
   const coverUrl = useCoverObjectUrl(coverFromParsed(parsed));
   const hasTrack = !!track;
   const info = track ? trackDisplayInfo(track) : null;
+  const audiFrame = parsed?.audioFrames[0]?.data;
+  const bitrateBadge = audiFrame
+    ? (parsed?.head?.codecId === CodecId.MP5C6
+        ? bitrateBadgeLabel(c6BitrateInfo(audiFrame))
+        : (() => {
+            const kbps = audiKbps(audiFrame.length, duration || info?.durationSec || null);
+            return kbps == null ? null : `${Math.round(kbps)} kbps`;
+          })())
+    : null;
   // Mobile time label — isolated currentTime subscription.
   const currentTime = usePlayerStore((s) => s.currentTime);
   const timeline = formatTimelineRange(currentTime, duration);
@@ -109,6 +119,11 @@ export function PersistentTransport({
                     /\s*\(.+\)$/,
                     "",
                   )}
+                </span>
+              )}
+              {bitrateBadge && (
+                <span className="mp5-mini-badge" data-testid="transport-bitrate-badge">
+                  {bitrateBadge}
                 </span>
               )}
               {parsed?.head?.codecId === CodecId.MP5L && (

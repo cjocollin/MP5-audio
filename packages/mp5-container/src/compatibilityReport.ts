@@ -98,10 +98,11 @@ export interface Mp5CompatibilityReport {
 
 const CODEC_LABELS: Record<number, string> = {
   [CodecId.PCM]: "PCM reference",
-  [CodecId.MP5C]: "MP5-C (lab)",
+  [CodecId.MP5C]: "MP5-C classic (legacy · lab)",
   [CodecId.MP5L]: "MP5-L",
   [CodecId.MP5H]: "MP5-H (hybrid)",
-  [CodecId.MP5C2]: "MP5-C2",
+  [CodecId.MP5C2]: "MP5-C2 (lossless · lab)",
+  [CodecId.MP5C6]: "MP5-C v6 (lossy · beta preview)",
 };
 
 function metaValue(file: Mp5File, key: string): string | undefined {
@@ -160,6 +161,14 @@ export function mp5CodecVersionLabel(codecId: number, audi?: Uint8Array): string
   if (codecId === CodecId.MP5C2) {
     if (audi[0] === 0x43 && audi[1] === 0x34) return "vNext native (0x43 0x34)";
     return "vNext";
+  }
+  if (codecId === CodecId.MP5C6) {
+    // 28-byte CRC-protected header; byte 3 is profile_id
+    // (0 = transitional lab raw f32 scales, 1 = coded scalefactors).
+    if (audi.length >= 28 && audi[0] === 0x43 && audi[1] === 0x36) {
+      return `MP5-C v6 native (0x43 0x36) · profile ${audi[3]}`;
+    }
+    return "MP5-C v6 (unrecognized header)";
   }
   return "unknown";
 }
@@ -222,9 +231,18 @@ export function assessMp5Compatibility(
         level: "info",
         code: "codec_mp5c2",
         message:
-          "MP5-C2 hybrid (quiet-lossless + SR loud). Prefer MP5-L for bit-exact distribution.",
+          "MP5-C2 is bit-exact lossless but lab-only. Prefer MP5-L v4 for distribution.",
       });
-      warnings.push("MP5-C2 — hybrid export (not default)");
+      warnings.push("MP5-C2 — lab export (not default)");
+    }
+    if (codecId === CodecId.MP5C6) {
+      issues.push({
+        level: "warning",
+        code: "codec_mp5c6_experimental",
+        message:
+          "MP5-C v6 (CodecId 6) is a lossy experimental codec: only its protect islands are sample-exact and the bitstream is not frozen. Prefer MP5-L v4 for distribution or archival.",
+      });
+      warnings.push("MP5-C v6 (CodecId 6) — lossy experimental, bitstream not frozen");
     }
     if (codecId === CodecId.MP5H && !file.corr.length) {
       issues.push({

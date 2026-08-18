@@ -24,9 +24,11 @@ export function mp5lVersionLabel(version: number | null): string {
 export function codecLabel(codecId: number, frameData?: Uint8Array): string {
   switch (codecId) {
     case CodecId.MP5C:
-      return "MP5-C (experimental / lab)";
+      return "MP5-C classic (legacy · experimental / lab)";
     case CodecId.MP5C2:
-      return "MP5-C2 (hybrid · not default)";
+      return "MP5-C2 (lossless · bit-exact · lab · not default)";
+    case CodecId.MP5C6:
+      return "MP5-C v6 (lossy · beta preview · not default)";
     case CodecId.MP5L: {
       const ver = frameData ? mp5lBitstreamVersion(frameData) : null;
       if (ver === 4) return "MP5-L v4 (lossless · default)";
@@ -46,7 +48,7 @@ export function codecLabel(codecId: number, frameData?: Uint8Array): string {
 }
 
 export function codecExportOptionLabel(
-  codec: "mp5l" | "mp5l_v4" | "mp5h" | "mp5c" | "mp5c2" | "pcm",
+  codec: "mp5l" | "mp5l_v4" | "mp5h" | "mp5c" | "mp5c2" | "mp5c6" | "pcm",
 ): string {
   switch (codec) {
     case "mp5l":
@@ -56,9 +58,11 @@ export function codecExportOptionLabel(
     case "mp5h":
       return "MP5-H (hybrid: MP5-C base + CORR · size-gated vs MP5-L · not default)";
     case "mp5c":
-      return "MP5-C (experimental / lab · may hiss · not for listening)";
+      return "MP5-C classic (legacy · experimental / lab · may hiss · not for listening)";
     case "mp5c2":
-      return "MP5-C2 (hybrid quiet-lossless + SR loud · not default)";
+      return "MP5-C2 (lossless · bit-exact · lab · not default)";
+    case "mp5c6":
+      return "MP5-C v6 (lossy · beta preview · MDCT loud path · bit-exact protect islands · not default)";
     case "pcm":
       return "PCM (reference / debug · uncompressed)";
   }
@@ -83,6 +87,10 @@ export function presetLabelForCodec(codecId: number, presetId: number): string {
     if (presetId === 2) return `${base} (preferred · protect 1.5 · SR loud)`;
     if (presetId === 3) return `${base} (finest SR loud · protect 1.5)`;
     return `${base} (MP5-C2 loud path)`;
+  }
+  if (codecId === CodecId.MP5C6) {
+    const base = PRESET_NAMES[presetId] ?? `Preset ${presetId}`;
+    return `${base} (MP5-C v6 MDCT loud path · protect 1.5)`;
   }
   return presetLabel(presetId);
 }
@@ -177,11 +185,38 @@ export function describeMp5cPlayback(frameData?: Uint8Array): Mp5cPlaybackLabels
     ver = `v${frameData[1]}`;
   }
   return {
-    containerMode: "MP5-C (experimental)",
+    containerMode: "MP5-C classic (legacy · experimental)",
     bitstreamVersion: ver,
     outputQuality: "Lossy — not bit-exact",
     warning:
       "Lab/research codec. May add audible hiss on all presets. Not recommended for normal listening.",
+  };
+}
+
+export type Mp5c6PlaybackLabels = {
+  containerMode: string;
+  bitstreamVersion: string;
+  outputQuality: string;
+  warning: string;
+};
+
+/**
+ * CodecId 6 playback description. The stream is lossy overall; only the
+ * `TAG_LOSSLESS` / `TAG_BAND` protect islands are sample-exact, so the copy
+ * must not claim bit-exactness for the file.
+ */
+export function describeMp5c6Playback(frameData?: Uint8Array): Mp5c6PlaybackLabels {
+  let profile = "unknown";
+  if (frameData && frameData.length >= 28 && frameData[0] === 0x43 && frameData[1] === 0x36) {
+    const revision = frameData[18] | (frameData[19] << 8);
+    profile = `profile ${frameData[3]} · encoder rev ${revision}`;
+  }
+  return {
+    containerMode: "MP5-C v6 (lossy · beta preview)",
+    bitstreamVersion: profile,
+    outputQuality: "Lossy — only protect islands are sample-exact",
+    warning:
+      "Experimental lossy codec. The MDCT loud path is not bit-exact and the bitstream is not frozen — files may not decode in future builds. Not recommended for archival or normal listening.",
   };
 }
 

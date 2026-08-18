@@ -1,0 +1,625 @@
+{
+  "corpus": "origami_segments",
+  "sources": [
+    "origami_seg_00.flac",
+    "origami_seg_01.flac",
+    "origami_seg_02.flac",
+    "origami_seg_03.flac",
+    "origami_seg_04.flac",
+    "origami_seg_05.flac",
+    "origami_seg_06.flac",
+    "origami_seg_07.flac",
+    "origami_seg_08.flac",
+    "origami_seg_09.flac",
+    "origami_seg_10.flac",
+    "origami_seg_11.flac",
+    "origami_seg_12.flac",
+    "origami_seg_13.flac",
+    "origami_seg_14.flac",
+    "origami_seg_15.flac",
+    "origami_seg_16.flac",
+    "origami_seg_17.flac",
+    "origami_seg_18.flac"
+  ],
+  "preset": 2,
+  "sampleRate": 48000,
+  "channels": 2,
+  "totalSamples": 7296000,
+  "pcmBytes": 29184000,
+  "c2Bytes": 22581388,
+  "mp5lV4Bytes": 21134830,
+  "ratioVsPcm": 0.7737591831140351,
+  "ratioVsMp5lV4": 1.0684442694831233,
+  "contentBitExact": true,
+  "unitMix": {
+    "units": 54,
+    "totalFrames": 7296000,
+    "totalPayloadBytes": 22580712,
+    "unitsByTag": {
+      "lossless_L": 41,
+      "lossless_B": 13
+    },
+    "framesByTag": {
+      "lossless_L": 7242752,
+      "lossless_B": 53248
+    },
+    "payloadBytesByTag": {
+      "lossless_L": 22495565,
+      "lossless_B": 85147
+    },
+    "lossyFrames": 0,
+    "bitExactFramePct": 100
+  },
+  "perSource": [
+    {
+      "source": "origami_seg_00.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 929698,
+      "mp5lV4Bytes": 859333,
+      "ratioVsPcm": 0.6052721354166667,
+      "ratioVsMp5lV4": 1.0818832745862197,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 2,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 929670,
+        "unitsByTag": {
+          "lossless_L": 2
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 929670
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_01.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1058114,
+      "mp5lV4Bytes": 982582,
+      "ratioVsPcm": 0.6888763020833333,
+      "ratioVsMp5lV4": 1.0768709379980501,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1058095,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1058095
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_02.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1175988,
+      "mp5lV4Bytes": 1111917,
+      "ratioVsPcm": 0.7656171875,
+      "ratioVsMp5lV4": 1.0576221066860205,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1175969,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1175969
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_03.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1212310,
+      "mp5lV4Bytes": 1150654,
+      "ratioVsPcm": 0.7892643229166667,
+      "ratioVsMp5lV4": 1.053583440373909,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1212291,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1212291
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_04.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1200709,
+      "mp5lV4Bytes": 1125395,
+      "ratioVsPcm": 0.7817115885416667,
+      "ratioVsMp5lV4": 1.0669222806214707,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 7,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1200636,
+        "unitsByTag": {
+          "lossless_L": 5,
+          "lossless_B": 2
+        },
+        "framesByTag": {
+          "lossless_L": 374784,
+          "lossless_B": 9216
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1185880,
+          "lossless_B": 14756
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_05.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1342953,
+      "mp5lV4Bytes": 1284955,
+      "ratioVsPcm": 0.874318359375,
+      "ratioVsMp5lV4": 1.0451362109957159,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1342934,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1342934
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_06.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1117478,
+      "mp5lV4Bytes": 1055269,
+      "ratioVsPcm": 0.7275247395833333,
+      "ratioVsMp5lV4": 1.058950845708535,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 5,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1117423,
+        "unitsByTag": {
+          "lossless_L": 3,
+          "lossless_B": 2
+        },
+        "framesByTag": {
+          "lossless_L": 380928,
+          "lossless_B": 3072
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1112525,
+          "lossless_B": 4898
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_07.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1102869,
+      "mp5lV4Bytes": 1013101,
+      "ratioVsPcm": 0.718013671875,
+      "ratioVsMp5lV4": 1.0886071576279166,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 7,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1102796,
+        "unitsByTag": {
+          "lossless_L": 4,
+          "lossless_B": 3
+        },
+        "framesByTag": {
+          "lossless_L": 370688,
+          "lossless_B": 13312
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1080122,
+          "lossless_B": 22674
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_08.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1269108,
+      "mp5lV4Bytes": 1192373,
+      "ratioVsPcm": 0.8262421875,
+      "ratioVsMp5lV4": 1.0643548621111012,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1269089,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1269089
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_09.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1276813,
+      "mp5lV4Bytes": 1212969,
+      "ratioVsPcm": 0.8312584635416667,
+      "ratioVsMp5lV4": 1.0526344861245422,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1276794,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1276794
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_10.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1270450,
+      "mp5lV4Bytes": 1198691,
+      "ratioVsPcm": 0.8271158854166667,
+      "ratioVsMp5lV4": 1.059864468824743,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 7,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1270377,
+        "unitsByTag": {
+          "lossless_L": 5,
+          "lossless_B": 2
+        },
+        "framesByTag": {
+          "lossless_L": 373760,
+          "lossless_B": 10240
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1254585,
+          "lossless_B": 15792
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_11.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1346233,
+      "mp5lV4Bytes": 1287759,
+      "ratioVsPcm": 0.8764537760416666,
+      "ratioVsMp5lV4": 1.0454075646141863,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1346214,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1346214
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_12.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1209073,
+      "mp5lV4Bytes": 1125294,
+      "ratioVsPcm": 0.7871569010416667,
+      "ratioVsMp5lV4": 1.074450765755438,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1209054,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1209054
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_13.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 829407,
+      "mp5lV4Bytes": 719296,
+      "ratioVsPcm": 0.539978515625,
+      "ratioVsMp5lV4": 1.153081624254827,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 829388,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 829388
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_14.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1178100,
+      "mp5lV4Bytes": 1042046,
+      "ratioVsPcm": 0.7669921875,
+      "ratioVsMp5lV4": 1.1305642937068037,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1178081,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1178081
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_15.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1016417,
+      "mp5lV4Bytes": 912811,
+      "ratioVsPcm": 0.6617298177083333,
+      "ratioVsMp5lV4": 1.1135021379014933,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 9,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1016326,
+        "unitsByTag": {
+          "lossless_L": 6,
+          "lossless_B": 3
+        },
+        "framesByTag": {
+          "lossless_L": 372736,
+          "lossless_B": 11264
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1001308,
+          "lossless_B": 15018
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_16.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1317885,
+      "mp5lV4Bytes": 1254006,
+      "ratioVsPcm": 0.857998046875,
+      "ratioVsMp5lV4": 1.0509399476557528,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 5,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1317830,
+        "unitsByTag": {
+          "lossless_L": 4,
+          "lossless_B": 1
+        },
+        "framesByTag": {
+          "lossless_L": 377856,
+          "lossless_B": 6144
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1305821,
+          "lossless_B": 12009
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_17.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1361461,
+      "mp5lV4Bytes": 1302455,
+      "ratioVsPcm": 0.8863678385416667,
+      "ratioVsMp5lV4": 1.0453036765185746,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1361442,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1361442
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    },
+    {
+      "source": "origami_seg_18.flac",
+      "sampleRate": 48000,
+      "channels": 2,
+      "totalSamples": 384000,
+      "pcmBytes": 1536000,
+      "c2Bytes": 1366322,
+      "mp5lV4Bytes": 1303924,
+      "ratioVsPcm": 0.8895325520833334,
+      "ratioVsMp5lV4": 1.0478540160316092,
+      "contentBitExact": true,
+      "decodedSamples": 768000,
+      "unitMix": {
+        "units": 1,
+        "totalFrames": 384000,
+        "totalPayloadBytes": 1366303,
+        "unitsByTag": {
+          "lossless_L": 1
+        },
+        "framesByTag": {
+          "lossless_L": 384000
+        },
+        "payloadBytesByTag": {
+          "lossless_L": 1366303
+        },
+        "lossyFrames": 0,
+        "bitExactFramePct": 100
+      }
+    }
+  ],
+  "measuredAt": "2026-07-25T22:39:52.393Z"
+}

@@ -16,8 +16,17 @@ export const CodecId = {
   MP5L: 2,
   MP5H: 3,
   PASSTHROUGH: 4,
-  /** MP5-C2 hybrid (lossless quiet + signal-relative loud). Non-default export. */
+  /**
+   * MP5-C2 — lossless / bit-exact. Quiet units are MP5-L; loud units take
+   * min(signal-relative + lossless CORR, MP5-L). Lab-gated, non-default export.
+   */
   MP5C2: 5,
+  /**
+   * MP5-C — experimental lossy MDCT loud path with bit-exact protect islands.
+   * Magic `0x43 0x36`, CRC-framed units. See `docs/MP5C_NEXT_SPEC.md`.
+   * Lab-gated, non-default export; the bitstream is not frozen.
+   */
+  MP5C6: 6,
   PRIVATE: 255,
 } as const;
 

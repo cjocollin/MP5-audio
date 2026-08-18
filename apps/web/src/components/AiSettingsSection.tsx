@@ -9,21 +9,37 @@ import {
   modelFromProviderPreset,
   modelPresetIdForProvider,
   saveAiSettings,
+  type AiModelPreset,
   type AiSettings,
 } from "../lib/ai/aiSettings";
+import { unionCatalogAndLive } from "../lib/ai/fetchAiModels";
+import { useLiveAiModels } from "../lib/ai/useLiveAiModels";
+
+const EMPTY_AI_MODELS: AiModelPreset[] = [];
 
 export function AiSettingsSection() {
   const [settings, setSettings] = useState<AiSettings>(() => loadAiSettings());
   const [saved, setSaved] = useState(false);
 
   const provider = useMemo(() => getAiProvider(settings.providerId), [settings.providerId]);
-  const modelPresetId = useMemo(
-    () => modelPresetIdForProvider(settings.providerId, settings.model),
-    [settings.providerId, settings.model],
+  const catalog = provider?.models ?? EMPTY_AI_MODELS;
+  const { models: fetchedModels, status, refreshing, refresh } = useLiveAiModels({
+    providerId: settings.providerId,
+    apiStyle: provider?.apiStyle ?? "openai",
+    apiBaseUrl: settings.apiBaseUrl,
+    apiKey: settings.apiKey,
+    catalog,
+  });
+  const models = useMemo(
+    () => unionCatalogAndLive(catalog, fetchedModels),
+    [catalog, fetchedModels],
   );
-  const selectedPreset = provider?.models.find((p) => p.id === modelPresetId);
-  const showCustomModel =
-    modelPresetId === AI_MODEL_CUSTOM_ID || !provider?.models.length;
+  const modelPresetId = useMemo(
+    () => modelPresetIdForProvider(settings.providerId, settings.model, models),
+    [settings.providerId, settings.model, models],
+  );
+  const selectedPreset = models.find((p) => p.id === modelPresetId);
+  const showCustomModel = modelPresetId === AI_MODEL_CUSTOM_ID || !models.length;
 
   useEffect(() => {
     saveAiSettings(settings);
@@ -51,6 +67,16 @@ export function AiSettingsSection() {
           data-testid="ai-settings-enabled"
         />
       </label>
+
+      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide pt-1">Artwork theme (VISU)</p>
+      <div className="flex items-center justify-between gap-4 text-sm" data-testid="ai-settings-cover-palette">
+        <span className="text-gray-400">Local cover palette</span>
+        <span className="text-[10px] text-emerald-300">On-device</span>
+      </div>
+      <p className="text-[10px] text-gray-600 -mt-2">
+        When cover art is present, Analyze with AI suggests theme colors locally. Artwork is never uploaded and the
+        palette must be accepted before export.
+      </p>
 
       <p className="text-xs text-gray-500 font-medium uppercase tracking-wide pt-1">Tempo (BPM)</p>
 
@@ -194,13 +220,13 @@ export function AiSettingsSection() {
         <label className="text-gray-400" htmlFor="ai-settings-model-preset">
           Model
         </label>
-        {provider?.models.length ? (
+        {models.length ? (
           <select
             id="ai-settings-model-preset"
             value={modelPresetId}
             onChange={(e) => {
               const presetId = e.target.value;
-              const presetModel = modelFromProviderPreset(settings.providerId, presetId);
+              const presetModel = modelFromProviderPreset(settings.providerId, presetId, models);
               setSettings((s) => ({
                 ...s,
                 model: presetModel ?? s.model,
@@ -209,7 +235,7 @@ export function AiSettingsSection() {
             className="w-full bg-surface rounded-lg px-3 py-2 border border-white/10 text-sm mp5-focus-ring"
             data-testid="ai-settings-model-preset"
           >
-            {provider.models.map((preset) => (
+            {models.map((preset) => (
               <option key={preset.id} value={preset.id}>
                 {preset.label}
                 {preset.hint ? ` - ${preset.hint}` : ""}
@@ -220,6 +246,27 @@ export function AiSettingsSection() {
         ) : (
           <p className="text-[10px] text-gray-600">Enter a model ID for your OpenAI-compatible gateway.</p>
         )}
+        <p className="text-[10px] text-gray-600" data-testid="ai-settings-model-refresh">
+          {refreshing
+            ? "Refreshing latest models…"
+            : status === "live"
+              ? "Updated automatically"
+              : status === "cached"
+                ? "Using recently fetched models"
+                : status === "error"
+                  ? "Couldn't refresh — showing built-in list"
+                  : "Loading the latest models…"}
+          {" · "}
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            className="text-gray-500 hover:text-gray-300 disabled:opacity-50"
+            data-testid="ai-settings-model-refresh-btn"
+          >
+            Refresh
+          </button>
+        </p>
         {selectedPreset?.hint && !showCustomModel && (
           <p className="text-[10px] text-gray-600" data-testid="ai-settings-model-hint">
             {selectedPreset.hint}

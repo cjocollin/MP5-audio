@@ -16,6 +16,7 @@ import {
 import { buildExportMetadataBundle } from "../apps/web/src/converter/buildExportBundles";
 import {
   buildOverridesFromEdits,
+  manualEditsFromParsedOptional,
   manualEditsFromSource,
   type ManualMetadataEdits,
 } from "../apps/web/src/converter/manualMetadata";
@@ -277,6 +278,7 @@ describe("manual metadata overrides", () => {
       visualTheme: {
         themeName: "Studio night",
         primaryColor: "#6366f1",
+        secondaryColor: "#a78bfa",
         accentColor: "#8b5cf6",
         backgroundColor: "#1e1b4b",
         moodLabel: "calm",
@@ -288,7 +290,41 @@ describe("manual metadata overrides", () => {
     expect(bundle.optional.has("VISU")).toBe(true);
     const chunks = parseOptionalMetadata(bundle.optional);
     expect(chunks.visu?.themeName).toBe("Studio night");
+    expect(chunks.visu?.secondaryColor).toBe("#a78bfa");
     expect(chunks.visu?.accentColor).toBe("#8b5cf6");
+    expect(chunks.visu?.source).toBe("user");
+    expect(manualEditsFromParsedOptional(bundle.optional).visualTheme.secondaryColor).toBe(
+      "#a78bfa",
+    );
+  });
+
+  it("preserves cover-art palette provenance in VISU", () => {
+    const edits = editsWith({
+      visualTheme: {
+        themeName: "Cover art palette",
+        primaryColor: "#dc2626",
+        secondaryColor: "#7c3aed",
+        accentColor: "#2563eb",
+        backgroundColor: "#180808",
+        moodLabel: "",
+        visualIntensity: "medium",
+        playerStyle: "custom",
+        coverArtDerived: true,
+      },
+    });
+    const bundle = buildExportMetadataBundle(extractedBase, buildOverridesFromEdits(edits));
+    const chunks = parseOptionalMetadata(bundle.optional);
+    expect(chunks.visu?.coverArtDerived).toBe(true);
+    expect(chunks.visu?.source).toBe("app");
+  });
+
+  it("exports a secondary-only VISU theme", () => {
+    const edits = manualEditsFromSource(extractedBase);
+    edits.visualTheme.secondaryColor = "#22c55e";
+    const bundle = buildExportMetadataBundle(extractedBase, buildOverridesFromEdits(edits));
+    const chunks = parseOptionalMetadata(bundle.optional);
+    expect(chunks.visu?.secondaryColor).toBe("#22c55e");
+    expect(chunks.visu?.source).toBe("user");
   });
 
   it("skips invalid VISU colors on export", () => {
@@ -296,6 +332,7 @@ describe("manual metadata overrides", () => {
       visualTheme: {
         themeName: "Bad colors",
         primaryColor: "red",
+        secondaryColor: "also-bad",
         accentColor: "#aabbcc",
         backgroundColor: "",
         moodLabel: "",
@@ -306,6 +343,7 @@ describe("manual metadata overrides", () => {
     const bundle = buildExportMetadataBundle(extractedBase, buildOverridesFromEdits(edits));
     const chunks = parseOptionalMetadata(bundle.optional);
     expect(chunks.visu?.primaryColor).toBeUndefined();
+    expect(chunks.visu?.secondaryColor).toBeUndefined();
     expect(chunks.visu?.accentColor).toBe("#aabbcc");
   });
 

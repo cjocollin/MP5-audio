@@ -30,6 +30,7 @@ export const CODEC_NAME = {
   [CodecId.MP5L]: "MP5-L",
   [CodecId.MP5H]: "MP5-H",
   [CodecId.MP5C2]: "MP5-C2",
+  [CodecId.MP5C6]: "MP5-C (CodecId 6)",
   [CodecId.PASSTHROUGH]: "Passthrough",
 };
 
@@ -86,7 +87,11 @@ export function decodeParsedToPcm(codec, parsed) {
       break;
     case CodecId.MP5C2:
       raw = codec.decode_mp5c_vnext(frame);
-      decodePath = "MP5-C vNext WASM decode (hybrid quiet-lossless)";
+      decodePath = "MP5-C2 vNext WASM decode (lossless · bit-exact)";
+      break;
+    case CodecId.MP5C6:
+      raw = codec.decode_mp5c6(frame);
+      decodePath = "MP5-C (CodecId 6) WASM decode (lossy · experimental)";
       break;
     case CodecId.MP5H: {
       const corr = parsed.corr?.[0]?.data;

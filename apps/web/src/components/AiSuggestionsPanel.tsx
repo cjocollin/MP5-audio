@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Check } from "@phosphor-icons/react/Check";
+
 import type { AiAnalysisProgress, AiMetadataSuggestions } from "../converter/aiMetadataHooks";
 
 interface Props {
@@ -12,6 +15,7 @@ interface Props {
   onAcceptContentWarnings: () => void;
   onAcceptMoodVibe: () => void;
   onAcceptSummary: () => void;
+  onAcceptVisualTheme: () => void;
   onDismiss: () => void;
   aiEnabled: boolean;
   cloudConfigured: boolean;
@@ -19,6 +23,41 @@ interface Props {
   cloudStructureEnabled: boolean;
   cloudLyricsEnabled: boolean;
   cloudContentWarningsEnabled: boolean;
+}
+
+interface AcceptanceButtonProps {
+  label: string;
+  acceptedLabel: string;
+  testId: string;
+  onAccept: () => void;
+}
+
+function AcceptanceButton({ label, acceptedLabel, testId, onAccept }: AcceptanceButtonProps) {
+  const [accepted, setAccepted] = useState(false);
+
+  function handleAccept() {
+    onAccept();
+    setAccepted(true);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleAccept}
+      disabled={accepted}
+      aria-pressed={accepted}
+      data-testid={testId}
+      data-accepted={accepted ? "true" : "false"}
+      className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded transition-colors ${
+        accepted
+          ? "bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-400/30"
+          : "bg-white/10 hover:bg-white/15"
+      }`}
+    >
+      {accepted ? <Check size={12} weight="bold" aria-hidden /> : null}
+      <span aria-live="polite">{accepted ? acceptedLabel : label}</span>
+    </button>
+  );
 }
 
 function ProvenanceBadge({ source }: { source?: string }) {
@@ -34,6 +73,20 @@ function ProvenanceBadge({ source }: { source?: string }) {
   return (
     <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-900/40 text-amber-200">
       {label}
+    </span>
+  );
+}
+
+function PaletteSwatch({ label, color }: { label: string; color?: string }) {
+  if (!color) return null;
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] text-gray-400">
+      <span
+        className="h-3.5 w-3.5 rounded-sm border border-white/20"
+        style={{ backgroundColor: color }}
+        aria-hidden
+      />
+      {label} {color}
     </span>
   );
 }
@@ -74,6 +127,7 @@ export function AiSuggestionsPanel({
   onAcceptContentWarnings,
   onAcceptMoodVibe,
   onAcceptSummary,
+  onAcceptVisualTheme,
   onDismiss,
   aiEnabled,
   cloudConfigured,
@@ -92,7 +146,8 @@ export function AiSuggestionsPanel({
     suggestions.safe ||
     suggestions.mood ||
     suggestions.vibe ||
-    suggestions.summ
+    suggestions.summ ||
+    suggestions.visu
   );
 
   return (
@@ -160,7 +215,8 @@ export function AiSuggestionsPanel({
 
       {!busy && aiEnabled && !cloudConfigured && (
         <p className="text-xs text-gray-500" data-testid="ai-cloud-key-note">
-          Local BPM works without a key. Add an API key in Settings for cloud BPM, structure, lyrics, mood, and more.
+          Local BPM and cover palette analysis work without a key. Add an API key in Settings for cloud BPM,
+          structure, lyrics, mood, and more.
         </p>
       )}
 
@@ -231,13 +287,13 @@ export function AiSuggestionsPanel({
                   <ProvenanceBadge source={suggestions.beat.source} />
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => onAcceptBeat(suggestions.beat!)}
-                className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-              >
-                Accept local BPM
-              </button>
+              <AcceptanceButton
+                key={JSON.stringify(suggestions.beat)}
+                label="Accept local BPM"
+                acceptedLabel="Local BPM accepted"
+                testId="ai-accept-beat-local"
+                onAccept={() => onAcceptBeat(suggestions.beat!)}
+              />
             </div>
           )}
 
@@ -266,13 +322,13 @@ export function AiSuggestionsPanel({
                   <ProvenanceBadge source={suggestions.beatCloud.source} />
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => onAcceptBeat(suggestions.beatCloud!)}
-                className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-              >
-                Accept cloud tempo/key
-              </button>
+              <AcceptanceButton
+                key={JSON.stringify(suggestions.beatCloud)}
+                label="Accept cloud tempo/key"
+                acceptedLabel="Cloud tempo/key accepted"
+                testId="ai-accept-beat-cloud"
+                onAccept={() => onAcceptBeat(suggestions.beatCloud!)}
+              />
             </div>
           )}
 
@@ -289,13 +345,13 @@ export function AiSuggestionsPanel({
                   <ProvenanceBadge source={suggestions.sect.source} />
                 </span>
               </p>
-              <button
-                type="button"
-                onClick={onAcceptStructure}
-                className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-              >
-                Accept structure
-              </button>
+              <AcceptanceButton
+                key={JSON.stringify(suggestions.sect)}
+                label="Accept structure"
+                acceptedLabel="Structure accepted"
+                testId="ai-accept-structure"
+                onAccept={onAcceptStructure}
+              />
             </div>
           )}
 
@@ -312,13 +368,13 @@ export function AiSuggestionsPanel({
               <p className="text-[10px] text-amber-200/70">
                 Audio transcription only — compare against the song before accepting. Wrong on busy mixes is common.
               </p>
-              <button
-                type="button"
-                onClick={onAcceptLyrics}
-                className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-              >
-                Accept lyrics
-              </button>
+              <AcceptanceButton
+                key={JSON.stringify(suggestions.lyrc)}
+                label="Accept lyrics"
+                acceptedLabel="Lyrics accepted"
+                testId="ai-accept-lyrics"
+                onAccept={onAcceptLyrics}
+              />
             </div>
           )}
 
@@ -334,13 +390,40 @@ export function AiSuggestionsPanel({
                   <span className="text-gray-500">Safety:</span> {safeSummary(suggestions.safe)}
                 </p>
               ) : null}
-              <button
-                type="button"
-                onClick={onAcceptContentWarnings}
-                className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-              >
-                Accept content warnings
-              </button>
+              <AcceptanceButton
+                key={JSON.stringify([suggestions.expl, suggestions.safe])}
+                label="Accept content warnings"
+                acceptedLabel="Content warnings accepted"
+                testId="ai-accept-content-warnings"
+                onAccept={onAcceptContentWarnings}
+              />
+            </div>
+          )}
+
+          {suggestions.visu && (
+            <div className="space-y-1.5" data-testid="ai-suggestion-cover-palette">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="text-xs text-gray-300">
+                  <span className="text-gray-500">Cover palette:</span> theme colors extracted locally
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-200">
+                  Local palette
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-1" aria-label="Suggested cover palette colors">
+                <PaletteSwatch label="Primary" color={suggestions.visu.primaryColor} />
+                <PaletteSwatch label="Secondary" color={suggestions.visu.secondaryColor} />
+                <PaletteSwatch label="Accent" color={suggestions.visu.accentColor} />
+                <PaletteSwatch label="Background" color={suggestions.visu.backgroundColor} />
+              </div>
+              <p className="text-[10px] text-gray-500">Artwork stays in this browser. Review before export.</p>
+              <AcceptanceButton
+                key={JSON.stringify(suggestions.visu)}
+                label="Accept cover palette"
+                acceptedLabel="Cover palette accepted"
+                testId="ai-accept-cover-palette"
+                onAccept={onAcceptVisualTheme}
+              />
             </div>
           )}
 
@@ -362,13 +445,13 @@ export function AiSuggestionsPanel({
                   </span>
                 </p>
               ) : null}
-              <button
-                type="button"
-                onClick={onAcceptMoodVibe}
-                className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-              >
-                Accept mood/vibe
-              </button>
+              <AcceptanceButton
+                key={JSON.stringify([suggestions.mood, suggestions.vibe])}
+                label="Accept mood/vibe"
+                acceptedLabel="Mood/vibe accepted"
+                testId="ai-accept-mood-vibe"
+                onAccept={onAcceptMoodVibe}
+              />
             </div>
           )}
 
@@ -380,13 +463,13 @@ export function AiSuggestionsPanel({
                   <ProvenanceBadge source={suggestions.summ.source} />
                 </span>
               </p>
-              <button
-                type="button"
-                onClick={onAcceptSummary}
-                className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/15"
-              >
-                Accept summary
-              </button>
+              <AcceptanceButton
+                key={JSON.stringify(suggestions.summ)}
+                label="Accept summary"
+                acceptedLabel="Summary accepted"
+                testId="ai-accept-summary"
+                onAccept={onAcceptSummary}
+              />
             </div>
           )}
 

@@ -45,7 +45,7 @@ Status key: **Pass**, **Pass with limitation**, **Blocked**, **Not tested**.
 - [ ] 375x812 viewport has no horizontal overflow.
 - [ ] Tabs and player controls are tappable.
 - [ ] Embedded album view remains readable.
-- [ ] VISU stays contained to the Now Playing/player visual area.
+- [ ] VISU accent follows the active file across app chrome; neutral surfaces remain readable and cover art stays contained to Now Playing.
 
 ## G. Privacy / Release Hygiene
 

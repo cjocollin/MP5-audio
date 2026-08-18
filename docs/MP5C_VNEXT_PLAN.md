@@ -6,6 +6,31 @@ gates below pass. vNext is **lab-only, default OFF**, gated behind Converter adv
 
 See the root-cause analysis in [MP5C_HISS_AUDIT.md](MP5C_HISS_AUDIT.md).
 
+> **Where the lossy path lives now.** The MDCT research path described below has been given
+> a real container identity as **CodecId 6 ("MP5-C")**. Its bitstream is normatively
+> specified in [MP5C_NEXT_SPEC.md](MP5C_NEXT_SPEC.md) and implemented in
+> `rust/mp5-codec/src/mp5c6.rs` (magic `0x43 0x36`, 28-byte CRC-protected header, per-unit
+> CRC, MDCT loud path, bit-exact protect islands). It is lab-only, lossy, and **not frozen**;
+> the quality gates in this document are the gates that path must pass.
+
+> **Status note (supersedes the historical sections below).** The shipping `CodecId 5` /
+> MP5-C2 encoder is now **lossless / bit-exact**. `rust/mp5-codec/src/mp5c2.rs` sends
+> quiet/fragile/tail sub-blocks to MP5-L and loud units to `min(TAG_SR+CORR, TAG_LOSSLESS)`
+> chosen by payload size; both branches restore the source sample-for-sample. `TAG_LOSSY`
+> is decode-only legacy and `TAG_MDCT` is opt-in lab only — neither is emitted by
+> `encode_mp5c_vnext` / `encode_mp5c_vnext_at`.
+>
+> Consequently the hiss-risk and quiet-window SNR gates below **do not apply to shipping
+> C2**; it is verified by sample equality instead. They remain the gates for the lossy
+> MDCT research path. The `mp5c2-*` JS lab modes in
+> [`tools/audio-lab/codecs.mjs`](../tools/audio-lab/codecs.mjs) are still the older lossy
+> prototypes and are no longer equivalent to the native shipping encoder.
+>
+> C2's real limitation is size: measured 0.77x PCM but ~1.07x MP5-L v4 — slightly *larger* than
+> MP5-L with no quality advantage — so it stays lab/advanced-gated and MP5-L v4 remains the
+> recommended export. Current measurement:
+> [`benchmarks/audio-quality/c2-real-track-remeasure.json`](../benchmarks/audio-quality/c2-real-track-remeasure.json).
+
 ## What vNext is today (`mp5c2-lab`, `mp5c2-extreme`)
 
 A JS-lab wrapper ([`tools/audio-lab/codecs.mjs`](../tools/audio-lab/codecs.mjs)) that splits
@@ -56,14 +81,18 @@ content outright (lossless), and roughly doubles reverb-tail quiet SNR. But it i
    the fragile content is coded losslessly there is little left for shaping to help. Real noise
    shaping needs control of the MP5-C quantizer (a from-scratch transform-domain codec), not a JS
    bolt-on — moved to the medium-term redesign below.
-5. **Native Rust port — DONE (v0.25).** The `smooth` engine is now `rust/mp5-codec/src/mp5c2.rs`,
-   exposed via `encode_mp5c_vnext`/`decode_mp5c_vnext`, **bit-identical to the JS prototype** and
-   at native speed. MP5-C (v5.1) is byte-identical (untouched); the vNext stream uses a distinct
+5. **Native Rust port — DONE (v0.25), since diverged.** The `smooth` engine landed as
+   `rust/mp5-codec/src/mp5c2.rs`, exposed via `encode_mp5c_vnext`/`decode_mp5c_vnext`. It was
+   bit-identical to the JS prototype **at that revision only**; the shipping encoder has since
+   moved its loud path to bit-exact `min(TAG_SR+CORR, TAG_LOSSLESS)` and no longer matches the
+   lossy JS modes. MP5-C (v5.1) is byte-identical (untouched); the vNext stream uses a distinct
    `0x43 0x34` magic.
 6. **Gated CodecId + protect 1.5 — DONE.** `CodecId.MP5C2 = 5` is available under Converter
-   **Show lab / advanced codecs** (not default; batch stays MP5-L). Protect-scale **1.5** shipping
-   thresholds take a local commercial reference to hiss risk **low** (bit-exact tails) at ~0.97× PCM.
-   Coalescing adjacent lossy sub-blocks is **DONE** (dense_music ~1.17× → ~0.97× PCM).
+   **Show lab / advanced codecs** (not default; batch stays MP5-L). Protect-scale **1.5** is the
+   shipping threshold. The historical "~0.97× PCM / hiss risk low" figure came from the older
+   lossy-loud revision and is superseded — see
+   [`benchmarks/audio-quality/README.md`](../benchmarks/audio-quality/README.md).
+   Coalescing adjacent loud sub-blocks is **DONE**.
 7. **Lossless L/B coalesce — DONE.** Adjacent L/B units share one MP5-L encode (`reverb_tail`
    ~0.68× → **~0.42× PCM**; hiss risk still **low**).
 8. **Loud-path High vs Extreme — DONE (prefer High for size).** At protect 1.5, High keeps hiss

@@ -1,4 +1,9 @@
-﻿# MP5-C2 ABX listening protocol (Phase 3)
+# MP5-C2 ABX listening protocol (Phase 3)
+
+> **Superseded for lossy listening.** CodecId 5 (MP5-C2) is bit-exact, so ABX
+> on it is meaningless; this document survives only for CodecId 5
+> sample-equality checks (`pnpm audio:c2-equality`). For CodecId 6 (MP5-C,
+> lossy) listening, use **[docs/MP5C6_ABX_PROTOCOL.md](MP5C6_ABX_PROTOCOL.md)**.
 
 Human listening sign-off before treating MP5-C2 as no audible hiss.
 

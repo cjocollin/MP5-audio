@@ -53,3 +53,28 @@ export function hexWithAlpha(hex: string, alpha: number): string {
   const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255);
   return `${c}${a.toString(16).padStart(2, "0")}`;
 }
+
+/** Blend two safe hex colors. `overlayWeight` is clamped to 0–1. */
+export function mixHexColors(baseHex: string, overlayHex: string, overlayWeight: number): string {
+  const base = hexToRgb(baseHex);
+  const overlay = hexToRgb(overlayHex);
+  if (!base || !overlay) return parseHexColor(baseHex) ?? parseHexColor(overlayHex) ?? "#000000";
+  const weight = Math.max(0, Math.min(1, overlayWeight));
+  const channel = (baseValue: number, overlayValue: number) =>
+    Math.round(baseValue * (1 - weight) + overlayValue * weight)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(base.r, overlay.r)}${channel(base.g, overlay.g)}${channel(base.b, overlay.b)}`;
+}
+
+/** Keep a file accent recognizable while making it readable on the app's dark chrome. */
+export function ensureReadableAccent(accentHex: string, backgroundHex = "#111214"): string {
+  const accent = parseHexColor(accentHex);
+  if (!accent) return "#9a6dd7";
+  if (contrastRatio(accent, backgroundHex) >= MIN_TEXT_CONTRAST) return accent;
+  for (const whiteWeight of [0.12, 0.24, 0.36, 0.48, 0.6, 0.72]) {
+    const candidate = mixHexColors(accent, "#ffffff", whiteWeight);
+    if (contrastRatio(candidate, backgroundHex) >= MIN_TEXT_CONTRAST) return candidate;
+  }
+  return "#f3f4f6";
+}

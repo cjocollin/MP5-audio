@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { parseHexColor, contrastRatio, ensureReadableText } from "../apps/web/src/lib/visualTheme/colorUtils";
+import {
+  parseHexColor,
+  contrastRatio,
+  ensureReadableAccent,
+  ensureReadableText,
+} from "../apps/web/src/lib/visualTheme/colorUtils";
 import {
   resolvePlayerTheme,
+  appChromeThemeStyle,
   themeRootStyle,
   themeAccentDiffersFromDefault,
   resolveCoverCardStyle,
@@ -77,6 +83,52 @@ describe("visual theme player helpers", () => {
     expect(root?.["--mp5-visu-accent" as keyof typeof root]).toBe(theme?.accent);
     expect(root?.background).toBeTruthy();
     expect(root?.borderColor).toBeTruthy();
+  });
+
+  it("maps all active file color roles into app-wide chrome tokens", () => {
+    const theme = resolvePlayerTheme({
+      accentColor: "#1260a8",
+      primaryColor: "#d7edf8",
+      secondaryColor: "#5a8f72",
+    });
+    const style = appChromeThemeStyle(theme);
+    expect(style?.["--mp5-accent" as keyof typeof style]).toBe("#1260a8");
+    expect(style?.["--mp5-accent-rgb" as keyof typeof style]).toBe("18 96 168");
+    expect(style?.["--mp5-accent-bright" as keyof typeof style]).toBe(ensureReadableAccent("#1260a8"));
+    expect(style?.["--mp5-primary" as keyof typeof style]).toBe("#d7edf8");
+    expect(style?.["--mp5-primary-rgb" as keyof typeof style]).toBe("215 237 248");
+    expect(style?.["--mp5-secondary" as keyof typeof style]).toBe("#5a8f72");
+    expect(style?.["--mp5-secondary-rgb" as keyof typeof style]).toBe("90 143 114");
+    expect(style?.["--mp5-secondary-bright" as keyof typeof style]).toBe(
+      ensureReadableAccent("#5a8f72"),
+    );
+    expect(style?.["--mp5-logo-primary" as keyof typeof style]).toBe(ensureReadableAccent("#d7edf8"));
+    expect(style?.["--mp5-theme-wash" as keyof typeof style]).toMatch(/^#[0-9a-f]{8}$/);
+    expect(appChromeThemeStyle(null)).toBeUndefined();
+  });
+
+  it("falls back to accent when a VISU theme has no separate primary", () => {
+    const theme = resolvePlayerTheme({ accentColor: "#3286c8" });
+    const style = appChromeThemeStyle(theme);
+    expect(style?.["--mp5-primary" as keyof typeof style]).toBe("#3286c8");
+    expect(style?.["--mp5-secondary" as keyof typeof style]).toBe("#3286c8");
+    expect(style?.["--mp5-logo-primary" as keyof typeof style]).toBe(ensureReadableAccent("#3286c8"));
+  });
+
+  it("falls secondary back to primary before accent", () => {
+    const theme = resolvePlayerTheme({ primaryColor: "#d97706", accentColor: "#2563eb" });
+    const style = appChromeThemeStyle(theme);
+    expect(theme?.secondary).toBe("#d97706");
+    expect(theme?.waveformUnplayedFill).toMatch(/^#d97706[0-9a-f]{2}$/);
+    expect(style?.["--mp5-secondary" as keyof typeof style]).toBe("#d97706");
+  });
+
+  it("honors an explicit secondary-only VISU color without applying a preset", () => {
+    const theme = resolvePlayerTheme({ secondaryColor: "#22c55e" });
+    const style = appChromeThemeStyle(theme);
+    expect(theme?.secondary).toBe("#22c55e");
+    expect(theme?.colorsDerived).toBe(false);
+    expect(style?.["--mp5-secondary" as keyof typeof style]).toBe("#22c55e");
   });
 
   it("describeThemeApplication reports preset fallback for metadata-only VISU", () => {

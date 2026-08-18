@@ -81,6 +81,13 @@ export function MetadataReviewPanel({ extracted, edits }: Props) {
   const sensEmbedded = bundle.optional.has("SENS");
   const recvEmbedded = bundle.optional.has("RECV");
   const lyrcEmbedded = bundle.optional.has("LYRC");
+  const visuEmbedded = bundle.optional.has("VISU");
+  const visualThemeColors = [
+    ["Primary", edits.visualTheme.primaryColor],
+    ["Secondary", edits.visualTheme.secondaryColor],
+    ["Accent", edits.visualTheme.accentColor],
+    ["Background", edits.visualTheme.backgroundColor],
+  ].filter((entry) => /^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(entry[1]));
 
   const skippedMeta = Object.entries(META_LABELS)
     .filter(([key]) => !bundle.metaFields.some((f) => f.key === key))
@@ -167,6 +174,30 @@ export function MetadataReviewPanel({ extracted, edits }: Props) {
             <span className="text-gray-500">skipped</span>
           )}
         </p>
+        <p className="text-xs text-gray-300">
+          Visual theme:{" "}
+          {visuEmbedded ? (
+            <span className="text-green-400/90" data-testid="embedded-visu">
+              embedded{edits.visualTheme.coverArtDerived ? " · local cover palette" : ""}
+            </span>
+          ) : (
+            <span className="text-gray-500">skipped</span>
+          )}
+        </p>
+        {visuEmbedded && visualThemeColors.length > 0 && (
+          <div className="flex flex-wrap gap-2" data-testid="review-visu-palette">
+            {visualThemeColors.map(([label, color]) => (
+              <span key={label} className="inline-flex items-center gap-1 text-[10px] text-gray-500">
+                <span
+                  className="h-3.5 w-3.5 rounded-sm border border-white/20"
+                  style={{ backgroundColor: color }}
+                  aria-hidden
+                />
+                {label} {color}
+              </span>
+            ))}
+          </div>
+        )}
         {(explEmbedded || safeEmbedded || sensEmbedded) && (
           <p className="text-xs text-gray-500" data-testid="content-guidance-source">
             {SECTION.contentGuidance} source: {formatWarningSourceLabel("user")}

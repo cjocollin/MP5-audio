@@ -70,6 +70,11 @@ impl<'a> BitReader<'a> {
     }
 
     pub fn read_bits(&mut self, count: u8) -> Option<u32> {
+        // More than 32 bits cannot fit a u32 — a corrupt stream must fail
+        // closed here, not panic on the shift.
+        if count > 32 {
+            return None;
+        }
         let mut v = 0u32;
         for i in 0..count {
             let bit = self.read_bit()?;

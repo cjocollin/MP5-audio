@@ -66,3 +66,4 @@ Content guidance chunks (`EXPL`, `SAFE`, `RECV`, `SENS`) support `aiGenerated: t
 - **Opt-in AI suggestions** are available in Settings and the converter: local BPM analysis plus optional cloud features — BPM/key and structure (audio clip), lyrics transcription, content warnings, mood/vibe/summary (BYOK). Suggestions are **review-before-export** only.
 - **No AI stem separation** is included.
 - Cloud AI requires a user-provided API key stored locally in the browser; MP5 does not host or proxy AI calls by default.
+- Settings refreshes chat models from the public models.dev catalog when opened (no API key required) and merges a provider `/models` list when a key is present. The built-in catalog is the offline fallback only.

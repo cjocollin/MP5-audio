@@ -1,0 +1,108 @@
+{
+  "manifestId": "mp5-excerpts-v1",
+  "version": 2,
+  "description": "Excerpts deterministically extractable via ffmpeg -ss/-t from registered corpus sources. Default harness uses role=dev only. v2 repair: registered origami sources are 8.0 s each, so dev windows are the full 8 s source (v1 windows overran every source and emptied three excerpts). Tags describe the intended stress class of the chosen source segment.",
+  "extract": {
+    "tool": "ffmpeg",
+    "args": ["-ss", "<startSec>", "-i", "<source>", "-t", "<durationSec>", "-f", "s16le", "-acodec", "pcm_s16le"]
+  },
+  "excerpts": [
+    {
+      "id": "ex_transient_attacks",
+      "sourceId": "origami_seg_00",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Transient attacks / drum hits near track open",
+      "tags": ["transient", "attacks"]
+    },
+    {
+      "id": "ex_steady_tonal",
+      "sourceId": "origami_seg_03",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Steady tonal / pad section",
+      "tags": ["tonal", "steady"]
+    },
+    {
+      "id": "ex_reverb_tails",
+      "sourceId": "origami_seg_08",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Reverb tails / decaying ambience",
+      "tags": ["reverb", "tail", "sparse-quiet"]
+    },
+    {
+      "id": "ex_wide_stereo",
+      "sourceId": "origami_seg_05",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Wide stereo image / panned layers",
+      "tags": ["stereo", "wide"]
+    },
+    {
+      "id": "ex_vocals",
+      "sourceId": "origami_seg_06",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Vocal-forward passage",
+      "tags": ["vocals"]
+    },
+    {
+      "id": "ex_cymbals_hats",
+      "sourceId": "origami_seg_02",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Cymbals / hi-hats HF energy",
+      "tags": ["cymbals", "hi-hats", "hf"]
+    },
+    {
+      "id": "ex_low_bitrate_stress",
+      "sourceId": "origami_seg_10",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Dense mixed material for low-bitrate stress",
+      "tags": ["low-bitrate-stress", "dense"]
+    },
+    {
+      "id": "ex_applause_like",
+      "sourceId": "origami_seg_12",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Busy transient field approximating applause density",
+      "tags": ["applause", "transient-dense"]
+    },
+    {
+      "id": "ex_castanet_like",
+      "sourceId": "origami_seg_01",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Sharp percussive attacks (castanet-class pre-echo risk)",
+      "tags": ["castanets", "pre-echo"]
+    },
+    {
+      "id": "ex_harpsichord_like",
+      "sourceId": "origami_seg_07",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Bright plucked / partial-rich material (harpsichord-class)",
+      "tags": ["harpsichord", "partials"]
+    },
+    {
+      "id": "ex_sparse_quiet",
+      "sourceId": "origami_seg_15",
+      "startSec": 0.0,
+      "durationSec": 8.0,
+      "why": "Sparse/quiet material stressing protect vs MDCT boundary",
+      "tags": ["sparse-quiet", "protect-boundary"]
+    },
+    {
+      "id": "ex_speech_held_out_smoke",
+      "sourceId": "speech-held-out/hades_ch01_01-garbage",
+      "startSec": 0.0,
+      "durationSec": 12.0,
+      "why": "Speech held-out excerpt — RC only; requires --allow-held-out",
+      "tags": ["speech", "held-out"],
+      "role": "held-out"
+    }
+  ]
+}

@@ -39,6 +39,18 @@ export function decode_mp5c(data: Uint8Array): Int16Array;
 
 export function decode_mp5c3(data: Uint8Array): Int16Array;
 
+/**
+ * MP5-C (CodecId 6) decode. Fails closed on bad magic, CRC, bounds or frame counts.
+ */
+export function decode_mp5c6(data: Uint8Array): Int16Array;
+
+/**
+ * MP5-C (CodecId 6) seek decode (Phase 5.4): decode only the units covering
+ * `[start_frame, start_frame + num_frames)`. Same fail-closed validation as
+ * `decode_mp5c6`; units are indexable and need no preroll.
+ */
+export function decode_mp5c6_range(data: Uint8Array, start_frame: number, num_frames: number): Int16Array;
+
 export function decode_mp5c_vnext(data: Uint8Array): Int16Array;
 
 export function decode_mp5h(data: Uint8Array, enhanced: boolean): Int16Array;
@@ -52,6 +64,35 @@ export function encode_mp5c(samples: Int16Array, channels: number, preset: numbe
  * stream and not written into normal `.mp5` exports — audio quality lab only.
  */
 export function encode_mp5c3(samples: Int16Array, channels: number, preset: number): Uint8Array;
+
+/**
+ * MP5-C (CodecId 6) encode: MDCT loud path, bit-exact protect islands.
+ * Experimental lossy stream — see `docs/MP5C_NEXT_SPEC.md`.
+ */
+export function encode_mp5c6(samples: Int16Array, channels: number, preset: number, sample_rate: number): Uint8Array;
+
+/**
+ * MP5-C (CodecId 6) encode with a deterministic rate target (Phase 4.3).
+ * `rate_mode`: 0 = unconstrained (ignores `target_kbps`), 1 = ABR, 2 = CBR.
+ * ABR/CBR hit the target within ±3% track-average; protect islands consume
+ * budget ahead of the MDCT pool and are disclosed via `inspect_unit_mix`.
+ */
+export function encode_mp5c6_at(samples: Int16Array, channels: number, preset: number, sample_rate: number, target_kbps: number, rate_mode: number): Uint8Array;
+
+/**
+ * MP5-C (CodecId 6) with full options: rate target plus Phase 5 features.
+ * `rate_mode`: 0 = unconstrained, 1 = ABR, 2 = CBR. `joint_stereo` enables
+ * the Phase 5.1 per-band M/S coding; `window_switching` enables the Phase
+ * 5.2 long/start/short/stop block sequence; `psycho` enables the Phase 5.3
+ * psychoacoustic step allocation (all profile 3).
+ */
+export function encode_mp5c6_opt(samples: Int16Array, channels: number, preset: number, sample_rate: number, target_kbps: number, rate_mode: number, joint_stereo: boolean, window_switching: boolean, psycho: boolean): Uint8Array;
+
+/**
+ * MP5-C (CodecId 6) VBR encode: `qi` is a quality index in 1/4-log2 step-grid
+ * units (positive = finer/larger, negative = coarser/smaller). No rate target.
+ */
+export function encode_mp5c6_vbr(samples: Int16Array, channels: number, preset: number, sample_rate: number, qi: number): Uint8Array;
 
 /**
  * MP5-C2 / vNext encode (protect 1.5, signal-relative loud path). Assumes 44.1 kHz.
@@ -104,6 +145,19 @@ export function encode_mp5l_v4(samples: Int16Array, channels: number): Uint8Arra
 export function encode_mp5l_v4_frame(samples: Int16Array, channels: number, start: number, end: number): Uint8Array;
 
 /**
+ * Walk a CodecId 6 (or CodecId 5) codec stream and report its unit mix as JSON.
+ * Shape is documented in `docs/MP5C_NEXT_SPEC.md` sec. 4.4.
+ */
+export function inspect_unit_mix(data: Uint8Array): string;
+
+/**
+ * NMR reject-filter screen (Phase 5.3, spec §5): per-band noise vs masking
+ * threshold of the source. JSON: {maxNmrDb, meanNmrDb, frames, channels}.
+ * Reject filter only — never a transparency proof.
+ */
+export function nmr_screen_wasm(original: Int16Array, decoded: Int16Array, channels: number, sample_rate: number): string;
+
+/**
  * Flat `[start0, end0, start1, end1, …]` sample ranges for multi-worker frame encode.
  */
 export function plan_mp5l_v4_boundaries(samples: Int16Array, channels: number): Uint32Array;
@@ -119,11 +173,17 @@ export interface InitOutput {
     readonly assemble_mp5l_v4: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
     readonly decode_mp5c: (a: number, b: number) => [number, number, number, number];
     readonly decode_mp5c3: (a: number, b: number) => [number, number, number, number];
+    readonly decode_mp5c6: (a: number, b: number) => [number, number, number, number];
+    readonly decode_mp5c6_range: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly decode_mp5c_vnext: (a: number, b: number) => [number, number, number, number];
     readonly decode_mp5h: (a: number, b: number, c: number) => [number, number, number, number];
     readonly decode_mp5l: (a: number, b: number) => [number, number, number, number];
     readonly encode_mp5c: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5c3: (a: number, b: number, c: number, d: number) => [number, number];
+    readonly encode_mp5c6: (a: number, b: number, c: number, d: number, e: number) => [number, number, number, number];
+    readonly encode_mp5c6_at: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+    readonly encode_mp5c6_opt: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => [number, number, number, number];
+    readonly encode_mp5c6_vbr: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly encode_mp5c_vnext: (a: number, b: number, c: number, d: number) => [number, number];
     readonly encode_mp5c_vnext_at: (a: number, b: number, c: number, d: number, e: number) => [number, number];
     readonly encode_mp5c_vnext_legacy_loud: (a: number, b: number, c: number, d: number) => [number, number];
@@ -135,6 +195,7 @@ export interface InitOutput {
     readonly encode_mp5l: (a: number, b: number, c: number) => [number, number];
     readonly encode_mp5l_v4: (a: number, b: number, c: number) => [number, number];
     readonly encode_mp5l_v4_frame: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+    readonly inspect_unit_mix: (a: number, b: number) => [number, number, number, number];
     readonly mp5lstreamdecoder_new: (a: number, b: number) => [number, number, number];
     readonly mp5lstreamdecoder_push: (a: number, b: number, c: number) => [number, number, number, number];
     readonly mp5lstreamdecoder_push_until: (a: number, b: number, c: number, d: number) => [number, number, number, number];
@@ -144,6 +205,7 @@ export interface InitOutput {
     readonly mp5lv4streamencoder_frameCount: (a: number) => number;
     readonly mp5lv4streamencoder_framesDone: (a: number) => number;
     readonly mp5lv4streamencoder_new: (a: number, b: number, c: number) => number;
+    readonly nmr_screen_wasm: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly plan_mp5l_v4_boundaries: (a: number, b: number, c: number) => [number, number];
     readonly snr_db_wasm: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;

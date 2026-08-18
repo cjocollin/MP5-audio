@@ -1,0 +1,118 @@
+﻿### Model: GPT 5.6 Sol
+
+### Verdict
+Ship a simple public story: **MP5-L for lossless, MP5-C for future lossy distribution**. Remove C2 and H from normal export; neither currently delivers the user value required for a separate public format.
+
+### Recommended product policy
+- Public lineup:
+  - **MP5-L** ù default, bit-exact lossless.
+  - **MP5-C** ù lossy distribution, but remain lab-only until validated against MP3 at matched bitrates.
+  - **PCM** ù advanced/reference only.
+- Do not show C2 or H in landing-page format cards or normal Converter choices.
+- Keep legacy C, C2, and H decodable with accurate diagnostic labels.
+- Never present classic MP5-C as the future distribution codec: its scalar quantizer is structurally unsuitable.
+- Internally, C may use lossless escape frames for silence, tails, or fragile transients. Public copy can call this ôadaptive perceptual coding,ö but technical documentation must disclose the lossless fallback.
+
+### Technical path for C
+- Base the successor on the **MDCT path**, not classic MP5-C scalar quantization.
+- Retain useful C2 research:
+  - Quiet/tail detection and hysteresis.
+  - Per-band fragility detection.
+  - Coalescing and MP5-L escape units.
+- Replace the current simplistic MDCT allocation with:
+  - Proper masking thresholds and scalefactor bands.
+  - Tonal-versus-noise analysis.
+  - Temporal masking and robust pre-echo control.
+  - Stereo coupling decisions.
+  - VBR/target-bitrate rate control and, likely, a bit reservoir.
+  - Better coefficient entropy coding.
+- Establish bitrate ladders and compare at matched output sizes. Current reference points:
+  - MP3 320 kbps: **0.227╫ PCM** on the two-track 16-bit corpus.
+  - MDCT High: **0.214╫ PCM** on one real track, roughly the same bitrate class.
+  - MDCT Extreme: **0.268╫ PCM**.
+- Require a held-out, multi-genre corpus including speech, tonal signals, cymbals, transients, stereo ambience, fades, and known codec ôkiller samples.ö
+- Run blinded ABX/MUSHRA against source and LAME MP3 at matched bitrates. ôLow hiss riskö is not equivalent to perceptual transparency.
+- Suggested release gate:
+  - No statistically demonstrated inferiority to the selected MP3 anchor at matched size.
+  - No systematic pre-echo, warbling, stereo collapse, clipping, duration drift, or quiet-tail hiss.
+  - Multiple independent listeners and at least 20û30 held-out tracks.
+  - Deterministic encode/decode, bounded malformed-input handling, fuzzing, streaming/seek validation, and browser performance coverage.
+- Do not claim ôbeats MP3ö unless a preregistered, reproducible comparison supports both quality and size. ôMP3-class experimental lossy codecö is the strongest defensible interim wording.
+
+### What to do with H
+**Pick B+, remove user export but retain decode and lab encoding.**
+
+Why:
+- ORIGAMI MP5-H High is **1.54╫ PCM and 2.01╫ MP5-L** despite being bit-exact.
+- C2-as-base H is approximately **1.00╫ MP5-L**, but still not smaller than L.
+- The Converter already size-gates H and commonly resolves an H request to MP5-L, which is technically honest but product-confusing.
+- Its fallback base is classic MP5-C, whose audible hiss undermines the main layered-format benefit.
+
+Policy:
+- Keep `CodecId.MP5H = 3` and enhanced/base-only decode indefinitely.
+- Preserve missing-CORR warnings.
+- Keep encoder and benchmarks available through lab/CLI paths.
+- Reconsider visible export only if H demonstrates a real workflow advantage beyond ôlarger lossless file with a degraded fallback.ö
+
+### What to do with C2
+- Retire **MP5-C2** as a public product name.
+- Remove its first-class Converter option and public landing/About cards.
+- Preserve `CodecId.MP5C2 = 5`, magic `0x43 0x34`, and decoding for existing files.
+- Label existing files in diagnostics as something like **ôLegacy MP5-C2 adaptive/lossless-restore profile.ö**
+- Do not repurpose CodecId 5 as the final non-bit-exact MP5-C without an explicit wire-version/profile distinction.
+- Prefer a new frozen codec/profile identifier for the eventual shipping C bitstream.
+- Keep C2Æs protection and framing ideas as research inputs, not as another marketed format.
+- Keep classic `CodecId.MP5C = 1` decode-compatible and lab-only; do not silently redefine it.
+
+### Risks & disagreements with the floated collapse plan
+- I agree with collapsing the public story, but disagree with simply relabeling current C2 as C:
+  - Current Rust C2 encoding chooses `min(bit-exact SR+CORR, MP5-L)` for loud units.
+  - That makes the current shipping path effectively **bit-exact**, not the requested lossy distribution lane.
+- Documentation is materially out of sync:
+  - Some docs describe C2 as lossy loud-path content with optional correction.
+  - Current code always constructs correction for the modern SR path.
+  - The committed real-track JSON still reports `contentBitExact: false`.
+- The existing C2 ABX protocol is inappropriate for a genuinely bit-exact output; sample equality should be mechanically verified. ABX belongs on the lossy MDCT successor.
+- Calling C ônot hybridö is acceptable product simplification, but technical material must still disclose lossless escape frames if used.
+- Current MDCT evidence proves promising **size**, not MP3-equivalent quality. Tail preservation plus 26.8 dB full SNR does not measure pre-echo, tonal distortion, stereo image, or transient smearing.
+- Classic CÆs full-song SNR hides catastrophic quiet-window behavior. It must not survive as the foundation merely to preserve naming continuity.
+- Removing H export sacrifices a research workflow, but that workflow has no demonstrated end-user value sufficient to justify public format complexity.
+
+### Evidence cited
+- `C:\Users\colli\OneDrive\Documents\MP5\benchmarks\real-music\MP5H_VALIDATION.md`
+  - MP5-L: **0.77╫ PCM**.
+  - MP5-C High: **0.97╫ PCM**, 38.6 dB full SNR, **2.0 dB quiet SNR**.
+  - MP5-H High: **1.54╫ PCM / 2.01╫ MP5-L**, bit-exact.
+  - C2-base H: **22,761,185 bytes** versus MP5-L **22,715,132 bytes**.
+- `C:\Users\colli\OneDrive\Documents\MP5\docs\MP5C_HISS_AUDIT.md`
+  - Reverb-tail High: **4.8 dB quiet SNR, 0 dB worst second**.
+  - Real-track High: **0.968╫ PCM**, 24.3 dB tail SNR; MP5-L was **0.871╫ PCM**.
+- `C:\Users\colli\OneDrive\Documents\MP5\docs\MP5C_VNEXT_RESULTS.md`
+  - Dense fixture MDCT High: **0.167╫ PCM, ~24.4 dB**.
+  - Real-track MDCT High: **0.214╫ PCM, ~26.8 dB**.
+  - Extreme: **0.268╫ PCM, ~31.0 dB**.
+  - No committed human perceptual validation.
+- `C:\Users\colli\OneDrive\Documents\MP5\apps\web\src\lib\formatComparison.ts`
+  - MP3 320 kbps: **0.23╫ PCM**.
+  - MP5-L: **0.65╫**, FLAC: **0.66╫** on only two native 16-bit tracks.
+- `C:\Users\colli\OneDrive\Documents\MP5\rust\mp5-codec\src\mp5c2.rs`
+  - Modern C2 loud units select between **bit-exact SR+CORR and MP5-L**.
+  - Classic lossy and MDCT tags remain compatibility/lab paths.
+- `C:\Users\colli\OneDrive\Documents\MP5\benchmarks\audio-quality\vnext-real-track-gate.json`
+  - Reports C2 at **0.977╫ PCM** and `contentBitExact: false`, exposing evidence drift against current code.
+- `C:\Users\colli\OneDrive\Documents\MP5\apps\web\src\player\ConverterPanel.tsx`
+  - C2 and H are currently visible first-class non-default options, causing the product-story confusion.
+- `C:\Users\colli\OneDrive\Documents\MP5\docs\MP5_COMPATIBILITY_POLICY.md`
+  - Explicitly prohibits ôbeats MP3/AAC/Opus/FLACö claims.
+
+### Confidence
+**High** on the public lineup, C2 retirement, and H decode-only policy. **Medium** on the final C architecture because the MDCT evidence covers only limited fixtures and one real reference track.
+
+Open questions:
+- Which MP3 anchors matter: 128, 192, V0, or 320 kbps?
+- Must beta CodecIds decode forever, or only after a future format-freeze release?
+- Are any C2/H files already distributed outside the project?
+- Is lossless fallback inside public C acceptable if accurately disclosed technically?
+- What device CPU, memory, channel-count, and sample-rate targets define ôshippingö?
+
+

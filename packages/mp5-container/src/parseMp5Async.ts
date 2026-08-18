@@ -45,7 +45,7 @@ export const LARGE_MP5_PARSE_BYTES = 2 * 1024 * 1024;
 const HEAVY_PAYLOAD_BYTES = 64 * 1024;
 /** Yield during CRC every this many bytes. */
 const CRC_YIELD_BYTES = 64 * 1024;
-/** Preview peaks — converter writes 512; cap protects against pathological WAVE payloads. */
+/** Preview envelope points — current converter writes 1024; cap protects against pathological WAVE payloads. */
 const MAX_WAVEFORM_PEAKS = 8192;
 
 const ALWAYS_YIELD_FOURCC = new Set(["AUDI", "WAVE", "SEEK", STEM_FRAGMENT_FOURCC]);

@@ -14,21 +14,21 @@ export const CODEC_MODE_HELP: CodecModeHelp[] = [
     name: "MP5-L v4",
     tagline: "Lossless · recommended default",
     detail:
-      "Bit-exact listening export (v4 bitstream). Use this for normal playback and sharing. Held-out gate PASS vs FFmpeg flac -5 (PROMOTE_V4). Encode hard-fails with no silent v3 fallback — Retry as MP5-L v3 (lab) if needed. v3 remains available under lab/advanced.",
+      "Bit-exact listening export (v4 bitstream). Use this for normal playback and sharing. On a provisional 19-master held-out set it measured about level with FFmpeg flac -5 (median 0.997x, worst 1.002x) — corpus-scoped, not a general win over FLAC. Encode hard-fails with no silent v3 fallback — Retry as MP5-L v3 (lab) if needed. v3 remains available under lab/advanced.",
   },
   {
     id: "mp5c2",
     name: "MP5-C2",
-    tagline: "Hybrid quiet-lossless + signal-relative loud · not default",
+    tagline: "Lossless · bit-exact · lab · not default",
     detail:
-      "Lossless on quiet/fragile/tail passages; mid/loud units pick the smaller of bit-exact SR+CORR or MP5-L. Often lands near MP5-L size on dense music. MP5-L v4 remains the recommended default. Distinct from classic lab MP5-C.",
+      "Bit-exact: quiet/fragile/tail passages use MP5-L, and loud units take the smaller of signal-relative + lossless CORR or MP5-L. On a real-music remeasure it came out slightly larger than MP5-L v4 (about 1.07x), so there is no size win and MP5-L v4 stays the recommended default. Lab/advanced only. Distinct from classic MP5-C.",
   },
   {
     id: "mp5c",
-    name: "MP5-C",
-    tagline: "Experimental lab codec",
+    name: "MP5-C classic (legacy)",
+    tagline: "Experimental lab codec · legacy",
     detail:
-      "Lossy research codec. May hiss on all presets — not for normal listening. Lab and comparison only.",
+      "Lossy research codec (CodecId 1). May hiss on all presets — not for normal listening. Lab and comparison only.",
   },
   {
     id: "mp5h",

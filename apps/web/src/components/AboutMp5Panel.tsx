@@ -29,13 +29,14 @@ function sizeVsWavDisplay(row: FormatComparisonRow): {
   return { text: measured.ratioVsWavLabel, pending: false };
 }
 
-type ModeId = "l" | "c2" | "h" | "c" | "pcm";
+type ModeId = "l" | "c2" | "c6" | "h" | "c" | "pcm";
 
 const SPECTRUM_MODES: { id: ModeId; label: string; short: string }[] = [
   { id: "l", label: "MP5-L v4 (default)", short: "L" },
   { id: "c2", label: "MP5-C2", short: "C2" },
+  { id: "c6", label: "MP5-C v6", short: "C6" },
   { id: "h", label: "MP5-H", short: "H" },
-  { id: "c", label: "MP5-C", short: "C" },
+  { id: "c", label: "MP5-C classic", short: "C" },
   { id: "pcm", label: "PCM", short: "PCM" },
 ];
 
@@ -48,8 +49,14 @@ const SECONDARY_MODES: {
   {
     id: "c2",
     name: "MP5-C2",
-    tag: "Hybrid · not default",
-    body: "Quiet, fragile, and tail passages stay MP5-L; mid/loud units use a C2-only signal-relative path (optional CORR). First-class Converter option under Lossy / hybrid — batch export stays MP5-L. Distinct from classic lab MP5-C. MDCT loud path remains lab-only.",
+    tag: "Lossless · bit-exact · lab",
+    body: "Bit-exact. Quiet, fragile, and tail passages use MP5-L; loud units take whichever is smaller — a signal-relative base plus lossless CORR, or plain MP5-L. A fresh real-music remeasure put it at 0.77x PCM but about 1.07x MP5-L v4, so it is slightly larger than MP5-L rather than smaller: MP5-L v4 stays the recommended export and C2 sits under the Converter's lab / advanced toggle. Batch export stays MP5-L. Distinct from classic MP5-C. The MDCT loud path is lab measurement only and is never what a CodecId 5 export contains.",
+  },
+  {
+    id: "c6",
+    name: "MP5-C v6",
+    tag: "Lossy · beta preview · not default",
+    body: "The lossy MDCT codec (CodecId 6, encoder rev 4) with four presets — Low, Standard, High, Extreme. On a 48 kHz real-music reference track, High measured in MP3-320 territory at 314 kbps with quiet-passage noise at or below LAME-320's own dips, and Extreme reached 55 dB SNR at 620 kbps. Quiet, fragile, and decaying-tail passages stay bit-exact MP5-L via protect islands; only those islands are sample-exact — the file as a whole is lossy. Available in the Converter as a beta preview: the bitstream is not frozen, files may not decode in future builds, and MP5-L v4 stays the recommended export — not for archival or distribution. See the measured MP3 preset comparison below.",
   },
   {
     id: "h",
@@ -59,9 +66,9 @@ const SECONDARY_MODES: {
   },
   {
     id: "c",
-    name: "MP5-C",
+    name: "MP5-C classic (legacy)",
     tag: "Lab-only",
-    body: "Lossy research codec. May add audible hiss on all presets. Not for normal listening or demos unless you are explicitly showing lab limitations.",
+    body: "Lossy research codec (CodecId 1). May add audible hiss on all presets. Not for normal listening or demos unless you are explicitly showing lab limitations.",
   },
   {
     id: "pcm",
@@ -69,6 +76,34 @@ const SECONDARY_MODES: {
     tag: "Reference / debug",
     body: "Uncompressed samples inside the container. Used when WASM codecs are unavailable or for baseline testing. Not the normal export path.",
   },
+];
+
+/**
+ * MP5-C v6 vs MP3, measured on one 48 kHz stereo real-music reference track
+ * (217.5 s) with encoder rev 4 and libmp3lame. "Quiet noise" is the error
+ * level in the softest phrase gap (8.0–8.75 s). MP3's three rates run in
+ * order with the MP5-C v6 preset of the matching tier beside each — High sits
+ * under MP3 320, which it edges on both fidelity and size on this track.
+ * Single-track figures, not a general claim.
+ */
+const C6_VS_MP3_ROWS: {
+  format: string;
+  type: string;
+  fidelity: string;
+  sizeVsWav: string;
+  quietNoise: string;
+  /** This row wins the metric column within its MP3-vs-C6 tier pairing. */
+  betterFidelity?: boolean;
+  betterSize?: boolean;
+  betterQuiet?: boolean;
+}[] = [
+  { format: "MP3 128 kbps", type: "Lossy", fidelity: "20.4 dB SNR", sizeVsWav: "0.08x", quietNoise: "−46.9 dB", betterSize: true, betterQuiet: true },
+  { format: "MP5-C v6 Low", type: "Lossy · beta", fidelity: "25.3 dB SNR", sizeVsWav: "0.10x", quietNoise: "−43.4 dB", betterFidelity: true },
+  { format: "MP3 192 kbps", type: "Lossy", fidelity: "25.7 dB SNR", sizeVsWav: "0.13x", quietNoise: "−52.4 dB", betterSize: true, betterQuiet: true },
+  { format: "MP5-C v6 Standard", type: "Lossy · beta", fidelity: "31.6 dB SNR", sizeVsWav: "0.14x", quietNoise: "−48.5 dB", betterFidelity: true },
+  { format: "MP3 320 kbps", type: "Lossy", fidelity: "35.7 dB SNR", sizeVsWav: "0.21x", quietNoise: "−72.2 dB" },
+  { format: "MP5-C v6 High", type: "Lossy · beta", fidelity: "38.1 dB SNR", sizeVsWav: "0.20x", quietNoise: "−72.5 dB", betterFidelity: true, betterSize: true, betterQuiet: true },
+  { format: "MP5-C v6 Extreme", type: "Lossy · beta", fidelity: "55.0 dB SNR", sizeVsWav: "0.40x", quietNoise: "−75.1 dB" },
 ];
 
 export function AboutMp5Panel() {
@@ -204,6 +239,53 @@ export function AboutMp5Panel() {
             );
           })}
         </ul>
+      </section>
+
+      <section className="mp5-about-compare" aria-labelledby="mp5-about-c6-heading">
+        <div className="mp5-about-compare-head">
+          <h3 id="mp5-about-c6-heading">MP5-C v6 vs MP3 — measured</h3>
+          <p>
+            The four MP5-C v6 presets and MP3's three rates, paired by quality tier — High sits
+            under MP3 320, which it edges on both fidelity and size on this track. Measured on one
+            48 kHz stereo real-music reference track (encoder rev 4 vs libmp3lame). Single-track
+            figures, not a general claim — MP5 does not claim to beat MP3.
+          </p>
+        </div>
+        <div className="mp5-about-compare-scroll">
+          <table className="mp5-about-compare-table" data-testid="about-c6-mp3-table">
+            <caption className="mp5-about-compare-caption">
+              MP3 at 128/192/320 kbps and MP5-C v6's Low/Standard/High/Extreme presets, paired by
+              quality tier, measured on the same track
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" className="mp5-about-compare-th">Format</th>
+                <th scope="col" className="mp5-about-compare-th">Type</th>
+                <th scope="col" className="mp5-about-compare-th">Fidelity</th>
+                <th scope="col" className="mp5-about-compare-th">Size vs WAV/PCM</th>
+                <th scope="col" className="mp5-about-compare-th">Quiet noise</th>
+              </tr>
+            </thead>
+            <tbody>
+              {C6_VS_MP3_ROWS.map((row) => (
+                <tr key={row.format}>
+                  <th scope="row" className="mp5-about-compare-cell-format">{row.format}</th>
+                  <td className="mp5-about-compare-cell-type">{row.type}</td>
+                  <td className={`mp5-about-compare-cell-fidelity${row.betterFidelity ? " mp5-about-compare-better" : ""}`}>{row.fidelity}</td>
+                  <td className={`mp5-about-compare-cell-size${row.betterSize ? " mp5-about-compare-better" : ""}`}>{row.sizeVsWav}</td>
+                  <td className={`mp5-about-compare-cell-use${row.betterQuiet ? " mp5-about-compare-better" : ""}`}>{row.quietNoise}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mp5-about-compare-method">
+          Fidelity is full-stream SNR against the lossless source; quiet noise is the error level
+          in the softest phrase gap (lower is better). Green marks the better figure within each
+          tier pairing (Extreme has no MP3 peer). MP5-C v6 is a beta-preview codec: the bitstream
+          is not frozen, and only its protect islands are sample-exact. Measured with{" "}
+          <code>tools/audio-lab/</code>.
+        </p>
       </section>
 
       <section className="mp5-about-compare" aria-labelledby="mp5-about-compare-heading">

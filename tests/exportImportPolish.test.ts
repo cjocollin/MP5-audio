@@ -26,6 +26,7 @@ describe("export filename", () => {
   it("adds codec variant suffix for non-default exports", () => {
     expect(buildExportFilename({ title: "T" }, "pcm")).toBe("T (PCM reference).mp5");
     expect(buildExportFilename({ title: "T" }, "mp5c")).toBe("T (MP5-C lab).mp5");
+    expect(buildExportFilename({ title: "T" }, "mp5c6")).toBe("T (MP5-C v6 lossy beta).mp5");
     expect(buildExportFilename({ title: "T" }, "mp5l")).toBe("T (MP5-L v3).mp5");
   });
 

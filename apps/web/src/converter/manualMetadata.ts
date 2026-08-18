@@ -145,16 +145,19 @@ export const VISU_STYLE_OPTIONS: { id: VisuPlayerStyle | ""; label: string }[] =
 export interface ManualVisualThemeEdits {
   themeName: string;
   primaryColor: string;
+  secondaryColor: string;
   accentColor: string;
   backgroundColor: string;
   moodLabel: string;
   visualIntensity: VisualIntensity | "";
   playerStyle: VisuPlayerStyle | "";
+  coverArtDerived?: boolean;
 }
 
 export const EMPTY_VISUAL_THEME: ManualVisualThemeEdits = {
   themeName: "",
   primaryColor: "",
+  secondaryColor: "",
   accentColor: "",
   backgroundColor: "",
   moodLabel: "",
@@ -308,11 +311,13 @@ export function visualThemeEditsFromPayload(visu: VisuPayload): ManualVisualThem
   return {
     themeName: visu.themeName ?? "",
     primaryColor: visu.primaryColor ?? "",
+    secondaryColor: visu.secondaryColor ?? "",
     accentColor: visu.accentColor ?? "",
     backgroundColor: visu.backgroundColor ?? "",
     moodLabel: visu.moodLabel ?? "",
     visualIntensity: visu.visualIntensity ?? "",
     playerStyle: visu.playerStyle ?? "",
+    coverArtDerived: visu.coverArtDerived,
   };
 }
 
@@ -320,6 +325,7 @@ export function hasVisualThemeEdits(v: ManualVisualThemeEdits): boolean {
   return !!(
     v.themeName.trim() ||
     v.primaryColor.trim() ||
+    v.secondaryColor.trim() ||
     v.accentColor.trim() ||
     v.backgroundColor.trim() ||
     v.moodLabel.trim() ||
@@ -330,11 +336,16 @@ export function hasVisualThemeEdits(v: ManualVisualThemeEdits): boolean {
 
 export function visuPayloadFromEdits(v: ManualVisualThemeEdits): VisuPayload | null {
   if (!hasVisualThemeEdits(v)) return null;
-  const payload: VisuPayload = { source: "user" };
+  const payload: VisuPayload = {
+    source: v.coverArtDerived ? "app" : "user",
+    coverArtDerived: v.coverArtDerived || undefined,
+  };
   const name = v.themeName.trim();
   if (name) payload.themeName = name;
   const primary = v.primaryColor.trim();
   if (primary) payload.primaryColor = primary;
+  const secondary = v.secondaryColor.trim();
+  if (secondary) payload.secondaryColor = secondary;
   const accent = v.accentColor.trim();
   if (accent) payload.accentColor = accent;
   const bg = v.backgroundColor.trim();

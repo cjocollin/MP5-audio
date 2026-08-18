@@ -7,7 +7,7 @@ export default {
       fontFamily: { sans: ["DM Sans", "system-ui", "sans-serif"] },
       colors: {
         surface: { DEFAULT: "#121416", elevated: "#1a1b1d" },
-        accent: "#704db8",
+        accent: "rgb(var(--mp5-accent-rgb) / <alpha-value>)",
       },
     },
   },

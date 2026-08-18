@@ -44,7 +44,8 @@ export const AI_PROVIDERS: AiProviderDefinition[] = [
     models: [
       { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5", model: "claude-haiku-4-5-20251001", hint: "Fast" },
       { id: "claude-sonnet-5", label: "Claude Sonnet 5", model: "claude-sonnet-5" },
-      { id: "claude-opus-4-8", label: "Claude Opus 4.8", model: "claude-opus-4-8" },
+      { id: "claude-opus-5", label: "Claude Opus 5", model: "claude-opus-5", hint: "Flagship" },
+      { id: "claude-opus-4-8", label: "Claude Opus 4.8", model: "claude-opus-4-8", hint: "Previous" },
       { id: "claude-fable-5", label: "Claude Fable 5", model: "claude-fable-5", hint: "Frontier" },
     ],
   },
@@ -57,8 +58,9 @@ export const AI_PROVIDERS: AiProviderDefinition[] = [
     keyHint: "aistudio.google.com API key",
     models: [
       { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite", model: "gemini-3.1-flash-lite", hint: "Fast, low cost" },
-      { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash", model: "gemini-3.6-flash", hint: "Fast" },
-      { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "gemini-3.5-flash", hint: "Previous" },
+      { id: "gemini-3.7-flash", label: "Gemini 3.7 Flash", model: "gemini-3.7-flash", hint: "Fast" },
+      { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash", model: "gemini-3.6-flash", hint: "Previous" },
+      { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "gemini-3.5-flash", hint: "Older" },
       { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", model: "gemini-3.1-pro-preview", hint: "Preview" },
       { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", model: "gemini-2.5-flash", hint: "Legacy" },
       { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", model: "gemini-2.5-pro", hint: "Legacy" },
@@ -155,8 +157,10 @@ export const AI_PROVIDERS: AiProviderDefinition[] = [
       { id: "openrouter-auto", label: "Auto Router", model: "openrouter/auto", hint: "Model-dependent JSON support" },
       { id: "or-gpt-5.6-luna", label: "OpenAI GPT-5.6 Luna", model: "openai/gpt-5.6-luna", hint: "Fast, low cost" },
       { id: "or-claude-sonnet-5", label: "Claude Sonnet 5", model: "anthropic/claude-sonnet-5" },
-      { id: "or-gemini-3.6-flash", label: "Gemini 3.6 Flash", model: "google/gemini-3.6-flash", hint: "Fast" },
-      { id: "or-gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "google/gemini-3.5-flash", hint: "Previous" },
+      { id: "or-claude-opus-5", label: "Claude Opus 5", model: "anthropic/claude-opus-5", hint: "Flagship" },
+      { id: "or-gemini-3.7-flash", label: "Gemini 3.7 Flash", model: "google/gemini-3.7-flash", hint: "Fast" },
+      { id: "or-gemini-3.6-flash", label: "Gemini 3.6 Flash", model: "google/gemini-3.6-flash", hint: "Previous" },
+      { id: "or-gemini-3.5-flash", label: "Gemini 3.5 Flash", model: "google/gemini-3.5-flash", hint: "Older" },
     ],
   },
   {
@@ -198,18 +202,26 @@ export function defaultModelForProvider(providerId: string): string {
   return provider.models[0]!.model;
 }
 
-export function modelPresetIdForProvider(providerId: string, model: string): string {
-  const provider = getAiProvider(providerId);
-  if (!provider) return AI_MODEL_CUSTOM_ID;
+export function modelPresetIdForProvider(
+  providerId: string,
+  model: string,
+  models?: readonly AiModelPreset[],
+): string {
+  const list = models ?? getAiProvider(providerId)?.models;
+  if (!list) return AI_MODEL_CUSTOM_ID;
   const trimmed = model.trim();
-  const match = provider.models.find((p) => p.model === trimmed);
+  const match = list.find((p) => p.model === trimmed);
   return match?.id ?? AI_MODEL_CUSTOM_ID;
 }
 
-export function modelFromProviderPreset(providerId: string, presetId: string): string | null {
+export function modelFromProviderPreset(
+  providerId: string,
+  presetId: string,
+  models?: readonly AiModelPreset[],
+): string | null {
   if (presetId === AI_MODEL_CUSTOM_ID) return null;
-  const provider = getAiProvider(providerId);
-  return provider?.models.find((p) => p.id === presetId)?.model ?? null;
+  const list = models ?? getAiProvider(providerId)?.models;
+  return list?.find((p) => p.id === presetId)?.model ?? null;
 }
 
 /** Guess provider from saved base URL when migrating older settings. */

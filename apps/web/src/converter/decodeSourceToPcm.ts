@@ -93,6 +93,32 @@ export async function decodeSourceToPcm(
   return decodeWithFfmpegWasm(file, onProgress, signal);
 }
 
+/** Probe input sample rate + channel count via ffmpeg's own stderr. */
+async function probeAudioLayout(
+  ffmpeg: import("@ffmpeg/ffmpeg").FFmpeg,
+  input: string,
+): Promise<{ sampleRate: number; channels: number }> {
+  const lines: string[] = [];
+  const onLog = ({ message }: { type: string; message: string }) => {
+    lines.push(message);
+  };
+  ffmpeg.on("log", onLog);
+  try {
+    // `-i` alone prints stream info then exits non-zero; that is fine.
+    await ffmpeg.exec(["-hide_banner", "-i", input], 60_000).catch(() => -1);
+  } finally {
+    ffmpeg.off("log", onLog);
+  }
+  const audioLine = lines.find((l) => /Stream #.*Audio:/.test(l)) ?? "";
+  const rate = Number(audioLine.match(/(\d+)\s*Hz/)?.[1] ?? 0);
+  const layout = audioLine.match(/Hz,\s*([^,]+)/)?.[1] ?? "";
+  const channels = /mono/.test(layout) ? 1 : 2;
+  return {
+    sampleRate: rate >= 8000 ? rate : 44100,
+    channels,
+  };
+}
+
 async function decodeWithFfmpegWasm(
   file: File,
   onProgress?: DecodeProgress,
@@ -110,11 +136,20 @@ async function decodeWithFfmpegWasm(
       await ffmpeg.writeFile(input, await fetchFile(file));
       throwIfAborted(signal);
 
+      // Preserve the source layout: an unsolicited 44.1 kHz stereo resample
+      // was silently degrading 48 kHz (and any non-44.1) sources. Only
+      // downmix >2 channels or lift absurd rates (< 8 kHz unsupported by the
+      // CodecId 6 header).
+      const probe = await probeAudioLayout(ffmpeg, input);
+      const outRate = probe.sampleRate;
+      const outCh = probe.channels;
+
       onProgress?.("Transcoding to PCM (FFmpeg)…");
-      const exit = await ffmpeg.exec(
-        ["-i", input, "-vn", "-f", "s16le", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", output],
-        300_000,
-      );
+      const args = ["-i", input, "-vn", "-f", "s16le", "-acodec", "pcm_s16le"];
+      if (outCh === 1) args.push("-ac", "1");
+      else args.push("-ac", "2");
+      args.push("-ar", String(outRate), output);
+      const exit = await ffmpeg.exec(args, 300_000);
       if (exit !== 0) {
         throw new Error(`${decodeFailureHint(file.name)} (FFmpeg exit ${exit}).`);
       }
@@ -136,8 +171,8 @@ async function decodeWithFfmpegWasm(
       const samples = new Int16Array(copy.buffer, copy.byteOffset, copy.byteLength / 2);
       return {
         samples,
-        sampleRate: 44100,
-        channels: 2,
+        sampleRate: outRate,
+        channels: outCh,
         metadata: { title: file.name.replace(/\.[^.]+$/, "") },
       };
     });

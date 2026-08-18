@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { formatPlaybackTime } from "./playlistUtils";
+import {
+  resampleWaveformEnvelope,
+  smoothWaveformEnvelope,
+  waveformScaleReference,
+} from "./waveformEnvelope";
 
 export interface WaveformSectionMarker {
   startMs: number;
@@ -29,22 +34,13 @@ interface Props {
   playedFill?: string;
   unplayedFill?: string;
   disabled?: boolean;
-  visualProfile?: "default-demo";
 }
 
-function densifyPeaks(peaks: number[], targetLength = 512) {
-  if (peaks.length >= targetLength || peaks.length < 2) return peaks;
-  return Array.from({ length: targetLength }, (_, index) => {
-    const position = (index / (targetLength - 1)) * (peaks.length - 1);
-    const leftIndex = Math.floor(position);
-    const rightIndex = Math.min(peaks.length - 1, leftIndex + 1);
-    const mix = position - leftIndex;
-    return peaks[leftIndex]! * (1 - mix) + peaks[rightIndex]! * mix;
-  });
-}
+const DISPLAY_BAR_COUNT = 112;
+const BAR_WIDTH = 0.56;
 
 /** Deterministic ghost peaks for the empty-state placeholder (not real audio). */
-function placeholderPeaks(count = 160): number[] {
+function placeholderPeaks(count = DISPLAY_BAR_COUNT): number[] {
   return Array.from({ length: count }, (_, i) => {
     const t = i / (count - 1);
     const envelope = 0.35 + 0.55 * Math.sin(Math.PI * t);
@@ -85,14 +81,16 @@ function WaveformPlaceholder() {
           strokeWidth={0.6}
         />
         {peaks.map((p, i) => {
-          const h = Math.max(1, (p / peakMax) * 22);
+          const h = Math.max(2, (p / peakMax) * 20);
           return (
             <rect
               key={i}
-              x={i + 0.15}
+              x={i + (1 - BAR_WIDTH) / 2}
               y={16 - h / 2}
-              width={0.45}
+              width={BAR_WIDTH}
               height={h}
+              rx={BAR_WIDTH / 2}
+              ry={1}
               fill="currentColor"
               fillOpacity={0.22}
             />
@@ -115,7 +113,6 @@ export function WaveformView({
   playedFill,
   unplayedFill,
   disabled = false,
-  visualProfile,
 }: Props) {
   const [previewRatio, setPreviewRatio] = useState<number | null>(null);
 
@@ -123,27 +120,15 @@ export function WaveformView({
     return <WaveformPlaceholder />;
   }
 
-  const densePeaks = densifyPeaks(peaks);
-  const displayPeaks = visualProfile === "default-demo"
-    ? densePeaks.map((_peak, index) => {
-        const broad = 0.68 + 0.14 * Math.sin(index * 0.031 + 0.6) + 0.09 * Math.sin(index * 0.083);
-        const hash = Math.sin((index + 1) * 12.9898) * 43758.5453;
-        const random = hash - Math.floor(hash);
-        const detail = 0.24 + random * 0.76;
-        return Math.max(0.1, broad * detail);
-      })
-    : densePeaks;
+  const displayPeaks = smoothWaveformEnvelope(
+    resampleWaveformEnvelope(peaks, DISPLAY_BAR_COUNT),
+  );
   const w = displayPeaks.length;
-  const peakMax = displayPeaks.reduce((max, peak) => Math.max(max, peak), 0.001);
-  const playheadX = Math.max(1.5, progress * w);
-  const peakHeightScale = visualProfile === "default-demo" ? 20 : 28;
-  const peakHeights = displayPeaks.map((peak) => Math.max(1, (peak / peakMax) * peakHeightScale));
-  const demoWaveformPoints = [
-    ...peakHeights.map((height, index) => `${index},${16 - height / 2}`),
-    ...peakHeights
-      .map((height, index) => `${index},${16 + height / 2}`)
-      .reverse(),
-  ].join(" ");
+  const scaleReference = waveformScaleReference(displayPeaks);
+  const playheadX = Math.max(0.5, Math.min(w - 0.5, progress * w));
+  const peakHeights = displayPeaks.map((peak) =>
+    Math.max(2, Math.min(1, peak / scaleReference) * 24),
+  );
 
   return (
     <div className="mp5-waveform-shell">
@@ -178,24 +163,22 @@ export function WaveformView({
           data-testid="waveform-loop-range"
         />
       )}
-      {visualProfile === "default-demo" ? (
-        <polygon points={demoWaveformPoints} fill="var(--mp5-accent)" fillOpacity={0.92} />
-      ) : (
-        displayPeaks.map((p, i) => {
-          const h = Math.max(1, (p / peakMax) * 28);
-          const played = i / w <= progress;
-          return (
-            <rect
-              key={i}
-              x={i + 0.15}
-              y={16 - h / 2}
-              width={0.34}
-              height={h}
-              fill={played ? (playedFill ?? "var(--mp5-accent-bright)") : (unplayedFill ?? "var(--mp5-accent)")}
-            />
-          );
-        })
-      )}
+      {displayPeaks.map((_peak, i) => {
+        const h = peakHeights[i]!;
+        const played = (i + 0.5) / w <= progress;
+        return (
+          <rect
+            key={i}
+            x={i + (1 - BAR_WIDTH) / 2}
+            y={16 - h / 2}
+            width={BAR_WIDTH}
+            height={h}
+            rx={BAR_WIDTH / 2}
+            ry={1}
+            fill={played ? (playedFill ?? "var(--mp5-accent-bright)") : (unplayedFill ?? "var(--mp5-accent)")}
+          />
+        );
+      })}
       <line
         x1={playheadX}
         x2={playheadX}
@@ -204,9 +187,20 @@ export function WaveformView({
         stroke="#f8fafc"
         strokeWidth={1.2}
         strokeOpacity={0.96}
+        vectorEffect="non-scaling-stroke"
         aria-hidden
       />
-      <circle cx={playheadX} cy={1.8} r={1.8} fill="#f8fafc" aria-hidden />
+      <line
+        x1={playheadX}
+        x2={playheadX}
+        y1={1.8}
+        y2={1.8}
+        stroke="#f8fafc"
+        strokeWidth={3.6}
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+        aria-hidden
+      />
       {durationSec > 0 &&
         sectionMarkers.map((m, i) => {
           const x = (m.startMs / 1000 / durationSec) * w;
@@ -221,6 +215,7 @@ export function WaveformView({
               stroke="#a78bfa"
               strokeWidth={0.5}
               strokeOpacity={0.6}
+              vectorEffect="non-scaling-stroke"
               data-testid="waveform-section-marker"
             />
           );

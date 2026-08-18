@@ -18,6 +18,7 @@ import { extractSourceMetadata, type SourceMetadata } from "../converter/extract
 import {
   buildOverridesFromEdits,
   manualEditsFromSource,
+  visualThemeEditsFromPayload,
   type ManualMetadataEdits,
 } from "../converter/manualMetadata";
 import { buildExportFilename } from "../converter/exportFilename";
@@ -110,6 +111,18 @@ function metaFromEdits(edits: ManualMetadataEdits) {
 type ConverterMode = "single" | "batch";
 type ConverterStage = "source" | "metadata" | "export";
 
+/**
+ * Codecs offered only while the lab / advanced toggle is open.
+ * Public converter surface is MP5-L v4 + PCM, plus MP5-C v6 as a clearly
+ * labeled beta preview (not default; bitstream not frozen).
+ */
+const LAB_ONLY_CODECS: ReadonlySet<OutputCodec> = new Set<OutputCodec>([
+  "mp5l",
+  "mp5c",
+  "mp5c2",
+  "mp5h",
+]);
+
 function stageAfterSourceLoad(): ConverterStage {
   if (typeof window !== "undefined" && window.matchMedia?.("(max-width: 767px)").matches) {
     return "export";
@@ -149,9 +162,29 @@ function codecPresentation(codec: OutputCodec): {
     case "mp5c2":
       return {
         name: "MP5-C2",
-        qualifier: "Hybrid · not default",
-        description: "Quiet passages stay lossless while the loud path uses signal-relative coding.",
-        badges: [{ label: "MP5-C2" }, { label: "Hybrid" }, { label: "Not default" }],
+        qualifier: "Lossless · lab · not default",
+        description:
+          "Bit-exact lossless. Quiet passages use MP5-L; loud units take the smaller of signal-relative + CORR or MP5-L.",
+        badges: [
+          { label: "MP5-C2" },
+          { label: "Lossless", verified: true },
+          { label: "Bit-exact", verified: true },
+          { label: "Not default" },
+        ],
+      };
+    case "mp5c6":
+      return {
+        name: "MP5-C v6",
+        qualifier: "Lossy · beta preview · not default",
+        description:
+          "Beta-preview lossy MDCT loud path. Quiet, fragile and decaying-tail passages stay bit-exact MP5-L, but the file as a whole is not bit-exact and the bitstream is not frozen — files may not decode in future builds.",
+        badges: [
+          { label: "MP5-C v6" },
+          { label: "Lossy" },
+          { label: "Beta preview" },
+          { label: "Protect islands bit-exact", verified: true },
+          { label: "Not frozen" },
+        ],
       };
     case "mp5h":
       return {
@@ -162,10 +195,10 @@ function codecPresentation(codec: OutputCodec): {
       };
     case "mp5c":
       return {
-        name: "MP5-C",
+        name: "MP5-C classic (legacy)",
         qualifier: "Experimental / lab",
         description: "Lossy research codec that may add audible hiss.",
-        badges: [{ label: "MP5-C" }, { label: "Lossy" }, { label: "Lab" }],
+        badges: [{ label: "MP5-C classic" }, { label: "Lossy" }, { label: "Lab" }],
       };
     case "pcm":
       return {
@@ -195,6 +228,7 @@ export function ConverterPanel() {
   const [preset, setPreset] = useState(2);
   const [labCodecsOpen, setLabCodecsOpen] = useState(false);
   const [formatsOpen, setFormatsOpen] = useState(false);
+  const [formatMenuOpen, setFormatMenuOpen] = useState(false);
   const [advancedToolsOpen, setAdvancedToolsOpen] = useState(false);
   const [status, setStatus] = useState<string>("");
   const [exportProgress, setExportProgress] = useState<number | null>(null);
@@ -221,6 +255,7 @@ export function ConverterPanel() {
   const [seedBatchFiles, setSeedBatchFiles] = useState<File[] | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const sourceInputRef = useRef<HTMLInputElement>(null);
+  const formatControlRef = useRef<HTMLDivElement>(null);
   const { bumpCancelGeneration, setSinglePhase, resetSingle } = useConversionStore();
   const pendingConverterFiles = usePlayerStore((s) => s.pendingConverterFiles);
   const consumePendingConverterFiles = usePlayerStore((s) => s.consumePendingConverterFiles);
@@ -241,11 +276,28 @@ export function ConverterPanel() {
   }, [codecUnavailable, codec]);
 
   useEffect(() => {
-    // Classic MP5-C stays behind the lab toggle; MP5-C2 is a first-class non-default option.
-    if (!labCodecsOpen && codec === "mp5c") {
+    if (!labCodecsOpen && LAB_ONLY_CODECS.has(codec)) {
       setCodec("mp5l_v4");
     }
   }, [labCodecsOpen, codec]);
+
+  useEffect(() => {
+    if (!formatMenuOpen) return;
+    function onPointerDown(event: MouseEvent) {
+      if (!formatControlRef.current?.contains(event.target as Node)) {
+        setFormatMenuOpen(false);
+      }
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setFormatMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [formatMenuOpen]);
 
   useEffect(() => {
     if (error) recordUserFacingError("converter", error);
@@ -576,6 +628,7 @@ export function ConverterPanel() {
         pcm: pending.pcm.samples,
         sampleRate: pending.pcm.sampleRate,
         channels: pending.pcm.channels,
+        cover: edits.cover === null ? undefined : edits.cover ?? pending.extracted.cover,
         context: {
           title: edits.meta.title,
           artist: edits.meta.artist,
@@ -597,12 +650,14 @@ export function ConverterPanel() {
         suggestions.safe ||
         suggestions.mood ||
         suggestions.vibe ||
-        suggestions.summ;
+        suggestions.summ ||
+        suggestions.visu;
       const partialErrors = [
         suggestions.cloudBeatError,
         suggestions.cloudStructureError,
         suggestions.cloudLyricsError,
         suggestions.cloudContentWarningsError,
+        suggestions.coverPaletteError,
       ].filter(Boolean);
       if (!partial) {
         setAiError(
@@ -652,6 +707,14 @@ export function ConverterPanel() {
       ...edits,
       trackSummary: aiSuggestions.summ.text,
       summSource: aiSuggestions.summ.source ?? "ai-cloud",
+    });
+  }
+
+  function acceptVisualThemeSuggestion() {
+    if (!edits || !aiSuggestions.visu) return;
+    setEdits({
+      ...edits,
+      visualTheme: visualThemeEditsFromPayload(aiSuggestions.visu),
     });
   }
 
@@ -1051,6 +1114,7 @@ export function ConverterPanel() {
                           onAcceptContentWarnings={acceptContentWarningsSuggestion}
                           onAcceptMoodVibe={acceptMoodVibeSuggestion}
                           onAcceptSummary={acceptSummarySuggestion}
+                          onAcceptVisualTheme={acceptVisualThemeSuggestion}
                           onDismiss={() => setAiSuggestions({})}
                           aiEnabled={loadAiSettings().enabled}
                           cloudConfigured={cloudAiConfigured(loadAiSettings())}
@@ -1127,21 +1191,143 @@ export function ConverterPanel() {
                 />
               </label>
 
-              <label className="mp5-converter-field">
-                <span>Format</span>
-                <div className="mp5-converter-format-control">
+              <div className="mp5-converter-field">
+                <span id="converter-format-label">Format</span>
+                <div
+                  ref={formatControlRef}
+                  className={`mp5-converter-format-control${formatMenuOpen ? " is-open" : ""}`}
+                >
                   <Waveform size={25} weight="duotone" aria-hidden />
                   <span>
                     <strong>{codecView.name}</strong>
                     <small>{codecView.qualifier}</small>
                   </span>
-                  <CaretDown size={18} aria-hidden />
+                  <CaretDown
+                    size={18}
+                    aria-hidden
+                    className={formatMenuOpen ? "rotate-180" : undefined}
+                  />
+                  <button
+                    type="button"
+                    className="mp5-converter-format-trigger"
+                    aria-labelledby="converter-format-label"
+                    aria-haspopup="listbox"
+                    aria-expanded={formatMenuOpen}
+                    aria-controls="converter-format-menu"
+                    disabled={codecUnavailable || busy}
+                    onClick={() => setFormatMenuOpen((open) => !open)}
+                  >
+                    <span className="sr-only">Export format</span>
+                  </button>
+                  {formatMenuOpen && (
+                    <div
+                      id="converter-format-menu"
+                      className="mp5-converter-format-menu"
+                      role="listbox"
+                      aria-labelledby="converter-format-label"
+                    >
+                      {codecUnavailable ? (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected
+                          className="is-selected"
+                          onClick={() => {
+                            setCodec("pcm");
+                            setFormatMenuOpen(false);
+                          }}
+                        >
+                          {codecExportOptionLabel("pcm")} (WASM required for MP5 codecs)
+                        </button>
+                      ) : (
+                        <>
+                          <p className="mp5-converter-format-menu-group" role="presentation">
+                            Recommended
+                          </p>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={codec === "mp5l_v4"}
+                            className={codec === "mp5l_v4" ? "is-selected" : undefined}
+                            onClick={() => {
+                              setCodec("mp5l_v4");
+                              setFormatMenuOpen(false);
+                            }}
+                          >
+                            {codecExportOptionLabel("mp5l_v4")}
+                          </button>
+                          <p className="mp5-converter-format-menu-group" role="presentation">
+                            Beta preview (not default)
+                          </p>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={codec === "mp5c6"}
+                            className={codec === "mp5c6" ? "is-selected" : undefined}
+                            onClick={() => {
+                              setCodec("mp5c6");
+                              setFormatMenuOpen(false);
+                            }}
+                          >
+                            {codecExportOptionLabel("mp5c6")}
+                          </button>
+                          <p className="mp5-converter-format-menu-group" role="presentation">
+                            Debug
+                          </p>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={codec === "pcm"}
+                            className={codec === "pcm" ? "is-selected" : undefined}
+                            onClick={() => {
+                              setCodec("pcm");
+                              setFormatMenuOpen(false);
+                            }}
+                          >
+                            {codecExportOptionLabel("pcm")}
+                          </button>
+                          {labCodecsOpen && (
+                            <>
+                              <p className="mp5-converter-format-menu-group" role="presentation">
+                                Lab / advanced (not default)
+                              </p>
+                              {(
+                                [
+                                  "mp5l",
+                                  "mp5c",
+                                  "mp5c2",
+                                  "mp5h",
+                                ] as const
+                              ).map((value) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  role="option"
+                                  aria-selected={codec === value}
+                                  className={codec === value ? "is-selected" : undefined}
+                                  onClick={() => {
+                                    setCodec(value);
+                                    setFormatMenuOpen(false);
+                                  }}
+                                >
+                                  {codecExportOptionLabel(value)}
+                                </button>
+                              ))}
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {/* Native select kept for e2e / programmatic value checks; UI uses the themed menu above. */}
                   <select
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-hidden="true"
                     value={codecUnavailable ? "pcm" : codec}
                     onChange={(event) => setCodec(event.target.value as OutputCodec)}
                     data-testid="codec-select"
                     disabled={codecUnavailable || busy}
-                    aria-label="Export format"
                   >
                     {codecUnavailable ? (
                       <option value="pcm">{codecExportOptionLabel("pcm")} (WASM required for MP5 codecs)</option>
@@ -1150,24 +1336,25 @@ export function ConverterPanel() {
                         <optgroup label="Recommended">
                           <option value="mp5l_v4">{codecExportOptionLabel("mp5l_v4")}</option>
                         </optgroup>
+                        <optgroup label="Beta preview (not default)">
+                          <option value="mp5c6">{codecExportOptionLabel("mp5c6")}</option>
+                        </optgroup>
                         <optgroup label="Debug">
                           <option value="pcm">{codecExportOptionLabel("pcm")}</option>
                         </optgroup>
-                        <optgroup label="Lossy / hybrid (not default)">
-                          <option value="mp5c2">{codecExportOptionLabel("mp5c2")}</option>
-                          <option value="mp5h">{codecExportOptionLabel("mp5h")}</option>
-                        </optgroup>
                         {labCodecsOpen && (
-                          <optgroup label="Lab / advanced">
+                          <optgroup label="Lab / advanced (not default)">
                             <option value="mp5l">{codecExportOptionLabel("mp5l")}</option>
                             <option value="mp5c">{codecExportOptionLabel("mp5c")}</option>
+                            <option value="mp5c2">{codecExportOptionLabel("mp5c2")}</option>
+                            <option value="mp5h">{codecExportOptionLabel("mp5h")}</option>
                           </optgroup>
                         )}
                       </>
                     )}
                   </select>
                 </div>
-              </label>
+              </div>
 
               <div className="mp5-converter-codec-badges" aria-label="Selected format qualities">
                 {codecView.badges.map((badge) => (
@@ -1213,7 +1400,7 @@ export function ConverterPanel() {
                     {labCodecsOpen ? "Hide lab codecs" : "Show lab / advanced codecs"}
                   </button>
                   <label>
-                    <span>Preset (MP5-C2 / MP5-H / lab MP5-C)</span>
+                    <span>Preset (MP5-C2 / MP5-H / classic MP5-C)</span>
                     <select
                       value={preset}
                       onChange={(event) => setPreset(Number(event.target.value))}
@@ -1239,15 +1426,24 @@ export function ConverterPanel() {
               )}
               {codec === "mp5c2" && codecReady && (
                 <p className="mp5-converter-info" data-testid="mp5c2-info">
-                  <strong>MP5-C2</strong> (hybrid): lossless on quiet/fragile tails; signal-relative loud path with
-                  CORR when needed. Not the default — prefer MP5-L for bit-exact sharing. Distinct from classic lab
-                  MP5-C.
+                    <strong>MP5-C2 is bit-exact lossless (lab · not default).</strong> Quiet and fragile passages use
+                    MP5-L; loud units take the smaller of signal-relative + lossless CORR or MP5-L. It measures slightly
+                    larger than MP5-L v4 (about 1.07x on a real-music corpus), so MP5-L v4 stays the recommended export.
+                    Distinct from classic lab MP5-C.
                 </p>
               )}
               {codec === "mp5h" && codecReady && (
                 <p className="mp5-converter-info" data-testid="mp5h-size-warning">
                   <strong>MP5-H is hybrid (not default).</strong> MP5-C base + lossless CORR correction. Larger than
                   MP5-L.
+                </p>
+              )}
+              {codec === "mp5c6" && codecReady && (
+                <p className="mp5-converter-info" data-testid="mp5c6-beta-info">
+                  <strong>MP5-C v6 is a beta preview (lossy · not default).</strong> Quiet, fragile and decaying-tail
+                  passages stay bit-exact MP5-L via protect islands, but the file as a whole is lossy and the
+                  bitstream is not frozen — files may not decode in future builds. MP5-L v4 stays the recommended
+                  export.
                 </p>
               )}
               </div>

@@ -65,13 +65,16 @@ impl ProtectParams {
     }
 }
 
-const TAG_LOSSLESS: u8 = 0x4c; // 'L' broadband-quiet
-const TAG_BAND: u8 = 0x42; // 'B' per-band / decaying tail
-const TAG_LOSSY: u8 = 0x43; // 'C' legacy lossy (MP5-C v5.1) — decode only for old files
-const TAG_MDCT: u8 = 0x4d; // 'M' lossy MDCT (mp5c3 lab)
+pub(crate) const TAG_LOSSLESS: u8 = 0x4c; // 'L' broadband-quiet
+pub(crate) const TAG_BAND: u8 = 0x42; // 'B' per-band / decaying tail
+pub(crate) const TAG_LOSSY: u8 = 0x43; // 'C' legacy lossy (MP5-C v5.1) — decode only for old files
+pub(crate) const TAG_MDCT: u8 = 0x4d; // 'M' lossy MDCT (mp5c3 lab)
 /// Signal-relative loud path (C2-only): normalize + MP5-C + optional CORR.
 /// Uses 'F' (fine) — not 0x53, which the JS lab reserved for shaped pre-emphasis.
-const TAG_SR: u8 = 0x46; // 'F'
+pub(crate) const TAG_SR: u8 = 0x46; // 'F'
+
+/// Protect/MDCT unit planning size in PCM frames, shared with CodecId 6 headers.
+pub(crate) const UNIT_SIZE_FRAMES: usize = SUB_BLOCK;
 
 const SR_FLAG_CORR: u8 = 0x01;
 const SR_VERSION: u8 = 1;
@@ -156,6 +159,66 @@ fn decide_tags(stats: &[SubStats], p: &ProtectParams) -> Vec<u8> {
         tags.push(tag);
     }
     tags
+}
+
+/// One planned unit: `(marker, start_frame, end_frame)`.
+///
+/// `marker` is [`TAG_LOSSY`] for loud runs — the caller chooses the loud coding
+/// path (SR / MDCT / legacy) — or [`TAG_LOSSLESS`] / [`TAG_BAND`] for protect
+/// islands, which are always coded bit-exact with MP5-L.
+pub(crate) type PlannedUnit = (u8, usize, usize);
+
+/// Sub-block protect analysis + run coalescing, shared by MP5-C2 and CodecId 6.
+///
+/// This is the single source of truth for "which spans are protect islands";
+/// CodecId 6 must not re-derive it or the two streams could disagree on
+/// `%protected`.
+pub(crate) fn plan_protect_units(
+    samples: &[i16],
+    channels: usize,
+    sample_rate: u32,
+    protect: &ProtectParams,
+) -> Vec<PlannedUnit> {
+    let ch = channels.max(1);
+    let frames = samples.len() / ch;
+    let sr = sample_rate.max(8000) as f64;
+    let alpha = alpha_for_cutoff(HF_CUTOFF_HZ, sr);
+
+    let mut bounds: Vec<(usize, usize)> = Vec::new();
+    let mut stats: Vec<SubStats> = Vec::new();
+    let mut f = 0;
+    while f < frames {
+        let e = (f + SUB_BLOCK).min(frames);
+        stats.push(sub_stats(&samples[f * ch..e * ch], ch, alpha));
+        bounds.push((f, e));
+        f = e;
+    }
+
+    let tags = decide_tags(&stats, protect);
+
+    let mut plan: Vec<PlannedUnit> = Vec::new();
+    let mut i = 0;
+    while i < bounds.len() {
+        let tag = tags[i];
+        let start = i;
+        let mut end = i + 1;
+        let mut out_tag = tag;
+        if tag == TAG_LOSSY {
+            while end < bounds.len() && tags[end] == TAG_LOSSY {
+                end += 1;
+            }
+        } else {
+            while end < bounds.len() && tags[end] != TAG_LOSSY {
+                if tags[end] == TAG_BAND {
+                    out_tag = TAG_BAND;
+                }
+                end += 1;
+            }
+        }
+        plan.push((out_tag, bounds[start].0, bounds[end - 1].1));
+        i = end;
+    }
+    plan
 }
 
 fn push_unit(out: &mut Vec<u8>, tag: u8, n: usize, payload: &[u8]) {
@@ -513,53 +576,25 @@ fn encode_with_protect_at_rate(
 ) -> Vec<u8> {
     let ch = channels.max(1) as usize;
     let frames = samples.len() / ch;
-    let sr = sample_rate.max(8000) as f64;
-    let alpha = alpha_for_cutoff(HF_CUTOFF_HZ, sr);
-
-    let mut bounds: Vec<(usize, usize)> = Vec::new();
-    let mut stats: Vec<SubStats> = Vec::new();
-    let mut f = 0;
-    while f < frames {
-        let e = (f + SUB_BLOCK).min(frames);
-        stats.push(sub_stats(&samples[f * ch..e * ch], ch, alpha));
-        bounds.push((f, e));
-        f = e;
-    }
-
-    let tags = decide_tags(&stats, &protect);
+    let plan = plan_protect_units(samples, ch, sample_rate, &protect);
 
     let mut out = vec![MAGIC0, MAGIC1, ch as u8, preset as u8];
     out.extend(&(SUB_BLOCK as u16).to_le_bytes());
     out.extend(&(frames as u32).to_le_bytes());
     debug_assert_eq!(out.len(), HEADER_LEN);
 
-    let mut i = 0;
-    while i < bounds.len() {
-        let tag = tags[i];
-        let start = i;
-        let mut end = i + 1;
-        let mut out_tag = tag;
-        if tag == TAG_LOSSY {
-            while end < bounds.len() && tags[end] == TAG_LOSSY {
-                end += 1;
-            }
-            out_tag = match loud {
+    for (marker, s, e) in plan {
+        let n = e - s;
+        let slice = &samples[s * ch..e * ch];
+        let out_tag = if marker == TAG_LOSSY {
+            match loud {
                 LoudPath::SignalRelative => TAG_SR,
                 LoudPath::Mdct => TAG_MDCT,
                 LoudPath::LegacyLossy => TAG_LOSSY,
-            };
-        } else {
-            while end < bounds.len() && tags[end] != TAG_LOSSY {
-                if tags[end] == TAG_BAND {
-                    out_tag = TAG_BAND;
-                }
-                end += 1;
             }
-        }
-        let s = bounds[start].0;
-        let e = bounds[end - 1].1;
-        let n = e - s;
-        let slice = &samples[s * ch..e * ch];
+        } else {
+            marker
+        };
         let (out_tag, payload) = match out_tag {
             TAG_MDCT => (TAG_MDCT, mp5c3::encode(slice, ch as u8, preset)),
             TAG_LOSSY => (TAG_LOSSY, mp5c::encode(slice, ch as u8, preset)),
@@ -567,7 +602,6 @@ fn encode_with_protect_at_rate(
             _ => (out_tag, mp5l::encode(slice, ch as u8)),
         };
         push_unit(&mut out, out_tag, n, &payload);
-        i = end;
     }
     out
 }

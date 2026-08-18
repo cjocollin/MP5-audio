@@ -1,0 +1,81 @@
+### Cross-reviewer: Grok 4.5
+
+Repo check confirms peers on the decisive claim: shipping `mp5c2::encode` uses `LoudPath::SignalRelative` → `encode_loud_min_exact` → `min(bit-exact SR+CORR, MP5-L)`; module docs and `loud_block_bitexact_min_of_sr_or_lossless` assert bit-exact and forbid `TAG_LOSSY`. The ~0.98× / `contentBitExact: false` numbers are from the **legacy lossy** / protect-gate path, not current shipping encode. My original report treated those stale metrics as the shipping C2 product story — that was wrong.
+
+### Agreements with Opus
+- Public story collapses to **L + one honest C lane**; no second hybrid; decode forever for 1/3/5.
+- Shipping C2 is **bit-exact**, not a lossy hybrid; folding it into “lossy C / MP3-class” would mislabel.
+- Classic C is structurally dead for transparency; MDCT (`mp5c3`) is the only size-credible C engine.
+- H is dominated (1.54× PCM / 2.01× L; C2-as-base ≈ 1.00× L) → remove export, keep decode/lab encode.
+- Retire public name “MP5-C2”; prefer **new CodecId (6)** for real lossy C rather than overloading 5.
+- `formatComparison.ts` C2 row (`bitExact: "no"`, 0.977×) is **stale/false** vs shipping code.
+- “MP3-class” without ABX is unsupported; ~0.21× is roughly **MP3-320-class size**, not proven quality.
+- Protect % / SNR-laundering risk on MDCT is real; no listening artifacts under `benchmarks/listening/`.
+
+### Disagreements with Opus (cite who is more correct + why)
+- **Near-term UI: Opus says hide C from export until MDCT+ABX; I said keep “C experimental” visible.**  
+  **Opus more correct for honesty.** Showing a C export today either ships bit-exact-as-lossy (CodecId 5) or hissy classic C. “In development” in About, absent from Converter, is cleaner.
+- **Where C2’s current output “belongs.”** Opus: merge into L lane or lab-only.  
+  **Opus more correct.** Shipping C2 is a second lossless encoder ≈ L size (ORIGAMI C2-as-base H ≈ 1.00× L), not a lossy product. My “fold engine under C” kept the protect/MDCT *ideas*, but wrongly kept CodecId 5 as the C product face.
+- **“Delete hybrid everywhere” vs “stop calling C hybrid.”**  
+  **Opus slightly more correct for UX.** Two formats currently share the “hybrid” tier; nuking the tier is the fix. Keep “adaptive / lossless islands” in engineering docs only.
+- **H carve-out (encoder in Rust/WASM/bench, not converter).**  
+  **Agree with Opus (matches my B + soft-A).** No real disagreement.
+- **L held-out overclaim (`codecModesCopy` “PASS” vs status “PROVISIONAL / not met”).**  
+  **Opus correct** — I missed this; same honesty pass should fix it.
+- **MDCT roadmap depth (joint stereo, window switching, Rice-per-band, rate control, masking model).**  
+  **Opus more useful.** My path named MDCT + ABX + size gates; Opus names concrete levers. Still estimates, not measured wins — treat as engineering backlog, not ship criteria.
+
+### Agreements with GPT
+- Public lineup: **L default, C future lossy (lab until validated), PCM advanced**; C2/H off normal export.
+- Shipping C2 loud path is effectively **bit-exact**; do not simply relabel C2 as lossy C.
+- Prefer **new frozen id/profile** for eventual non-bit-exact C; keep CodecId 5 decode forever with accurate labels.
+- H = B+ (no user export; decode + lab encode); classic C never foundation of distribution C.
+- MDCT proves **size class**, not perceptual parity; ABX/MUSHRA vs LAME at matched bitrate required.
+- Docs/benchmarks drift (`vnext-real-track-gate` `contentBitExact: false` vs code) is a first-class risk.
+
+### Disagreements with GPT (cite who is more correct + why)
+- **“MP5-C — lossy distribution, remain lab-only” still in public lineup bullets.**  
+  **Opus (and my updated stance) sharper:** until MDCT is behind C, the honest public surface is **L-only in Converter**, C as “in development” copy — not a lab export that users can already pick if that pick is still CodecId 5 bit-exact or classic hiss.
+- **ABX on “existing C2 protocol.”** GPT: inappropriate for bit-exact C2; ABX belongs on MDCT successor.  
+  **GPT more correct than my original report**, which still pointed ABX at “C vs L” as if shipping C2 were lossy. Sample equality for CodecId 5; ABX for MDCT/CodecId 6.
+- **Suggested release gate (20–30 tracks, multi-listener, fuzz/seek/perf).**  
+  **GPT directionally right, heavier than Opus’s α≈0.05 / ≥8 tracks.** Prefer GPT’s bar before calling anything “distribution”; Opus’s bar is a minimum research gate.
+- **“Adaptive perceptual coding” as public phrasing.**  
+  **GPT acceptable if accurate; Opus’s ban on “hybrid” as tier is safer.** Prefer Opus’s public vocabulary until a real lossy engine ships.
+
+### Factual errors found in either peer report
+| Claim | Verdict |
+|--------|---------|
+| **My report:** shipping C2 ≈ 0.98× PCM, hiss low, fold under lossy C | **False for shipping encode.** Those numbers are legacy `TAG_LOSSY` / gate artifacts; shipping is bit-exact min(SR+CORR, L). |
+| **Opus:** shipping C2 bit-exact via `encode_loud_min_exact` | **True** (code + tests). |
+| **Opus:** C2-as-base H ≈ 1.00× L “confirms C2 already lossless” | **True** as size evidence; consistent with SR+CORR ≈ L. |
+| **Opus:** `formatComparison` C2 `bitExact: "no"` / 0.977× stale | **True**. |
+| **Opus:** MDCT High ≈ 94% of MP3-320 on cited track math | **Plausible**; depends on which real track/rate — Opus correctly flags this as open. Not a hard error. |
+| **Opus:** `benchmarks/listening/` empty | Treat as **effectively true** (no recorded ABX); I did not re-list the dir this pass. |
+| **GPT:** modern C2 chooses min(bit-exact SR+CORR, L) | **True**. |
+| **GPT:** docs say optional CORR / lossy loud; code always CORR on modern SR | **True** for shipping SR path (`encode_sr_unit_bitexact` always attaches CORR). |
+| Neither peer: classic C quiet SNR ~2 dB / H 1.54× | **Consistent with benchmarks**; no dispute. |
+
+No material factual error found in GPT’s core C2/H/MDCT diagnosis. Opus’s technical inventory looks solid; the only soft spots are estimate-tier claims (2–3× from joint stereo/etc.) and track-identity for kbps conversion — flagged by Opus itself.
+
+### Updated stance after reading peers (what you change, if anything)
+1. **Withdraw** “today’s implementable C = CodecId 5 vNext at ~0.98× PCM.” That described a **dead/legacy loud path**, not shipping C2.
+2. **Withdraw** “fold CodecId 5 under public MP5-C as the lossy lane.” CodecId 5 is a **lossless-guaranteed** adaptive encoder today; putting it behind “lossy C” is worse than status-quo confusion.
+3. **Adopt** Opus/GPT: retire C2 **name and export**; keep module/ideas; **mint new id** for real lossy C; optionally absorb C2 tricks into L research, not a second public lossless.
+4. **Adopt** Opus: near-term Converter = **MP5-L (+ PCM advanced)**; C visible as in-development, not as a fake lossy export.
+5. **Keep** my H = B (decode-only / lab encode) and ban on “beats MP3.”
+6. **Add** fix for L copy overclaim and C2 comparison-table drift in the same honesty pass.
+
+### Final recommendation (L / C / C2 / H policy in ≤8 bullets)
+- **L:** sole recommended export; fix “held-out PASS” copy if gate is still PROVISIONAL.
+- **C (public):** vision/About “lossy in development” only — **no Converter export** until MDCT-backed lossy path + ABX/corpus gates.
+- **C (engine):** classic scalar C decode-only; build lossy C on `mp5c3` MDCT + C2 protect/escape ideas; new **CodecId 6** (or explicit profile), never silent redefine of 1 or 5.
+- **C2:** kill public name/slot; keep magic/`CodecId` 5 decode; label as legacy adaptive/lossless-restore; add regression that CodecId 5 exports stay bit-exact; remeasure before any ratio UI.
+- **H:** remove export; forever decode + missing-CORR honesty; lab/CLI encode only.
+- **Copy:** delete public “hybrid” tier; never claim beats MP3/AAC/Opus/FLAC; “MP3-class” = measured size target only after gates.
+- **Honesty debt first:** fix `formatComparison` C2 row and known-issues/docs that still describe lossy/optional-CORR shipping C2.
+- **Ship gate for C:** matched-bitrate ABX vs LAME + multi-genre corpus; report % protected; no SNR-only transparency claims.
+
+### Confidence
+**High** on C2-is-bit-exact correction and L/C2/H product collapse. **Medium** on MDCT reaching usable MP3-class quality (size looks 320-adjacent; ear and stereo/pre-echo unproven). **Medium** on exact CodecId-6 timing vs keeping 5 with a wire version bit — preference is new id for clarity.

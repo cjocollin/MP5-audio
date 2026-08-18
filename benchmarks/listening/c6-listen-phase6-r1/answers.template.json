@@ -1,0 +1,353 @@
+{
+  "experimentId": "c6-listen-phase6-r1",
+  "listener": "<name>",
+  "date": "",
+  "abx320": {
+    "killer_castanets": {
+      "correct": null,
+      "trials": 16
+    },
+    "killer_glockenspiel": {
+      "correct": null,
+      "trials": 16
+    },
+    "killer_harpsichord": {
+      "correct": null,
+      "trials": 16
+    },
+    "killer_applause": {
+      "correct": null,
+      "trials": 16
+    },
+    "killer_hard_pan": {
+      "correct": null,
+      "trials": 16
+    },
+    "killer_anti_phase": {
+      "correct": null,
+      "trials": 16
+    },
+    "killer_birdies": {
+      "correct": null,
+      "trials": 16
+    },
+    "killer_protect_threshold_alt": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_transient_attacks": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_steady_tonal": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_reverb_tails": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_wide_stereo": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_vocals": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_cymbals_hats": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_low_bitrate_stress": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_applause_like": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_castanet_like": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_harpsichord_like": {
+      "correct": null,
+      "trials": 16
+    },
+    "ex_sparse_quiet": {
+      "correct": null,
+      "trials": 16
+    }
+  },
+  "mushra192": {
+    "killer_castanets": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_glockenspiel": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_harpsichord": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_applause": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_hard_pan": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_anti_phase": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_birdies": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_protect_threshold_alt": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_transient_attacks": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_steady_tonal": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_reverb_tails": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_wide_stereo": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_vocals": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_cymbals_hats": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_low_bitrate_stress": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_applause_like": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_castanet_like": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_harpsichord_like": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_sparse_quiet": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    }
+  },
+  "mushra128": {
+    "killer_castanets": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_glockenspiel": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_harpsichord": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_applause": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_hard_pan": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_anti_phase": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_birdies": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "killer_protect_threshold_alt": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_transient_attacks": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_steady_tonal": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_reverb_tails": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_wide_stereo": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_vocals": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_cymbals_hats": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_low_bitrate_stress": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_applause_like": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_castanet_like": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_harpsichord_like": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    },
+    "ex_sparse_quiet": {
+      "hiddenRef": null,
+      "lame320": null,
+      "lame128": null,
+      "c6": null,
+      "notes": ""
+    }
+  }
+}

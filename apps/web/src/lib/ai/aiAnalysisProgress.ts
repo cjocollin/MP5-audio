@@ -36,8 +36,9 @@ export function formatClipRange(startSec: number, maxSec: number): string {
 export function estimateAiAnalysisSteps(
   settings: AiSettings,
   durationSec: number,
+  extraLocalSteps = 0,
 ): number {
-  let steps = 0;
+  let steps = extraLocalSteps;
   if (settings.enabled && settings.localBeat) steps++;
 
   if (!settings.enabled || !cloudAiConfigured(settings)) return Math.max(steps, 1);

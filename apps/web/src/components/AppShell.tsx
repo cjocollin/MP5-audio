@@ -9,7 +9,12 @@ import { Info } from "@phosphor-icons/react/Info";
 import { List } from "@phosphor-icons/react/List";
 import { X } from "@phosphor-icons/react/X";
 import { APP_VERSION } from "../generated/appVersion";
-import { MP5_AND_AUDIO_ACCEPT, pickMp5Files } from "../lib/pickMp5Files";
+import {
+  CONVERTER_SOURCE_ACCEPT,
+  MP5_FILE_ACCEPT,
+  pickMp5Files,
+  shouldFallbackToInputPicker,
+} from "../lib/pickMp5Files";
 import { MP5_GITHUB_URL } from "../lib/publicLinks";
 import { usePlayerStore } from "../store/playerStore";
 import { SignalMarkSprite } from "./SignalMarkSprite";
@@ -42,19 +47,35 @@ export function AppShell({ activeTab, onTabChange }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const setPendingPlayerFiles = usePlayerStore((s) => s.setPendingPlayerFiles);
+  const setPendingConverterFiles = usePlayerStore((s) => s.setPendingConverterFiles);
 
   const openFilePicker = () => {
-    // Pick first (keeps user gesture for showOpenFilePicker), then hand off to Player.
+    // Pick first (keeps user gesture for showOpenFilePicker), then hand off.
+    // Player tab: .mp5/.mp5p to the player. Converter tab: source audio to the
+    // converter (an .mp5 is an *output*, never a conversion source).
     void (async () => {
-      const picked = await pickMp5Files({ accept: MP5_AND_AUDIO_ACCEPT });
-      onTabChange("player");
+      const onConverter = activeTab === "converter";
+      const picked = await pickMp5Files({
+        accept: onConverter ? CONVERTER_SOURCE_ACCEPT : MP5_FILE_ACCEPT,
+      });
+      if (!onConverter) onTabChange("player");
       if (picked === null) {
-        window.setTimeout(() => {
-          document.querySelector<HTMLInputElement>('[data-testid="player-file-input"]')?.click();
-        }, 0);
+        // Only fall back when the native picker does not exist; after a
+        // failed native attempt a second picker is a bug, not a recovery.
+        if (shouldFallbackToInputPicker()) {
+          const testId = onConverter ? "converter-file-input" : "player-file-input";
+          window.setTimeout(() => {
+            document.querySelector<HTMLInputElement>(`[data-testid="${testId}"]`)?.click();
+          }, 0);
+        }
         return;
       }
-      if (picked.length) setPendingPlayerFiles(picked);
+      if (!picked.length) return;
+      if (onConverter) {
+        setPendingConverterFiles(picked);
+      } else {
+        setPendingPlayerFiles(picked);
+      }
     })();
   };
 

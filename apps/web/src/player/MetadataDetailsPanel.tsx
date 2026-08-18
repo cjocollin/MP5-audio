@@ -219,15 +219,15 @@ export function MetadataDetailsPanel({
                 playerTheme && useFileThemes
                   ? ([
                       ["Primary", playerTheme.primary],
+                      ["Secondary", playerTheme.secondary],
                       ["Accent", playerTheme.accent],
                       ["Background", playerTheme.background],
-                      ["Secondary", playerTheme.secondary],
                     ] as const)
                   : ([
                       ["Primary", chunks.visu.primaryColor],
+                      ["Secondary", chunks.visu.secondaryColor],
                       ["Accent", chunks.visu.accentColor],
                       ["Background", chunks.visu.backgroundColor],
-                      ["Secondary", chunks.visu.secondaryColor],
                     ] as const)
               )
                 .filter(([, c]) => c)

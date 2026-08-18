@@ -18,9 +18,10 @@ For the current public list, see [MP5_KNOWN_ISSUES.md](MP5_KNOWN_ISSUES.md). For
 
 | Codec | Limitation |
 |-------|------------|
-| MP5-L v3 | Recommended lossless path, bit-exact (verified across the Audio Quality Lab fixtures), but not claimed to beat FLAC. Reference material remains around 0.95x PCM in existing benchmarks. |
-| MP5-C | Lab-only; quiet-passage hiss is now measured (quiet-window SNR ~2.6–5.7 dB on decaying material even where full-song SNR looks fine); not for normal listening or distribution claims. |
-| MP5-C vNext (MP5C2) | Lab/advanced hybrid (CodecId 5, AUDI `0x43 0x34`); Converter gated; batch stays MP5-L. Quiet→lossless, loud→MP5-C. Not the default. |
+| MP5-L v4 | Recommended lossless path and Converter/batch default, bit-exact (verified across the Audio Quality Lab fixtures), but not claimed to beat FLAC. |
+| MP5-L v3 | Lab/legacy lossless bitstream, still bit-exact and decodable but no longer the default. Reference material remains around 0.95x PCM in existing benchmarks. |
+| MP5-C classic (legacy) | Lab-only (CodecId 1); quiet-passage hiss is now measured (quiet-window SNR ~2.6–5.7 dB on decaying material even where full-song SNR looks fine); not for normal listening or distribution claims. |
+| MP5-C vNext (MP5C2) | Lab/advanced **lossless / bit-exact** (CodecId 5, AUDI `0x43 0x34`); Converter gated; batch stays MP5-L. Quiet→MP5-L, loud→`min(TAG_SR+CORR, TAG_LOSSLESS)` — both bit-exact. Its limitation is size, not quality: measured 0.77x PCM but ~1.07x MP5-L v4 (slightly larger than MP5-L), so it is not the default. |
 | MP5-H | Experimental hybrid mode; correction layers can produce large files (averages >1× PCM); not default. |
 | PCM | Reference/debug fallback; large files. |
 
@@ -37,7 +38,7 @@ For lab methodology and how to reproduce these numbers, see [MP5_AUDIO_QUALITY_L
 - Optional chunks are display/tooling metadata; playback must continue without them.
 - Content guidance, mood/vibe, credits, rights, and identifiers are informational only.
 - The reference converter does not generate lyrics, warnings, or stems automatically.
-- **Opt-in AI metadata suggestions** (Settings → enable, optional BYOK API key): local BPM estimate plus optional cloud features — BPM/key (audio), song structure (SECT), lyrics (LYRC), content warnings (EXPL/SAFE), mood/vibe/summary. All suggestions require user review before export; provenance is stored in chunk `source` fields (`ai-local`, `ai-cloud`, `user`). Cloud lyrics transcribe audio verbatim (Gemini/OpenAI only); text-only providers are rejected because they tend to invent lyrics from song title/artist.
+- **Opt-in AI metadata suggestions** (Settings → enable, optional BYOK API key): local BPM estimate plus optional cloud features — BPM/key (audio), song structure (SECT), lyrics (LYRC), content warnings (EXPL/SAFE), mood/vibe/summary. All suggestions require user review before export; provenance is stored in chunk `source` fields (`ai-local`, `ai-cloud`, `user`). Cloud lyrics transcribe audio verbatim (Gemini/OpenAI only); text-only providers are rejected because they tend to invent lyrics from song title/artist. Settings refreshes the model dropdown from a public model catalog when opened, and also from the provider when an API key is saved. The built-in list is the offline fallback.
 - **No AI stem separation.**
 
 ## Security Model

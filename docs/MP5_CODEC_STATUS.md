@@ -23,25 +23,35 @@ Measured with `pnpm audio:hiss-report` (synthetic) and real-track A/B:
 | dense_music | Extreme (lossy coalesce) | 0.971 | — | n/a |
 | dense_music | **High (lossy coalesce)** | **0.941** | — | n/a |
 
-**Public `CodecId.MP5C2`** is a Converter **non-default** hybrid export (batch stays MP5-L).
-Shipping loud units use signal-relative `TAG_SR` (+ CORR when needed); classic MP5-C stays lab.
-Residual 2048 pad after coalesce is ~0.6% → no short-frame trim. **MP5-L packed Rice** remains
-the default path.
+**Public `CodecId.MP5C2`** is a Converter **non-default lossless / bit-exact** export gated behind
+the lab / advanced toggle (batch stays MP5-L). Shipping loud units take
+`min(TAG_SR+CORR, TAG_LOSSLESS)` by payload size, so every emitted unit restores the source PCM
+sample-for-sample; classic MP5-C (CodecId 1) stays lab and lossy. Residual 2048 pad after coalesce
+is ~0.6% → no short-frame trim. **MP5-L packed Rice** remains the default path.
+
+> The `dense_music` / `reverb_tail` ×PCM rows above and the "hiss risk" column come from the
+> **lossy JS lab prototypes** (`mp5c2-lab`, `mp5c2-extreme` in `tools/audio-lab/codecs.mjs`), not
+> from the shipping bit-exact CodecId 5 encoder. Hiss risk does not apply to a bit-exact codec.
+> Shipping C2 size: [`benchmarks/audio-quality/c2-real-track-remeasure.json`](../benchmarks/audio-quality/c2-real-track-remeasure.json).
 
 ## v0.29.0-beta native Rust vNext (new)
 
 The winning **vNext "smooth"** engine (sub-block + per-band + hysteresis lossless fallback) was
 ported into the **native Rust codec** as `mp5c2` and exposed via additive WASM functions
 `encode_mp5c_vnext` / `decode_mp5c_vnext`. Quiet/tail stay lossless; mid/loud uses C2-only
-`TAG_SR` (normalize + MP5-C + optional CORR). Silence/quiet remain bit-exact. Done safely:
+`TAG_SR` (normalize + MP5-C + lossless CORR) **or** plain `TAG_LOSSLESS`, whichever payload is
+smaller — so the whole stream is bit-exact, not just silence/quiet. Done safely:
 
 - The existing **MP5-C (v5.1) encode/decode is byte-identical** — `mp5c` was not modified.
 - The stream uses a **distinct `0x43 0x34` magic**, is **not** a valid MP5-C stream, and
   the MP5-C / MP5-C2 decoders reject each other's containers.
 - **`CodecId.MP5C2 = 5`** is a non-default Converter export + player decode;
-  default and batch export remain MP5-L. Protect-scale **1.5** is the shipping threshold set
-  (real-track hiss risk **low** at ~0.97× PCM; see [MP5C_VNEXT_RESULTS.md](MP5C_VNEXT_RESULTS.md)).
-- It remains **lab-only, default OFF**; further size cuts must keep hiss risk low.
+  default and batch export remain MP5-L. Protect-scale **1.5** is the shipping threshold set.
+  The historical "hiss risk low at ~0.97× PCM" line described the older lossy-loud revision and is
+  superseded — see [`benchmarks/audio-quality/README.md`](../benchmarks/audio-quality/README.md).
+- It remains **lab-only, default OFF** because it measures 0.77x PCM but ~1.07x MP5-L v4 — slightly
+  *larger* than MP5-L with no quality advantage — not because of artifact risk. Correctness is
+  checked by **sample equality**, not listening tests.
 
 ## v0.24 vNext hysteresis/lookahead
 

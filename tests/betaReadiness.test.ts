@@ -78,7 +78,7 @@ describe("Public Beta hardening", () => {
   it("manual QA has physical phone checklist", () => {
     const text = readFileSync(join(docs, "MP5_MANUAL_QA_CHECKLIST.md"), "utf8");
     expect(text).toMatch(/Physical phone/i);
-    expect(text).toMatch(/VISU stays contained/i);
+    expect(text).toMatch(/VISU accent follows the active file/i);
   });
 
   it("feedback constants and diagnostics report", () => {
@@ -103,7 +103,7 @@ describe("Public Beta hardening", () => {
       decodeCacheSummary: "0/3",
       librarySummary: "0 entries",
     });
-    expect(report).toMatch(/0.29.0-beta/);
+    expect(report).toMatch(/0.30.0-beta/);
     expect(report).toMatch(/No telemetry/i);
   });
 });
@@ -125,11 +125,26 @@ describe("beta readiness docs", () => {
 
   it("MP5_KNOWN_ISSUES.md exists with Public Beta caveats", () => {
     const text = readFileSync(join(docs, "MP5_KNOWN_ISSUES.md"), "utf8");
-    expect(text).toMatch(/MP5-C hiss/i);
+    // CodecId 1 is "MP5-C classic (legacy)" and is the codec that hisses.
+    expect(text).toMatch(/MP5-C classic hiss/i);
     expect(text).toMatch(/FFmpeg/i);
     expect(text).toMatch(/\.mp5p/i);
     expect(text).toMatch(/stem mix/i);
     expect(text).not.toMatch(/beats MP3/i);
+  });
+
+  // CodecId 5 restores the source sample-for-sample (rust/mp5-codec/src/mp5c2.rs), so the
+  // known-issues doc must record it as bit-exact and size-limited, never as lossy/hybrid.
+  it("MP5_KNOWN_ISSUES.md describes MP5-C2 as bit-exact, not lossy", () => {
+    const text = readFileSync(join(docs, "MP5_KNOWN_ISSUES.md"), "utf8");
+    const c2 = text
+      .split("\n")
+      .find((line) => /MP5-C2/.test(line));
+    expect(c2).toBeDefined();
+    expect(c2!).toMatch(/bit-exact/i);
+    expect(c2!).toMatch(/lossless/i);
+    expect(c2!).toMatch(/not default/i);
+    expect(c2!).not.toMatch(/is a lossy/i);
   });
 
   it("beta-check script exists in package.json", () => {
@@ -262,8 +277,8 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.29.0-beta", () => {
-    expect(packageJson.version).toBe("0.29.0-beta");
+  it("package.json is 0.30.0-beta", () => {
+    expect(packageJson.version).toBe("0.30.0-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {

@@ -3,7 +3,7 @@ import { getCodec, CodecPreset, isWasmCodecReady } from "../wasm/codec";
 import { encodeMp5lV4Progressive } from "./encodeMp5lV4Progressive";
 import { generateWaveform } from "./generateWaveform";
 
-export type OutputCodec = "pcm" | "mp5c" | "mp5l" | "mp5l_v4" | "mp5h" | "mp5c2";
+export type OutputCodec = "pcm" | "mp5c" | "mp5l" | "mp5l_v4" | "mp5h" | "mp5c2" | "mp5c6";
 
 export interface ConvertOptions {
   samples: Int16Array;
@@ -141,11 +141,23 @@ export async function convertToMp5(opts: ConvertOptions): Promise<Uint8Array> {
       ? encodeAt(opts.samples, ch, preset, opts.sampleRate >>> 0)
       : codec.encode_mp5c_vnext(opts.samples, ch, preset);
     codecId = CodecId.MP5C2;
-    encoderLabel = "MP5-C2 WASM (hybrid quiet-lossless + SR loud · not default)";
+    encoderLabel =
+      "MP5-C2 WASM (lossless · bit-exact · quiet MP5-L + min(SR+CORR, MP5-L) loud · lab · not default)";
+  } else if (opts.codec === "mp5c6") {
+    // CodecId 6 fails closed rather than emitting a stream it cannot label.
+    bitstream = codec.encode_mp5c6(opts.samples, ch, preset, opts.sampleRate >>> 0);
+    if (bitstream.length < 28 || bitstream[0] !== 0x43 || bitstream[1] !== 0x36) {
+      throw new Error(
+        "MP5-C v6 (CodecId 6) encode produced a stream without the 0x43 0x36 header — export aborted.",
+      );
+    }
+    codecId = CodecId.MP5C6;
+    encoderLabel =
+      "MP5-C v6 WASM (lossy · beta preview · MDCT loud path + bit-exact protect islands · bitstream not frozen)";
   } else {
     bitstream = codec.encode_mp5c(opts.samples, ch, preset);
     codecId = CodecId.MP5C;
-    encoderLabel = "MP5-C WASM v5.1 (experimental — may hiss)";
+    encoderLabel = "MP5-C classic WASM v5.1 (legacy · experimental — may hiss)";
   }
 
   const frames: AudioFrame[] = [{ frameIndex: 0, blockType: 0, flags: 0, data: bitstream }];

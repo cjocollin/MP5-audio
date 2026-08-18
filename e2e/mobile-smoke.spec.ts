@@ -114,7 +114,7 @@ test.describe("Mobile smoke", () => {
     expect(overflow).toBeLessThanOrEqual(2);
   });
 
-  test("VISU stays in Now Playing only on mobile", async ({ page }) => {
+  test("VISU artwork stays inside Now Playing on mobile", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("app-tab-player").click();
     const visu = page.locator('[data-testid="visu-canvas"], .visu-canvas, [class*="visu"]').first();

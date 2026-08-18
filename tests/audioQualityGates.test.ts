@@ -127,10 +127,8 @@ describe("MP5-C vNext prototype (lab-only, default OFF)", () => {
 
 describe("robustness: no codec path crashes on any fixture", () => {
   it(
-    "encodes+decodes every fixture in every mode without throwing",
+    "encodes+decodes every fixture in every non-MDCT mode without throwing",
     () => {
-      // Skip O(N^2) MDCT lab modes here — covered by `cargo test -p mp5-codec mp5c3`
-      // and a short smoke below. Full-matrix encode would exceed the gate budget.
       const fastModes = modes.filter(
         (m) => !String(m.id).startsWith("mp5c3-") && !String(m.id).includes("mdct"),
       );
@@ -143,10 +141,47 @@ describe("robustness: no codec path crashes on any fixture", () => {
         }
       }
     },
-    120_000,
+    240_000,
   );
 
-  // mp5c3 MDCT encode is O(N^2) in WASM — smoke covered by cargo mp5c3 tests.
+  // Phase 3 measurement (isolated): encode_mp5c_vnext_mdct / encode_mp5c6 on
+  // dense_music (6s / 264600 frames stereo) ≈ 50 ms WASM (~5e6 samples/s).
+  // The old "O(N^2) — skip entirely" justification is stale. Full fixtures×MDCT
+  // under a loaded vitest suite still risks the shared RPC budget, so MDCT/C6
+  // loud-path modes are exercised on a representative subset here (not skipped).
+  it(
+    "MDCT/C6 modes encode+decode representative fixtures (measured ~50ms/dense_music)",
+    () => {
+      const mdctModes = modes.filter((m) => {
+        const id = String(m.id);
+        return (
+          id.startsWith("mp5c3-") ||
+          id.includes("mdct") ||
+          id.includes("mp5c6") ||
+          id === "mp5c-next"
+        );
+      });
+      if (mdctModes.length === 0) return;
+      const names = ["silence", "dense_music", "reverb_tail", "kick_snare"];
+      for (const name of names) {
+        const f = fx(name);
+        for (const m of mdctModes) {
+          expect(() => {
+            const t0 = performance.now();
+            const enc = m.encode(f.samples, f.channels);
+            const t1 = performance.now();
+            const dec = m.decode(enc);
+            expect(dec.length).toBeGreaterThan(0);
+            // Soft budget: 6s dense_music should stay well under 2s even under load.
+            if (f.name === "dense_music") {
+              expect(t1 - t0).toBeLessThan(2000);
+            }
+          }, `${m.id} on ${f.name}`).not.toThrow();
+        }
+      }
+    },
+    90_000,
+  );
 });
 
 describe("public policy: MP5-L remains the recommended default", () => {

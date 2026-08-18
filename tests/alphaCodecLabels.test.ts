@@ -19,11 +19,15 @@ describe("Public Beta codec labels", () => {
     expect(codecExportOptionLabel("mp5l")).toMatch(/lab|legacy/i);
   });
 
-  it("labels MP5-C as experimental lab", () => {
+  it("labels MP5-C as classic legacy experimental lab", () => {
     expect(codecLabel(CodecId.MP5C)).toMatch(/experimental/i);
+    expect(codecLabel(CodecId.MP5C)).toMatch(/classic/i);
+    expect(codecLabel(CodecId.MP5C)).toMatch(/legacy/i);
     expect(codecExportOptionLabel("mp5c")).toMatch(/hiss/i);
+    expect(codecExportOptionLabel("mp5c")).toMatch(/classic/i);
     const labels = describeMp5cPlayback(new Uint8Array([0x43, 6]));
     expect(labels.warning).toMatch(/hiss/i);
+    expect(labels.containerMode).toMatch(/classic/i);
   });
 
   it("labels MP5-H as hybrid not default", () => {
@@ -36,11 +40,33 @@ describe("Public Beta codec labels", () => {
     expect(codecExportOptionLabel("pcm")).toMatch(/debug/i);
   });
 
-  it("labels MP5-C2 as hybrid not default", () => {
-    expect(codecLabel(CodecId.MP5C2)).toMatch(/MP5-C2/i);
-    expect(codecLabel(CodecId.MP5C2)).toMatch(/not default/i);
-    expect(codecExportOptionLabel("mp5c2")).toMatch(/MP5-C2/i);
-    expect(codecExportOptionLabel("mp5c2")).toMatch(/not default/i);
+  // The shipping CodecId 5 encoder (rust/mp5-codec/src/mp5c2.rs) emits only bit-exact
+  // units: MP5-L for quiet/fragile/tail and min(SR+CORR, MP5-L) for loud. TAG_LOSSY is
+  // decode-only legacy. Labels must never call it lossy or hybrid.
+  it("labels MP5-C2 as bit-exact lossless lab, never lossy or hybrid", () => {
+    for (const text of [
+      codecLabel(CodecId.MP5C2),
+      codecExportOptionLabel("mp5c2"),
+    ]) {
+      expect(text).toMatch(/MP5-C2/i);
+      expect(text).toMatch(/lossless/i);
+      expect(text).toMatch(/bit-exact/i);
+      expect(text).toMatch(/not default/i);
+      expect(text).not.toMatch(/hybrid/i);
+      expect(text).not.toMatch(/lossy/i);
+    }
+  });
+
+  it("labels CodecId 6 as MP5-C v6, distinct from classic MP5-C and MP5-C2", () => {
+    expect(codecLabel(CodecId.MP5C6)).toMatch(/MP5-C v6/);
+    expect(codecLabel(CodecId.MP5C6)).toMatch(/lossy/i);
+    expect(codecExportOptionLabel("mp5c6")).toMatch(/MP5-C v6/);
+    // The C-family names must be mutually distinguishable in the lab menu.
+    expect(codecLabel(CodecId.MP5C6)).not.toMatch(/classic/i);
+    expect(codecLabel(CodecId.MP5C)).not.toMatch(/MP5-C v6/);
+    expect(codecLabel(CodecId.MP5C2)).not.toMatch(/MP5-C v6/);
+    expect(codecExportOptionLabel("mp5c")).not.toMatch(/MP5-C v6/);
+    expect(codecExportOptionLabel("mp5c2")).not.toMatch(/MP5-C v6/);
   });
 
   it("detects MP5-L v3 bitstream as lab/legacy", () => {

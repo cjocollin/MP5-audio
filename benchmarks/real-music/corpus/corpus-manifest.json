@@ -1,0 +1,886 @@
+{
+  "manifestId": "mp5-real-music-corpus-v1",
+  "version": 1,
+  "createdAt": "2026-07-25",
+  "targets": {
+    "dev": 30,
+    "heldOut": 20
+  },
+  "counts": {
+    "dev": 20,
+    "heldOut": 40,
+    "total": 60
+  },
+  "shortfall": {
+    "dev": 10,
+    "heldOut": 0,
+    "note": "Do not fabricate entries. Gap is visible until more legal local tracks are registered."
+  },
+  "policy": {
+    "heldOutSealed": true,
+    "heldOutRequiresFlag": "--allow-held-out",
+    "neverUseHeldOutForTuning": true
+  },
+  "tracks": [
+    {
+      "id": "held-out/alt_hades_avoidant",
+      "role": "held-out",
+      "relativePath": "held-out/alt_hades_avoidant.flac",
+      "sha256": "634f563949e0d570a4957420b174ac83105e12a55fa73374d21b8090d89a054e",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-indie"
+      ],
+      "bytes": 19035486
+    },
+    {
+      "id": "held-out/alt_hades_avoidant_b",
+      "role": "held-out",
+      "relativePath": "held-out/alt_hades_avoidant_b.flac",
+      "sha256": "9f825c4a1d1b5b3d3fea4887a7e3a50ab5a8b31360322dfad1ac47fac95312cf",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-indie"
+      ],
+      "bytes": 19220462
+    },
+    {
+      "id": "held-out/alt_hades_grudges",
+      "role": "held-out",
+      "relativePath": "held-out/alt_hades_grudges.flac",
+      "sha256": "80e75cdda400776131c0f08fd34b9abdf13a37666e8139b7036019beba7eba8d",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-indie"
+      ],
+      "bytes": 20316110
+    },
+    {
+      "id": "held-out/alt_hades_grudges_b",
+      "role": "held-out",
+      "relativePath": "held-out/alt_hades_grudges_b.flac",
+      "sha256": "182212e20f5972dd1dbc7b35399e1d6b945fd23e17242d4c6562773f4bb63c44",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-indie"
+      ],
+      "bytes": 19515364
+    },
+    {
+      "id": "held-out/alt_hades_is_this_a_cult",
+      "role": "held-out",
+      "relativePath": "held-out/alt_hades_is_this_a_cult.flac",
+      "sha256": "43ea0e56d84518bb07831a3440e63d617bc248fc957247e1cf4412de6c972eef",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-indie"
+      ],
+      "bytes": 18507675
+    },
+    {
+      "id": "held-out/altpop_origami_full",
+      "role": "held-out",
+      "relativePath": "held-out/altpop_origami_full.flac",
+      "sha256": "9f37d8c2cd21e54735ec6638383f074e70601cbf5789e702c927f880774a81d2",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-pop"
+      ],
+      "bytes": 21541847
+    },
+    {
+      "id": "held-out/edm_illenium_good_things",
+      "role": "held-out",
+      "relativePath": "held-out/edm_illenium_good_things.flac",
+      "sha256": "adce110cd2803b7beb690003d3bb34bafa7974814e681c8d6355093f0e3fdba1",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "edm"
+      ],
+      "bytes": 21525367
+    },
+    {
+      "id": "held-out/edm_illenium_good_things_b",
+      "role": "held-out",
+      "relativePath": "held-out/edm_illenium_good_things_b.flac",
+      "sha256": "1f3259582fd2e5d6fb165b3c3686b5dcc8bdede5b837f2007f65aa1cd58c7380",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "edm"
+      ],
+      "bytes": 21459315
+    },
+    {
+      "id": "held-out/hiphop_nicki_itty_bitty",
+      "role": "held-out",
+      "relativePath": "held-out/hiphop_nicki_itty_bitty.flac",
+      "sha256": "a70e794e6ad4b07837422cfd7c0eb08490739a9f3514cfdcf8fc16a0793dd127",
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "hip-hop"
+      ],
+      "bytes": 11269224
+    },
+    {
+      "id": "held-out/hiphop_nicki_only",
+      "role": "held-out",
+      "relativePath": "held-out/hiphop_nicki_only.flac",
+      "sha256": "74bf64be3023c566c4317ad9a03322c956800775ba99e02817878a1513d05aa0",
+      "sampleRate": 48000,
+      "bitDepth": 16,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "hip-hop"
+      ],
+      "bytes": 10604962
+    },
+    {
+      "id": "held-out/kpop_huntrx_takedown",
+      "role": "held-out",
+      "relativePath": "held-out/kpop_huntrx_takedown.flac",
+      "sha256": "0b17a66f573f19478e88488cd6c99780e56a5c00e77e3a5c47325976f27f80f2",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "k-pop"
+      ],
+      "bytes": 21315800
+    },
+    {
+      "id": "held-out/kpop_huntrx_takedown_b",
+      "role": "held-out",
+      "relativePath": "held-out/kpop_huntrx_takedown_b.flac",
+      "sha256": "5dd55708c6b04dd0b8df1ef45cce915247f83a33c351e36e3204cc2304501e7e",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "k-pop"
+      ],
+      "bytes": 20872591
+    },
+    {
+      "id": "held-out/kpop_sajaboys_your_idol",
+      "role": "held-out",
+      "relativePath": "held-out/kpop_sajaboys_your_idol.flac",
+      "sha256": "04137d8d4542d809b5ba9c1c57bda32d485b58b56f1b61238a7c967f66e70bbe",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "k-pop"
+      ],
+      "bytes": 21533591
+    },
+    {
+      "id": "held-out/kpop_sajaboys_your_idol_b",
+      "role": "held-out",
+      "relativePath": "held-out/kpop_sajaboys_your_idol_b.flac",
+      "sha256": "d142636a7c47fb07eace9ba17eb7b3d4d8df35b85e4787b70f30c94a341cb476",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "k-pop"
+      ],
+      "bytes": 21309003
+    },
+    {
+      "id": "held-out/pop_bellion_jim_morrison",
+      "role": "held-out",
+      "relativePath": "held-out/pop_bellion_jim_morrison.flac",
+      "sha256": "4c2f5f39a827b601c9290943f093ee901f823e3894d74144b704c8aca1989610",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-pop"
+      ],
+      "bytes": 18679194
+    },
+    {
+      "id": "held-out/pop_bellion_jim_morrison_b",
+      "role": "held-out",
+      "relativePath": "held-out/pop_bellion_jim_morrison_b.flac",
+      "sha256": "20816065f6c642595f80533fb9eae96f7c9c7072e2daaf4e440588753019d64e",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "alt-pop"
+      ],
+      "bytes": 18545017
+    },
+    {
+      "id": "held-out/pop_britney_break_the_ice",
+      "role": "held-out",
+      "relativePath": "held-out/pop_britney_break_the_ice.flac",
+      "sha256": "ecbf3bad6fb73f02e1a0032bb2353ad96c79e8fbeffa73d788a1f5424de3436c",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "pop"
+      ],
+      "bytes": 21940538
+    },
+    {
+      "id": "held-out/pop_britney_get_naked",
+      "role": "held-out",
+      "relativePath": "held-out/pop_britney_get_naked.flac",
+      "sha256": "d0f52f01cc6170a724b20779e3d32762fba8575503943555c35c7b73aacff692",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "pop"
+      ],
+      "bytes": 21590274
+    },
+    {
+      "id": "held-out/pop_britney_gimme_more",
+      "role": "held-out",
+      "relativePath": "held-out/pop_britney_gimme_more.flac",
+      "sha256": "787803700c0ea84167a6158a0dbcba7c1dcfc0e026cf56bc8407c07c6340fdd1",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "pop"
+      ],
+      "bytes": 20810709
+    },
+    {
+      "id": "held-out/pop_britney_gimme_more_b",
+      "role": "held-out",
+      "relativePath": "held-out/pop_britney_gimme_more_b.flac",
+      "sha256": "5c6d2d53a0ab062620e03c0d7fbf354b6e996b2b80b4757d17c0ac85d0bba2c3",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "pop"
+      ],
+      "bytes": 20905583
+    },
+    {
+      "id": "origami_full",
+      "role": "dev",
+      "relativePath": "origami_full.flac",
+      "sha256": "57f423de5b6f80f1b6288279ac57f3b545ce51874e3417d7781dd42c4be6bc9c",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 154.566,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 35810707
+    },
+    {
+      "id": "origami_seg_00",
+      "role": "dev",
+      "relativePath": "origami_seg_00.flac",
+      "sha256": "e8c908af944c4134fe3136ea3085592f393d74de56223df0a3cf8b5da827eadf",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1690970
+    },
+    {
+      "id": "origami_seg_01",
+      "role": "dev",
+      "relativePath": "origami_seg_01.flac",
+      "sha256": "cd9376dac5340a6da4bea4416ef85c50ecfa509c0a3668f70c63a7c0513ac7af",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1780747
+    },
+    {
+      "id": "origami_seg_02",
+      "role": "dev",
+      "relativePath": "origami_seg_02.flac",
+      "sha256": "70c61d24ad7fdac61f74d1412d95e148e916b3c322bffc08b13ab57e20576a4e",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1904554
+    },
+    {
+      "id": "origami_seg_03",
+      "role": "dev",
+      "relativePath": "origami_seg_03.flac",
+      "sha256": "f459b344ec9e7ec4d449d6349953f733f31cf7b60e89d43d209d70f7019c39cd",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1932654
+    },
+    {
+      "id": "origami_seg_04",
+      "role": "dev",
+      "relativePath": "origami_seg_04.flac",
+      "sha256": "b276e90ccca9c53cd5fbf6b9f0cf7412e241d875511e6092477820555f1b3968",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1911852
+    },
+    {
+      "id": "origami_seg_05",
+      "role": "dev",
+      "relativePath": "origami_seg_05.flac",
+      "sha256": "67d2cc6351c59aa317c2192315bdcf29da8d7fd5694d9bb2ed1b441e63b02c2e",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 2059874
+    },
+    {
+      "id": "origami_seg_06",
+      "role": "dev",
+      "relativePath": "origami_seg_06.flac",
+      "sha256": "9cf7328aedee6074f9361aecb500f757a2d6afef19dbb1038a246dc8c2282f00",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1842307
+    },
+    {
+      "id": "origami_seg_07",
+      "role": "dev",
+      "relativePath": "origami_seg_07.flac",
+      "sha256": "b68eaefccd0036411ac6f4cb360a04493309d589f53d4b6c4f64cb83f479aa6b",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1814327
+    },
+    {
+      "id": "origami_seg_08",
+      "role": "dev",
+      "relativePath": "origami_seg_08.flac",
+      "sha256": "52978ec967da3c2721f69beab4d39a8e71114dc0269b0d22dc350fb6272a0851",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 2007560
+    },
+    {
+      "id": "origami_seg_09",
+      "role": "dev",
+      "relativePath": "origami_seg_09.flac",
+      "sha256": "027ae376d43045ba47f57ec32c35370f767f13d68b452d3e2361d5ead1dec2f9",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1992157
+    },
+    {
+      "id": "origami_seg_10",
+      "role": "dev",
+      "relativePath": "origami_seg_10.flac",
+      "sha256": "c07d57b7cd83324c7c9b854c5508d0ffed9294fb45f6707e71519b1bfe6860ed",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1979837
+    },
+    {
+      "id": "origami_seg_11",
+      "role": "dev",
+      "relativePath": "origami_seg_11.flac",
+      "sha256": "036c71ff2723e6cbd0fbd60b787d1facba3443928a1b4c658959c48abfa66756",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 2062360
+    },
+    {
+      "id": "origami_seg_12",
+      "role": "dev",
+      "relativePath": "origami_seg_12.flac",
+      "sha256": "26785d0717b8fa6cbe3bcf281b5b8efca9892f60aed9c011e9fc464aa237fa08",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1902977
+    },
+    {
+      "id": "origami_seg_13",
+      "role": "dev",
+      "relativePath": "origami_seg_13.flac",
+      "sha256": "e285907a979f76069e2c5231310c04948ef2397b5b421b30aa100883b743bbb4",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1482940
+    },
+    {
+      "id": "origami_seg_14",
+      "role": "dev",
+      "relativePath": "origami_seg_14.flac",
+      "sha256": "9883ceac9cffe3b219ced47e2a189a632e07e839bdf9af5cb24f9098bbdb4270",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1819743
+    },
+    {
+      "id": "origami_seg_15",
+      "role": "dev",
+      "relativePath": "origami_seg_15.flac",
+      "sha256": "ff6a42a2bbeabcda129501e5187a568aea268c29ed7284c093b0521db0e20775",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 1668124
+    },
+    {
+      "id": "origami_seg_16",
+      "role": "dev",
+      "relativePath": "origami_seg_16.flac",
+      "sha256": "44c5e756bdca80993193d80d22aa700e677e35fc8d684a0b55d3e3ca9f91117a",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 2057747
+    },
+    {
+      "id": "origami_seg_17",
+      "role": "dev",
+      "relativePath": "origami_seg_17.flac",
+      "sha256": "ce3264bb6d83b84a9dec760cb8cef019c5a23a74a38bc3acfd5f3a2bfc37d026",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 2076679
+    },
+    {
+      "id": "origami_seg_18",
+      "role": "dev",
+      "relativePath": "origami_seg_18.flac",
+      "sha256": "161c144761c3a6348adc7be79960143f713a8b288ffa9d7c50f6976a7d99145a",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 8,
+      "tags": [
+        "alt-pop",
+        "tuning-master"
+      ],
+      "bytes": 2080282
+    },
+    {
+      "id": "speech-held-out/hades_ch01_01-garbage",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch01_01-garbage.flac",
+      "sha256": "b6c5ee403ebb4015bb01a1ebcd89f992a55dd39bde90b924a7e4a723b2b2315b",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 20469868
+    },
+    {
+      "id": "speech-held-out/hades_ch02_02-is-this-a-cult",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch02_02-is-this-a-cult.flac",
+      "sha256": "43ea0e56d84518bb07831a3440e63d617bc248fc957247e1cf4412de6c972eef",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 18507675
+    },
+    {
+      "id": "speech-held-out/hades_ch03_03-possession",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch03_03-possession.flac",
+      "sha256": "e12570511177943be312baab7dce6fc3b2099d8d388c42fdcd3385d53901b840",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 20618739
+    },
+    {
+      "id": "speech-held-out/hades_ch04_04-white-boy-with-a-gun",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch04_04-white-boy-with-a-gun.flac",
+      "sha256": "52efde8ff30465c99539a96568543e3bb0edfcba38397eba57f8e5ee6c6cbd44",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 19656620
+    },
+    {
+      "id": "speech-held-out/hades_ch05_05-disney-princess",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch05_05-disney-princess.flac",
+      "sha256": "437c508b87fbcf7cd2652645a57dae2304f06273a44e3e7728e687f9049e2811",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 19454462
+    },
+    {
+      "id": "speech-held-out/hades_ch06_06-grudges",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch06_06-grudges.flac",
+      "sha256": "80e75cdda400776131c0f08fd34b9abdf13a37666e8139b7036019beba7eba8d",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 20316110
+    },
+    {
+      "id": "speech-held-out/hades_ch07_07-monopoly-man",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch07_07-monopoly-man.flac",
+      "sha256": "94a9056cbdf2eca81e8afb031f5c43e380c9f2dd79bf10b8dc913acfc948a33d",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 20521624
+    },
+    {
+      "id": "speech-held-out/hades_ch08_08-avoidant",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch08_08-avoidant.flac",
+      "sha256": "634f563949e0d570a4957420b174ac83105e12a55fa73374d21b8090d89a054e",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 19035486
+    },
+    {
+      "id": "speech-held-out/hades_ch09_09-monolith",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch09_09-monolith.flac",
+      "sha256": "e95fc8bb50847c39ed78125763fa0e916d6e653c449c7e5b82fbbe449ec963ec",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 17815665
+    },
+    {
+      "id": "speech-held-out/hades_ch10_10-weight-watchers",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch10_10-weight-watchers.flac",
+      "sha256": "b9852e7047f7508d50bea5f9237697dd107a3580a6c7e3db05e0a67ff9f53518",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 19214368
+    },
+    {
+      "id": "speech-held-out/hades_ch11_11-the-plague",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch11_11-the-plague.flac",
+      "sha256": "60836d79e11b02f8ba970e57a8fa744cbbd21708b718738714764a356708399d",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 20414394
+    },
+    {
+      "id": "speech-held-out/hades_ch12_12-batshit-intelligence",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch12_12-batshit-intelligence.flac",
+      "sha256": "d69d1c36c4e06fa79c982dbcd8312b3c0b0b06ab7efc095f2ce40ddc9febf6a9",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 19002774
+    },
+    {
+      "id": "speech-held-out/hades_ch13_13-gutter",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch13_13-gutter.flac",
+      "sha256": "2a42c697405a0904a2453e1f5cec3562c7f4dff34713130b234280db23e08881",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 19816482
+    },
+    {
+      "id": "speech-held-out/hades_ch14_14-uncanny-valley",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch14_14-uncanny-valley.flac",
+      "sha256": "714918942a7b9959736ffd1662608d5f1cfcba8ca8ab8161c79680302f164031",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 18902461
+    },
+    {
+      "id": "speech-held-out/hades_ch15_15-the-vatican",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch15_15-the-vatican.flac",
+      "sha256": "44d6cae9739ef0e23160357fc130e8b29bbb7c4b433a54378ab1dd70512f0a6e",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 17057993
+    },
+    {
+      "id": "speech-held-out/hades_ch16_16-hell_s-front-porch",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch16_16-hell_s-front-porch.flac",
+      "sha256": "df26b9f1a3450e1ace301bb33ac0ee8a2b402c2bb2e9613d0def4f491015a380",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 20376978
+    },
+    {
+      "id": "speech-held-out/hades_ch17_17-chatroom",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch17_17-chatroom.flac",
+      "sha256": "36c65022cd288589515c80d35715c965a7e3dbd8049196ca362e184eb731a434",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 17453172
+    },
+    {
+      "id": "speech-held-out/hades_ch18_18-the-last-two-people-on-earth",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_ch18_18-the-last-two-people-on-earth.flac",
+      "sha256": "3c8b53ed59cdfcc6a3c16526b56407a2d45bd3d607a186f93e60e1c21c5db98c",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 20366112
+    },
+    {
+      "id": "speech-held-out/hades_full_20m",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_full_20m.flac",
+      "sha256": "950ac32950dbd9e8d8c9f3354dd4504a7a4ad368d3e06e2461e853d2500b9992",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 18884857
+    },
+    {
+      "id": "speech-held-out/hades_full_40m",
+      "role": "held-out",
+      "relativePath": "speech-held-out/hades_full_40m.flac",
+      "sha256": "27e6dfa6b27f1b153f64e02ab20891eaa32b68653bcc72e98a36ef4b1bb2c6b1",
+      "sampleRate": 48000,
+      "bitDepth": 24,
+      "channels": 2,
+      "durationSec": 90,
+      "tags": [
+        "speech"
+      ],
+      "bytes": 18953829
+    }
+  ]
+}

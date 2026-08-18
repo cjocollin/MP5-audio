@@ -54,7 +54,7 @@ test.describe("VISU / cover mobile containment", () => {
     await page.getByRole("button", { name: "Player", exact: true }).click();
   });
 
-  test("VISU tints Now Playing only — no global wallpaper on mobile", async ({ page }) => {
+  test("VISU themes app accents without a global wallpaper on mobile", async ({ page }) => {
     test.skip(!fs.existsSync(STEM_DEMO), "run pnpm fixtures:generate for demo_mp5l_v3_stems.mp5");
 
     await loadStemsDemo(page);
@@ -63,6 +63,14 @@ test.describe("VISU / cover mobile containment", () => {
     });
 
     await assertNoGlobalCoverBackground(page);
+
+    const appAccent = await page.getByTestId("app-theme-root").evaluate((el) =>
+      getComputedStyle(el).getPropertyValue("--mp5-accent").trim(),
+    );
+    const playerAccent = await page.getByTestId("player-theme-root").evaluate((el) =>
+      getComputedStyle(el).getPropertyValue("--mp5-visu-accent").trim(),
+    );
+    expect(appAccent).toBe(playerAccent);
 
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(100);

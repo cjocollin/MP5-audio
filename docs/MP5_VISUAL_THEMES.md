@@ -7,7 +7,15 @@ The optional `VISU` chunk lets a file suggest player colors and mood without aff
 
 ## Scope
 
-VISU is contained to the Now Playing/player visual area. It must not recolor the entire app shell, navigation, converter, library, or settings panels.
+VISU supplies an app-wide accent while a themed file is active and file themes are enabled. The accent can recolor interactive chrome, but it must not replace the neutral page surfaces or turn cover art into a global wallpaper.
+
+Color roles are deliberate:
+
+- `primaryColor` carries identity: the main MP5 logo bars, larger surface washes, and structural borders.
+- `secondaryColor` supports the identity: the unplayed waveform, opposite-side gradients, secondary buttons, and supporting chrome.
+- `accentColor` marks interaction: the logo accent bar, active controls, tabs, progress, and focus states.
+
+If secondary is omitted, players fall back to primary and then accent. If primary is omitted, accent fills the primary role.
 
 | Area | Themed? |
 |------|---------|
@@ -15,9 +23,11 @@ VISU is contained to the Now Playing/player visual area. It must not recolor the
 | Cover/art frame | yes |
 | Codec/theme badges | yes |
 | Metadata VISU panel | yes |
-| Waveform accent | partial |
-| App shell/tabs/global nav | no |
-| Converter/library/settings | no |
+| Waveform accent | yes |
+| App shell/tabs/global nav accents | yes |
+| Converter/library/settings accents | yes |
+| Main page/panel backgrounds | no |
+| Global cover-art wallpaper | no |
 
 ## Schema
 
@@ -26,8 +36,8 @@ VISU is contained to the Now Playing/player visual area. It must not recolor the
 | `version` | number | Optional; `1` |
 | `themeName` | string | Short display label |
 | `primaryColor` | hex | `#rrggbb` or `#rgb` |
-| `secondaryColor` | hex | Optional |
-| `accentColor` | hex | Optional |
+| `secondaryColor` | hex | Supporting theme role; optional with primary/accent fallback |
+| `accentColor` | hex | Active interaction role; optional |
 | `backgroundColor` | hex | Optional |
 | `textColor` | hex | Used only when readable |
 | `moodLabel` | string | Display hint |
@@ -42,9 +52,13 @@ Invalid colors are dropped on decode/encode. Strings are sanitized.
 
 - Optional and ignorable.
 - Display-only.
-- Manual/user/app supplied in the reference converter; no AI palette extraction.
+- Manual/user/app supplied in the reference converter. The opt-in AI review flow can derive a palette from embedded
+  cover art locally; artwork is not uploaded and the user must accept the suggestion before export. Local palette
+  suggestions include a distinct secondary color and receive a stable display name based on album, song, or artist
+  metadata plus the derived color mood.
 - Safe hex colors only; no arbitrary CSS or HTML from files.
 - Accessible contrast preferred when possible.
+- Active file accents reset to the default app theme when VISU is disabled, the queue is cleared, or the current file has no VISU metadata.
 
 ## Tooling
 
