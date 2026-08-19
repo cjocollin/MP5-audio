@@ -1,2 +1,2 @@
-/** Auto-generated from root package.json - do not edit */
+/** Auto-generated from root package.json — do not edit */
 export const APP_VERSION = "0.30.0-beta";

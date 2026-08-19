@@ -97,10 +97,10 @@ const C6_VS_MP3_ROWS: {
   betterSize?: boolean;
   betterQuiet?: boolean;
 }[] = [
-  { format: "MP3 128 kbps", type: "Lossy", fidelity: "20.4 dB SNR", sizeVsWav: "0.08x", quietNoise: "−46.9 dB", betterSize: true, betterQuiet: true },
-  { format: "MP5-C v6 Low", type: "Lossy · beta", fidelity: "25.3 dB SNR", sizeVsWav: "0.10x", quietNoise: "−43.4 dB", betterFidelity: true },
-  { format: "MP3 192 kbps", type: "Lossy", fidelity: "25.7 dB SNR", sizeVsWav: "0.13x", quietNoise: "−52.4 dB", betterSize: true, betterQuiet: true },
-  { format: "MP5-C v6 Standard", type: "Lossy · beta", fidelity: "31.6 dB SNR", sizeVsWav: "0.14x", quietNoise: "−48.5 dB", betterFidelity: true },
+  { format: "MP3 128 kbps", type: "Lossy", fidelity: "20.4 dB SNR", sizeVsWav: "0.08x", quietNoise: "−46.9 dB", betterSize: true },
+  { format: "MP5-C v6 Low", type: "Lossy · beta", fidelity: "25.6 dB SNR", sizeVsWav: "0.11x", quietNoise: "−52.3 dB", betterFidelity: true, betterQuiet: true },
+  { format: "MP3 192 kbps", type: "Lossy", fidelity: "25.7 dB SNR", sizeVsWav: "0.13x", quietNoise: "−52.4 dB", betterSize: true },
+  { format: "MP5-C v6 Standard", type: "Lossy · beta", fidelity: "31.9 dB SNR", sizeVsWav: "0.15x", quietNoise: "−58.3 dB", betterFidelity: true, betterQuiet: true },
   { format: "MP3 320 kbps", type: "Lossy", fidelity: "35.7 dB SNR", sizeVsWav: "0.21x", quietNoise: "−72.2 dB" },
   { format: "MP5-C v6 High", type: "Lossy · beta", fidelity: "38.1 dB SNR", sizeVsWav: "0.20x", quietNoise: "−72.5 dB", betterFidelity: true, betterSize: true, betterQuiet: true },
   { format: "MP5-C v6 Extreme", type: "Lossy · beta", fidelity: "55.0 dB SNR", sizeVsWav: "0.40x", quietNoise: "−75.1 dB" },

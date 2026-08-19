@@ -291,11 +291,17 @@ fn quiet_floor(preset: Preset) -> f32 {
 /// M/S out of its savings.
 const QUIET_FRAME_GATE_E: f32 = 1.58e-5; // ≈ −48 dB mean-square per coeff
 
-/// The per-frame step floor: hard floor in quiet passages at the two quality
-/// presets, else the preset floor.
+/// The per-frame step floor in quiet passages: High/Extreme get the hard
+/// floor; Low/Standard get a 20x-finer-than-base preset floor (their base
+/// floors — 2e-3 / 8.75e-4 — are the binding constraint on dip noise, not the
+/// noise fraction: floored pad bands sit at 17 dB SNR, and the full 1e-5 hard
+/// floor costs ~50 kbps at these tiers). Loud frames keep the preset floor.
 fn passage_floor(frame_e: f32, preset: Preset) -> f32 {
-    if matches!(preset, Preset::High | Preset::Extreme) && frame_e < QUIET_FRAME_GATE_E {
-        ABS_STEP_FLOOR
+    if frame_e < QUIET_FRAME_GATE_E {
+        match preset {
+            Preset::High | Preset::Extreme => ABS_STEP_FLOOR,
+            Preset::Low | Preset::Standard => (min_step(preset) * 0.05).max(ABS_STEP_FLOOR),
+        }
     } else {
         quiet_floor(preset)
     }
@@ -306,13 +312,69 @@ fn coeff_frame_e(coeffs: &[f32]) -> f32 {
     coeffs.iter().map(|c| c * c).sum::<f32>() / coeffs.len().max(1) as f32
 }
 
-fn band_steps(coeffs: &[f32], preset: Preset) -> Vec<f32> {
-    band_steps_floored(coeffs, preset, passage_floor(coeff_frame_e(coeffs), preset))
+/// Per-frame passage decision, computed ONCE per frame from the louder channel
+/// (joint paths) or the frame itself — never per coded basis.
+#[derive(Clone, Copy)]
+struct Passage {
+    /// Step floor for this frame.
+    ms: f32,
+    /// Frame measured quiet (below the gate).
+    quiet: bool,
 }
 
-fn band_steps_floored(coeffs: &[f32], preset: Preset, ms: f32) -> Vec<f32> {
+fn passage_of(frame_e: f32, preset: Preset) -> Passage {
+    Passage {
+        ms: passage_floor(frame_e, preset),
+        quiet: frame_e < QUIET_FRAME_GATE_E,
+    }
+}
+
+/// In quiet passages the two small presets tighten their noise fraction —
+/// a flat 15.6/21.6 dB SNR leaves the pad's own bands hissing at −40 dBFS in
+/// the dips (measured vs LAME-320's −74). Cheap: quiet frames are rare and
+/// hold few big coefficients.
+const QUIET_NF_LIFT: f32 = 0.5; // +6 dB SNR in quiet frames
+
+/// Low-preset bandwidth cap (low-rate lowpass, the MP3 128/192 trick): bands
+/// at or above the cap get a step so coarse that quiet HF content rounds to
+/// zero — near-free under the partitioned pack's zero-runs — while loud HF
+/// transients still code, coarsely. Uncapped low presets pay real bits for
+/// 18-24 kHz noise the tier can't use, and that noise is audible as "swishy"
+/// grit on quiet passages (measured: Low/Standard lost the quiet-noise column
+/// to MP3 128/192 on a real track). MP3 lowpasses ≈15.5 kHz at 128 and ≈18
+/// kHz at 192; quadratic band edges keep these frequencies geometry-exact
+/// across long/short blocks.
+const BAND_CAP_LOW: usize = 26; // drop ≥ ~15.8 kHz
+const BAND_CAP_STANDARD: usize = 28; // drop ≥ ~18.4 kHz
+const BAND_CAP_STEP: f32 = 0.25;
+
+fn preset_band_cap(preset: Preset) -> usize {
+    match preset {
+        Preset::Low => BAND_CAP_LOW,
+        Preset::Standard => BAND_CAP_STANDARD,
+        _ => NUM_BANDS,
+    }
+}
+
+/// Tuning override (`C6_BAND_CAP=26`) for low-rate experiments.
+fn band_cap_override() -> Option<usize> {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<Option<usize>> = OnceLock::new();
+    *CACHE.get_or_init(|| std::env::var("C6_BAND_CAP").ok().and_then(|v| v.parse().ok()))
+}
+
+fn band_steps(coeffs: &[f32], preset: Preset) -> Vec<f32> {
+    band_steps_floored(coeffs, preset, passage_of(coeff_frame_e(coeffs), preset))
+}
+
+fn band_steps_floored(coeffs: &[f32], preset: Preset, passage: Passage) -> Vec<f32> {
     let bounds = band_bounds(coeffs.len());
-    let nf = noise_frac(preset);
+    let ms = passage.ms;
+    let nf = if passage.quiet && matches!(preset, Preset::Low | Preset::Standard) {
+        noise_frac(preset) * QUIET_NF_LIFT
+    } else {
+        noise_frac(preset)
+    };
     let mut steps = vec![ms; bounds.len()];
     let mut band_rms = vec![0f32; bounds.len()];
     for (bi, &(s, e)) in bounds.iter().enumerate() {
@@ -328,6 +390,11 @@ fn band_steps_floored(coeffs: &[f32], preset: Preset, ms: f32) -> Vec<f32> {
         let n = (e - s).max(1) as f32;
         band_rms[bi] = (sumsq / n).sqrt();
         steps[bi] = (band_rms[bi] * nf).max(ms).max(peak * 1e-4);
+    }
+    // Low-rate bandwidth cap: quiet content in capped HF bands rounds away.
+    let cap = band_cap_override().unwrap_or_else(|| preset_band_cap(preset));
+    for bi in cap..bounds.len() {
+        steps[bi] = BAND_CAP_STEP;
     }
     // Masking-inspired: louder low bands permit coarser high-band steps, but
     // the boost is capped by each band's own RMS so quiet HF texture is never
@@ -376,12 +443,12 @@ impl PsyState {
     /// Steps from the masking model with the *current* temporal allowance
     /// (no temporal advance). Safe to call for every basis in a frame.
     fn steps_basic(&self, coeffs: &[f32], preset: Preset) -> Vec<f32> {
-        self.steps_basic_floored(coeffs, preset, passage_floor(coeff_frame_e(coeffs), preset))
+        self.steps_basic_floored(coeffs, preset, passage_of(coeff_frame_e(coeffs), preset))
     }
 
-    /// `steps_basic` with the frame floor supplied by the caller (joint paths
-    /// pass one gate decision shared by both channels/bases).
-    fn steps_basic_floored(&self, coeffs: &[f32], preset: Preset, ms: f32) -> Vec<f32> {
+    /// `steps_basic` with the passage decision supplied by the caller (joint
+    /// paths pass one gate decision shared by both channels/bases).
+    fn steps_basic_floored(&self, coeffs: &[f32], preset: Preset, passage: Passage) -> Vec<f32> {
         let bounds = band_bounds(coeffs.len());
         let mut rms = vec![0f32; bounds.len()];
         let mut peak = vec![0f32; bounds.len()];
@@ -411,7 +478,7 @@ impl PsyState {
         // legacy on loud content (measured 20 vs 45 dB SNR on a real quiet
         // intro, with 8x the tonal events). This cap must live here, not in
         // `derive_steps`: the windowed L/R paths call `steps_basic` directly.
-        let legacy = band_steps_floored(coeffs, preset, ms);
+        let legacy = band_steps_floored(coeffs, preset, passage);
         for (s, l) in steps.iter_mut().zip(legacy.iter()) {
             *s = s.min(*l);
         }
@@ -419,7 +486,7 @@ impl PsyState {
         // (`quiet_floor`, already baked into the model) — a coarser floor here
         // is how noise escapes the model's threshold on quiet bands.
         for s in steps.iter_mut() {
-            *s = s.max(ms);
+            *s = s.max(passage.ms);
         }
         steps
     }
@@ -451,17 +518,17 @@ fn derive_steps(
     }
 }
 
-/// `derive_steps` with the frame floor supplied by the caller (joint paths
-/// share one gate decision across both channels and bases).
+/// `derive_steps` with the passage decision supplied by the caller (joint
+/// paths share one gate decision across both channels and bases).
 fn derive_steps_floored(
     coeffs: &[f32],
     preset: Preset,
     psy: Option<&PsyState>,
-    ms: f32,
+    passage: Passage,
 ) -> Vec<f32> {
     match psy {
-        Some(p) => p.steps_basic_floored(coeffs, preset, ms),
-        None => band_steps_floored(coeffs, preset, ms),
+        Some(p) => p.steps_basic_floored(coeffs, preset, passage),
+        None => band_steps_floored(coeffs, preset, passage),
     }
 }
 
@@ -1009,7 +1076,7 @@ fn decide_joint_bands(
     coeff_mode: CoeffMode,
     psy: Option<&PsyState>,
     forced_bitmap: Option<u32>,
-    ms: f32,
+    passage: Passage,
 ) -> JointDecision {
     let n = coeffs_l.len();
     let bounds = band_bounds(n);
@@ -1021,8 +1088,8 @@ fn decide_joint_bands(
         m[i] = 0.5 * (coeffs_l[i] + coeffs_r[i]);
         s[i] = 0.5 * (coeffs_l[i] - coeffs_r[i]);
     }
-    let mut steps_m = derive_steps_floored(&m, preset, psy, ms);
-    let mut steps_s = derive_steps_floored(&s, preset, psy, ms);
+    let mut steps_m = derive_steps_floored(&m, preset, psy, passage);
+    let mut steps_s = derive_steps_floored(&s, preset, psy, passage);
     if tighten_min != 1.0 {
         for v in steps_m.iter_mut() {
             *v *= tighten_min;
@@ -1215,13 +1282,13 @@ fn encode_channel_pair(
         // One gate decision per frame, from the louder channel — never per
         // coded basis (a quiet side channel would always read "quiet" and
         // price M/S out of its savings).
-        let frame_ms = passage_floor(
+        let passage = passage_of(
             coeff_frame_e(&coeffs_l).max(coeff_frame_e(&coeffs_r)),
             preset,
         );
         let (steps_l, steps_r, tighten_min) = if let Some(psy) = psy_state.as_mut() {
-            let sl = psy.steps_basic_floored(&coeffs_l, preset, frame_ms);
-            let sr_ = psy.steps_basic_floored(&coeffs_r, preset, frame_ms);
+            let sl = psy.steps_basic_floored(&coeffs_l, preset, passage);
+            let sr_ = psy.steps_basic_floored(&coeffs_r, preset, passage);
             let el: f32 =
                 frame_l.iter().map(|x| x * x).sum::<f32>() / frame_l.len().max(1) as f32;
             let er: f32 =
@@ -1230,8 +1297,8 @@ fn encode_channel_pair(
             prev_er = er;
             (sl, sr_, 1.0f32)
         } else {
-            let mut sl = band_steps_floored(&coeffs_l, preset, frame_ms);
-            let mut sr_ = band_steps_floored(&coeffs_r, preset, frame_ms);
+            let mut sl = band_steps_floored(&coeffs_l, preset, passage);
+            let mut sr_ = band_steps_floored(&coeffs_r, preset, passage);
             let (tl, el) = tighten_factor(frame_l, prev_el);
             prev_el = el;
             let (tr, er) = tighten_factor(frame_r, prev_er);
@@ -1258,7 +1325,7 @@ fn encode_channel_pair(
             params.coeffs,
             psy_state.as_ref(),
             None,
-            frame_ms,
+            passage,
         );
         if let Some(psy) = psy_state.as_mut() {
             // One temporal advance per frame, shared by both channels/bases.
@@ -1398,14 +1465,14 @@ fn encode_channel_pair_windowed(
         }
         // One gate decision per block, from the louder channel (see the
         // non-windowed joint path for why this must not be per-basis).
-        let frame_ms = passage_floor(
+        let passage = passage_of(
             coeff_frame_e(&coeffs_l).max(coeff_frame_e(&coeffs_r)),
             preset,
         );
         let (steps_l, steps_r) = if let Some(psy) = psy_state.as_mut() {
-            (psy.steps_basic_floored(&coeffs_l, preset, frame_ms), psy.steps_basic_floored(&coeffs_r, preset, frame_ms))
+            (psy.steps_basic_floored(&coeffs_l, preset, passage), psy.steps_basic_floored(&coeffs_r, preset, passage))
         } else {
-            (band_steps_floored(&coeffs_l, preset, frame_ms), band_steps_floored(&coeffs_r, preset, frame_ms))
+            (band_steps_floored(&coeffs_l, preset, passage), band_steps_floored(&coeffs_r, preset, passage))
         };
         let forced = match ty {
             BlockType::Short | BlockType::Stop => burst_bitmap,
@@ -1421,7 +1488,7 @@ fn encode_channel_pair_windowed(
             params.coeffs,
             psy_state.as_ref(),
             forced,
-            frame_ms,
+            passage,
         );
         match ty {
             BlockType::Start => burst_bitmap = Some(decision.bitmap),
