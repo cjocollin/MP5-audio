@@ -96,7 +96,11 @@ pub fn pack_coeffs_mode(coeffs: &[i16], mode: CoeffMode) -> Vec<u8> {
 fn pack_coeffs_partitioned(coeffs: &[i16]) -> Vec<u8> {
     debug_assert!(coeffs.iter().any(|&c| c != 0));
     // HF zero-run: coefficients after the last non-zero one are implicit zeros.
-    let last_nz = coeffs.iter().rposition(|&c| c != 0).map(|p| p + 1).unwrap_or(0);
+    let last_nz = coeffs
+        .iter()
+        .rposition(|&c| c != 0)
+        .map(|p| p + 1)
+        .unwrap_or(0);
     let vals: Vec<i32> = coeffs[..last_nz].iter().map(|&c| c as i32).collect();
     let escape_bits = escape_bits_for_residuals(&vals);
     let (ks, rice_bits) = best_partitioned_ks_with_bits(&vals, escape_bits);
@@ -157,17 +161,33 @@ fn legacy_len_estimate(coeffs: &[i16]) -> usize {
 /// Exact length of a FLAG_PRICED record, computed without writing the body.
 fn partitioned_len_estimate(coeffs: &[i16]) -> usize {
     debug_assert!(coeffs.iter().any(|&c| c != 0));
-    let last_nz = coeffs.iter().rposition(|&c| c != 0).map(|p| p + 1).unwrap_or(0);
+    let last_nz = coeffs
+        .iter()
+        .rposition(|&c| c != 0)
+        .map(|p| p + 1)
+        .unwrap_or(0);
     let vals: Vec<i32> = coeffs[..last_nz].iter().map(|&c| c as i32).collect();
     let escape_bits = escape_bits_for_residuals(&vals);
     let (ks, rice_bits) = best_partitioned_ks_with_bits(&vals, escape_bits);
     1 + 4 + 4 + 1 + 1 + ks.len().div_ceil(2) + 4 + rice_bits.div_ceil(8)
 }
 
-pub fn unpack_coeffs(data: &[u8]) -> Result<Vec<i16>, String> {
+pub fn unpack_coeffs(data: &[u8], expected: usize) -> Result<Vec<i16>, String> {
     if data.is_empty() {
         return Err("empty mp5c3 coeff pack".into());
     }
+    if expected > MAX_COEFFS {
+        return Err(format!(
+            "mp5c3 expected coefficient count {expected} too large"
+        ));
+    }
+    let check_count = |n: usize| {
+        if n == expected {
+            Ok(())
+        } else {
+            Err(format!("mp5c3 coeff count {n} != {expected}"))
+        }
+    };
     let flag = data[0];
     match flag {
         FLAG_ZERO => {
@@ -175,6 +195,7 @@ pub fn unpack_coeffs(data: &[u8]) -> Result<Vec<i16>, String> {
                 return Err("truncated zero pack".into());
             }
             let n = u32::from_le_bytes(data[1..5].try_into().unwrap()) as usize;
+            check_count(n)?;
             Ok(vec![0i16; n])
         }
         FLAG_DENSE => {
@@ -182,6 +203,7 @@ pub fn unpack_coeffs(data: &[u8]) -> Result<Vec<i16>, String> {
                 return Err("truncated dense pack".into());
             }
             let n = u32::from_le_bytes(data[1..5].try_into().unwrap()) as usize;
+            check_count(n)?;
             if data.len() < 5 + n * 2 {
                 return Err("truncated dense coeffs".into());
             }
@@ -198,14 +220,18 @@ pub fn unpack_coeffs(data: &[u8]) -> Result<Vec<i16>, String> {
             }
             let k = data[1];
             if k > MAX_K {
-                return Err(format!("mp5c3 rice parameter {k} out of range (fail-closed)"));
+                return Err(format!(
+                    "mp5c3 rice parameter {k} out of range (fail-closed)"
+                ));
             }
             let n = u32::from_le_bytes(data[2..6].try_into().unwrap()) as usize;
+            check_count(n)?;
             let body_len = u32::from_le_bytes(data[6..10].try_into().unwrap()) as usize;
-            if data.len() < 10 + body_len {
-                return Err("truncated rice body".into());
-            }
-            let body = &data[10..10 + body_len];
+            let body_end = 10usize
+                .checked_add(body_len)
+                .filter(|&end| end <= data.len())
+                .ok_or_else(|| "truncated rice body".to_string())?;
+            let body = &data[10..body_end];
             let vals = rice_decode(body, k, n)?;
             Ok(vals
                 .into_iter()
@@ -220,9 +246,7 @@ pub fn unpack_coeffs(data: &[u8]) -> Result<Vec<i16>, String> {
             let last_nz = u32::from_le_bytes(data[5..9].try_into().unwrap()) as usize;
             let parts = data[9] as usize;
             let escape_bits = data[10];
-            if n > MAX_COEFFS {
-                return Err(format!("partitioned-rice pack count {n} too large"));
-            }
+            check_count(n)?;
             if last_nz > n {
                 return Err("partitioned-rice zero-run index past coefficient count".into());
             }
@@ -237,10 +261,12 @@ pub fn unpack_coeffs(data: &[u8]) -> Result<Vec<i16>, String> {
             let blen_at = 11 + ks_len;
             let body_len =
                 u32::from_le_bytes(data[blen_at..blen_at + 4].try_into().unwrap()) as usize;
-            if data.len() < blen_at + 4 + body_len {
-                return Err("truncated partitioned-rice body".into());
-            }
-            let body = &data[blen_at + 4..blen_at + 4 + body_len];
+            let body_start = blen_at + 4;
+            let body_end = body_start
+                .checked_add(body_len)
+                .filter(|&end| end <= data.len())
+                .ok_or_else(|| "truncated partitioned-rice body".to_string())?;
+            let body = &data[body_start..body_end];
             let vals = rice_decode_partitioned_escape(body, &ks, last_nz, escape_bits)?;
             if vals.len() != last_nz {
                 return Err("partitioned-rice count mismatch".into());
@@ -265,7 +291,7 @@ mod tests {
     fn pack_unpack_roundtrip() {
         let coeffs: Vec<i16> = (-40..40).map(|i| (i * 3) as i16).collect();
         let packed = pack_coeffs(&coeffs);
-        let back = unpack_coeffs(&packed).unwrap();
+        let back = unpack_coeffs(&packed, coeffs.len()).unwrap();
         assert_eq!(back, coeffs);
     }
 
@@ -274,7 +300,7 @@ mod tests {
         let coeffs = vec![0i16; 128];
         let packed = pack_coeffs(&coeffs);
         assert_eq!(packed[0], FLAG_ZERO);
-        assert_eq!(unpack_coeffs(&packed).unwrap(), coeffs);
+        assert_eq!(unpack_coeffs(&packed, coeffs.len()).unwrap(), coeffs);
     }
 
     /// MDCT-like spectrum: decaying magnitudes with a long HF zero tail.
@@ -302,7 +328,7 @@ mod tests {
             vec![0i16, -32767, 32767, 1, -1, 0, 0, 5],
         ] {
             let packed = pack_coeffs_mode(&coeffs, CoeffMode::Partitioned);
-            assert_eq!(unpack_coeffs(&packed).unwrap(), coeffs);
+            assert_eq!(unpack_coeffs(&packed, coeffs.len()).unwrap(), coeffs);
         }
     }
 
@@ -339,7 +365,7 @@ mod tests {
         let legacy = pack_coeffs(&coeffs);
         let priced = pack_coeffs_mode(&coeffs, CoeffMode::Partitioned);
         assert!(priced.len() <= legacy.len());
-        assert_eq!(unpack_coeffs(&priced).unwrap(), coeffs);
+        assert_eq!(unpack_coeffs(&priced, coeffs.len()).unwrap(), coeffs);
     }
 
     #[test]
@@ -366,18 +392,40 @@ mod tests {
         let packed = pack_coeffs_partitioned(&coeffs);
         // Truncations at every third offset must error, never panic or lie.
         for cut in (0..packed.len()).step_by(3) {
-            let _ = unpack_coeffs(&packed[..cut]);
+            let _ = unpack_coeffs(&packed[..cut], coeffs.len());
         }
         // Bad partition count / escape bits / zero-run index are all caught.
         let mut bad = packed.clone();
         bad[9] = 0;
-        assert!(unpack_coeffs(&bad).is_err());
+        assert!(unpack_coeffs(&bad, coeffs.len()).is_err());
         let mut bad = packed.clone();
         bad[9] = 17;
-        assert!(unpack_coeffs(&bad).is_err());
+        assert!(unpack_coeffs(&bad, coeffs.len()).is_err());
         let mut bad = packed.clone();
         bad[5] = 0xff; // last_nz way past n
         bad[6] = 0xff;
-        assert!(unpack_coeffs(&bad).is_err());
+        assert!(unpack_coeffs(&bad, coeffs.len()).is_err());
+    }
+
+    #[test]
+    fn every_record_rejects_wrong_count_before_decode() {
+        let expected = 256usize;
+        for (flag, n_at) in [
+            (FLAG_ZERO, 1usize),
+            (FLAG_DENSE, 1),
+            (FLAG_RICE, 2),
+            (FLAG_PRICED, 1),
+        ] {
+            let header_len = match flag {
+                FLAG_RICE => 10,
+                FLAG_PRICED => 16,
+                _ => 5,
+            };
+            let mut packed = vec![0u8; header_len];
+            packed[0] = flag;
+            packed[n_at..n_at + 4].copy_from_slice(&u32::MAX.to_le_bytes());
+            let err = unpack_coeffs(&packed, expected).unwrap_err();
+            assert!(err.contains("coeff count"), "flag {flag}: {err}");
+        }
     }
 }

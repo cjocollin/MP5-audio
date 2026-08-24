@@ -154,11 +154,11 @@ pub fn positions_of(types: &[BlockType]) -> Result<Vec<usize>, String> {
 /// (callers zero-extend `samples` by `LONG_LEN` once).
 ///
 /// The decision is a deterministic transient detector: a 256-sample sub-block
-/// is a transient when its energy exceeds 8× the previous sub-block's (and an
-/// absolute floor). A transient in the short-coverable region of a long window
+/// is a transient when its energy exceeds `attack_ratio` times the recent peak
+/// (and an absolute floor). A transient in the short-coverable region of a long window
 /// ([pos+1408, pos+2048)) opens a START; short blocks continue while
 /// transient activity is within the next 1024 samples.
-pub fn plan_blocks(samples: &[f32]) -> Vec<(usize, BlockType)> {
+pub fn plan_blocks(samples: &[f32], attack_ratio: f32) -> Vec<(usize, BlockType)> {
     let n_sub = samples.len() / SUB_BLOCK + 2;
     let mut energy = vec![0f32; n_sub];
     for (j, e) in energy.iter_mut().enumerate() {
@@ -193,7 +193,7 @@ pub fn plan_blocks(samples: &[f32]) -> Vec<(usize, BlockType)> {
         // switching there buys nothing and only adds window-boundary splatter.
         let lo2 = j.saturating_sub(32);
         let mean = energy[lo2..j].iter().sum::<f32>() / (j - lo2).max(1) as f32;
-        if energy[j] > peak * 8.0 && energy[j] > mean * 6.0 && energy[j] > 1e-6 {
+        if energy[j] > peak * attack_ratio && energy[j] > mean * 6.0 && energy[j] > 1e-6 {
             transient[j] = true;
         }
     }
@@ -246,8 +246,8 @@ pub fn validate_sequence(types: &[BlockType]) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::mdct::{analyze_frame, synthesize_frame};
+    use super::*;
 
     /// Float OLA oracle: analyze/synthesize a legal sequence and require
     /// near-exact reconstruction. If this passes, the window geometry and the
@@ -281,7 +281,7 @@ mod tests {
     fn float_ola_exact_on_all_long_sequence() {
         let n = 4096 * 2;
         let x: Vec<f32> = (0..n).map(|i| ((i as f32) * 0.03).sin() * 0.5).collect();
-        let seq = plan_blocks(&x);
+        let seq = plan_blocks(&x, 8.0);
         let y = float_roundtrip_seq(&x, &seq);
         let s = snr_db(&x[1024..n - 1024], &y[1024..n - 1024]);
         assert!(s > 80.0, "long-only float OLA SNR {s:.1}");
@@ -329,11 +329,8 @@ mod tests {
         for (k, &p) in [1500usize, 4000, 7777, 11000].iter().enumerate() {
             x[p] = if k % 2 == 0 { 0.9 } else { -0.9 };
         }
-        let seq = plan_blocks(&x);
-        assert!(validate_sequence(
-            &seq.iter().map(|&(_, t)| t).collect::<Vec<_>>()
-        )
-        .is_ok());
+        let seq = plan_blocks(&x, 8.0);
+        assert!(validate_sequence(&seq.iter().map(|&(_, t)| t).collect::<Vec<_>>()).is_ok());
         let y = float_roundtrip_seq(&x, &seq);
         let s = snr_db(&x[1024..n - 2048], &y[1024..n - 2048]);
         assert!(s > 70.0, "impulse float OLA SNR {s:.1}");
@@ -346,10 +343,30 @@ mod tests {
         for i in 4096..n {
             x[i] = ((i as f32) * 0.07).sin() * 0.6;
         }
-        let seq = plan_blocks(&x);
+        let seq = plan_blocks(&x, 8.0);
         let types: Vec<BlockType> = seq.iter().map(|&(_, t)| t).collect();
-        assert!(types.contains(&BlockType::Start), "must open a START near the attack");
-        assert!(types.contains(&BlockType::Stop), "must close the short episode");
+        assert!(
+            types.contains(&BlockType::Start),
+            "must open a START near the attack"
+        );
+        assert!(
+            types.contains(&BlockType::Stop),
+            "must close the short episode"
+        );
+        assert!(validate_sequence(&types).is_ok());
+    }
+
+    #[test]
+    fn high_attack_ratio_still_switches_after_quiet_audio() {
+        let n = 8192;
+        let mut x = vec![0f32; n];
+        for (i, sample) in x.iter_mut().enumerate() {
+            let amplitude = if i < 4096 { 0.01 } else { 0.6 };
+            *sample = (i as f32 * 0.07).sin() * amplitude;
+        }
+        let types: Vec<BlockType> = plan_blocks(&x, 256.0).iter().map(|&(_, t)| t).collect();
+        assert!(types.contains(&BlockType::Start));
+        assert!(types.contains(&BlockType::Stop));
         assert!(validate_sequence(&types).is_ok());
     }
 
@@ -366,13 +383,20 @@ mod tests {
         let mut x = vec![0f32; n];
         for (i, s) in x.iter_mut().enumerate() {
             let t = i as f32 / 48000.0;
-            let env = if t < 0.2 { 0.02f32 } else { 0.8 * (-(t - 0.2) * 9.0).exp() };
+            let env = if t < 0.2 {
+                0.02f32
+            } else {
+                0.8 * (-(t - 0.2) * 9.0).exp()
+            };
             let wobble = 0.5 * (2.0 * std::f32::consts::PI * 73.0 * t).sin()
                 + 0.5 * (2.0 * std::f32::consts::PI * 78.0 * t).sin();
             *s = env * wobble;
         }
-        let seq = plan_blocks(&x);
-        let starts = seq.iter().filter(|&&(_, ty)| ty == BlockType::Start).count();
+        let seq = plan_blocks(&x, 8.0);
+        let starts = seq
+            .iter()
+            .filter(|&&(_, ty)| ty == BlockType::Start)
+            .count();
         assert!(
             starts <= 2,
             "bass ring re-triggered {starts} START blocks (want at most the attack + one)"

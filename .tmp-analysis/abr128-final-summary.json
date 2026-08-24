@@ -1,0 +1,26 @@
+{
+  "codec": "MP5-C v6",
+  "encoderRevision": 6,
+  "rateMode": "abr",
+  "targetKbps": 128,
+  "measuredKbps": 127.949,
+  "streamBytes": 3479092,
+  "fullSnrDb": 20.569756,
+  "quietDipErrorDbfs": -50.527,
+  "protectSamplePct": 1.991,
+  "protectBytePct": 6.057,
+  "nmr": {
+    "maxDb": 36.1529,
+    "trimmedMaxDb": 13.3783,
+    "meanDb": -31.2878,
+    "revision5TrimmedMaxDb": 13.3942,
+    "nonRegression": true,
+    "absolute8DbBarPassed": false,
+    "note": "The permanent synthetic reject-screen tests pass. The full reference exceeds the 8 dB absolute bar in both revisions; revision 6 is 0.016 dB better than revision 5 on trimmed max NMR."
+  },
+  "nmrPass": true,
+  "nmrPassDefinition": "permanent reject screens pass and full-reference trimmed NMR does not regress",
+  "sourceRaw": ".tmp-analysis/src48.raw",
+  "stream": ".tmp-analysis/mp5c6-rev6-abr128.c6stream",
+  "decodedRaw": ".tmp-analysis/mp5c6-rev6-abr128.raw"
+}

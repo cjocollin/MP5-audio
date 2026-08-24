@@ -1,0 +1,87 @@
+{
+  "label": "rev7-protect-ledger-joint-energy256-high-native",
+  "heldOutUsed": false,
+  "rows": [
+    {
+      "id": "ex_transient_attacks",
+      "encoderRevision": 7,
+      "rev6SnrDb": 20.873597251,
+      "rev7SnrDb": 20.877211819515548,
+      "deltaDb": 0.0036145685155482
+    },
+    {
+      "id": "ex_steady_tonal",
+      "encoderRevision": 7,
+      "rev6SnrDb": 15.583845457,
+      "rev7SnrDb": 15.583845456685932,
+      "deltaDb": -3.140687709901613e-10
+    },
+    {
+      "id": "ex_reverb_tails",
+      "encoderRevision": 7,
+      "rev6SnrDb": 15.674492013,
+      "rev7SnrDb": 15.674492012608109,
+      "deltaDb": -3.9189096412428626e-10
+    },
+    {
+      "id": "ex_wide_stereo",
+      "encoderRevision": 7,
+      "rev6SnrDb": 14.649080293,
+      "rev7SnrDb": 14.649080293199876,
+      "deltaDb": 1.9987567156931618e-10
+    },
+    {
+      "id": "ex_vocals",
+      "encoderRevision": 7,
+      "rev6SnrDb": 14.719926267,
+      "rev7SnrDb": 14.72727003805604,
+      "deltaDb": 0.007343771056040893
+    },
+    {
+      "id": "ex_cymbals_hats",
+      "encoderRevision": 7,
+      "rev6SnrDb": 16.073264842,
+      "rev7SnrDb": 16.073264841854776,
+      "deltaDb": -1.4522427704832808e-10
+    },
+    {
+      "id": "ex_low_bitrate_stress",
+      "encoderRevision": 7,
+      "rev6SnrDb": 13.304170695,
+      "rev7SnrDb": 13.333761911593962,
+      "deltaDb": 0.029591216593962244
+    },
+    {
+      "id": "ex_applause_like",
+      "encoderRevision": 7,
+      "rev6SnrDb": 15.107340414,
+      "rev7SnrDb": 15.107340414321385,
+      "deltaDb": 3.213855848116509e-10
+    },
+    {
+      "id": "ex_castanet_like",
+      "encoderRevision": 7,
+      "rev6SnrDb": 18.053093471,
+      "rev7SnrDb": 18.053093471069953,
+      "deltaDb": 6.995293233558186e-11
+    },
+    {
+      "id": "ex_harpsichord_like",
+      "encoderRevision": 7,
+      "rev6SnrDb": 15.686164965,
+      "rev7SnrDb": 15.740187889416573,
+      "deltaDb": 0.054022924416573304
+    },
+    {
+      "id": "ex_sparse_quiet",
+      "encoderRevision": 7,
+      "rev6SnrDb": 16.345935171,
+      "rev7SnrDb": 16.30558450973095,
+      "deltaDb": -0.04035066126905207
+    }
+  ],
+  "meanDeltaDb": 0.004929256277554795,
+  "medianDeltaDb": 1.9987567156931618e-10,
+  "minimumDeltaDb": -0.04035066126905207,
+  "maximumDeltaDb": 0.054022924416573304
+}

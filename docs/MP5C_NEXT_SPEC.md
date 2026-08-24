@@ -277,14 +277,20 @@ Decoders **MUST** verify both header and per-unit CRCs and **MUST** fail closed 
 The encoder writes `profile_id = 3` (§3.2.3; profiles `0`–`2` remain decodable and are
 reachable via `encode_with_profile` for baseline measurement), `flags = 5` for stereo
 (joint stereo + window switching; `flags = 0` for mono), `unit_size = 1024`,
-`encoder_revision = 4`
+`encoder_revision = 7`
 (1 = Phase 2 scaffold + Phase 4.1 coded scalefactors; 2 = Phase 4.2 partitioned
 coefficients + Phase 4.3 deterministic rate control; 3 = Phase 5 joint stereo + window
 switching + psycho model + boundary seeding; 4 = transient-planner recent-peak +
 running-mean gates against bass-ring churn, joint bitmap hold inside short bursts,
 whole-frame M/S cost guard, psycho steps capped at the legacy allocation, and
 quiet-passage quality (Extreme `noise_frac` 0.006 / High 0.010 + passage-adaptive
-quiet floor gated on the louder channel) — same syntax, decode unaffected),
+quiet floor gated on the louder channel); 5 = rated-path channel-budget split
+(joint ABR/CBR starved the second channel) + Low/Standard quiet-passage floors,
+noise lift, and HF band caps; 6 = stereo ABR 128 width-normalized psycho tonality,
+legacy-safe masking cap, 1.1× protect thresholds, and a stricter 256× short-block
+attack gate; 7 = protect framing charged once, correct joint transient energy,
+finest-fitting rate-search selection, a dev-calibrated 32× ABR-128 attack gate,
+and decoder allocation hardening — same syntax, decode unaffected),
 and an accurate `mdct_frame_count` (counted from `mp5c3::hop_record_count` over every
 `TAG_MDCT` payload). The decoder fails closed on bad magic, header CRC, unit CRC,
 out-of-bounds `payload_len`, unknown tag, unknown `profile_id`, unsupported `channels`,

@@ -1,0 +1,98 @@
+{
+  "label": "adaptive64-tonality-protect10-high",
+  "heldOutUsed": false,
+  "rows": [
+    {
+      "id": "ex_transient_attacks",
+      "fullSnrDb": 20.873597251350912,
+      "baselineSnrDb": 20.32118214999152,
+      "improvementDb": 0.5524151013593901,
+      "quietWindowSnrDb": 25.943925503754265,
+      "encoder": "running 1 test\nABR128 file: SNR 20.8736 dB, 127676 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.87s"
+    },
+    {
+      "id": "ex_steady_tonal",
+      "fullSnrDb": 15.583845456685932,
+      "baselineSnrDb": 14.945536873122254,
+      "improvementDb": 0.6383085835636777,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 15.5838 dB, 127698 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.85s"
+    },
+    {
+      "id": "ex_reverb_tails",
+      "fullSnrDb": 15.674492012608109,
+      "baselineSnrDb": 15.37548018173775,
+      "improvementDb": 0.2990118308703593,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 15.6745 dB, 127707 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.89s"
+    },
+    {
+      "id": "ex_wide_stereo",
+      "fullSnrDb": 14.649080293199876,
+      "baselineSnrDb": 13.90222926414392,
+      "improvementDb": 0.7468510290559571,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 14.6491 dB, 127706 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.59s"
+    },
+    {
+      "id": "ex_vocals",
+      "fullSnrDb": 14.693736396956789,
+      "baselineSnrDb": 13.714342585527433,
+      "improvementDb": 0.9793938114293557,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 14.6937 dB, 127714 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.77s"
+    },
+    {
+      "id": "ex_cymbals_hats",
+      "fullSnrDb": 16.073264841854776,
+      "baselineSnrDb": 15.704657076994057,
+      "improvementDb": 0.36860776486071956,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 16.0733 dB, 127702 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.72s"
+    },
+    {
+      "id": "ex_low_bitrate_stress",
+      "fullSnrDb": 13.311761008204462,
+      "baselineSnrDb": 11.956591075233064,
+      "improvementDb": 1.355169932971398,
+      "quietWindowSnrDb": 18.359050609272163,
+      "encoder": "running 1 test\nABR128 file: SNR 13.3118 dB, 127657 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.75s"
+    },
+    {
+      "id": "ex_applause_like",
+      "fullSnrDb": 15.107340414321385,
+      "baselineSnrDb": 14.366228008129564,
+      "improvementDb": 0.7411124061918208,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 15.1073 dB, 127701 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 1.23s"
+    },
+    {
+      "id": "ex_castanet_like",
+      "fullSnrDb": 18.053093471069953,
+      "baselineSnrDb": 17.59139699562229,
+      "improvementDb": 0.46169647544766335,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 18.0531 dB, 127703 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.54s"
+    },
+    {
+      "id": "ex_harpsichord_like",
+      "fullSnrDb": 15.84417707275538,
+      "baselineSnrDb": 14.31176101284869,
+      "improvementDb": 1.5324160599066907,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 15.8442 dB, 127688 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.54s"
+    },
+    {
+      "id": "ex_sparse_quiet",
+      "fullSnrDb": 15.956195614613414,
+      "baselineSnrDb": 14.566692356917176,
+      "improvementDb": 1.3895032576962372,
+      "quietWindowSnrDb": null,
+      "encoder": "running 1 test\nABR128 file: SNR 15.9562 dB, 127764 bytes\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.76s"
+    }
+  ],
+  "meanImprovementDb": 0.8240442048502973,
+  "medianImprovementDb": 0.7411124061918208,
+  "improvedRows": 11,
+  "regressedRows": 0
+}

@@ -56,7 +56,7 @@ const SECONDARY_MODES: {
     id: "c6",
     name: "MP5-C v6",
     tag: "Lossy · beta preview · not default",
-    body: "The lossy MDCT codec (CodecId 6, encoder rev 4) with four presets — Low, Standard, High, Extreme. On a 48 kHz real-music reference track, High measured in MP3-320 territory at 314 kbps with quiet-passage noise at or below LAME-320's own dips, and Extreme reached 55 dB SNR at 620 kbps. Quiet, fragile, and decaying-tail passages stay bit-exact MP5-L via protect islands; only those islands are sample-exact — the file as a whole is lossy. Available in the Converter as a beta preview: the bitstream is not frozen, files may not decode in future builds, and MP5-L v4 stays the recommended export — not for archival or distribution. See the measured MP3 preset comparison below.",
+    body: "The lossy MDCT codec (CodecId 6, encoder rev 7) with four presets — Low, Standard, High, Extreme — plus matched-rate ABR control. On one 48 kHz stereo real-music reference track, the shipping browser/WASM encoder beat the LAME anchors on full-stream SNR at all three matched rates while preserving quieter phrase gaps; see the measured comparison below. Quiet, fragile, and decaying-tail passages stay bit-exact MP5-L via protect islands; only those islands are sample-exact — the file as a whole is lossy. Available in the Converter as a beta preview: the bitstream is not frozen, files may not decode in future builds, and MP5-L v4 stays the recommended export — not for archival or distribution.",
   },
   {
     id: "h",
@@ -80,30 +80,28 @@ const SECONDARY_MODES: {
 
 /**
  * MP5-C v6 vs MP3, measured on one 48 kHz stereo real-music reference track
- * (217.5 s) with encoder rev 4 and libmp3lame. "Quiet noise" is the error
- * level in the softest phrase gap (8.0–8.75 s). MP3's three rates run in
- * order with the MP5-C v6 preset of the matching tier beside each — High sits
- * under MP3 320, which it edges on both fidelity and size on this track.
- * Single-track figures, not a general claim.
+ * (217.5 s) with shipping browser/WASM encoder rev 7 and libmp3lame. "Quiet noise" is the
+ * error level in the softest phrase gap (8.0–8.75 s). Each MP5-C v6 ABR row
+ * sits beside MP3 at the same nominal rate. Single-track figures, not a
+ * general claim.
  */
 const C6_VS_MP3_ROWS: {
   format: string;
-  type: string;
+  measuredRate: string;
   fidelity: string;
   sizeVsWav: string;
   quietNoise: string;
-  /** This row wins the metric column within its MP3-vs-C6 tier pairing. */
+  /** This row wins the metric column within its matched-rate pair. */
   betterFidelity?: boolean;
   betterSize?: boolean;
   betterQuiet?: boolean;
 }[] = [
-  { format: "MP3 128 kbps", type: "Lossy", fidelity: "20.4 dB SNR", sizeVsWav: "0.08x", quietNoise: "−46.9 dB", betterSize: true },
-  { format: "MP5-C v6 Low", type: "Lossy · beta", fidelity: "25.6 dB SNR", sizeVsWav: "0.11x", quietNoise: "−52.3 dB", betterFidelity: true, betterQuiet: true },
-  { format: "MP3 192 kbps", type: "Lossy", fidelity: "25.7 dB SNR", sizeVsWav: "0.13x", quietNoise: "−52.4 dB", betterSize: true },
-  { format: "MP5-C v6 Standard", type: "Lossy · beta", fidelity: "31.9 dB SNR", sizeVsWav: "0.15x", quietNoise: "−58.3 dB", betterFidelity: true, betterQuiet: true },
-  { format: "MP3 320 kbps", type: "Lossy", fidelity: "35.7 dB SNR", sizeVsWav: "0.21x", quietNoise: "−72.2 dB" },
-  { format: "MP5-C v6 High", type: "Lossy · beta", fidelity: "38.1 dB SNR", sizeVsWav: "0.20x", quietNoise: "−72.5 dB", betterFidelity: true, betterSize: true, betterQuiet: true },
-  { format: "MP5-C v6 Extreme", type: "Lossy · beta", fidelity: "55.0 dB SNR", sizeVsWav: "0.40x", quietNoise: "−75.1 dB" },
+  { format: "MP3 128 kbps", measuredRate: "128 kbps", fidelity: "20.4 dB SNR", sizeVsWav: "0.083x", quietNoise: "−46.9 dB" },
+  { format: "MP5-C v6 ABR 128", measuredRate: "127.97 kbps", fidelity: "20.6 dB SNR", sizeVsWav: "0.083x", quietNoise: "−50.5 dB", betterFidelity: true, betterQuiet: true },
+  { format: "MP3 192 kbps", measuredRate: "192 kbps", fidelity: "25.7 dB SNR", sizeVsWav: "0.125x", quietNoise: "−52.4 dB" },
+  { format: "MP5-C v6 ABR 192", measuredRate: "191.95 kbps", fidelity: "26.3 dB SNR", sizeVsWav: "0.125x", quietNoise: "−60.1 dB", betterFidelity: true, betterQuiet: true },
+  { format: "MP3 320 kbps", measuredRate: "320 kbps", fidelity: "35.7 dB SNR", sizeVsWav: "0.208x", quietNoise: "−72.2 dB" },
+  { format: "MP5-C v6 ABR 320", measuredRate: "318.85 kbps", fidelity: "35.9 dB SNR", sizeVsWav: "0.208x", quietNoise: "−72.8 dB", betterFidelity: true, betterQuiet: true },
 ];
 
 export function AboutMp5Panel() {
@@ -245,22 +243,22 @@ export function AboutMp5Panel() {
         <div className="mp5-about-compare-head">
           <h3 id="mp5-about-c6-heading">MP5-C v6 vs MP3 — measured</h3>
           <p>
-            The four MP5-C v6 presets and MP3's three rates, paired by quality tier — High sits
-            under MP3 320, which it edges on both fidelity and size on this track. Measured on one
-            48 kHz stereo real-music reference track (encoder rev 4 vs libmp3lame). Single-track
-            figures, not a general claim — MP5 does not claim to beat MP3.
+            MP5-C v6 ABR and MP3 at the same nominal 128/192/320 kbps rates. Measured on one 48 kHz
+            stereo real-music reference track (shipping browser/WASM encoder rev 7 vs libmp3lame).
+            At 128 kbps, MP5-C v6 reached 20.6 dB SNR versus MP3's 20.4 dB and kept
+            the quieter phrase gap.
+            Single-track figures, not a general claim — MP5 does not claim to beat MP3 broadly.
           </p>
         </div>
         <div className="mp5-about-compare-scroll">
           <table className="mp5-about-compare-table" data-testid="about-c6-mp3-table">
             <caption className="mp5-about-compare-caption">
-              MP3 at 128/192/320 kbps and MP5-C v6's Low/Standard/High/Extreme presets, paired by
-              quality tier, measured on the same track
+              MP3 and MP5-C v6 ABR at matched 128/192/320 kbps targets, measured on the same track
             </caption>
             <thead>
               <tr>
                 <th scope="col" className="mp5-about-compare-th">Format</th>
-                <th scope="col" className="mp5-about-compare-th">Type</th>
+                <th scope="col" className="mp5-about-compare-th">Measured rate</th>
                 <th scope="col" className="mp5-about-compare-th">Fidelity</th>
                 <th scope="col" className="mp5-about-compare-th">Size vs WAV/PCM</th>
                 <th scope="col" className="mp5-about-compare-th">Quiet noise</th>
@@ -270,7 +268,7 @@ export function AboutMp5Panel() {
               {C6_VS_MP3_ROWS.map((row) => (
                 <tr key={row.format}>
                   <th scope="row" className="mp5-about-compare-cell-format">{row.format}</th>
-                  <td className="mp5-about-compare-cell-type">{row.type}</td>
+                  <td className="mp5-about-compare-cell-type">{row.measuredRate}</td>
                   <td className={`mp5-about-compare-cell-fidelity${row.betterFidelity ? " mp5-about-compare-better" : ""}`}>{row.fidelity}</td>
                   <td className={`mp5-about-compare-cell-size${row.betterSize ? " mp5-about-compare-better" : ""}`}>{row.sizeVsWav}</td>
                   <td className={`mp5-about-compare-cell-use${row.betterQuiet ? " mp5-about-compare-better" : ""}`}>{row.quietNoise}</td>
@@ -282,8 +280,9 @@ export function AboutMp5Panel() {
         <p className="mp5-about-compare-method">
           Fidelity is full-stream SNR against the lossless source; quiet noise is the error level
           in the softest phrase gap (lower is better). Green marks the better figure within each
-          tier pairing (Extreme has no MP3 peer). MP5-C v6 is a beta-preview codec: the bitstream
-          is not frozen, and only its protect islands are sample-exact. Measured with{" "}
+          matched-rate pair. MP5-C v6 is a beta-preview codec: the bitstream is not frozen, and only
+          its protect islands are sample-exact. Rev 7 figures are shipping browser/WASM lab results;
+          the unsealed dev-plus-killer rate/size gates passed at all three targets. Measured with{" "}
           <code>tools/audio-lab/</code>.
         </p>
       </section>

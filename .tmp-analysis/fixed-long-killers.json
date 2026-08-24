@@ -1,0 +1,82 @@
+{
+  "heldOutUsed": false,
+  "rows": [
+    {
+      "id": "killer_castanets",
+      "category": "transient",
+      "baselineSnrDb": 35.11422463512795,
+      "candidateSnrDb": 35.01259731241441,
+      "improvementDb": -0.10162732271354002,
+      "baselineLog": "running 1 test\nABR128 file: SNR 35.1142 dB, 45860 bytes, NMR max 1.79 trimmed -150.91 mean -167.71\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.17s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 35.0126 dB, 45559 bytes, NMR max 0.91 trimmed -149.97 mean -166.90\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.13s"
+    },
+    {
+      "id": "killer_glockenspiel",
+      "category": "tonal-hf",
+      "baselineSnrDb": 8.597399049111875,
+      "candidateSnrDb": 23.29397437617841,
+      "improvementDb": 14.696575327066537,
+      "baselineLog": "running 1 test\nABR128 file: SNR 8.5974 dB, 63969 bytes, NMR max 40.25 trimmed 12.50 mean -55.01\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.37s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 23.2940 dB, 63973 bytes, NMR max 28.99 trimmed 4.07 mean -53.49\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.56s"
+    },
+    {
+      "id": "killer_harpsichord",
+      "category": "tonal-hf",
+      "baselineSnrDb": 2.272377178505331,
+      "candidateSnrDb": 2.269446585532711,
+      "improvementDb": -0.002930592972619994,
+      "baselineLog": "running 1 test\nABR128 file: SNR 2.2724 dB, 114015 bytes, NMR max 44.40 trimmed -27.73 mean -68.07\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.46s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 2.2694 dB, 106891 bytes, NMR max 44.40 trimmed -23.33 mean -64.57\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.46s"
+    },
+    {
+      "id": "killer_applause",
+      "category": "noise-dense",
+      "baselineSnrDb": 2.3242138860286534,
+      "candidateSnrDb": 2.3242138860286534,
+      "improvementDb": 0,
+      "baselineLog": "running 1 test\nABR128 file: SNR 2.3242 dB, 47674 bytes, NMR max 22.08 trimmed 16.65 mean -8.14\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.32s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 2.3242 dB, 47674 bytes, NMR max 22.08 trimmed 16.65 mean -8.14\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.43s"
+    },
+    {
+      "id": "killer_hard_pan",
+      "category": "stereo",
+      "baselineSnrDb": 30.722682770284692,
+      "candidateSnrDb": 30.5690875500239,
+      "improvementDb": -0.1535952202607902,
+      "baselineLog": "running 1 test\nABR128 file: SNR 30.7227 dB, 47143 bytes, NMR max 21.80 trimmed -57.24 mean -96.67\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.24s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 30.5691 dB, 46884 bytes, NMR max 21.80 trimmed -56.38 mean -96.92\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.20s"
+    },
+    {
+      "id": "killer_anti_phase",
+      "category": "stereo",
+      "baselineSnrDb": 29.072598232184298,
+      "candidateSnrDb": 29.072598232184298,
+      "improvementDb": 0,
+      "baselineLog": "running 1 test\nABR128 file: SNR 29.0726 dB, 46185 bytes, NMR max 23.02 trimmed -7.07 mean -69.30\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.19s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 29.0726 dB, 46185 bytes, NMR max 23.02 trimmed -7.07 mean -69.30\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.18s"
+    },
+    {
+      "id": "killer_birdies",
+      "category": "sparse-hf",
+      "baselineSnrDb": 31.008701624791485,
+      "candidateSnrDb": 31.008701624791485,
+      "improvementDb": 0,
+      "baselineLog": "running 1 test\nABR128 file: SNR 31.0087 dB, 62848 bytes, NMR max 1.42 trimmed -35.95 mean -72.20\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.40s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 31.0087 dB, 62848 bytes, NMR max 1.42 trimmed -35.95 mean -72.20\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.37s"
+    },
+    {
+      "id": "killer_protect_threshold_alt",
+      "category": "protect-boundary",
+      "baselineSnrDb": 1.3354642648465789,
+      "candidateSnrDb": 1.3354642648465789,
+      "improvementDb": 0,
+      "baselineLog": "running 1 test\nABR128 file: SNR 1.3355 dB, 96202 bytes, NMR max 44.25 trimmed -45.05 mean -99.61\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.39s",
+      "candidateLog": "running 1 test\nABR128 file: SNR 1.3355 dB, 96203 bytes, NMR max 44.25 trimmed -45.05 mean -99.61\ntest mp5c6::tests::abr128_file_probe ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 204 filtered out; finished in 0.41s"
+    }
+  ],
+  "regressions": [
+    "killer_castanets",
+    "killer_harpsichord",
+    "killer_hard_pan"
+  ]
+}

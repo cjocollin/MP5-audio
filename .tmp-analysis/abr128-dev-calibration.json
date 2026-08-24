@@ -1,0 +1,26 @@
+{
+  "label": "rev6-tonality-protect11-adaptive256-high",
+  "heldOutUsed": false,
+  "improved": true,
+  "nmrPass": true,
+  "nmrPassDefinition": "permanent reject screens pass and full-reference trimmed NMR does not regress",
+  "meanImprovementDb": 0.8468012053,
+  "medianImprovementDb": 0.7411124059,
+  "minimumImprovementDb": 0.2990118313,
+  "improvedRows": 11,
+  "regressedRows": 0,
+  "rows": [
+    { "id": "ex_transient_attacks", "snrDb": 20.873597251, "baselineSnrDb": 20.321182150, "improvementDb": 0.552415101, "trimmedNmrDb": 8.162631 },
+    { "id": "ex_steady_tonal", "snrDb": 15.583845457, "baselineSnrDb": 14.945536873, "improvementDb": 0.638308584, "trimmedNmrDb": 18.172962 },
+    { "id": "ex_reverb_tails", "snrDb": 15.674492013, "baselineSnrDb": 15.375480182, "improvementDb": 0.299011831, "trimmedNmrDb": 19.348684 },
+    { "id": "ex_wide_stereo", "snrDb": 14.649080293, "baselineSnrDb": 13.902229264, "improvementDb": 0.746851029, "trimmedNmrDb": 20.296192 },
+    { "id": "ex_vocals", "snrDb": 14.719926267, "baselineSnrDb": 13.714342586, "improvementDb": 1.005583681, "trimmedNmrDb": 18.272409 },
+    { "id": "ex_cymbals_hats", "snrDb": 16.073264842, "baselineSnrDb": 15.704657077, "improvementDb": 0.368607765, "trimmedNmrDb": 15.902811 },
+    { "id": "ex_low_bitrate_stress", "snrDb": 13.304170695, "baselineSnrDb": 11.956591075, "improvementDb": 1.347579620, "trimmedNmrDb": 18.098984 },
+    { "id": "ex_applause_like", "snrDb": 15.107340414, "baselineSnrDb": 14.366228008, "improvementDb": 0.741112406, "trimmedNmrDb": 17.308258 },
+    { "id": "ex_castanet_like", "snrDb": 18.053093471, "baselineSnrDb": 17.591396996, "improvementDb": 0.461696475, "trimmedNmrDb": 11.014377 },
+    { "id": "ex_harpsichord_like", "snrDb": 15.686164965, "baselineSnrDb": 14.311761013, "improvementDb": 1.374403952, "trimmedNmrDb": 12.584737 },
+    { "id": "ex_sparse_quiet", "snrDb": 16.345935171, "baselineSnrDb": 14.566692357, "improvementDb": 1.779242814, "trimmedNmrDb": 13.442874 }
+  ],
+  "note": "Absolute trimmed NMR exceeds 8 dB on these 128 kbps real-music rows; this artifact does not claim otherwise. The pass is the existing synthetic reject screen plus no full-reference NMR regression."
+}

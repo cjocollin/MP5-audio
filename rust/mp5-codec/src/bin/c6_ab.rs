@@ -46,13 +46,28 @@ fn main() {
         window_switching: windows,
         psycho,
     };
+    // C6_ABR=192 forces an ABR target (kbps); CBR via C6_ABR_MODE=cbr.
+    let rate = match std::env::var("C6_ABR")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+    {
+        Some(kbps) if std::env::var("C6_ABR_MODE").as_deref() == Ok("cbr") => {
+            mp5c6::RateMode::Cbr { kbps }
+        }
+        Some(kbps) => mp5c6::RateMode::Abr { kbps },
+        None => mp5c6::RateMode::Off,
+    };
+    let protect_scale = std::env::var("C6_PROTECT_SCALE")
+        .ok()
+        .and_then(|v| v.parse::<f64>().ok())
+        .unwrap_or(mp5c6::PROTECT_SCALE);
     let stream = mp5c6::encode_with_options(
         &samples,
         2,
         preset,
-        mp5c2::ProtectParams::widened(mp5c6::PROTECT_SCALE),
+        mp5c2::ProtectParams::widened(protect_scale),
         sr,
-        mp5c6::RateMode::Off,
+        rate,
         options,
     )
     .expect("encode");
@@ -60,12 +75,22 @@ fn main() {
 
     let secs = samples.len() as f64 / 2.0 / sr as f64;
     let kbps = stream.len() as f64 * 8.0 / secs / 1000.0;
+    let mix = mp5c6::inspect_unit_mix(&stream).expect("inspect stream");
     println!(
-        "bytes {} | {:.1} kbps | SNR {:.2} dB",
+        "bytes {} | {:.1} kbps | SNR {:.2} dB | protect {:.1}% samples / {:.1}% bytes",
         stream.len(),
         kbps,
-        snr_db(&samples, &decoded)
+        snr_db(&samples, &decoded),
+        mix.protected_sample_pct(),
+        mix.protected_byte_pct(),
     );
+    if std::env::var("C6_NMR").as_deref() == Ok("1") {
+        let nmr = mp5_codec::mp5c3::nmr_screen(&samples, &decoded, 2, sr).expect("NMR screen");
+        println!(
+            "NMR max {:.2} dB | trimmed {:.2} dB | mean {:.2} dB",
+            nmr.max_nmr_db, nmr.trimmed_max_nmr_db, nmr.mean_nmr_db,
+        );
+    }
 
     // Optional 9th arg: also write the encoded stream (for container wrapping).
     if let Some(stream_path) = args.get(8) {

@@ -1,0 +1,4237 @@
+{
+  "schema": "mp5.lameMatchedBench.v1",
+  "reproducibility": {
+    "gitCommit": "e13589548203fc5df2c657f565b5a27063e8c9f5",
+    "os": "win32 x64",
+    "nodeVersion": "v24.14.0",
+    "cpuModel": "13th Gen Intel(R) Core(TM) i5-13420H",
+    "cpuCount": 12,
+    "memoryBytes": {
+      "total": 16791048192,
+      "free": 5279145984
+    },
+    "ffmpeg": {
+      "ffmpegVersionLine": "ffmpeg version 9.0-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+      "libmp3lameEnabled": true,
+      "libmp3lameNote": "libmp3lame via ffmpeg (standalone LAME binary not required); version bundled with ffmpeg build — see ffmpegVersionLine / configuration",
+      "configurationSnippet": "--enable-libmp3lame",
+      "rawFirstLines": [
+        "ffmpeg version 9.0-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+        "built with gcc 16.1.0 (Rev2, Built by MSYS2 project)",
+        "configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-cairo --enable-fontconfig --enable-iconv --enable-gnutls --enable-lcms2 --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-libsnappy --enable-zlib --enable-librist --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-libbluray --enable-libcaca --enable-libdvdnav --enable-libdvdread --enable-sdl2 --enable-libaribb24 --enable-libaribcaption --enable-libdav1d --enable-libdavs2 --enable-libopenjpeg --enable-libquirc --enable-libuavs3d --enable-libxevd --enable-libzvbi --enable-liboapv --enable-libqrencode --enable-librav1e --enable-libsvtav1 --enable-libvvenc --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxeve --enable-libxvid --enable-libaom --enable-libjxl --enable-libsvtjpegxs --enable-libvpx --enable-mediafoundation --enable-libass --enable-frei0r --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-liblensfun --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-vulkan --enable-libplacebo --enable-opencl --enable-libcdio --enable-openal --enable-libgme --enable-libmodplug --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libshine --enable-libtheora --enable-libtwolame --enable-libvo-amrwbenc --enable-libcodec2 --enable-libilbc --enable-libgsm --enable-liblc3 --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-ladspa --enable-libbs2b --enable-libflite --enable-libmysofa --enable-librubberband --enable-libsoxr --enable-chromaprint --enable-whisper",
+        "libavutil      61.  1.100 / 61.  1.100",
+        "libavcodec     63.  1.100 / 63.  1.100",
+        "libavformat    63.  1.100 / 63.  1.100",
+        "libavdevice    63.  1.100 / 63.  1.100",
+        "libavfilter    12.  1.100 / 12.  1.100",
+        "libswscale     10.  1.100 / 10.  1.100",
+        "libswresample   7.  1.100 /  7.  1.100",
+        "",
+        "Exiting with exit code 0"
+      ]
+    },
+    "libmp3lame": {
+      "via": "ffmpeg -c:a libmp3lame",
+      "enabled": true,
+      "note": "libmp3lame via ffmpeg (standalone LAME binary not required); version bundled with ffmpeg build — see ffmpegVersionLine / configuration",
+      "claimedVersion": null,
+      "recordedFrom": "ffmpeg version 9.0-full_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers"
+    },
+    "wasmPkgSha256": "93d7e3c312e005de67065ed14f538099b0ba94f314af814513624df19c5e69d7",
+    "corpusManifestId": "mp5-real-music-corpus-v1",
+    "rateControlReady": true,
+    "generatedAt": "2026-08-24T01:28:46.125Z"
+  },
+  "corpus": {
+    "manifestId": "mp5-real-music-corpus-v1",
+    "counts": {
+      "dev": 20,
+      "heldOut": 40,
+      "total": 60
+    },
+    "shortfall": {
+      "dev": 10,
+      "heldOut": 0,
+      "note": "Do not fabricate entries. Gap is visible until more legal local tracks are registered."
+    },
+    "seal": {
+      "heldOutUsed": false,
+      "allowHeldOut": false,
+      "reason": null,
+      "heldOutIds": []
+    }
+  },
+  "claimDiscipline": {
+    "rateControlReady": true,
+    "mp5RateWording": "ABR 192",
+    "matchedBitrateLameVerdicts": "allowed"
+  },
+  "config": {
+    "preset": 2,
+    "lameCbrKbps": [
+      128,
+      192,
+      320
+    ],
+    "lameV0": false,
+    "excerptsSelector": "dev",
+    "rateTargetKbps": 192,
+    "rateMode": "abr",
+    "gate": true
+  },
+  "rows": [
+    {
+      "excerptId": "ex_transient_attacks",
+      "sourceId": "origami_seg_00",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Transient attacks / drum hits near track open",
+      "tags": [
+        "transient",
+        "attacks"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.52,
+        "rateAccuracyPct": -0.24999999999999467,
+        "encodeMs": 347.70939999999996,
+        "decodeMs": 63.09430000000009,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191520,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9993034904780175,
+        "metrics": {
+          "fullSnrDb": 26.196723001888053,
+          "quietWindowSnrDb": "inf",
+          "worst1sSnrDb": 23.850203123977426,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.1922607421875,
+          "rmsError": 0.01504747360444429
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 191.309,
+          "protectedSamplePct": 2.4,
+          "protectedBytePct": 0.08199889275380486,
+          "protectBytes": 157,
+          "totalSizeBytes": 191520,
+          "mdctSamplePct": 97.6,
+          "mdctBytePct": 99.9180011072462
+        },
+        "unitMixJs": {
+          "units": 2,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191466,
+          "unitsByTag": {
+            "lossless_L": 1,
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "lossless_L": 9216,
+            "mdct_M": 374784
+          },
+          "payloadBytesByTag": {
+            "lossless_L": 157,
+            "mdct_M": 191309
+          }
+        },
+        "unitMixRust": {
+          "units": 2,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191466,
+          "unitsByTag": {
+            "lossless_L": 1,
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "lossless_L": 9216,
+            "mdct_M": 374784
+          },
+          "payloadBytesByTag": {
+            "lossless_L": 157,
+            "mdct_M": 191309
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 740,
+            "total_frames": 384000,
+            "total_units": 2,
+            "total_payload_bytes": 191466,
+            "stream_bytes": 191520,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 1,
+                "frames": 9216,
+                "payload_bytes": 157
+              },
+              "lossless_b": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "mdct": {
+                "units": 1,
+                "frames": 374784,
+                "payload_bytes": 191309
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 2.4,
+            "protected_byte_pct": 0.081999,
+            "coded_path_bytes": 191309,
+            "coded_path_kbps": 191.309
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9974667052756219,
+          "metrics": {
+            "fullSnrDb": 20.471523172712203,
+            "quietWindowSnrDb": 8.309645568124894,
+            "worst1sSnrDb": 19.365035362975874,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.582489013671875,
+            "rmsError": 0.029088651035932958
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9993322832889379,
+          "metrics": {
+            "fullSnrDb": 25.718450375861416,
+            "quietWindowSnrDb": 8.619987905524582,
+            "worst1sSnrDb": 24.46456069585649,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.162628173828125,
+            "rmsError": 0.015899271351766
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9998984472410334,
+          "metrics": {
+            "fullSnrDb": 35.28749670423619,
+            "quietWindowSnrDb": 8.462045233692264,
+            "worst1sSnrDb": 32.70147453060741,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.092987060546875,
+            "rmsError": 0.005283538848925471
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 5.72519982917585,
+          "quietWindowSnrDb": 990.6903544318751,
+          "mp5AudiBytes": 191520,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4882969133691835
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": 0.4782726260266372,
+          "quietWindowSnrDb": 990.3800120944754,
+          "mp5AudiBytes": 191520,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9923110401856956
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -9.090773702348137,
+          "quietWindowSnrDb": 990.5379547663077,
+          "mp5AudiBytes": 191520,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954409222618796
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "191.3 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4882969133691835,
+          "informationalDeltas": {
+            "fullSnrDb": 5.72519982917585,
+            "quietWindowSnrDb": 990.6903544318751,
+            "mp5AudiBytes": 191520,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4882969133691835
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.3 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9923110401856956,
+          "informationalDeltas": {
+            "fullSnrDb": 0.4782726260266372,
+            "quietWindowSnrDb": 990.3800120944754,
+            "mp5AudiBytes": 191520,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9923110401856956
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.3 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954409222618796,
+          "informationalDeltas": {
+            "fullSnrDb": -9.090773702348137,
+            "quietWindowSnrDb": 990.5379547663077,
+            "mp5AudiBytes": 191520,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954409222618796
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_steady_tonal",
+      "sourceId": "origami_seg_03",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Steady tonal / pad section",
+      "tags": [
+        "tonal",
+        "steady"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.524,
+        "rateAccuracyPct": -0.2479166666666662,
+        "encodeMs": 342.27909999999974,
+        "decodeMs": 58.29190000000017,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191524,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9964351151434814,
+        "metrics": {
+          "fullSnrDb": 20.204069968227646,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 19.409209812208633,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.326690673828125,
+          "rmsError": 0.030419657827510053
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 191.483,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 191524,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191483,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191483
+          }
+        },
+        "unitMixRust": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191483,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191483
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 754,
+            "total_frames": 384000,
+            "total_units": 1,
+            "total_payload_bytes": 191483,
+            "stream_bytes": 191524,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "mdct": {
+                "units": 1,
+                "frames": 384000,
+                "payload_bytes": 191483
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 0,
+            "protected_byte_pct": 0,
+            "coded_path_bytes": 191483,
+            "coded_path_kbps": 191.483
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9937025832027357,
+          "metrics": {
+            "fullSnrDb": 17.511475201616694,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 16.218423961986144,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.377777099609375,
+            "rmsError": 0.04147477732012637
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9979909135753082,
+          "metrics": {
+            "fullSnrDb": 22.26140125685374,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 21.263178849949472,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.3043212890625,
+            "rmsError": 0.024004228940195996
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9996362864154634,
+          "metrics": {
+            "fullSnrDb": 30.109868935059986,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 29.018238862647703,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.168548583984375,
+            "rmsError": 0.009724434966960809
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 2.692594766610952,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191524,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4883279972646173
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -2.057331288626095,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191524,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9923317651447638
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -9.90579896683234,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191524,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954533583713671
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4883279972646173,
+          "informationalDeltas": {
+            "fullSnrDb": 2.692594766610952,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191524,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4883279972646173
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9923317651447638,
+          "informationalDeltas": {
+            "fullSnrDb": -2.057331288626095,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191524,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9923317651447638
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954533583713671,
+          "informationalDeltas": {
+            "fullSnrDb": -9.90579896683234,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191524,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954533583713671
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_reverb_tails",
+      "sourceId": "origami_seg_08",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Reverb tails / decaying ambience",
+      "tags": [
+        "reverb",
+        "tail",
+        "sparse-quiet"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.528,
+        "rateAccuracyPct": -0.2458333333333377,
+        "encodeMs": 388.8883999999998,
+        "decodeMs": 60.387399999999616,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191528,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9978162382832169,
+        "metrics": {
+          "fullSnrDb": 20.657649899449137,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 18.892742308464374,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.346923828125,
+          "rmsError": 0.03265597597957089
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 191.487,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 191528,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191487,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191487
+          }
+        },
+        "unitMixRust": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191487,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191487
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 754,
+            "total_frames": 384000,
+            "total_units": 1,
+            "total_payload_bytes": 191487,
+            "stream_bytes": 191528,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "mdct": {
+                "units": 1,
+                "frames": 384000,
+                "payload_bytes": 191487
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 0,
+            "protected_byte_pct": 0,
+            "coded_path_bytes": 191487,
+            "coded_path_kbps": 191.487
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9944559761820293,
+          "metrics": {
+            "fullSnrDb": 16.730645742634216,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 15.441252716741893,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.466552734375,
+            "rmsError": 0.05132309942851598
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9985999049072753,
+          "metrics": {
+            "fullSnrDb": 21.71954246124269,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 20.616734707258427,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.252227783203125,
+            "rmsError": 0.02889801684115254
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9997846568887993,
+          "metrics": {
+            "fullSnrDb": 30.11601954447719,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 28.504830483635814,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.1201171875,
+            "rmsError": 0.010991176593678986
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 3.9270041568149203,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191528,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.488359081160051
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -1.0618925617935524,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191528,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9923524901038321
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -9.458369645028053,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191528,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954657944808546
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.488359081160051,
+          "informationalDeltas": {
+            "fullSnrDb": 3.9270041568149203,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191528,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.488359081160051
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9923524901038321,
+          "informationalDeltas": {
+            "fullSnrDb": -1.0618925617935524,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191528,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9923524901038321
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954657944808546,
+          "informationalDeltas": {
+            "fullSnrDb": -9.458369645028053,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191528,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954657944808546
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_wide_stereo",
+      "sourceId": "origami_seg_05",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Wide stereo image / panned layers",
+      "tags": [
+        "stereo",
+        "wide"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.517,
+        "rateAccuracyPct": -0.25156250000000213,
+        "encodeMs": 418.2584999999999,
+        "decodeMs": 79.10650000000169,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191517,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9952453035413453,
+        "metrics": {
+          "fullSnrDb": 19.261693669677896,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 18.64518032804089,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.368896484375,
+          "rmsError": 0.04492761172467999
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 191.476,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 191517,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191476,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191476
+          }
+        },
+        "unitMixRust": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191476,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191476
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 754,
+            "total_frames": 384000,
+            "total_units": 1,
+            "total_payload_bytes": 191476,
+            "stream_bytes": 191517,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "mdct": {
+                "units": 1,
+                "frames": 384000,
+                "payload_bytes": 191476
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 0,
+            "protected_byte_pct": 0,
+            "coded_path_bytes": 191476,
+            "coded_path_kbps": 191.476
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9899550332276568,
+          "metrics": {
+            "fullSnrDb": 15.877503641766156,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 15.554206706063646,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.42230224609375,
+            "rmsError": 0.06633196062219701
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9967923923034199,
+          "metrics": {
+            "fullSnrDb": 20.520428033554765,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 20.254609403322764,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.2711181640625,
+            "rmsError": 0.03886660571735629
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9993056511006175,
+          "metrics": {
+            "fullSnrDb": 27.52080812011496,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 26.70296432324975,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.143585205078125,
+            "rmsError": 0.017360315368452044
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 3.3841900279117407,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191517,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.488273600447608
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -1.2587343638768687,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191517,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9922954964663945
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -8.259114450437064,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191517,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.595431595179764
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.488273600447608,
+          "informationalDeltas": {
+            "fullSnrDb": 3.3841900279117407,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191517,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.488273600447608
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9922954964663945,
+          "informationalDeltas": {
+            "fullSnrDb": -1.2587343638768687,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191517,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9922954964663945
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.595431595179764,
+          "informationalDeltas": {
+            "fullSnrDb": -8.259114450437064,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191517,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.595431595179764
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_vocals",
+      "sourceId": "origami_seg_06",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Vocal-forward passage",
+      "tags": [
+        "vocals"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.538,
+        "rateAccuracyPct": -0.24062499999999432,
+        "encodeMs": 405.4451000000008,
+        "decodeMs": 65.03429999999935,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191538,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9955573417191733,
+        "metrics": {
+          "fullSnrDb": 19.38537104148639,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 18.874894607105187,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.341827392578125,
+          "rmsError": 0.03509764879376607
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 186.547,
+          "protectedSamplePct": 0.8,
+          "protectedBytePct": 2.5584371490506412,
+          "protectBytes": 4898,
+          "totalSizeBytes": 191538,
+          "mdctSamplePct": 99.2,
+          "mdctBytePct": 97.44156285094935
+        },
+        "unitMixJs": {
+          "units": 5,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191445,
+          "unitsByTag": {
+            "mdct_M": 3,
+            "lossless_B": 2
+          },
+          "framesByTag": {
+            "mdct_M": 380928,
+            "lossless_B": 3072
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 186547,
+            "lossless_B": 4898
+          }
+        },
+        "unitMixRust": {
+          "units": 5,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191445,
+          "unitsByTag": {
+            "lossless_B": 2,
+            "mdct_M": 3
+          },
+          "framesByTag": {
+            "lossless_B": 3072,
+            "mdct_M": 380928
+          },
+          "payloadBytesByTag": {
+            "lossless_B": 4898,
+            "mdct_M": 186547
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 762,
+            "total_frames": 384000,
+            "total_units": 5,
+            "total_payload_bytes": 191445,
+            "stream_bytes": 191538,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 2,
+                "frames": 3072,
+                "payload_bytes": 4898
+              },
+              "mdct": {
+                "units": 3,
+                "frames": 380928,
+                "payload_bytes": 186547
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 0.8,
+            "protected_byte_pct": 2.558437,
+            "coded_path_bytes": 186547,
+            "coded_path_kbps": 186.547
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9910621990787112,
+          "metrics": {
+            "fullSnrDb": 16.199701905189766,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 15.75049066016323,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.43231201171875,
+            "rmsError": 0.05064790439065205
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9971014821850372,
+          "metrics": {
+            "fullSnrDb": 20.853547597179993,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 20.34212694773253,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.256591796875,
+            "rmsError": 0.02963938554891049
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.999413567297474,
+          "metrics": {
+            "fullSnrDb": 28.039955866243766,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 27.359099199632027,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.146759033203125,
+            "rmsError": 0.012958322452061377
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 3.1856691362966245,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191538,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4884367908986353
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -1.4681765556936028,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191538,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9924043025015026
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -8.654584824757375,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191538,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954968847545734
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "186.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4884367908986353,
+          "informationalDeltas": {
+            "fullSnrDb": 3.1856691362966245,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191538,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4884367908986353
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "186.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9924043025015026,
+          "informationalDeltas": {
+            "fullSnrDb": -1.4681765556936028,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191538,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9924043025015026
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "186.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954968847545734,
+          "informationalDeltas": {
+            "fullSnrDb": -8.654584824757375,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191538,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954968847545734
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_cymbals_hats",
+      "sourceId": "origami_seg_02",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Cymbals / hi-hats HF energy",
+      "tags": [
+        "cymbals",
+        "hi-hats",
+        "hf"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.516,
+        "rateAccuracyPct": -0.25208333333333793,
+        "encodeMs": 362.5002000000022,
+        "decodeMs": 58.98019999999815,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191516,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9974309792953912,
+        "metrics": {
+          "fullSnrDb": 20.813802488365578,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 18.467843814894064,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.34124755859375,
+          "rmsError": 0.03061055107534472
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 191.475,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 191516,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191475,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191475
+          }
+        },
+        "unitMixRust": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191475,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191475
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 754,
+            "total_frames": 384000,
+            "total_units": 1,
+            "total_payload_bytes": 191475,
+            "stream_bytes": 191516,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "mdct": {
+                "units": 1,
+                "frames": 384000,
+                "payload_bytes": 191475
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 0,
+            "protected_byte_pct": 0,
+            "coded_path_bytes": 191475,
+            "coded_path_kbps": 191.475
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.993162869211444,
+          "metrics": {
+            "fullSnrDb": 17.132175177994725,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 15.450116430678422,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.609832763671875,
+            "rmsError": 0.04676840013385607
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9983033116215774,
+          "metrics": {
+            "fullSnrDb": 22.31902287789033,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 20.48198310205832,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.259613037109375,
+            "rmsError": 0.025740094008123725
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9997499380738891,
+          "metrics": {
+            "fullSnrDb": 30.59912024260605,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 28.480434351362547,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.113128662109375,
+            "rmsError": 0.00992213794131609
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 3.6816273103708532,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191516,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4882658294737496
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -1.5052203895247516,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191516,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9922903152266275
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -9.78531775424047,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191516,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954284861523921
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4882658294737496,
+          "informationalDeltas": {
+            "fullSnrDb": 3.6816273103708532,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191516,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4882658294737496
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9922903152266275,
+          "informationalDeltas": {
+            "fullSnrDb": -1.5052203895247516,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191516,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9922903152266275
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954284861523921,
+          "informationalDeltas": {
+            "fullSnrDb": -9.78531775424047,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191516,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954284861523921
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_low_bitrate_stress",
+      "sourceId": "origami_seg_10",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Dense mixed material for low-bitrate stress",
+      "tags": [
+        "low-bitrate-stress",
+        "dense"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.527,
+        "rateAccuracyPct": -0.24635416666667354,
+        "encodeMs": 397.0625999999975,
+        "decodeMs": 58.81319999999687,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191527,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9936310587532594,
+        "metrics": {
+          "fullSnrDb": 17.96686114042808,
+          "quietWindowSnrDb": "inf",
+          "worst1sSnrDb": 14.866461329518497,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.453857421875,
+          "rmsError": 0.04305847978404108
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 174.137,
+          "protectedSamplePct": 2.933333333333333,
+          "protectedBytePct": 9.02313382930703,
+          "protectBytes": 17271,
+          "totalSizeBytes": 191527,
+          "mdctSamplePct": 97.06666666666666,
+          "mdctBytePct": 90.97686617069297
+        },
+        "unitMixJs": {
+          "units": 7,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191408,
+          "unitsByTag": {
+            "mdct_M": 4,
+            "lossless_B": 2,
+            "lossless_L": 1
+          },
+          "framesByTag": {
+            "mdct_M": 372736,
+            "lossless_B": 10240,
+            "lossless_L": 1024
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 174137,
+            "lossless_B": 15792,
+            "lossless_L": 1479
+          }
+        },
+        "unitMixRust": {
+          "units": 7,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191408,
+          "unitsByTag": {
+            "lossless_L": 1,
+            "lossless_B": 2,
+            "mdct_M": 4
+          },
+          "framesByTag": {
+            "lossless_L": 1024,
+            "lossless_B": 10240,
+            "mdct_M": 372736
+          },
+          "payloadBytesByTag": {
+            "lossless_L": 1479,
+            "lossless_B": 15792,
+            "mdct_M": 174137
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 752,
+            "total_frames": 384000,
+            "total_units": 7,
+            "total_payload_bytes": 191408,
+            "stream_bytes": 191527,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 1,
+                "frames": 1024,
+                "payload_bytes": 1479
+              },
+              "lossless_b": {
+                "units": 2,
+                "frames": 10240,
+                "payload_bytes": 15792
+              },
+              "mdct": {
+                "units": 4,
+                "frames": 372736,
+                "payload_bytes": 174137
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 2.933333,
+            "protected_byte_pct": 9.023134,
+            "coded_path_bytes": 174137,
+            "coded_path_kbps": 174.137
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9903537327984183,
+          "metrics": {
+            "fullSnrDb": 15.858742366689073,
+            "quietWindowSnrDb": 20.320051016696926,
+            "worst1sSnrDb": 14.07733457713713,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.438446044921875,
+            "rmsError": 0.05488638546362746
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9969003491592897,
+          "metrics": {
+            "fullSnrDb": 20.55904146547362,
+            "quietWindowSnrDb": 25.046281334530008,
+            "worst1sSnrDb": 19.035466658189822,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.240814208984375,
+            "rmsError": 0.03194844142602427
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9993981319688782,
+          "metrics": {
+            "fullSnrDb": 27.78345786497662,
+            "quietWindowSnrDb": 33.1946094097933,
+            "worst1sSnrDb": 26.185713039025707,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.13836669921875,
+            "rmsError": 0.013906852755205467
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 2.1081187737390064,
+          "quietWindowSnrDb": 978.6799489833031,
+          "mp5AudiBytes": 191527,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4883513101861925
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -2.5921803250455397,
+          "quietWindowSnrDb": 973.95371866547,
+          "mp5AudiBytes": 191527,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.992347308864065
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -9.816596724548539,
+          "quietWindowSnrDb": 965.8053905902067,
+          "mp5AudiBytes": 191527,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954626854534827
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "174.1 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4883513101861925,
+          "informationalDeltas": {
+            "fullSnrDb": 2.1081187737390064,
+            "quietWindowSnrDb": 978.6799489833031,
+            "mp5AudiBytes": 191527,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4883513101861925
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "174.1 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.992347308864065,
+          "informationalDeltas": {
+            "fullSnrDb": -2.5921803250455397,
+            "quietWindowSnrDb": 973.95371866547,
+            "mp5AudiBytes": 191527,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.992347308864065
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "174.1 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954626854534827,
+          "informationalDeltas": {
+            "fullSnrDb": -9.816596724548539,
+            "quietWindowSnrDb": 965.8053905902067,
+            "mp5AudiBytes": 191527,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954626854534827
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_applause_like",
+      "sourceId": "origami_seg_12",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Busy transient field approximating applause density",
+      "tags": [
+        "applause",
+        "transient-dense"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.534,
+        "rateAccuracyPct": -0.2427083333333376,
+        "encodeMs": 352.63610000000335,
+        "decodeMs": 61.111900000003516,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191534,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9960993080917276,
+        "metrics": {
+          "fullSnrDb": 19.808895372291474,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 19.385801821846687,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.335906982421875,
+          "rmsError": 0.03647683856597643
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 191.493,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 191534,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191493,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191493
+          }
+        },
+        "unitMixRust": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191493,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191493
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 754,
+            "total_frames": 384000,
+            "total_units": 1,
+            "total_payload_bytes": 191493,
+            "stream_bytes": 191534,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "mdct": {
+                "units": 1,
+                "frames": 384000,
+                "payload_bytes": 191493
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 0,
+            "protected_byte_pct": 0,
+            "coded_path_bytes": 191493,
+            "coded_path_kbps": 191.493
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9913971731088939,
+          "metrics": {
+            "fullSnrDb": 16.13376411395141,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 15.486937786713495,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.499755859375,
+            "rmsError": 0.05568955583196503
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9972089447681544,
+          "metrics": {
+            "fullSnrDb": 20.78154284869055,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 20.222908522332045,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.332916259765625,
+            "rmsError": 0.032612554458886035
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9994350705503419,
+          "metrics": {
+            "fullSnrDb": 28.00346752508593,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 27.28796948294765,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.126983642578125,
+            "rmsError": 0.014200007818553831
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 3.6751312583400626,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191534,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4884057070032017
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -0.9726474763990751,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191534,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9923835775424343
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -8.194572152794457,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191534,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954844486450859
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4884057070032017,
+          "informationalDeltas": {
+            "fullSnrDb": 3.6751312583400626,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191534,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4884057070032017
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9923835775424343,
+          "informationalDeltas": {
+            "fullSnrDb": -0.9726474763990751,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191534,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9923835775424343
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954844486450859,
+          "informationalDeltas": {
+            "fullSnrDb": -8.194572152794457,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191534,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954844486450859
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_castanet_like",
+      "sourceId": "origami_seg_01",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Sharp percussive attacks (castanet-class pre-echo risk)",
+      "tags": [
+        "castanets",
+        "pre-echo"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.534,
+        "rateAccuracyPct": -0.2427083333333376,
+        "encodeMs": 481.07470000000467,
+        "decodeMs": 70.0025999999998,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191534,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9982634713972702,
+        "metrics": {
+          "fullSnrDb": 23.136593814213956,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 21.707874494767857,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.285308837890625,
+          "rmsError": 0.022464140312797434
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 191.493,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 191534,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191493,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191493
+          }
+        },
+        "unitMixRust": {
+          "units": 1,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191493,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 384000
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 191493
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 754,
+            "total_frames": 384000,
+            "total_units": 1,
+            "total_payload_bytes": 191493,
+            "stream_bytes": 191534,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "mdct": {
+                "units": 1,
+                "frames": 384000,
+                "payload_bytes": 191493
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 0,
+            "protected_byte_pct": 0,
+            "coded_path_bytes": 191493,
+            "coded_path_kbps": 191.493
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9964165178014914,
+          "metrics": {
+            "fullSnrDb": 19.433788258792365,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 16.28222646762111,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.58172607421875,
+            "rmsError": 0.034405674860557255
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9991666141085515,
+          "metrics": {
+            "fullSnrDb": 24.867262410902743,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 21.983375013016555,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.22869873046875,
+            "rmsError": 0.01840587097334167
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999129634583827,
+          "metrics": {
+            "fullSnrDb": 34.361166534773936,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 30.18595614533043,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.09716796875,
+            "rmsError": 0.0061696590857309936
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 3.702805555421591,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191534,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4884057070032017
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -1.730668596688787,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191534,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9923835775424343
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -11.22457272055998,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191534,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5954844486450859
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.8% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4884057070032017,
+          "informationalDeltas": {
+            "fullSnrDb": 3.702805555421591,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191534,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4884057070032017
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9923835775424343,
+          "informationalDeltas": {
+            "fullSnrDb": -1.730668596688787,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191534,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9923835775424343
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.5% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "191.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5954844486450859,
+          "informationalDeltas": {
+            "fullSnrDb": -11.22457272055998,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191534,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5954844486450859
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_harpsichord_like",
+      "sourceId": "origami_seg_07",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Bright plucked / partial-rich material (harpsichord-class)",
+      "tags": [
+        "harpsichord",
+        "partials"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.587,
+        "rateAccuracyPct": -0.21510416666667234,
+        "encodeMs": 681.4821999999986,
+        "decodeMs": 93.1247000000003,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191587,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9980447841169464,
+        "metrics": {
+          "fullSnrDb": 20.512622470247504,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 13.598041915432706,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.6170654296875,
+          "rmsError": 0.027349308538561122
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 168.794,
+          "protectedSamplePct": 3.466666666666667,
+          "protectedBytePct": 11.842187728497713,
+          "protectBytes": 22674,
+          "totalSizeBytes": 191587,
+          "mdctSamplePct": 96.53333333333333,
+          "mdctBytePct": 88.1578122715023
+        },
+        "unitMixJs": {
+          "units": 7,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191468,
+          "unitsByTag": {
+            "mdct_M": 4,
+            "lossless_B": 3
+          },
+          "framesByTag": {
+            "mdct_M": 370688,
+            "lossless_B": 13312
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 168794,
+            "lossless_B": 22674
+          }
+        },
+        "unitMixRust": {
+          "units": 7,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191468,
+          "unitsByTag": {
+            "lossless_B": 3,
+            "mdct_M": 4
+          },
+          "framesByTag": {
+            "lossless_B": 13312,
+            "mdct_M": 370688
+          },
+          "payloadBytesByTag": {
+            "lossless_B": 22674,
+            "mdct_M": 168794
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 750,
+            "total_frames": 384000,
+            "total_units": 7,
+            "total_payload_bytes": 191468,
+            "stream_bytes": 191587,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "lossless_b": {
+                "units": 3,
+                "frames": 13312,
+                "payload_bytes": 22674
+              },
+              "mdct": {
+                "units": 4,
+                "frames": 370688,
+                "payload_bytes": 168794
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 3.466667,
+            "protected_byte_pct": 11.842188,
+            "coded_path_bytes": 168794,
+            "coded_path_kbps": 168.794
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9970431051223904,
+          "metrics": {
+            "fullSnrDb": 19.092564382192492,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 14.201451070099564,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.487884521484375,
+            "rmsError": 0.032206924494091634
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9993430093087737,
+          "metrics": {
+            "fullSnrDb": 24.655320357915407,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 20.29222912640939,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.193878173828125,
+            "rmsError": 0.01697506540656038
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999302657309825,
+          "metrics": {
+            "fullSnrDb": 34.15224762235092,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 28.79509482697732,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.0894775390625,
+            "rmsError": 0.005688072105131698
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 1.4200580880550113,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191587,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.4888175686176992
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -4.142697887667904,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191587,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.992658183250088
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -13.639625152103417,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191587,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5956492270957954
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.9% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "168.8 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4888175686176992,
+          "informationalDeltas": {
+            "fullSnrDb": 1.4200580880550113,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191587,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.4888175686176992
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.3% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "168.8 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.992658183250088,
+          "informationalDeltas": {
+            "fullSnrDb": -4.142697887667904,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191587,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.992658183250088
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.6% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "168.8 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5956492270957954,
+          "informationalDeltas": {
+            "fullSnrDb": -13.639625152103417,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191587,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5956492270957954
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "ex_sparse_quiet",
+      "sourceId": "origami_seg_15",
+      "startSec": 0,
+      "durationSec": 8,
+      "why": "Sparse/quiet material stressing protect vs MDCT boundary",
+      "tags": [
+        "sparse-quiet",
+        "protect-boundary"
+      ],
+      "role": "dev",
+      "sampleRate": 48000,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.645,
+        "rateAccuracyPct": -0.184895833333328,
+        "encodeMs": 473.88850000000093,
+        "decodeMs": 58.60679999999411,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 191645,
+        "pcmBytes": 1536000,
+        "lagFrames": 0,
+        "lagCorrelation": 0.9978597200241672,
+        "metrics": {
+          "fullSnrDb": 23.399510027003938,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 19.50154001268248,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.423797607421875,
+          "rmsError": 0.013159866292471765
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 168.59,
+          "protectedSamplePct": 4,
+          "protectedBytePct": 11.963446475195822,
+          "protectBytes": 22910,
+          "totalSizeBytes": 191645,
+          "mdctSamplePct": 96,
+          "mdctBytePct": 88.03655352480418
+        },
+        "unitMixJs": {
+          "units": 9,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191500,
+          "unitsByTag": {
+            "mdct_M": 5,
+            "lossless_B": 3,
+            "lossless_L": 1
+          },
+          "framesByTag": {
+            "mdct_M": 368640,
+            "lossless_B": 11264,
+            "lossless_L": 4096
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 168590,
+            "lossless_B": 15018,
+            "lossless_L": 7892
+          }
+        },
+        "unitMixRust": {
+          "units": 9,
+          "totalFrames": 384000,
+          "totalPayloadBytes": 191500,
+          "unitsByTag": {
+            "lossless_L": 1,
+            "lossless_B": 3,
+            "mdct_M": 5
+          },
+          "framesByTag": {
+            "lossless_L": 4096,
+            "lossless_B": 11264,
+            "mdct_M": 368640
+          },
+          "payloadBytesByTag": {
+            "lossless_L": 7892,
+            "lossless_B": 15018,
+            "mdct_M": 168590
+          },
+          "_raw": {
+            "codec_id": 6,
+            "channels": 2,
+            "sample_rate_hz": 48000,
+            "profile_id": 3,
+            "encoder_revision": 7,
+            "target_bitrate_kbps": 192,
+            "unit_size": 1024,
+            "declared_frames": 384000,
+            "declared_mdct_frames": 744,
+            "total_frames": 384000,
+            "total_units": 9,
+            "total_payload_bytes": 191500,
+            "stream_bytes": 191645,
+            "duration_seconds": 8,
+            "tags": {
+              "lossless_l": {
+                "units": 1,
+                "frames": 4096,
+                "payload_bytes": 7892
+              },
+              "lossless_b": {
+                "units": 3,
+                "frames": 11264,
+                "payload_bytes": 15018
+              },
+              "mdct": {
+                "units": 5,
+                "frames": 368640,
+                "payload_bytes": 168590
+              },
+              "legacy_lossy": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "signal_relative": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              },
+              "unknown": {
+                "units": 0,
+                "frames": 0,
+                "payload_bytes": 0
+              }
+            },
+            "protected_sample_pct": 4,
+            "protected_byte_pct": 11.963446,
+            "coded_path_bytes": 168590,
+            "coded_path_kbps": 168.59
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 128684,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.995810268838148,
+          "metrics": {
+            "fullSnrDb": 19.399649887483626,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 18.20555208781697,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.166778564453125,
+            "rmsError": 0.020856646663524863
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 193004,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9990728356215115,
+          "metrics": {
+            "fullSnrDb": 25.22888665369684,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 24.093508873620383,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.11248779296875,
+            "rmsError": 0.010660624475297842
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 321644,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999007921505092,
+          "metrics": {
+            "fullSnrDb": 36.17033223708097,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 34.06741988906176,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.0380859375,
+            "rmsError": 0.0030248954333235915
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "fullSnrDb": 3.9998601395203117,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191645,
+          "lameBytes": 128684,
+          "sizeRatioMp5OverLame": 1.489268285101489
+        },
+        "vs_lame_cbr_192": {
+          "fullSnrDb": -1.829376626692902,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191645,
+          "lameBytes": 193004,
+          "sizeRatioMp5OverLame": 0.9929586951565771
+        },
+        "vs_lame_cbr_320": {
+          "fullSnrDb": -12.770822210077032,
+          "quietWindowSnrDb": 0,
+          "mp5AudiBytes": 191645,
+          "lameBytes": 321644,
+          "sizeRatioMp5OverLame": 0.5958295506833642
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.9% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "168.6 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.489268285101489,
+          "informationalDeltas": {
+            "fullSnrDb": 3.9998601395203117,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191645,
+            "lameBytes": 128684,
+            "sizeRatioMp5OverLame": 1.489268285101489
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.3% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "168.6 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9929586951565771,
+          "informationalDeltas": {
+            "fullSnrDb": -1.829376626692902,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191645,
+            "lameBytes": 193004,
+            "sizeRatioMp5OverLame": 0.9929586951565771
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.6% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "168.6 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5958295506833642,
+          "informationalDeltas": {
+            "fullSnrDb": -12.770822210077032,
+            "quietWindowSnrDb": 0,
+            "mp5AudiBytes": 191645,
+            "lameBytes": 321644,
+            "sizeRatioMp5OverLame": 0.5958295506833642
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_castanets",
+      "sourceId": "synthetic:killer_castanets",
+      "startSec": 0,
+      "durationSec": 3,
+      "why": "sharp wooden attacks / pre-echo",
+      "tags": [
+        "transient",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 158.4,
+        "rateAccuracyPct": -17.499999999999996,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 59400,
+        "metrics": {
+          "fullSnrDb": 38.043571071653595,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 35.27479216072492,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.00994873046875,
+          "rmsError": 0.00047983662058663967
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 133.592,
+          "protectedSamplePct": 92.26001511715798,
+          "protectedBytePct": 15.343799111141152,
+          "protectBytes": 9080,
+          "totalSizeBytes": 59400,
+          "mdctSamplePct": 7.739984882842026,
+          "mdctBytePct": 84.65620088885885
+        },
+        "unitMixJs": {
+          "units": 15,
+          "totalFrames": 132300,
+          "totalPayloadBytes": 59177,
+          "unitsByTag": {
+            "lossless_L": 5,
+            "mdct_M": 7,
+            "lossless_B": 3
+          },
+          "framesByTag": {
+            "lossless_L": 74752,
+            "mdct_M": 10240,
+            "lossless_B": 47308
+          },
+          "payloadBytesByTag": {
+            "lossless_L": 3480,
+            "mdct_M": 50097,
+            "lossless_B": 5600
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 48527,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9888278778556646,
+          "metrics": {
+            "fullSnrDb": 14.978120737991452,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 13.596661198154088,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.1829833984375,
+            "rmsError": 0.006829138277019873
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 72768,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9938626451309477,
+          "metrics": {
+            "fullSnrDb": 18.440297856593425,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 17.6676076064456,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.142791748046875,
+            "rmsError": 0.004584131323091753
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 121252,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9965966149023812,
+          "metrics": {
+            "fullSnrDb": 21.12497444850094,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 20.281393682248034,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.100250244140625,
+            "rmsError": 0.0033652956250298607
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 59400,
+          "lameBytes": 48527,
+          "sizeRatioMp5OverLame": 1.224060832114081
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 59400,
+          "lameBytes": 72768,
+          "sizeRatioMp5OverLame": 0.8162928759894459
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 59400,
+          "lameBytes": 121252,
+          "sizeRatioMp5OverLame": 0.4898888265760565
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 122.4% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "133.6 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.224060832114081,
+          "informationalDeltas": {
+            "mp5AudiBytes": 59400,
+            "lameBytes": 48527,
+            "sizeRatioMp5OverLame": 1.224060832114081
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 81.6% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "133.6 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.8162928759894459,
+          "informationalDeltas": {
+            "mp5AudiBytes": 59400,
+            "lameBytes": 72768,
+            "sizeRatioMp5OverLame": 0.8162928759894459
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 49.0% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "133.6 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.4898888265760565,
+          "informationalDeltas": {
+            "mp5AudiBytes": 59400,
+            "lameBytes": 121252,
+            "sizeRatioMp5OverLame": 0.4898888265760565
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_glockenspiel",
+      "sourceId": "synthetic:killer_glockenspiel",
+      "startSec": 0,
+      "durationSec": 4,
+      "why": "metallic HF partials",
+      "tags": [
+        "tonal-hf",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 191.96,
+        "rateAccuracyPct": -0.02083333333332919,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 95980,
+        "metrics": {
+          "fullSnrDb": 26.923554735718493,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 25.274423054846334,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.206939697265625,
+          "rmsError": 0.004699494026801715
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 134.374,
+          "protectedSamplePct": 6.5396825396825395,
+          "protectedBytePct": 29.95955215478598,
+          "protectBytes": 28739,
+          "totalSizeBytes": 95980,
+          "mdctSamplePct": 93.46031746031746,
+          "mdctBytePct": 70.04044784521402
+        },
+        "unitMixJs": {
+          "units": 2,
+          "totalFrames": 176400,
+          "totalPayloadBytes": 95926,
+          "unitsByTag": {
+            "mdct_M": 1,
+            "lossless_B": 1
+          },
+          "framesByTag": {
+            "mdct_M": 164864,
+            "lossless_B": 11536
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 67187,
+            "lossless_B": 28739
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 64827,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9998378074308789,
+          "metrics": {
+            "fullSnrDb": 25.71627164014563,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 25.661891981608285,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.08941650390625,
+            "rmsError": 0.005400267298100662
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 97219,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999797472800128,
+          "metrics": {
+            "fullSnrDb": 30.321993530650442,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 30.14249590352401,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.0450439453125,
+            "rmsError": 0.0031778190355355547
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 162003,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999973241022454,
+          "metrics": {
+            "fullSnrDb": 54.81778051224131,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 53.210331359398076,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.016815185546875,
+            "rmsError": 0.00018938248596859076
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 95980,
+          "lameBytes": 64827,
+          "sizeRatioMp5OverLame": 1.4805559411973406
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 95980,
+          "lameBytes": 97219,
+          "sizeRatioMp5OverLame": 0.9872555776134295
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 95980,
+          "lameBytes": 162003,
+          "sizeRatioMp5OverLame": 0.5924581643549811
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.1% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "134.4 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4805559411973406,
+          "informationalDeltas": {
+            "mp5AudiBytes": 95980,
+            "lameBytes": 64827,
+            "sizeRatioMp5OverLame": 1.4805559411973406
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 98.7% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "134.4 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9872555776134295,
+          "informationalDeltas": {
+            "mp5AudiBytes": 95980,
+            "lameBytes": 97219,
+            "sizeRatioMp5OverLame": 0.9872555776134295
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.2% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "134.4 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5924581643549811,
+          "informationalDeltas": {
+            "mp5AudiBytes": 95980,
+            "lameBytes": 162003,
+            "sizeRatioMp5OverLame": 0.5924581643549811
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_harpsichord",
+      "sourceId": "synthetic:killer_harpsichord",
+      "startSec": 0,
+      "durationSec": 4,
+      "why": "bright plucked partials",
+      "tags": [
+        "tonal-hf",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 228.03,
+        "rateAccuracyPct": 18.765625,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 114015,
+        "metrics": {
+          "fullSnrDb": 2.272377178505331,
+          "quietWindowSnrDb": -3.112786333877139,
+          "worst1sSnrDb": 1.8994363739589912,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.66400146484375,
+          "rmsError": 0.05848725554279771
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 36.946,
+          "protectedSamplePct": 33.24263038548753,
+          "protectedBytePct": 83.76413925241037,
+          "protectBytes": 95306,
+          "totalSizeBytes": 114015,
+          "mdctSamplePct": 66.75736961451247,
+          "mdctBytePct": 16.235860747589626
+        },
+        "unitMixJs": {
+          "units": 16,
+          "totalFrames": 176400,
+          "totalPayloadBytes": 113779,
+          "unitsByTag": {
+            "mdct_M": 8,
+            "lossless_B": 8
+          },
+          "framesByTag": {
+            "mdct_M": 117760,
+            "lossless_B": 58640
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 18473,
+            "lossless_B": 95306
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 64827,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9993407684097612,
+          "metrics": {
+            "fullSnrDb": 23.836290541300098,
+            "quietWindowSnrDb": 17.111794124443417,
+            "worst1sSnrDb": 22.741933179890523,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.0838623046875,
+            "rmsError": 0.004885011324668555
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 97219,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9997916877048288,
+          "metrics": {
+            "fullSnrDb": 28.808410660536033,
+            "quietWindowSnrDb": 23.197263013872146,
+            "worst1sSnrDb": 28.58499085599486,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.039398193359375,
+            "rmsError": 0.0027558753413266363
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 162003,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999316728315913,
+          "metrics": {
+            "fullSnrDb": 38.8122254804299,
+            "quietWindowSnrDb": 33.00277967038253,
+            "worst1sSnrDb": 37.96279684383225,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.01220703125,
+            "rmsError": 0.0008711016330339224
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 114015,
+          "lameBytes": 64827,
+          "sizeRatioMp5OverLame": 1.7587579249386829
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 114015,
+          "lameBytes": 97219,
+          "sizeRatioMp5OverLame": 1.1727645830547526
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 114015,
+          "lameBytes": 162003,
+          "sizeRatioMp5OverLame": 0.7037832632729023
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 175.9% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "36.9 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.7587579249386829,
+          "informationalDeltas": {
+            "mp5AudiBytes": 114015,
+            "lameBytes": 64827,
+            "sizeRatioMp5OverLame": 1.7587579249386829
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 117.3% of LAME CBR 192, over the +2% gate.",
+          "mp5Label": "36.9 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 1.1727645830547526,
+          "informationalDeltas": {
+            "mp5AudiBytes": 114015,
+            "lameBytes": 97219,
+            "sizeRatioMp5OverLame": 1.1727645830547526
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 70.4% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "36.9 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.7037832632729023,
+          "informationalDeltas": {
+            "mp5AudiBytes": 114015,
+            "lameBytes": 162003,
+            "sizeRatioMp5OverLame": 0.7037832632729023
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_applause",
+      "sourceId": "synthetic:killer_applause",
+      "startSec": 0,
+      "durationSec": 3,
+      "why": "dense uncorrelated claps",
+      "tags": [
+        "noise-dense",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 190.60799999999998,
+        "rateAccuracyPct": -0.7250000000000126,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 71478,
+        "metrics": {
+          "fullSnrDb": 4.561204593621477,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 4.553747230037554,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.321197509765625,
+          "rmsError": 0.04266635867147141
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 190.49866666666665,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 71478,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 132300,
+          "totalPayloadBytes": 71437,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 132300
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 71437
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 48527,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.7904747566465431,
+          "metrics": {
+            "fullSnrDb": 3.5482439726689914,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 3.399773703104535,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.38616943359375,
+            "rmsError": 0.047943927830523536
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 72768,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.8888665788839438,
+          "metrics": {
+            "fullSnrDb": 5.966418453161671,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 5.937093102434689,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.2723388671875,
+            "rmsError": 0.036293168657812284
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 121252,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9447700035999432,
+          "metrics": {
+            "fullSnrDb": 9.318468719328544,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 9.225929390401351,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.19482421875,
+            "rmsError": 0.024673023569812345
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 71478,
+          "lameBytes": 48527,
+          "sizeRatioMp5OverLame": 1.4729532013106106
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 71478,
+          "lameBytes": 72768,
+          "sizeRatioMp5OverLame": 0.9822724274406333
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 71478,
+          "lameBytes": 121252,
+          "sizeRatioMp5OverLame": 0.5894995546465213
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 147.3% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "190.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4729532013106106,
+          "informationalDeltas": {
+            "mp5AudiBytes": 71478,
+            "lameBytes": 48527,
+            "sizeRatioMp5OverLame": 1.4729532013106106
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 98.2% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "190.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9822724274406333,
+          "informationalDeltas": {
+            "mp5AudiBytes": 71478,
+            "lameBytes": 72768,
+            "sizeRatioMp5OverLame": 0.9822724274406333
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 58.9% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "190.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5894995546465213,
+          "informationalDeltas": {
+            "mp5AudiBytes": 71478,
+            "lameBytes": 121252,
+            "sizeRatioMp5OverLame": 0.5894995546465213
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_hard_pan",
+      "sourceId": "synthetic:killer_hard_pan",
+      "startSec": 0,
+      "durationSec": 3,
+      "why": "hard L/R alternation",
+      "tags": [
+        "stereo",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 132.24,
+        "rateAccuracyPct": -31.124999999999996,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 49590,
+        "metrics": {
+          "fullSnrDb": 30.546257172028607,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 30.03830128754945,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.034912109375,
+          "rmsError": 0.005126395194652192
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 130.168,
+          "protectedSamplePct": 0.9281934996220711,
+          "protectedBytePct": 1.4077964047667137,
+          "protectBytes": 697,
+          "totalSizeBytes": 49590,
+          "mdctSamplePct": 99.07180650037793,
+          "mdctBytePct": 98.59220359523329
+        },
+        "unitMixJs": {
+          "units": 4,
+          "totalFrames": 132300,
+          "totalPayloadBytes": 49510,
+          "unitsByTag": {
+            "mdct_M": 2,
+            "lossless_B": 2
+          },
+          "framesByTag": {
+            "mdct_M": 131072,
+            "lossless_B": 1228
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 48813,
+            "lossless_B": 697
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 48527,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999999946094614,
+          "metrics": {
+            "fullSnrDb": 26.009984806750847,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 26.008351647909024,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.02447509765625,
+            "rmsError": 0.008642227632166183
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 72768,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999999948329978,
+          "metrics": {
+            "fullSnrDb": 30.44029117105133,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 30.437274734101187,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.014739990234375,
+            "rmsError": 0.00518931917173368
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 121252,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999999952906248,
+          "metrics": {
+            "fullSnrDb": 79.04450086046116,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 78.60590593225358,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.0001220703125,
+            "rmsError": 0.000019270806851128905
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 49590,
+          "lameBytes": 48527,
+          "sizeRatioMp5OverLame": 1.021905331052816
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 49590,
+          "lameBytes": 72768,
+          "sizeRatioMp5OverLame": 0.681480870712401
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 49590,
+          "lameBytes": 121252,
+          "sizeRatioMp5OverLame": 0.4089829446112229
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 102.2% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "130.2 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.021905331052816,
+          "informationalDeltas": {
+            "mp5AudiBytes": 49590,
+            "lameBytes": 48527,
+            "sizeRatioMp5OverLame": 1.021905331052816
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 68.1% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "130.2 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.681480870712401,
+          "informationalDeltas": {
+            "mp5AudiBytes": 49590,
+            "lameBytes": 72768,
+            "sizeRatioMp5OverLame": 0.681480870712401
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 40.9% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "130.2 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.4089829446112229,
+          "informationalDeltas": {
+            "mp5AudiBytes": 49590,
+            "lameBytes": 121252,
+            "sizeRatioMp5OverLame": 0.4089829446112229
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_anti_phase",
+      "sourceId": "synthetic:killer_anti_phase",
+      "startSec": 0,
+      "durationSec": 3,
+      "why": "near anti-phase stereo",
+      "tags": [
+        "stereo",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 123.64800000000001,
+        "rateAccuracyPct": -35.599999999999994,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 46368,
+        "metrics": {
+          "fullSnrDb": 25.460636221155788,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 25.40670990062864,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.040771484375,
+          "rmsError": 0.014411831421829216
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 123.53866666666667,
+          "protectedSamplePct": 0,
+          "protectedBytePct": 0,
+          "protectBytes": 0,
+          "totalSizeBytes": 46368,
+          "mdctSamplePct": 100,
+          "mdctBytePct": 100
+        },
+        "unitMixJs": {
+          "units": 1,
+          "totalFrames": 132300,
+          "totalPayloadBytes": 46327,
+          "unitsByTag": {
+            "mdct_M": 1
+          },
+          "framesByTag": {
+            "mdct_M": 132300
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 46327
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 48527,
+          "lagFrames": -365,
+          "lagCorrelation": 0.9999944164948522,
+          "metrics": {
+            "fullSnrDb": 19.678578297787674,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 15.64969890856785,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.36798095703125,
+            "rmsError": 0.02804290669355764
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 72768,
+          "lagFrames": -365,
+          "lagCorrelation": 0.9999963075335042,
+          "metrics": {
+            "fullSnrDb": 20.327633869809553,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 15.859340116856442,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.346282958984375,
+            "rmsError": 0.026023772181298605
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 121252,
+          "lagFrames": -365,
+          "lagCorrelation": 0.9999774240194322,
+          "metrics": {
+            "fullSnrDb": 20.771575123411626,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 16.012368112821214,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.345611572265625,
+            "rmsError": 0.02472710002821837
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 46368,
+          "lameBytes": 48527,
+          "sizeRatioMp5OverLame": 0.9555093040987491
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 46368,
+          "lameBytes": 72768,
+          "sizeRatioMp5OverLame": 0.637203166226913
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 46368,
+          "lameBytes": 121252,
+          "sizeRatioMp5OverLame": 0.3824101870484611
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 95.6% of LAME CBR 128 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "123.5 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 0.9555093040987491,
+          "informationalDeltas": {
+            "mp5AudiBytes": 46368,
+            "lameBytes": 48527,
+            "sizeRatioMp5OverLame": 0.9555093040987491
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 63.7% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "123.5 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.637203166226913,
+          "informationalDeltas": {
+            "mp5AudiBytes": 46368,
+            "lameBytes": 72768,
+            "sizeRatioMp5OverLame": 0.637203166226913
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 38.2% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "123.5 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.3824101870484611,
+          "informationalDeltas": {
+            "mp5AudiBytes": 46368,
+            "lameBytes": 121252,
+            "sizeRatioMp5OverLame": 0.3824101870484611
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_birdies",
+      "sourceId": "synthetic:killer_birdies",
+      "startSec": 0,
+      "durationSec": 4,
+      "why": "sparse HF tones / birdie risk",
+      "tags": [
+        "sparse-hf",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 188.726,
+        "rateAccuracyPct": -1.7052083333333339,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 94363,
+        "metrics": {
+          "fullSnrDb": 39.158477649949184,
+          "quietWindowSnrDb": null,
+          "worst1sSnrDb": 35.8828354484698,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.0543212890625,
+          "rmsError": 0.0010999274080994604
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 188.238,
+          "protectedSamplePct": 8.861678004535147,
+          "protectedBytePct": 0.16017821152010184,
+          "protectBytes": 151,
+          "totalSizeBytes": 94363,
+          "mdctSamplePct": 91.13832199546485,
+          "mdctBytePct": 99.8398217884799
+        },
+        "unitMixJs": {
+          "units": 5,
+          "totalFrames": 176400,
+          "totalPayloadBytes": 94270,
+          "unitsByTag": {
+            "lossless_L": 3,
+            "mdct_M": 2
+          },
+          "framesByTag": {
+            "lossless_L": 15632,
+            "mdct_M": 160768
+          },
+          "payloadBytesByTag": {
+            "lossless_L": 151,
+            "mdct_M": 94119
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 64827,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.84983394560624,
+          "metrics": {
+            "fullSnrDb": 6.346036488146366,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 2.5255326648824843,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.1473388671875,
+            "rmsError": 0.04808239391271835
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 97219,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999872633572634,
+          "metrics": {
+            "fullSnrDb": 30.360435937722556,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 30.295813994168867,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.029632568359375,
+            "rmsError": 0.0030287687072742104
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 162003,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999948458453367,
+          "metrics": {
+            "fullSnrDb": 50.66289237342293,
+            "quietWindowSnrDb": null,
+            "worst1sSnrDb": 47.94007769127905,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.014984130859375,
+            "rmsError": 0.0002925117309493403
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 94363,
+          "lameBytes": 64827,
+          "sizeRatioMp5OverLame": 1.4556126305397443
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 94363,
+          "lameBytes": 97219,
+          "sizeRatioMp5OverLame": 0.9706230263631594
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 94363,
+          "lameBytes": 162003,
+          "sizeRatioMp5OverLame": 0.5824768677123263
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 145.6% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "188.2 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4556126305397443,
+          "informationalDeltas": {
+            "mp5AudiBytes": 94363,
+            "lameBytes": 64827,
+            "sizeRatioMp5OverLame": 1.4556126305397443
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 97.1% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "188.2 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9706230263631594,
+          "informationalDeltas": {
+            "mp5AudiBytes": 94363,
+            "lameBytes": 97219,
+            "sizeRatioMp5OverLame": 0.9706230263631594
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 58.2% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "188.2 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5824768677123263,
+          "informationalDeltas": {
+            "mp5AudiBytes": 94363,
+            "lameBytes": 162003,
+            "sizeRatioMp5OverLame": 0.5824768677123263
+          }
+        }
+      }
+    },
+    {
+      "excerptId": "killer_protect_threshold_alt",
+      "sourceId": "synthetic:killer_protect_threshold_alt",
+      "startSec": 0,
+      "durationSec": 4,
+      "why": "quiet/loud alternation across protect threshold",
+      "tags": [
+        "protect-boundary",
+        "killer"
+      ],
+      "role": "dev",
+      "sampleRate": 44100,
+      "channels": 2,
+      "mp5": {
+        "encoderId": "encode_mp5c6_at",
+        "encoderLabel": "CodecId 6 ABR 192 (encode_mp5c6_at)",
+        "rateTargetKbps": 192,
+        "rateMode": "abr",
+        "achievedTotalKbps": 192.584,
+        "rateAccuracyPct": 0.3041666666666683,
+        "rateLabel": "ABR 192",
+        "totalAudiBytes": 96292,
+        "metrics": {
+          "fullSnrDb": 1.3696503825494313,
+          "quietWindowSnrDb": -9.803917164943549,
+          "worst1sSnrDb": 1.1326083082748504,
+          "contentBitExact": false,
+          "durationMatch": true,
+          "peakError": 0.669158935546875,
+          "rmsError": 0.2082827683572465
+        },
+        "threeFigures": {
+          "codedPathBitrateKbps": 13.674,
+          "protectedSamplePct": 44.852607709750565,
+          "protectedBytePct": 92.87842173242781,
+          "protectBytes": 89167,
+          "totalSizeBytes": 96292,
+          "mdctSamplePct": 55.147392290249435,
+          "mdctBytePct": 7.121578267572184
+        },
+        "unitMixJs": {
+          "units": 20,
+          "totalFrames": 176400,
+          "totalPayloadBytes": 96004,
+          "unitsByTag": {
+            "mdct_M": 10,
+            "lossless_L": 10
+          },
+          "framesByTag": {
+            "mdct_M": 97280,
+            "lossless_L": 79120
+          },
+          "payloadBytesByTag": {
+            "mdct_M": 6837,
+            "lossless_L": 89167
+          }
+        },
+        "rustInspectAvailable": true
+      },
+      "lameAnchors": {
+        "cbr_128": {
+          "bitrateKbps": 128,
+          "vbrQuality": null,
+          "bytes": 64827,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999989485041815,
+          "metrics": {
+            "fullSnrDb": 26.03230100027602,
+            "quietWindowSnrDb": 20.97517956969603,
+            "worst1sSnrDb": 26.017270768750407,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.0279541015625,
+            "rmsError": 0.012176418871642763
+          }
+        },
+        "cbr_192": {
+          "bitrateKbps": 192,
+          "vbrQuality": null,
+          "bytes": 97219,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.999999963936703,
+          "metrics": {
+            "fullSnrDb": 30.465722006216108,
+            "quietWindowSnrDb": 29.98787612364795,
+            "worst1sSnrDb": 30.462589417839325,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.015472412109375,
+            "rmsError": 0.007308841253776189
+          }
+        },
+        "cbr_320": {
+          "bitrateKbps": 320,
+          "vbrQuality": null,
+          "bytes": 162003,
+          "lagFrames": 1105,
+          "lagCorrelation": 0.9999999879881108,
+          "metrics": {
+            "fullSnrDb": 76.19294981751592,
+            "quietWindowSnrDb": 46.15661776921563,
+            "worst1sSnrDb": 75.67065756298297,
+            "contentBitExact": false,
+            "durationMatch": true,
+            "peakError": 0.0013427734375,
+            "rmsError": 0.00003779959430332128
+          }
+        }
+      },
+      "informationalDeltasVsLame": {
+        "vs_lame_cbr_128": {
+          "mp5AudiBytes": 96292,
+          "lameBytes": 64827,
+          "sizeRatioMp5OverLame": 1.4853687506748732
+        },
+        "vs_lame_cbr_192": {
+          "mp5AudiBytes": 96292,
+          "lameBytes": 97219,
+          "sizeRatioMp5OverLame": 0.9904648268342608
+        },
+        "vs_lame_cbr_320": {
+          "mp5AudiBytes": 96292,
+          "lameBytes": 162003,
+          "sizeRatioMp5OverLame": 0.5943840546162725
+        }
+      },
+      "matchedBitrateVerdicts": {
+        "matched_128": {
+          "allowed": true,
+          "verdict": "size-gate-fail",
+          "reason": "MP5 total size is 148.5% of LAME CBR 128, over the +2% gate.",
+          "mp5Label": "13.7 kbps",
+          "lameAnchorKbps": 128,
+          "sizeRatioMp5OverLame": 1.4853687506748732,
+          "informationalDeltas": {
+            "mp5AudiBytes": 96292,
+            "lameBytes": 64827,
+            "sizeRatioMp5OverLame": 1.4853687506748732
+          }
+        },
+        "matched_192": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 99.0% of LAME CBR 192 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "13.7 kbps",
+          "lameAnchorKbps": 192,
+          "sizeRatioMp5OverLame": 0.9904648268342608,
+          "informationalDeltas": {
+            "mp5AudiBytes": 96292,
+            "lameBytes": 97219,
+            "sizeRatioMp5OverLame": 0.9904648268342608
+          }
+        },
+        "matched_320": {
+          "allowed": true,
+          "verdict": "size-gate-pass",
+          "reason": "MP5 total size is 59.4% of LAME CBR 320 (gate: <= 102%). Size only — not a quality claim.",
+          "mp5Label": "13.7 kbps",
+          "lameAnchorKbps": 320,
+          "sizeRatioMp5OverLame": 0.5943840546162725,
+          "informationalDeltas": {
+            "mp5AudiBytes": 96292,
+            "lameBytes": 162003,
+            "sizeRatioMp5OverLame": 0.5943840546162725
+          }
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "excerptCount": 19,
+    "totalDurationSec": 116,
+    "totalPcmBytes": 16896000,
+    "totalAudiBytes": 2734456,
+    "rateLabel": "operating point ~168.4 kbps",
+    "threeFigures": {
+      "codedPathBitrateKbps": 168.38441379310345,
+      "protectedSamplePct": 6.236535502308199,
+      "protectedBytePct": 10.65093477917196,
+      "totalSizeBytes": 2734456,
+      "mdctSamplePct": 93.7634644976918,
+      "mdctBytePct": 89.34906522082804
+    },
+    "matchedBitrateVerdictsBlocked": false
+  },
+  "gateResult": {
+    "rate": 192,
+    "rateMode": "abr",
+    "tolerance": "corpus size <= LAME CBR + 2%; rate overshoot <= +3% unless protect-dominated; undershoot disclosed, never padded",
+    "sizeRatios": {
+      "allRows": {
+        "rows": 19,
+        "ratio": 0.9755489847991003
+      },
+      "devCorpus": {
+        "rows": 11,
+        "ratio": 0.9924287956349468
+      }
+    },
+    "failures": [],
+    "protectOvershootDisclosed": [
+      "killer_harpsichord: protect islands alone (95306 B, 99% of the 192 kbps budget) leave no feasible loud path; overshoot +18.77% is the protect tax, disclosed"
+    ],
+    "undershootDisclosed": [
+      "killer_castanets: undershoot -17.50% (quality ceiling; disclosed, not padded)",
+      "killer_hard_pan: undershoot -31.12% (quality ceiling; disclosed, not padded)",
+      "killer_anti_phase: undershoot -35.60% (quality ceiling; disclosed, not padded)"
+    ],
+    "pass": true
+  }
+}

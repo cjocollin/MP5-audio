@@ -12,8 +12,8 @@
 use mp5_codec::mp5c::Preset;
 use mp5_codec::mp5c2::ProtectParams;
 use mp5_codec::mp5c6::{
-    self, EncodeOptions, RateMode, PROFILE_CODED_SCALEFACTORS, PROFILE_PARTITIONED_COEFFS,
-    PROFILE_PHASE5, PROFILE_TRANSITIONAL_LAB, PROTECT_SCALE,
+    self, EncodeOptions, RateMode, ENCODER_REVISION, PROFILE_CODED_SCALEFACTORS,
+    PROFILE_PARTITIONED_COEFFS, PROFILE_PHASE5, PROFILE_TRANSITIONAL_LAB, PROTECT_SCALE,
 };
 use std::fs;
 use std::path::Path;
@@ -109,10 +109,14 @@ fn interleave(frames: usize, ch: usize, f: impl Fn(usize, usize) -> i16) -> Vec<
 fn fixture_signal(frames: usize, ch: usize) -> Vec<i16> {
     interleave(frames, ch, |i, c| {
         let t = i as f64 / frames as f64;
-        let amp = if t < 0.4 { 0.5 } else { 0.5 * (-(t - 0.4) * 8.0).exp() };
+        let amp = if t < 0.4 {
+            0.5
+        } else {
+            0.5 * (-(t - 0.4) * 8.0).exp()
+        };
         let pan = if c == 0 { 1.0 } else { 0.9 };
-        ((i as f64 * 0.061).sin() * amp * pan * 14000.0
-            + (i as f64 * 0.017).sin() * amp * 5000.0) as i16
+        ((i as f64 * 0.061).sin() * amp * pan * 14000.0 + (i as f64 * 0.017).sin() * amp * 5000.0)
+            as i16
     })
 }
 
@@ -121,8 +125,7 @@ fn pcm_bytes(pcm: &[i16]) -> Vec<u8> {
 }
 
 pub fn main() {
-    let out_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/fixtures/c6-parity");
+    let out_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures/c6-parity");
     fs::create_dir_all(&out_dir).expect("create c6-parity dir");
 
     let s = fixture_signal(UNIT * 6, 2);
@@ -134,13 +137,18 @@ pub fn main() {
         ),
         (
             "p1_coded_sf".into(),
-            mp5c6::encode_with_profile(&s, 2, Preset::High, SR, PROFILE_CODED_SCALEFACTORS).unwrap(),
+            mp5c6::encode_with_profile(&s, 2, Preset::High, SR, PROFILE_CODED_SCALEFACTORS)
+                .unwrap(),
         ),
         (
             "p2_partitioned".into(),
-            mp5c6::encode_with_profile(&s, 2, Preset::High, SR, PROFILE_PARTITIONED_COEFFS).unwrap(),
+            mp5c6::encode_with_profile(&s, 2, Preset::High, SR, PROFILE_PARTITIONED_COEFFS)
+                .unwrap(),
         ),
-        ("p3_default".into(), mp5c6::encode(&s, 2, Preset::High, SR).unwrap()),
+        (
+            "p3_default".into(),
+            mp5c6::encode(&s, 2, Preset::High, SR).unwrap(),
+        ),
         (
             "p3_independent_nowin".into(),
             mp5c6::encode_with_options(
@@ -179,12 +187,19 @@ pub fn main() {
         ),
         (
             "p3_mono_window".into(),
-            mp5c6::encode(&s.iter().step_by(2).copied().collect::<Vec<_>>(), 1, Preset::High, SR)
-                .unwrap(),
+            mp5c6::encode(
+                &s.iter().step_by(2).copied().collect::<Vec<_>>(),
+                1,
+                Preset::High,
+                SR,
+            )
+            .unwrap(),
         ),
     ];
 
-    let mut manifest = String::from("{\n  \"schema\": \"mp5.c6-parity.v1\",\n  \"sampleRate\": 44100,\n  \"fixtures\": {\n");
+    let mut manifest = format!(
+        "{{\n  \"schema\": \"mp5.c6-parity.v1\",\n  \"encoderRevision\": {ENCODER_REVISION},\n  \"sampleRate\": 44100,\n  \"fixtures\": {{\n"
+    );
     let mut rows = Vec::new();
     for (name, stream) in entries.drain(..) {
         let pcm = mp5c6::decode(&stream).expect("native decode");

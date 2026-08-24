@@ -44,6 +44,12 @@ describe("public experience", () => {
     expect(src).toContain('data-testid="about-mp5-panel"');
     expect(src).toContain("MP5-L v4");
     expect(src).toContain("MP5-C2");
+    expect(src).toContain("MP5-C v6 ABR 128");
+    expect(src).toContain("20.6 dB SNR");
+    expect(src).toContain("26.3 dB SNR");
+    expect(src).toContain("35.9 dB SNR");
+    expect(src).toContain("shipping browser/WASM encoder rev 7");
+    expect(src).not.toContain("encoder rev 4");
     expect(src).toContain("Packed Rice");
     expect(src).toContain("local library");
     expect(src).toContain("user/artist-provided stems");

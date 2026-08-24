@@ -137,9 +137,26 @@ impl Flags {
 ///     guard + psycho steps capped at the legacy allocation + quiet-passage quality
 ///     (Extreme noise_frac 0.006, High 0.010; passage-adaptive quiet floor gated on
 ///     the louder channel). Same bitstream syntax; decode is unaffected.
-pub const ENCODER_REVISION: u16 = 4;
+/// 5 = rated-path (ABR/CBR) channel-budget fix: the shared reservoir's bisection
+///     maximizes spend up to budget, so uncapped it handed the whole pair allowance
+///     to the first channel and the second starved (measured ch0 24.9 / ch1 1.1 dB
+///     SNR on a real track). Channels now split the hop budget by content. Also
+///     Low/Standard quiet-passage floors + noise lift + HF band caps. Unconstrained
+///     output is byte-identical to rev 4.
+/// 6 = stereo ABR 128 corpus calibration: width-normalized psycho tonality,
+///     legacy-safe masking cap, 1.1x protect thresholds, and a stricter 256x
+///     short-block attack gate. Same syntax; prior streams decode unchanged.
+/// 7 = protect framing is charged exactly once and joint transient planning
+///     consumes channel amplitude rather than squaring channel energy twice.
+///     ABR 128 uses the dev-calibrated 32x attack gate, rate search retains
+///     the finest fitting candidate, and decoder allocation validation is
+///     hardened. Syntax remains unchanged.
+pub const ENCODER_REVISION: u16 = 7;
 /// Shipping protect widen scale, matching MP5-C2.
 pub const PROTECT_SCALE: f64 = 1.5;
+/// ABR 128 stereo spends most of the default protect tax on the MDCT path.
+const ABR_128_PROTECT_SCALE: f64 = 1.1;
+const ABR_128_WINDOW_ATTACK_RATIO: f32 = 32.0;
 /// Assumed rate when a caller cannot supply one. Writers should always pass a real rate.
 pub const DEFAULT_SAMPLE_RATE: u32 = 44100;
 
@@ -243,6 +260,11 @@ fn push_unit(out: &mut Vec<u8>, tag: u8, n_frames: u32, payload: &[u8]) {
     out.extend(payload);
     let crc = crc32(&out[start..]);
     out.extend(&crc.to_le_bytes());
+}
+
+fn mdct_pool_for_target(total: usize, unit_count: usize, protect_payload_bytes: usize) -> usize {
+    let framing = HEADER_LEN + unit_count * (UNIT_PREFIX_LEN + UNIT_CRC_LEN);
+    total.saturating_sub(framing + protect_payload_bytes)
 }
 
 /// Rate-control mode for one encode (Phase 4.3, spec 6.3).
@@ -402,14 +424,23 @@ pub fn encode_with_rate(
     sample_rate: u32,
     rate: RateMode,
 ) -> Result<Vec<u8>, String> {
+    let mut options = EncodeOptions::default_for(channels);
+    let protect_scale = if channels == 2 && rate == (RateMode::Abr { kbps: 128 }) {
+        // At this operating point protect bytes are more valuable in the MDCT
+        // pool. Short blocks remain enabled for true attacks.
+        options.psycho = true;
+        ABR_128_PROTECT_SCALE
+    } else {
+        PROTECT_SCALE
+    };
     encode_with_options(
         samples,
         channels,
         preset,
-        ProtectParams::widened(PROTECT_SCALE),
+        ProtectParams::widened(protect_scale),
         sample_rate,
         rate,
-        EncodeOptions::default_for(channels),
+        options,
     )
 }
 
@@ -424,7 +455,13 @@ pub fn encode_with_options(
     options: EncodeOptions,
 ) -> Result<Vec<u8>, String> {
     encode_inner(
-        samples, channels, preset, protect, sample_rate, rate, options,
+        samples,
+        channels,
+        preset,
+        protect,
+        sample_rate,
+        rate,
+        options,
     )
 }
 
@@ -504,7 +541,7 @@ fn encode_inner(
         end: usize,
     }
     let mut staged: Vec<Staged> = Vec::with_capacity(plan.len());
-    let mut protect_bytes = 0usize;
+    let mut protect_payload_bytes = 0usize;
     let mut mdct_frames_total = 0usize;
     for (marker, start, end) in plan {
         let n = end - start;
@@ -522,7 +559,7 @@ fn encode_inner(
             if payload.len() > u32::MAX as usize {
                 return Err("MP5-C (CodecId 6) unit payload exceeds u32".into());
             }
-            protect_bytes += payload.len() + UNIT_PREFIX_LEN + UNIT_CRC_LEN;
+            protect_payload_bytes += payload.len();
             staged.push(Staged {
                 tag: marker,
                 n: n as u32,
@@ -538,8 +575,7 @@ fn encode_inner(
     let mdct_pool = match budgeted {
         Some((kbps, _)) => {
             let total = mp5c3::bitrate_budget_bytes(kbps, frames, sample_rate);
-            let framing = HEADER_LEN + staged.len() * (UNIT_PREFIX_LEN + UNIT_CRC_LEN);
-            total.saturating_sub(framing + protect_bytes)
+            mdct_pool_for_target(total, staged.len(), protect_payload_bytes)
         }
         None => 0,
     };
@@ -562,15 +598,17 @@ fn encode_inner(
                             0
                         } else {
                             ((mdct_pool as u128 * (unit.end - unit.start) as u128)
-                                / mdct_frames_total as u128)
-                                as usize
+                                / mdct_frames_total as u128) as usize
                         };
                         assigned += share;
                         let mut budget = share;
                         if loud_seen == loud_count {
                             budget += mdct_pool - assigned;
                         }
-                        mp5c3::RateControl::Budgeted { bytes: budget, mode }
+                        mp5c3::RateControl::Budgeted {
+                            bytes: budget,
+                            mode,
+                        }
                     }
                     None => match rate {
                         RateMode::Vbr { qi } => mp5c3::RateControl::Vbr { qi },
@@ -598,6 +636,11 @@ fn encode_inner(
                             },
                             options.window_switching,
                         );
+                        let p = if channels == 2 && rate == (RateMode::Abr { kbps: 128 }) {
+                            p.with_window_attack_ratio(ABR_128_WINDOW_ATTACK_RATIO)
+                        } else {
+                            p
+                        };
                         if options.psycho {
                             p.with_psycho(sample_rate)
                         } else {
@@ -730,8 +773,7 @@ fn decode_unit(
         TAG_LOSSY => mp5c::decode(unit.payload)?,
         TAG_SR => {
             return Err(
-                "MP5-C (CodecId 6) TAG_SR is MP5-C2-only and must not appear (fail-closed)"
-                    .into(),
+                "MP5-C (CodecId 6) TAG_SR is MP5-C2-only and must not appear (fail-closed)".into(),
             );
         }
         other => {
@@ -760,13 +802,25 @@ pub fn decode(data: &[u8]) -> Result<Vec<i16>, String> {
     let declared_flags = Flags::parse(header.flags, header.profile_id)?;
     let declared_sf = sf_mode_for_profile(header.profile_id)?;
     // The Phase 5 features the header advertises for TAG_MDCT payloads.
-    let declared_joint = header.profile_id == PROFILE_PHASE5
-        && declared_flags.joint_stereo_mode == 1;
-    let declared_windowed = header.profile_id == PROFILE_PHASE5
-        && declared_flags.window_mode == 1;
+    let declared_joint =
+        header.profile_id == PROFILE_PHASE5 && declared_flags.joint_stereo_mode == 1;
+    let declared_windowed = header.profile_id == PROFILE_PHASE5 && declared_flags.window_mode == 1;
     let units = units_of(data)?;
+    let declared_unit_frames = units.iter().try_fold(0usize, |total, unit| {
+        total
+            .checked_add(unit.n_frames)
+            .ok_or_else(|| "MP5-C (CodecId 6) aggregate unit frame count overflow".to_string())
+    })?;
+    if declared_unit_frames != header.total_frames as usize {
+        return Err(format!(
+            "MP5-C (CodecId 6) units declare {declared_unit_frames} frames, header declares {}",
+            header.total_frames
+        ));
+    }
 
-    let mut out: Vec<i16> = Vec::with_capacity(header.total_frames as usize * ch);
+    // Do not reserve from an untrusted header. Each validated unit grows the
+    // output only after its payload has decoded to the declared sample count.
+    let mut out: Vec<i16> = Vec::new();
     let mut frames_seen: usize = 0;
     let mut mdct_hops: usize = 0;
 
@@ -816,10 +870,9 @@ pub fn decode_range(data: &[u8], start_frame: u32, num_frames: u32) -> Result<Ve
     let ch = header.channels as usize;
     let declared_flags = Flags::parse(header.flags, header.profile_id)?;
     let declared_sf = sf_mode_for_profile(header.profile_id)?;
-    let declared_joint = header.profile_id == PROFILE_PHASE5
-        && declared_flags.joint_stereo_mode == 1;
-    let declared_windowed = header.profile_id == PROFILE_PHASE5
-        && declared_flags.window_mode == 1;
+    let declared_joint =
+        header.profile_id == PROFILE_PHASE5 && declared_flags.joint_stereo_mode == 1;
+    let declared_windowed = header.profile_id == PROFILE_PHASE5 && declared_flags.window_mode == 1;
     let units = units_of(data)?;
 
     let total = header.total_frames as usize;
@@ -1168,7 +1221,10 @@ mod tests {
         assert_eq!(h.total_frames as usize, UNIT_SIZE_FRAMES * 8);
         assert_eq!(h.unit_size as usize, UNIT_SIZE_FRAMES);
         assert_eq!(h.encoder_revision, ENCODER_REVISION);
-        assert_eq!(h.flags, 5, "shipping defaults: joint stereo + window switching");
+        assert_eq!(
+            h.flags, 5,
+            "shipping defaults: joint stereo + window switching"
+        );
         assert!(h.mdct_frame_count > 0, "loud content must record MDCT hops");
         assert_eq!(HEADER_LEN, 28);
     }
@@ -1307,10 +1363,22 @@ mod tests {
         s
     }
 
-    /// Phase 4.2 at container level: profile 2 is the default, every profile
-    /// stays decodable, and profile 2 is strictly smaller than profile 1 with
-    /// bit-identical decoded PCM (partitioned coding is a lossless re-pack).
-    #[test]
+    fn asymmetric_stereo_signal(frames: usize) -> Vec<i16> {
+        let mut rng: u32 = 0x1357_9bdf;
+        let mut s = vec![0i16; frames * 2];
+        for i in 0..frames {
+            rng = rng.wrapping_mul(1664525).wrapping_add(1013904223);
+            let noise = ((rng >> 8) as f64 / (1u32 << 24) as f64 - 0.5) * 1800.0;
+            let l =
+                (i as f64 * 0.061).sin() * 13_000.0 + (i as f64 * 0.017).sin() * 5_000.0 + noise;
+            let r = (i as f64 * 0.047).sin() * 11_000.0 + (i as f64 * 0.029).sin() * 6_000.0
+                - noise * 0.7;
+            s[i * 2] = l.clamp(-32768.0, 32767.0) as i16;
+            s[i * 2 + 1] = r.clamp(-32768.0, 32767.0) as i16;
+        }
+        s
+    }
+
     /// Default encode is profile 3 (Phase 5 defaults); the explicit profile
     /// ladder stays reachable for baselines, and every profile stays decodable.
     #[test]
@@ -1322,7 +1390,10 @@ mod tests {
         let dh = Header::parse(&def).unwrap();
         assert_eq!(dh.profile_id, PROFILE_PHASE5);
         assert_eq!(dh.encoder_revision, ENCODER_REVISION);
-        assert_eq!(dh.flags, 5, "default flags: joint stereo + window switching");
+        assert_eq!(
+            dh.flags, 5,
+            "default flags: joint stereo + window switching"
+        );
         assert_eq!(
             def,
             encode_with_options(
@@ -1354,13 +1425,29 @@ mod tests {
             PROFILE_PARTITIONED_COEFFS,
         ] {
             let enc = encode_with_profile(&s, 2, Preset::High, SR, p).unwrap();
-            assert_eq!(decode(&enc).unwrap().len(), s.len(), "profile {p} must decode");
+            assert_eq!(
+                decode(&enc).unwrap().len(),
+                s.len(),
+                "profile {p} must decode"
+            );
         }
         assert!(encode_with_profile(&s, 2, Preset::High, SR, 7).is_err());
     }
 
     /// Phase 4.3 headline: ABR hits the ladder with protect islands consuming
     /// budget ahead of the MDCT pool, and islands stay sample-exact.
+    #[test]
+    fn protect_budget_charges_framing_once() {
+        let total = 10_000usize;
+        let units = 7usize;
+        let protect_payload = 1_234usize;
+        let framing = HEADER_LEN + units * (UNIT_PREFIX_LEN + UNIT_CRC_LEN);
+        assert_eq!(
+            mdct_pool_for_target(total, units, protect_payload),
+            total - framing - protect_payload,
+        );
+    }
+
     #[test]
     fn abr_ladder_hits_targets_with_protect_consuming_budget() {
         let frames = SR as usize * 6;
@@ -1386,7 +1473,11 @@ mod tests {
                 mix.protected_byte_pct(),
                 enc.len()
             );
-            assert!(err <= 0.03, "ABR {kbps} off by {:.1}% (bar: ±3%)", err * 100.0);
+            assert!(
+                err <= 0.03,
+                "ABR {kbps} off by {:.1}% (bar: ±3%)",
+                err * 100.0
+            );
             // Protect islands stay sample-exact under rate control.
             let dec = decode(&enc).unwrap();
             let mut frame = 0usize;
@@ -1394,7 +1485,11 @@ mod tests {
                 if matches!(unit.tag, TAG_LOSSLESS | TAG_BAND) {
                     let a = frame * 2;
                     let b = a + unit.n_frames * 2;
-                    assert_eq!(&dec[a..b], &s[a..b], "protect island not sample-exact at {kbps}");
+                    assert_eq!(
+                        &dec[a..b],
+                        &s[a..b],
+                        "protect island not sample-exact at {kbps}"
+                    );
                 }
                 frame += unit.n_frames;
             }
@@ -1408,6 +1503,75 @@ mod tests {
     }
 
     #[test]
+    fn abr128_shipping_policy_matches_the_calibrated_path() {
+        let s = loud_quiet_loud_signal(SR as usize * 2, 2);
+        let rate = RateMode::Abr { kbps: 128 };
+        let actual = encode_with_rate(&s, 2, Preset::High, SR, rate).unwrap();
+        let expected = encode_with_options(
+            &s,
+            2,
+            Preset::High,
+            ProtectParams::widened(ABR_128_PROTECT_SCALE),
+            SR,
+            rate,
+            EncodeOptions {
+                profile_id: DEFAULT_PROFILE,
+                joint_stereo: true,
+                window_switching: true,
+                psycho: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(actual, expected);
+
+        let h = Header::parse(&actual).unwrap();
+        assert_eq!(Flags::parse(h.flags, h.profile_id).unwrap().window_mode, 1);
+    }
+
+    /// Regression: rated joint-stereo encodes must not starve the second
+    /// channel. The shared reservoir's bisection maximizes spend up to budget,
+    /// so without a per-channel share the first channel consumed the entire
+    /// pair allowance and the second decoded at ~1 dB SNR (measured on a real
+    /// 48 kHz track at ABR 192: ch0 24.9 dB, ch1 1.1 dB before the fix). The
+    /// ladder test above never caught it because it asserted size, not
+    /// per-channel quality.
+    #[test]
+    fn abr_joint_stereo_keeps_channels_balanced() {
+        let frames = SR as usize * 6;
+        let s = asymmetric_stereo_signal(frames);
+        assert!(s.chunks_exact(2).any(|frame| frame[0] != frame[1]));
+        let enc = encode_with_rate(&s, 2, Preset::High, SR, RateMode::Abr { kbps: 192 }).unwrap();
+        let dec = decode(&enc).unwrap();
+        assert_eq!(dec.len(), s.len());
+        let mut snr = [0.0f64; 2];
+        for (ch, slot) in snr.iter_mut().enumerate() {
+            let mut sig = 0f64;
+            let mut err = 0f64;
+            for i in (ch..s.len()).step_by(2) {
+                sig += (s[i] as f64) * (s[i] as f64);
+                let d = s[i] as f64 - dec[i] as f64;
+                err += d * d;
+            }
+            *slot = 10.0 * (sig / err.max(1e-9)).log10();
+        }
+        eprintln!(
+            "ABR192 joint channel SNR: L {:.2} dB, R {:.2} dB",
+            snr[0], snr[1]
+        );
+        assert!(
+            snr[0].min(snr[1]) >= 10.0,
+            "a channel starved: L {:.2} / R {:.2} dB (floor 10 dB)",
+            snr[0],
+            snr[1]
+        );
+        assert!(
+            (snr[0] - snr[1]).abs() <= 6.0,
+            "channel imbalance {:.2} dB (bar: 6 dB)",
+            (snr[0] - snr[1]).abs()
+        );
+    }
+
+    #[test]
     fn cbr_ladder_hits_targets_at_container_level() {
         let frames = SR as usize * 6;
         let s = loud_quiet_loud_signal(frames, 2);
@@ -1416,8 +1580,15 @@ mod tests {
             let enc = encode_with_rate(&s, 2, Preset::High, SR, RateMode::Cbr { kbps }).unwrap();
             let achieved = enc.len() as f64 * 8.0 / 1000.0 / seconds;
             let err = (achieved - kbps as f64).abs() / kbps as f64;
-            eprintln!("PHASE4.3 c6 cbr {kbps}: achieved {achieved:.1} kbps ({:.2}% off)", err * 100.0);
-            assert!(err <= 0.03, "CBR {kbps} off by {:.1}% (bar: ±3%)", err * 100.0);
+            eprintln!(
+                "PHASE4.3 c6 cbr {kbps}: achieved {achieved:.1} kbps ({:.2}% off)",
+                err * 100.0
+            );
+            assert!(
+                err <= 0.03,
+                "CBR {kbps} off by {:.1}% (bar: ±3%)",
+                err * 100.0
+            );
         }
     }
 
@@ -1556,10 +1727,7 @@ mod tests {
     fn joint_stereo_requires_profile_3_and_stereo() {
         let s = mixed_signal(UNIT_SIZE_FRAMES * 4, 2);
         let mono: Vec<i16> = s.iter().step_by(2).copied().collect();
-        for (profile, ch, samples) in [
-            (2u8, 2u8, s.clone()),
-            (3u8, 1u8, mono),
-        ] {
+        for (profile, ch, samples) in [(2u8, 2u8, s.clone()), (3u8, 1u8, mono)] {
             assert!(
                 encode_with_options(
                     &samples,
@@ -1952,7 +2120,11 @@ mod tests {
                 "PHASE5.2 c6 windowed abr {kbps}: achieved {achieved:.1} kbps ({:.2}% off)",
                 err * 100.0
             );
-            assert!(err <= 0.03, "windowed ABR {kbps} off by {:.1}%", err * 100.0);
+            assert!(
+                err <= 0.03,
+                "windowed ABR {kbps} off by {:.1}%",
+                err * 100.0
+            );
         }
     }
 
@@ -1992,7 +2164,11 @@ mod tests {
                 err * 100.0,
                 enc.len()
             );
-            assert!(err <= 0.03, "full-stack ABR {kbps} off by {:.1}%", err * 100.0);
+            assert!(
+                err <= 0.03,
+                "full-stack ABR {kbps} off by {:.1}%",
+                err * 100.0
+            );
             let dec = decode(&enc).unwrap();
             assert_eq!(dec.len(), s.len());
             // Protect islands stay sample-exact under the full stack.
@@ -2045,7 +2221,10 @@ mod tests {
             "PHASE5.3 c6 full-stack nmr: max {:.2} dB trimmed {:.2} dB",
             report.max_nmr_db, report.trimmed_max_nmr_db
         );
-        assert!(report.trimmed_max_nmr_db < 8.0, "full-stack NMR out of bounds");
+        assert!(
+            report.trimmed_max_nmr_db < 8.0,
+            "full-stack NMR out of bounds"
+        );
     }
 
     #[test]
@@ -2079,7 +2258,10 @@ mod tests {
         let c1 = mp5c::encode(&s, 2, Preset::High);
 
         assert!(mp5c2::decode(&c6).is_err(), "C2 must reject a C6 stream");
-        assert!(mp5c::decode(&c6).is_err(), "classic must reject a C6 stream");
+        assert!(
+            mp5c::decode(&c6).is_err(),
+            "classic must reject a C6 stream"
+        );
         assert!(decode(&c2).is_err(), "C6 must reject a C2 stream");
         assert!(decode(&c1).is_err(), "C6 must reject a classic stream");
         assert!(
@@ -2178,7 +2360,7 @@ mod tests {
         let s = mixed_signal(UNIT_SIZE_FRAMES * 4, 2);
         let mut enc = encode(&s, 2, Preset::High, SR).unwrap();
         // Rewrite total_frames and repair the header CRC: the unit walk must still catch it.
-        enc[8..12].copy_from_slice(&(UNIT_SIZE_FRAMES as u32 * 99).to_le_bytes());
+        enc[8..12].copy_from_slice(&u32::MAX.to_le_bytes());
         let crc = crc32(&enc[..HEADER_LEN - 4]);
         enc[24..28].copy_from_slice(&crc.to_le_bytes());
         assert!(Header::parse(&enc).is_ok(), "CRC repaired");
@@ -2231,11 +2413,7 @@ mod tests {
     }
 
     fn payload_len(stream: &[u8]) -> usize {
-        u32::from_le_bytes(
-            stream[HEADER_LEN + 5..HEADER_LEN + 9]
-                .try_into()
-                .unwrap(),
-        ) as usize
+        u32::from_le_bytes(stream[HEADER_LEN + 5..HEADER_LEN + 9].try_into().unwrap()) as usize
     }
 
     #[test]
@@ -2395,7 +2573,10 @@ mod tests {
                 "boundary error spike: {boundary_err:.1} vs interior {inner_err:.1} — zero-ramp artifact present"
             );
         }
-        assert!(boundaries > 0, "fixture must contain protect↔MDCT boundaries");
+        assert!(
+            boundaries > 0,
+            "fixture must contain protect↔MDCT boundaries"
+        );
     }
 
     /// Direct proof that context seeding is what removes the ramp: encode one

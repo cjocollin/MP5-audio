@@ -6,10 +6,10 @@
 //! go criteria, a future `TAG_LOSSY` payload replacement.
 
 pub mod mdct;
-pub mod psycho;
-pub mod windows;
 mod pack;
+pub mod psycho;
 pub mod scalefactors;
+pub mod windows;
 
 use crate::mp5c::Preset;
 use crate::pcm;
@@ -104,6 +104,8 @@ pub struct EncodeParams {
     /// Phase 5.2 window switching (long/start/short/stop block sequence).
     /// Requires coded scalefactors; replaces `transient_tighten`.
     pub windowed: bool,
+    /// Energy surge required to open a short-block episode.
+    pub window_attack_ratio: f32,
     /// Phase 5.3 psychoacoustic step allocation (ATH / spreading / tonality /
     /// temporal masking). Encoder-side only — steps are written, so the
     /// bitstream is unchanged.
@@ -121,6 +123,7 @@ impl EncodeParams {
             rate,
             stereo: StereoMode::Independent,
             windowed: false,
+            window_attack_ratio: 8.0,
             psycho: false,
             sample_rate: 0,
         }
@@ -138,6 +141,7 @@ impl EncodeParams {
             rate,
             stereo,
             windowed: false,
+            window_attack_ratio: 8.0,
             psycho: false,
             sample_rate: 0,
         }
@@ -156,6 +160,7 @@ impl EncodeParams {
             rate,
             stereo,
             windowed,
+            window_attack_ratio: 8.0,
             psycho: false,
             sample_rate: 0,
         }
@@ -165,6 +170,11 @@ impl EncodeParams {
     pub const fn with_psycho(mut self, sample_rate: u32) -> Self {
         self.psycho = true;
         self.sample_rate = sample_rate;
+        self
+    }
+
+    pub const fn with_window_attack_ratio(mut self, ratio: f32) -> Self {
+        self.window_attack_ratio = ratio;
         self
     }
 
@@ -335,6 +345,73 @@ fn passage_of(frame_e: f32, preset: Preset) -> Passage {
 /// hold few big coefficients.
 const QUIET_NF_LIFT: f32 = 0.5; // +6 dB SNR in quiet frames
 
+/// Rated-path spectral tilt: under a byte budget, bands at/above the tilt
+/// start run progressively coarser (+`db` per band), freeing HF bits for the
+/// mid/low content the ear actually resolves at low rates — the deterministic
+/// poor-man's version of what the psycho model's spreading kept over-claiming
+/// (measured: any psycho cap release is net-negative on SNR; this tilt is
+/// +0.3 dB SNR and +2 dB quieter dips at ABR 192 on a real track).
+/// `C6_TILT_START` / `C6_TILT_DB` env overrides for tuning sweeps.
+const TILT_START_BAND: usize = 16; // ≈ 6 kHz at long blocks
+const TILT_DB_PER_BAND: f32 = 1.0;
+
+fn tilt_override() -> (usize, f32) {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<(usize, f32)> = OnceLock::new();
+    *CACHE.get_or_init(|| {
+        let s = std::env::var("C6_TILT_START")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(TILT_START_BAND);
+        let d = std::env::var("C6_TILT_DB")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(TILT_DB_PER_BAND);
+        (s, d)
+    })
+}
+
+/// Extra tilt for the side channel of a rated joint encode (`C6_SIDE_TILT_*`).
+/// At low rates the side's fine HF structure is near-inaudible direction
+/// information; MP3 128 gets the same saving from intensity stereo.
+fn side_tilt_override() -> (usize, f32) {
+    use std::sync::OnceLock;
+    static CACHE: OnceLock<(usize, f32)> = OnceLock::new();
+    *CACHE.get_or_init(|| {
+        let s = std::env::var("C6_SIDE_TILT_START")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(12);
+        let d = std::env::var("C6_SIDE_TILT_DB")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0.0);
+        (s, d)
+    })
+}
+
+fn tilt_steps(steps: &[f32], n_coeffs: usize) -> Vec<f32> {
+    let (start, db) = tilt_override();
+    if db == 0.0 {
+        return steps.to_vec();
+    }
+    tilt_by(steps, n_coeffs, start, db)
+}
+
+fn tilt_by(steps: &[f32], n_coeffs: usize, start: usize, db: f32) -> Vec<f32> {
+    if db == 0.0 {
+        return steps.to_vec();
+    }
+    let bounds = band_bounds(n_coeffs);
+    let mut out = steps.to_vec();
+    for (bi, _) in bounds.iter().enumerate() {
+        if bi >= start {
+            out[bi] *= 10f32.powf(db * (bi + 1 - start) as f32 / 20.0);
+        }
+    }
+    out
+}
+
 /// Low-preset bandwidth cap (low-rate lowpass, the MP3 128/192 trick): bands
 /// at or above the cap get a step so coarse that quiet HF content rounds to
 /// zero — near-free under the partitioned pack's zero-runs — while loud HF
@@ -360,7 +437,11 @@ fn preset_band_cap(preset: Preset) -> usize {
 fn band_cap_override() -> Option<usize> {
     use std::sync::OnceLock;
     static CACHE: OnceLock<Option<usize>> = OnceLock::new();
-    *CACHE.get_or_init(|| std::env::var("C6_BAND_CAP").ok().and_then(|v| v.parse().ok()))
+    *CACHE.get_or_init(|| {
+        std::env::var("C6_BAND_CAP")
+            .ok()
+            .and_then(|v| v.parse().ok())
+    })
 }
 
 fn band_steps(coeffs: &[f32], preset: Preset) -> Vec<f32> {
@@ -497,7 +578,8 @@ impl PsyState {
     /// `advance_ms` is the record duration in milliseconds.
     fn advance(&mut self, frame_e: f32, advance_ms: f32) {
         let surge = self.prev_e > 1e-8 && frame_e > self.prev_e * 6.0;
-        self.long.advance_temporal(&mut self.temporal, surge, advance_ms);
+        self.long
+            .advance_temporal(&mut self.temporal, surge, advance_ms);
         self.prev_e = frame_e;
     }
 }
@@ -507,11 +589,7 @@ impl PsyState {
 /// rate control) is unchanged — the psycho model only chooses steps.
 /// (The legacy quality-floor cap lives inside `PsyState::steps_basic` so the
 /// windowed L/R call sites get it too.)
-fn derive_steps(
-    coeffs: &[f32],
-    preset: Preset,
-    psy: Option<&PsyState>,
-) -> Vec<f32> {
+fn derive_steps(coeffs: &[f32], preset: Preset, psy: Option<&PsyState>) -> Vec<f32> {
     match psy {
         Some(p) => p.steps_basic(coeffs, preset),
         None => band_steps(coeffs, preset),
@@ -537,7 +615,11 @@ fn derive_steps_floored(
 /// applied (1.0 = no tightening) and the frame energy for the next hop.
 fn tighten_factor(frame: &[f32], prev_e: f32) -> (f32, f32) {
     let e: f32 = frame.iter().map(|x| x * x).sum::<f32>() / frame.len().max(1) as f32;
-    let factor = if prev_e > 1e-8 && e > prev_e * 6.0 { 0.55 } else { 1.0 };
+    let factor = if prev_e > 1e-8 && e > prev_e * 6.0 {
+        0.55
+    } else {
+        1.0
+    };
     (factor, e)
 }
 
@@ -646,9 +728,10 @@ fn rate_limited_candidate(
         let mid = (lo * hi).sqrt();
         let cand = estimate(mid);
         if (cand.total_bytes() as f64) <= budget_bytes {
-            if cand.total_bytes() > best.total_bytes() {
-                best = cand;
-            }
+            // Each fitting midpoint becomes the new upper bound, so it is
+            // finer than every prior fit. Entropy size is not monotonic with
+            // quantizer step; packet size must not override that quality order.
+            best = cand;
             hi = mid;
         } else {
             lo = mid;
@@ -672,10 +755,37 @@ struct Reservoir {
     floor: f64,
 }
 
+/// Base-quality (multiplier = 1) record-size estimate for one channel, used to
+/// split a rated pair's budget between channels by content. Mirrors the
+/// candidate estimator's structure: snap steps (coded syntax), quantize
+/// against the reconstructed steps, estimate the pack length.
+fn base_pack_estimate(coeffs: &[f32], base_steps: &[f32], params: &EncodeParams) -> f64 {
+    match params.sf {
+        SfMode::RawF32 => {
+            let q = quantize_with_steps(coeffs, base_steps);
+            (1 + base_steps.len() * 4 + 4 + pack::packed_len_estimate(&q, params.coeffs)) as f64
+        }
+        SfMode::Coded => {
+            let (idx, rec) = scalefactors::snap_steps(base_steps);
+            let blob = scalefactors::encode_deltas(&idx);
+            let q = quantize_with_steps(coeffs, &rec);
+            (5 + blob.len() + 4 + pack::packed_len_estimate(&q, params.coeffs)) as f64
+        }
+    }
+}
+
 /// Select the step multiplier for one hop (rate-controlled bisection, VBR
 /// index, or 1.0) and return the winning candidate. Shared by the
 /// single-channel and joint-stereo paths; `overhead` is per-hop bytes charged
 /// to the reservoir accounting but emitted elsewhere (joint-stereo bitmap).
+///
+/// `budget_share` (joint-stereo rated paths): caps this channel's bisection
+/// budget at that fraction of the post-deposit reservoir balance. Without it
+/// the bisection — which maximizes spend up to budget — hands the first
+/// channel the entire pair allowance and the second channel starves at
+/// MIN_FRAME_BYTES (measured: ch0 24.9 dB vs ch1 1.1 dB SNR on a real track
+/// at ABR 192). The second channel runs uncapped so it can use the first
+/// channel's slack.
 fn select_hop_candidate(
     coeffs: &[f32],
     base_steps: &[f32],
@@ -683,7 +793,27 @@ fn select_hop_candidate(
     reservoir: &mut Option<Reservoir>,
     overhead: usize,
     deposit: f64,
+    budget_share: Option<f64>,
+    side_tilt: bool,
 ) -> HopCandidate {
+    // Rated paths only: tilt base steps HF-coarser before the candidate loop.
+    // The snapped steps written to the stream reflect the tilt, so encoder
+    // and decoder stay on one scale. The side channel of a joint pair may
+    // carry an additional, steeper tilt (cheap intensity-stereo effect).
+    let tilted;
+    let base_steps: &[f32] = if reservoir.is_some() {
+        let t = tilt_steps(base_steps, coeffs.len());
+        if side_tilt {
+            let (ss, sd) = side_tilt_override();
+            tilted = tilt_by(&t, coeffs.len(), ss, sd);
+            &tilted
+        } else {
+            tilted = t;
+            &tilted
+        }
+    } else {
+        base_steps
+    };
     // Saturation guard: never pick a step multiplier fine enough to push
     // a quantized coefficient past the i16 wire range. A clamped value
     // decodes to `32767 * step`, an error far larger than the step the
@@ -766,7 +896,12 @@ fn select_hop_candidate(
     match reservoir {
         Some(r) => {
             r.balance = (r.balance + deposit).min(r.cap);
-            let budget_bytes = r.balance.max(MIN_FRAME_BYTES);
+            let mut budget_bytes = r.balance.max(MIN_FRAME_BYTES);
+            if let Some(share) = budget_share {
+                // Cap this channel at its content-derived share of the pair's
+                // budget so the sibling channel is not starved.
+                budget_bytes = budget_bytes.min((r.balance * share).max(MIN_FRAME_BYTES));
+            }
             let cand = rate_limited_candidate(budget_bytes, sat_floor, &estimate_candidate);
             r.balance = (r.balance - cand.total_bytes() as f64).max(-r.floor);
             materialize(cand)
@@ -828,7 +963,16 @@ fn encode_channel(
         }
 
         let deposit = reservoir.as_ref().map_or(0.0, |r| r.allowance_next);
-        let candidate = select_hop_candidate(&coeffs, &steps, &params, &mut reservoir, 0, deposit);
+        let candidate = select_hop_candidate(
+            &coeffs,
+            &steps,
+            &params,
+            &mut reservoir,
+            0,
+            deposit,
+            None,
+            false,
+        );
 
         out.extend(&candidate.side);
         out.extend(&(candidate.packed.len() as u32).to_le_bytes());
@@ -872,8 +1016,7 @@ fn read_hop_record(
                 return Err("truncated mp5c3 coded scalefactor header".into());
             }
             let gain = i16::from_le_bytes(data[pos..pos + 2].try_into().unwrap()) as i32;
-            let blob_len =
-                u16::from_le_bytes(data[pos + 2..pos + 4].try_into().unwrap()) as usize;
+            let blob_len = u16::from_le_bytes(data[pos + 2..pos + 4].try_into().unwrap()) as usize;
             pos += 4;
             if pos + blob_len > data.len() {
                 return Err("truncated mp5c3 coded scalefactor blob".into());
@@ -891,14 +1034,8 @@ fn read_hop_record(
     if pos + plen > data.len() {
         return Err("truncated mp5c3 pack".into());
     }
-    let q = unpack_coeffs(&data[pos..pos + plen])?;
+    let q = unpack_coeffs(&data[pos..pos + plen], expect_coeffs)?;
     pos += plen;
-    if q.len() != expect_coeffs {
-        return Err(format!(
-            "mp5c3 coeff count {} != {expect_coeffs}",
-            q.len()
-        ));
-    }
     Ok((steps, q, pos))
 }
 
@@ -1165,11 +1302,18 @@ fn decide_joint_bands(
                 continue; // stay L/R — M/S would degrade the image here
             }
         }
-        let cost_lr = pack_coeffs_mode(&quantize_band_slice(&coeffs_l[bs..be], rec_l[0]), coeff_mode)
+        let cost_lr = pack_coeffs_mode(
+            &quantize_band_slice(&coeffs_l[bs..be], rec_l[0]),
+            coeff_mode,
+        )
+        .len()
+            + pack_coeffs_mode(
+                &quantize_band_slice(&coeffs_r[bs..be], rec_r[0]),
+                coeff_mode,
+            )
+            .len();
+        let cost_ms = pack_coeffs_mode(&quantize_band_slice(&m[bs..be], rec_m[0]), coeff_mode)
             .len()
-            + pack_coeffs_mode(&quantize_band_slice(&coeffs_r[bs..be], rec_r[0]), coeff_mode)
-                .len();
-        let cost_ms = pack_coeffs_mode(&quantize_band_slice(&m[bs..be], rec_m[0]), coeff_mode).len()
             + pack_coeffs_mode(&quantize_band_slice(&s[bs..be], rec_s[0]), coeff_mode).len();
         cost_lr_tot += cost_lr;
         if cost_ms < cost_lr {
@@ -1241,7 +1385,11 @@ fn encode_channel_pair(
     params: EncodeParams,
     budget: Option<(usize, BudgetMode)>,
 ) -> Vec<u8> {
-    debug_assert_eq!(params.sf, SfMode::Coded, "joint stereo requires coded scalefactors");
+    debug_assert_eq!(
+        params.sf,
+        SfMode::Coded,
+        "joint stereo requires coded scalefactors"
+    );
     debug_assert_eq!(samples_l.len(), samples_r.len());
     let mut out = Vec::new();
     let mut pos = 0usize;
@@ -1289,10 +1437,8 @@ fn encode_channel_pair(
         let (steps_l, steps_r, tighten_min) = if let Some(psy) = psy_state.as_mut() {
             let sl = psy.steps_basic_floored(&coeffs_l, preset, passage);
             let sr_ = psy.steps_basic_floored(&coeffs_r, preset, passage);
-            let el: f32 =
-                frame_l.iter().map(|x| x * x).sum::<f32>() / frame_l.len().max(1) as f32;
-            let er: f32 =
-                frame_r.iter().map(|x| x * x).sum::<f32>() / frame_r.len().max(1) as f32;
+            let el: f32 = frame_l.iter().map(|x| x * x).sum::<f32>() / frame_l.len().max(1) as f32;
+            let er: f32 = frame_r.iter().map(|x| x * x).sum::<f32>() / frame_r.len().max(1) as f32;
             prev_el = el;
             prev_er = er;
             (sl, sr_, 1.0f32)
@@ -1329,18 +1475,43 @@ fn encode_channel_pair(
         );
         if let Some(psy) = psy_state.as_mut() {
             // One temporal advance per frame, shared by both channels/bases.
-            let el: f32 =
-                frame_l.iter().map(|x| x * x).sum::<f32>() / frame_l.len().max(1) as f32;
-            let er: f32 =
-                frame_r.iter().map(|x| x * x).sum::<f32>() / frame_r.len().max(1) as f32;
+            let el: f32 = frame_l.iter().map(|x| x * x).sum::<f32>() / frame_l.len().max(1) as f32;
+            let er: f32 = frame_r.iter().map(|x| x * x).sum::<f32>() / frame_r.len().max(1) as f32;
             let ms = HOP as f32 / psy.long.sample_rate().max(1) as f32 * 1000.0;
             psy.advance(el + er, ms);
         }
         // The bitmap's 4 bytes are charged to the left channel's accounting;
         // the pair deposits its allowance once, on the first candidate.
         let deposit = shared_res.as_ref().map_or(0.0, |r| r.allowance_next);
-        let cand_l = select_hop_candidate(&decision.coded[0], &decision.steps[0], &params, &mut shared_res, 4, deposit);
-        let cand_r = select_hop_candidate(&decision.coded[1], &decision.steps[1], &params, &mut shared_res, 0, 0.0);
+        // Rated pairs: split the hop budget by content so the bisection cannot
+        // hand the whole pair allowance to the first channel.
+        let share_l = if shared_res.is_some() {
+            let el = base_pack_estimate(&decision.coded[0], &decision.steps[0], &params);
+            let er = base_pack_estimate(&decision.coded[1], &decision.steps[1], &params);
+            Some(((el / (el + er).max(1e-9)).clamp(0.15, 0.85)) as f64)
+        } else {
+            None
+        };
+        let cand_l = select_hop_candidate(
+            &decision.coded[0],
+            &decision.steps[0],
+            &params,
+            &mut shared_res,
+            4,
+            deposit,
+            share_l,
+            false,
+        );
+        let cand_r = select_hop_candidate(
+            &decision.coded[1],
+            &decision.steps[1],
+            &params,
+            &mut shared_res,
+            0,
+            0.0,
+            None,
+            true,
+        );
 
         out.extend(&decision.bitmap.to_le_bytes());
         out.extend(&cand_l.side);
@@ -1369,7 +1540,7 @@ fn encode_channel_windowed(
 ) -> Vec<u8> {
     let mut padded = vec![0f32; samples.len() + LONG_LEN];
     padded[..samples.len()].copy_from_slice(samples);
-    let plan = plan_blocks(&padded[..samples.len()]);
+    let plan = plan_blocks(&padded[..samples.len()], params.window_attack_ratio);
     let total_coeffs: usize = plan.iter().map(|&(_, t)| t.coeffs()).sum();
     let ch_budget = budget.map(|(b, _)| b);
     let mut reservoir = reservoir_for(budget, plan.len());
@@ -1401,10 +1572,22 @@ fn encode_channel_windowed(
                 .get(pi + 1)
                 .map(|&(p2, _)| p2.saturating_sub(pos))
                 .unwrap_or(ty.len() / 2) as f32;
-            psy.advance(e, dur_samples / psy.long.sample_rate().max(1) as f32 * 1000.0);
+            psy.advance(
+                e,
+                dur_samples / psy.long.sample_rate().max(1) as f32 * 1000.0,
+            );
         }
         let deposit = reservoir.as_ref().map_or(0.0, |r| r.allowance_next);
-        let cand = select_hop_candidate(&coeffs, &steps, params, &mut reservoir, 0, deposit);
+        let cand = select_hop_candidate(
+            &coeffs,
+            &steps,
+            params,
+            &mut reservoir,
+            0,
+            deposit,
+            None,
+            false,
+        );
         out.push(ty as u8);
         out.extend(&cand.side);
         out.extend(&(cand.packed.len() as u32).to_le_bytes());
@@ -1424,14 +1607,20 @@ fn encode_channel_pair_windowed(
     params: &EncodeParams,
     budget: Option<(usize, BudgetMode)>,
 ) -> Vec<u8> {
-    debug_assert_eq!(params.sf, SfMode::Coded, "joint stereo requires coded scalefactors");
+    debug_assert_eq!(
+        params.sf,
+        SfMode::Coded,
+        "joint stereo requires coded scalefactors"
+    );
     debug_assert_eq!(samples_l.len(), samples_r.len());
-    // Plan on summed channel energy so transients in either channel switch both.
-    let mut summed = vec![0f32; samples_l.len()];
-    for i in 0..samples_l.len() {
-        summed[i] = samples_l[i] * samples_l[i] + samples_r[i] * samples_r[i];
-    }
-    let plan = plan_blocks(&summed);
+    // The planner consumes amplitude and computes energy itself. `hypot`
+    // preserves L²+R² after that one squaring step.
+    let planner_signal: Vec<f32> = samples_l
+        .iter()
+        .zip(samples_r)
+        .map(|(&l, &r)| l.hypot(r))
+        .collect();
+    let plan = plan_blocks(&planner_signal, params.window_attack_ratio);
     let total_coeffs: usize = plan.iter().map(|&(_, t)| t.coeffs()).sum();
     let ch_budget = budget.map(|(b, _)| b);
     let mut psy_state = if params.psycho {
@@ -1470,9 +1659,15 @@ fn encode_channel_pair_windowed(
             preset,
         );
         let (steps_l, steps_r) = if let Some(psy) = psy_state.as_mut() {
-            (psy.steps_basic_floored(&coeffs_l, preset, passage), psy.steps_basic_floored(&coeffs_r, preset, passage))
+            (
+                psy.steps_basic_floored(&coeffs_l, preset, passage),
+                psy.steps_basic_floored(&coeffs_r, preset, passage),
+            )
         } else {
-            (band_steps_floored(&coeffs_l, preset, passage), band_steps_floored(&coeffs_r, preset, passage))
+            (
+                band_steps_floored(&coeffs_l, preset, passage),
+                band_steps_floored(&coeffs_r, preset, passage),
+            )
         };
         let forced = match ty {
             BlockType::Short | BlockType::Stop => burst_bitmap,
@@ -1497,25 +1692,50 @@ fn encode_channel_pair_windowed(
         }
         if let Some(psy) = psy_state.as_mut() {
             // One temporal advance per frame, shared by both channels/bases.
-            let el: f32 =
-                frame_l.iter().map(|x| x * x).sum::<f32>() / frame_l.len().max(1) as f32;
-            let er: f32 =
-                frame_r.iter().map(|x| x * x).sum::<f32>() / frame_r.len().max(1) as f32;
+            let el: f32 = frame_l.iter().map(|x| x * x).sum::<f32>() / frame_l.len().max(1) as f32;
+            let er: f32 = frame_r.iter().map(|x| x * x).sum::<f32>() / frame_r.len().max(1) as f32;
             let dur_samples = plan
                 .get(pi + 1)
                 .map(|&(p2, _)| p2.saturating_sub(pos))
                 .unwrap_or(ty.len() / 2) as f32;
-            psy.advance(el + er, dur_samples / psy.long.sample_rate().max(1) as f32 * 1000.0);
+            psy.advance(
+                el + er,
+                dur_samples / psy.long.sample_rate().max(1) as f32 * 1000.0,
+            );
         }
-        let allow =
-            ch_budget.unwrap_or(0) as f64 * ty.coeffs() as f64 / total_coeffs.max(1) as f64;
+        let allow = ch_budget.unwrap_or(0) as f64 * ty.coeffs() as f64 / total_coeffs.max(1) as f64;
         if let Some(r) = shared_res.as_mut() {
             r.allowance_next = allow;
         }
         // Type byte + bitmap are charged to the left channel's accounting;
         // the pair deposits once, on the first candidate.
-        let cand_l = select_hop_candidate(&decision.coded[0], &decision.steps[0], params, &mut shared_res, 5, allow);
-        let cand_r = select_hop_candidate(&decision.coded[1], &decision.steps[1], params, &mut shared_res, 0, 0.0);
+        let share_l = if shared_res.is_some() {
+            let el = base_pack_estimate(&decision.coded[0], &decision.steps[0], params);
+            let er = base_pack_estimate(&decision.coded[1], &decision.steps[1], params);
+            Some(((el / (el + er).max(1e-9)).clamp(0.15, 0.85)) as f64)
+        } else {
+            None
+        };
+        let cand_l = select_hop_candidate(
+            &decision.coded[0],
+            &decision.steps[0],
+            params,
+            &mut shared_res,
+            5,
+            allow,
+            share_l,
+            false,
+        );
+        let cand_r = select_hop_candidate(
+            &decision.coded[1],
+            &decision.steps[1],
+            params,
+            &mut shared_res,
+            0,
+            0.0,
+            None,
+            true,
+        );
 
         out.push(ty as u8);
         out.extend(&decision.bitmap.to_le_bytes());
@@ -1586,9 +1806,7 @@ pub fn encode_with_context(
     // Joint streams are ONE interleaved payload: the joint budget is the whole
     // stream minus header and the single section-length field.
     let joint_budget = match params.rate {
-        RateControl::Budgeted { bytes, mode } => {
-            Some((bytes.saturating_sub(HEADER_LEN + 4), mode))
-        }
+        RateControl::Budgeted { bytes, mode } => Some((bytes.saturating_sub(HEADER_LEN + 4), mode)),
         _ => None,
     };
 
@@ -1621,11 +1839,16 @@ pub fn encode_with_context(
     if joint || windowed {
         if joint {
             let payload = if windowed {
-                encode_channel_pair_windowed(
-                    &padded[0], &padded[1], preset, &params, joint_budget,
-                )
+                encode_channel_pair_windowed(&padded[0], &padded[1], preset, &params, joint_budget)
             } else {
-                encode_channel_pair(&padded[0], &padded[1], preset, &window, params, joint_budget)
+                encode_channel_pair(
+                    &padded[0],
+                    &padded[1],
+                    preset,
+                    &window,
+                    params,
+                    joint_budget,
+                )
             };
             out.extend(&(payload.len() as u32).to_le_bytes());
             out.extend(&payload);
@@ -1669,13 +1892,13 @@ pub fn stream_syntax(data: &[u8]) -> Result<StreamSyntax, String> {
         MAGIC1_JOINT => (SfMode::Coded, true, false),
         MAGIC1_WIN => (SfMode::Coded, false, true),
         MAGIC1_JOINT_WIN => (SfMode::Coded, true, true),
-        m => {
-            return Err(format!(
-                "unknown MP5-C3 scalefactor syntax magic 0x{m:02x}"
-            ))
-        }
+        m => return Err(format!("unknown MP5-C3 scalefactor syntax magic 0x{m:02x}")),
     };
-    Ok(StreamSyntax { sf, joint, windowed })
+    Ok(StreamSyntax {
+        sf,
+        joint,
+        windowed,
+    })
 }
 
 /// Read the scalefactor syntax a stream declares, without decoding it.
@@ -1726,7 +1949,10 @@ fn decode_channel_windowed(data: &[u8], frames: usize) -> Result<Vec<f32>, Strin
 
 /// Decode a window-switched joint-stereo payload: per record a block type, a
 /// band bitmap, then both channel records; M/S bands recombine into L/R.
-fn decode_channel_pair_windowed(data: &[u8], frames: usize) -> Result<(Vec<f32>, Vec<f32>), String> {
+fn decode_channel_pair_windowed(
+    data: &[u8],
+    frames: usize,
+) -> Result<(Vec<f32>, Vec<f32>), String> {
     let mut pos = 0usize;
     #[allow(clippy::type_complexity)]
     let mut records: Vec<(BlockType, u32, Vec<f32>, Vec<i16>, Vec<f32>, Vec<i16>)> = Vec::new();
@@ -1798,7 +2024,25 @@ pub fn decode(data: &[u8]) -> Result<Vec<i16>, String> {
     let window = sine_window(N);
     let mut pos = HEADER_LEN;
     // Encoded length includes HOP pad on each side.
-    let padded_frames = frames + 2 * HOP;
+    let padded_frames = frames
+        .checked_add(2 * HOP)
+        .ok_or_else(|| "mp5c3 declared frame count overflows padded length".to_string())?;
+
+    // Fixed-window synthesis allocates from the declared frame count. Prove
+    // that the payload contains exactly that many records before allocating;
+    // otherwise a tiny stream with a forged header could request gigabytes.
+    if !syntax.windowed {
+        let expected_records = padded_frames
+            .div_ceil(HOP)
+            .checked_mul(ch)
+            .ok_or_else(|| "mp5c3 declared record count overflow".to_string())?;
+        let actual_records = record_stats(data)?.hops;
+        if actual_records != expected_records {
+            return Err(format!(
+                "mp5c3 has {actual_records} fixed-window records, expected {expected_records}"
+            ));
+        }
+    }
 
     if syntax.windowed {
         if pos + 4 > data.len() {
@@ -2225,8 +2469,7 @@ pub fn nmr_screen(
                 peak[bi] = pk;
                 noise[bi] = (nsq / (e - s).max(1) as f32).sqrt();
             }
-            let thr_db =
-                model.thresholds_db(&rms, &peak, &psycho::TemporalState::default());
+            let thr_db = model.thresholds_db(&rms, &peak, &psycho::TemporalState::default());
             let mut frame_max = f32::NEG_INFINITY;
             for (bi, &thr) in thr_db.iter().enumerate() {
                 let nmr = 20.0 * noise[bi].max(1e-12).log10() - thr;
@@ -2245,8 +2488,7 @@ pub fn nmr_screen(
             pos += HOP;
         }
     }
-    per_frame_max
-        .sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    per_frame_max.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     let keep = (per_frame_max.len() * 95 / 100).max(1);
     let trimmed = if per_frame_max.is_empty() {
         f32::NEG_INFINITY
@@ -2277,6 +2519,35 @@ mod tests {
             }
         }
         s
+    }
+
+    #[test]
+    fn rate_search_prefers_finer_candidate_over_larger_packet() {
+        let chosen = rate_limited_candidate(104.0, MULT_MIN, |mult| HopEstimate {
+            side: Vec::new(),
+            q: vec![(mult.log2() * 100.0) as i16],
+            pack_len: if mult < 0.01 {
+                101
+            } else if mult < 1.0 {
+                99
+            } else {
+                100
+            },
+            overhead: 0,
+        });
+        assert!(
+            chosen.q[0] < 0,
+            "larger packet kept a coarser candidate: {}",
+            chosen.q[0]
+        );
+    }
+
+    #[test]
+    fn fixed_window_decode_rejects_forged_frame_count_before_allocation() {
+        let samples = vec![0i16; 4096];
+        let mut encoded = encode(&samples, 1, Preset::High);
+        encoded[6..10].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(decode(&encoded).is_err());
     }
 
     #[test]
@@ -2487,20 +2758,27 @@ mod tests {
             Preset::High,
             EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Off),
         );
-        let base_snr =
-            pcm::snr_db(&pcm::i16_to_f32(&samples), &pcm::i16_to_f32(&decode(&unconstrained).unwrap()));
+        let base_snr = pcm::snr_db(
+            &pcm::i16_to_f32(&samples),
+            &pcm::i16_to_f32(&decode(&unconstrained).unwrap()),
+        );
         for target in [320u32, 192, 128] {
             let budget = bitrate_budget_bytes(target, samples.len() / 2, DENSE_SR as u32);
-            let params =
-                EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Budgeted {
+            let params = EncodeParams::new(
+                SfMode::Coded,
+                CoeffMode::Partitioned,
+                RateControl::Budgeted {
                     bytes: budget,
                     mode: BudgetMode::Abr,
-                });
+                },
+            );
             let enc = encode_with_params(&samples, 2, Preset::High, params);
             let achieved = kbps(enc.len(), seconds);
             let err = (achieved - target as f64).abs() / target as f64;
-            let snr =
-                pcm::snr_db(&pcm::i16_to_f32(&samples), &pcm::i16_to_f32(&decode(&enc).unwrap()));
+            let snr = pcm::snr_db(
+                &pcm::i16_to_f32(&samples),
+                &pcm::i16_to_f32(&decode(&enc).unwrap()),
+            );
             eprintln!(
                 "PHASE4.3 abr {target}: achieved {achieved:.1} kbps ({err:.2}% off), SNR {snr:.2} dB (base {base_snr:.2})",
                 err = err * 100.0
@@ -2526,15 +2804,21 @@ mod tests {
         let seconds = (samples.len() / 2) as f64 / DENSE_SR as f64;
         for target in [320u32, 192, 128] {
             let budget = bitrate_budget_bytes(target, samples.len() / 2, DENSE_SR as u32);
-            let params =
-                EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Budgeted {
+            let params = EncodeParams::new(
+                SfMode::Coded,
+                CoeffMode::Partitioned,
+                RateControl::Budgeted {
                     bytes: budget,
                     mode: BudgetMode::Cbr,
-                });
+                },
+            );
             let enc = encode_with_params(&samples, 2, Preset::High, params);
             let achieved = kbps(enc.len(), seconds);
             let err = (achieved - target as f64).abs() / target as f64;
-            eprintln!("PHASE4.3 cbr {target}: achieved {achieved:.1} kbps ({:.2}% off)", err * 100.0);
+            eprintln!(
+                "PHASE4.3 cbr {target}: achieved {achieved:.1} kbps ({:.2}% off)",
+                err * 100.0
+            );
             assert!(
                 err <= 0.03,
                 "CBR {target} achieved {achieved:.1} kbps, off by {:.1}% (bar: ±3%)",
@@ -2555,14 +2839,21 @@ mod tests {
                 &samples,
                 2,
                 Preset::High,
-                EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Vbr { qi }),
+                EncodeParams::new(
+                    SfMode::Coded,
+                    CoeffMode::Partitioned,
+                    RateControl::Vbr { qi },
+                ),
             );
             let snr = pcm::snr_db(&orig, &pcm::i16_to_f32(&decode(&enc).unwrap()));
             eprintln!("PHASE4.3 vbr qi={qi}: {} B, SNR {snr:.2} dB", enc.len());
             sizes.push(enc.len());
             snrs.push(snr);
         }
-        assert!(sizes[0] < sizes[1] && sizes[1] < sizes[2], "VBR size not monotone: {sizes:?}");
+        assert!(
+            sizes[0] < sizes[1] && sizes[1] < sizes[2],
+            "VBR size not monotone: {sizes:?}"
+        );
         assert!(
             snrs[0] < snrs[1] + 0.2 && snrs[1] < snrs[2] + 0.2,
             "VBR SNR not monotone: {snrs:?}"
@@ -2577,13 +2868,20 @@ mod tests {
             &samples[..DENSE_SR * 2],
             2,
             Preset::High,
-            EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Budgeted {
-                bytes: budget / 3,
-                mode: BudgetMode::Abr,
-            }),
+            EncodeParams::new(
+                SfMode::Coded,
+                CoeffMode::Partitioned,
+                RateControl::Budgeted {
+                    bytes: budget / 3,
+                    mode: BudgetMode::Abr,
+                },
+            ),
         );
         for cut in [enc.len() / 4, enc.len() / 2, enc.len() - 1] {
-            assert!(record_stats(&enc[..cut]).is_err(), "truncation at {cut} not caught");
+            assert!(
+                record_stats(&enc[..cut]).is_err(),
+                "truncation at {cut} not caught"
+            );
         }
     }
 
@@ -2608,7 +2906,8 @@ mod tests {
             rng = rng.wrapping_mul(1664525).wrapping_add(1013904223);
             let n = ((rng >> 8) as f64 / (1u32 << 24) as f64 - 0.5) * 3000.0;
             let t = i as f64;
-            let l = (t * 0.05).sin() * 9000.0 + (t * 0.013).sin() * 6000.0
+            let l = (t * 0.05).sin() * 9000.0
+                + (t * 0.013).sin() * 6000.0
                 + (t * 0.111).sin() * 2500.0
                 + n;
             let r = l * 0.92 + n * 0.05;
@@ -2640,7 +2939,9 @@ mod tests {
         let mut pos = 0usize;
         let mut out = Vec::new();
         while pos < payload.len() {
-            out.push(u32::from_le_bytes(payload[pos..pos + 4].try_into().unwrap()));
+            out.push(u32::from_le_bytes(
+                payload[pos..pos + 4].try_into().unwrap(),
+            ));
             let (_, _, p1) = read_hop_record(payload, pos + 4, SfMode::Coded, COEFFS).unwrap();
             let (_, _, p2) = read_hop_record(payload, p1, SfMode::Coded, COEFFS).unwrap();
             pos = p2;
@@ -2843,6 +3144,58 @@ mod tests {
     }
 
     #[test]
+    fn abr128_adaptive_windows_preserve_preecho() {
+        let frames = 16384;
+        let attack_at = 6000;
+        let samples = castanet_fixture(frames, attack_at);
+        let budget = bitrate_budget_bytes(128, frames, DENSE_SR as u32);
+        let params = |window_switching| {
+            let params = EncodeParams::full(
+                SfMode::Coded,
+                CoeffMode::Partitioned,
+                RateControl::Budgeted {
+                    bytes: budget,
+                    mode: BudgetMode::Abr,
+                },
+                StereoMode::JointPerBand,
+                window_switching,
+            );
+            let params = if window_switching {
+                params.with_window_attack_ratio(256.0)
+            } else {
+                params
+            };
+            params.with_psycho(DENSE_SR as u32)
+        };
+        let fixed = decode(&encode_with_params(
+            &samples,
+            2,
+            Preset::High,
+            params(false),
+        ))
+        .unwrap();
+        let switched =
+            decode(&encode_with_params(&samples, 2, Preset::High, params(true))).unwrap();
+        let fixed_pre = region_error_db(&samples, &fixed, attack_at - 1024, attack_at - 64);
+        let switched_pre = region_error_db(&samples, &switched, attack_at - 1024, attack_at - 64);
+        let fixed_nmr = nmr_screen(&samples, &fixed, 2, DENSE_SR as u32).unwrap();
+        let switched_nmr = nmr_screen(&samples, &switched, 2, DENSE_SR as u32).unwrap();
+        eprintln!(
+            "ABR128 pre-echo fixed {fixed_pre:.1} / switched {switched_pre:.1} dBFS; trimmed NMR fixed {:.2} / switched {:.2} dB",
+            fixed_nmr.trimmed_max_nmr_db, switched_nmr.trimmed_max_nmr_db,
+        );
+        assert!(
+            fixed_pre - switched_pre >= 12.0,
+            "adaptive ABR128 windows lost pre-echo protection: fixed {fixed_pre:.1}, switched {switched_pre:.1} dBFS",
+        );
+        assert!(
+            switched_nmr.trimmed_max_nmr_db < 8.0,
+            "adaptive ABR128 windows exceed the trimmed NMR reject bar: {:.2} dB",
+            switched_nmr.trimmed_max_nmr_db,
+        );
+    }
+
+    #[test]
     fn windowed_dense_music_roundtrip_and_determinism() {
         let samples = dense_music_fixture();
         let a = encode_with_params(&samples, 2, Preset::High, windowed_params());
@@ -2882,7 +3235,10 @@ mod tests {
                 true,
             ),
         );
-        assert_eq!(enc[1], 0x37, "windowed joint stream must carry the M7 magic");
+        assert_eq!(
+            enc[1], 0x37,
+            "windowed joint stream must carry the M7 magic"
+        );
         let dec = decode(&enc).unwrap();
         assert_eq!(dec.len(), samples.len());
         let corr = stereo_corr(&dec);
@@ -2921,7 +3277,10 @@ mod tests {
         );
         let achieved = kbps(enc.len(), seconds);
         let err = (achieved - 192.0).abs() / 192.0;
-        eprintln!("PHASE5.2 windowed abr 192: achieved {achieved:.1} kbps ({:.2}% off)", err * 100.0);
+        eprintln!(
+            "PHASE5.2 windowed abr 192: achieved {achieved:.1} kbps ({:.2}% off)",
+            err * 100.0
+        );
         assert!(err <= 0.03, "windowed ABR off by {:.1}%", err * 100.0);
         assert_eq!(decode(&enc).unwrap().len(), samples.len());
     }
@@ -2964,19 +3323,27 @@ mod tests {
             &samples,
             2,
             Preset::High,
-            EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Budgeted {
-                bytes: budget,
-                mode: BudgetMode::Abr,
-            }),
+            EncodeParams::new(
+                SfMode::Coded,
+                CoeffMode::Partitioned,
+                RateControl::Budgeted {
+                    bytes: budget,
+                    mode: BudgetMode::Abr,
+                },
+            ),
         );
         let psy_192 = encode_with_params(
             &samples,
             2,
             Preset::High,
-            EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Budgeted {
-                bytes: budget,
-                mode: BudgetMode::Abr,
-            })
+            EncodeParams::new(
+                SfMode::Coded,
+                CoeffMode::Partitioned,
+                RateControl::Budgeted {
+                    bytes: budget,
+                    mode: BudgetMode::Abr,
+                },
+            )
             .with_psycho(DENSE_SR as u32),
         );
         let snr_l192 = pcm::snr_db(&orig, &pcm::i16_to_f32(&decode(&legacy_192).unwrap()));
@@ -3020,12 +3387,15 @@ mod tests {
         let seconds = (samples.len() / 2) as f64 / DENSE_SR as f64;
         for target in [192u32, 128] {
             let budget = bitrate_budget_bytes(target, samples.len() / 2, DENSE_SR as u32);
-            let params =
-                EncodeParams::new(SfMode::Coded, CoeffMode::Partitioned, RateControl::Budgeted {
+            let params = EncodeParams::new(
+                SfMode::Coded,
+                CoeffMode::Partitioned,
+                RateControl::Budgeted {
                     bytes: budget,
                     mode: BudgetMode::Abr,
-                })
-                .with_psycho(DENSE_SR as u32);
+                },
+            )
+            .with_psycho(DENSE_SR as u32);
             let enc = encode_with_params(&samples, 2, Preset::High, params);
             let achieved = kbps(enc.len(), seconds);
             let err = (achieved - target as f64).abs() / target as f64;
@@ -3033,7 +3403,11 @@ mod tests {
                 "PHASE5.3 psycho abr {target}: achieved {achieved:.1} kbps ({:.2}% off)",
                 err * 100.0
             );
-            assert!(err <= 0.03, "psycho ABR {target} off by {:.1}%", err * 100.0);
+            assert!(
+                err <= 0.03,
+                "psycho ABR {target} off by {:.1}%",
+                err * 100.0
+            );
         }
     }
 

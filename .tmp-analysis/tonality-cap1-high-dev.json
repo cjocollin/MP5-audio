@@ -1,0 +1,98 @@
+{
+  "label": "tonality-cap1-high",
+  "heldOutUsed": false,
+  "rows": [
+    {
+      "id": "ex_transient_attacks",
+      "fullSnrDb": 20.75345234456794,
+      "baselineSnrDb": 20.32118214999152,
+      "improvementDb": 0.432270194576418,
+      "quietWindowSnrDb": 25.943925503754265,
+      "encoder": "bytes 127680 | 127.7 kbps | SNR 20.75 dB"
+    },
+    {
+      "id": "ex_steady_tonal",
+      "fullSnrDb": 15.583845456685932,
+      "baselineSnrDb": 14.945536873122254,
+      "improvementDb": 0.6383085835636777,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127698 | 127.7 kbps | SNR 15.58 dB"
+    },
+    {
+      "id": "ex_reverb_tails",
+      "fullSnrDb": 15.674492012608109,
+      "baselineSnrDb": 15.37548018173775,
+      "improvementDb": 0.2990118308703593,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127707 | 127.7 kbps | SNR 15.67 dB"
+    },
+    {
+      "id": "ex_wide_stereo",
+      "fullSnrDb": 14.649080293199876,
+      "baselineSnrDb": 13.90222926414392,
+      "improvementDb": 0.7468510290559571,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127706 | 127.7 kbps | SNR 14.65 dB"
+    },
+    {
+      "id": "ex_vocals",
+      "fullSnrDb": 14.573065430682636,
+      "baselineSnrDb": 13.714342585527433,
+      "improvementDb": 0.8587228451552029,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127695 | 127.7 kbps | SNR 14.57 dB"
+    },
+    {
+      "id": "ex_cymbals_hats",
+      "fullSnrDb": 16.073264841854776,
+      "baselineSnrDb": 15.704657076994057,
+      "improvementDb": 0.36860776486071956,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127702 | 127.7 kbps | SNR 16.07 dB"
+    },
+    {
+      "id": "ex_low_bitrate_stress",
+      "fullSnrDb": 12.933260755466387,
+      "baselineSnrDb": 11.956591075233064,
+      "improvementDb": 0.9766696802333232,
+      "quietWindowSnrDb": "inf",
+      "encoder": "bytes 127689 | 127.7 kbps | SNR 12.93 dB"
+    },
+    {
+      "id": "ex_applause_like",
+      "fullSnrDb": 15.107340414321385,
+      "baselineSnrDb": 14.366228008129564,
+      "improvementDb": 0.7411124061918208,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127701 | 127.7 kbps | SNR 15.11 dB"
+    },
+    {
+      "id": "ex_castanet_like",
+      "fullSnrDb": 18.053093471069953,
+      "baselineSnrDb": 17.59139699562229,
+      "improvementDb": 0.46169647544766335,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127703 | 127.7 kbps | SNR 18.05 dB"
+    },
+    {
+      "id": "ex_harpsichord_like",
+      "fullSnrDb": 15.414719347033207,
+      "baselineSnrDb": 14.31176101284869,
+      "improvementDb": 1.1029583341845175,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127709 | 127.7 kbps | SNR 15.41 dB"
+    },
+    {
+      "id": "ex_sparse_quiet",
+      "fullSnrDb": 15.611384209705735,
+      "baselineSnrDb": 14.566692356917176,
+      "improvementDb": 1.0446918527885583,
+      "quietWindowSnrDb": null,
+      "encoder": "bytes 127715 | 127.7 kbps | SNR 15.61 dB"
+    }
+  ],
+  "meanImprovementDb": 0.6973546360843834,
+  "medianImprovementDb": 0.7411124061918208,
+  "improvedRows": 11,
+  "regressedRows": 0
+}

@@ -36,8 +36,6 @@ const LOUD_BAND_SNR_FLOOR_DB: f32 = 22.0;
 /// tonal bands need much more.
 const TONAL_BAND_SNR_FLOOR_DB: f32 = 40.0;
 
-
-
 /// Absolute threshold of hearing in dB SPL (Terhardt approximation).
 fn ath_db_spl(freq_hz: f32) -> f32 {
     let f = (freq_hz / 1000.0).max(0.01);
@@ -50,6 +48,17 @@ fn bark(freq_hz: f32) -> f32 {
     (26.81 * f) / (1960.0 + f) - 0.53
 }
 
+/// Peak-energy concentration normalized for band width: 0 for equal energy
+/// in every coefficient, 1 when one coefficient holds the whole band.
+fn tonality(rms: f32, peak: f32, n: usize) -> f32 {
+    if n <= 1 {
+        return 0.0;
+    }
+    let flat = 1.0 / n as f32;
+    let concentration = peak * peak / (rms * rms * n as f32).max(1e-24);
+    ((concentration - flat) / (1.0 - flat)).clamp(0.0, 1.0)
+}
+
 /// Precomputed per-band geometry and hearing floor for one frame size/rate.
 #[derive(Clone, Debug)]
 pub struct PsychoModel {
@@ -58,6 +67,8 @@ pub struct PsychoModel {
     band_hz: Vec<f32>,
     /// Band center barks.
     band_bark: Vec<f32>,
+    /// Coefficients per band (quadratic bands vary from 1 to dozens).
+    band_len: Vec<usize>,
     /// ATH per band in dBFS (allowed noise level with no maskers).
     ath_dbfs: Vec<f32>,
     /// Threshold floor in dBFS — anchored to the encoder's own step floor so
@@ -77,10 +88,16 @@ impl PsychoModel {
     /// Build the model for one sample rate and frame coefficient count.
     /// `floor_step` is the codec's own step floor (`quiet_floor(preset)`);
     /// the model's threshold floor tracks it exactly.
-    pub fn new(sample_rate: u32, n_coeffs: usize, band_edges: &[(usize, usize)], floor_step: f32) -> Self {
+    pub fn new(
+        sample_rate: u32,
+        n_coeffs: usize,
+        band_edges: &[(usize, usize)],
+        floor_step: f32,
+    ) -> Self {
         let sr = if sample_rate == 0 { 44100 } else { sample_rate } as f32;
         let mut band_hz = Vec::with_capacity(band_edges.len());
         let mut band_bark = Vec::with_capacity(band_edges.len());
+        let mut band_len = Vec::with_capacity(band_edges.len());
         let mut ath_dbfs = Vec::with_capacity(band_edges.len());
         for &(s, e) in band_edges {
             let mid = (s + e) as f32 * 0.5;
@@ -90,6 +107,7 @@ impl PsychoModel {
             let b = bark(hz);
             band_hz.push(hz);
             band_bark.push(b);
+            band_len.push((e - s).max(1));
             ath_dbfs.push(ath_db_spl(hz) - FULL_SCALE_DB_SPL);
         }
         let floor_db = 20.0 * (floor_step.max(1e-12) / 12.0f32.sqrt()).log10();
@@ -97,6 +115,7 @@ impl PsychoModel {
             sample_rate: if sample_rate == 0 { 44100 } else { sample_rate },
             band_hz,
             band_bark,
+            band_len,
             ath_dbfs,
             floor_db,
         }
@@ -107,7 +126,12 @@ impl PsychoModel {
     }
 
     /// Per-band masking thresholds in **dBFS** (allowed noise level per band).
-    pub fn thresholds_db(&self, band_rms: &[f32], band_peak: &[f32], temporal: &TemporalState) -> Vec<f32> {
+    pub fn thresholds_db(
+        &self,
+        band_rms: &[f32],
+        band_peak: &[f32],
+        temporal: &TemporalState,
+    ) -> Vec<f32> {
         let nb = self.band_hz.len();
         debug_assert_eq!(band_rms.len(), nb);
         // Band levels in dBFS.
@@ -117,10 +141,10 @@ impl PsychoModel {
             let rms = band_rms[b].max(1e-12);
             // Band level in dBFS (coefficient RMS of 1.0 = 0 dBFS = 96 dB SPL).
             level[b] = 20.0 * rms.log10();
-            // Tonality from peak/RMS: a tonal band's energy concentrates in a
-            // few coefficients.
-            let ratio = band_peak[b].max(1e-12) / rms;
-            tonal[b] = ((ratio - 1.5) / 4.0).clamp(0.0, 1.0);
+            // Normalize peak concentration by band width. Raw peak/RMS rises
+            // with coefficient count even for noise, which made this codec's
+            // wide HF bands look more tonal than narrow LF bands.
+            tonal[b] = tonality(rms, band_peak[b].max(1e-12), self.band_len[b]);
         }
 
         // Global masking curve: max over maskers i of (L_i + spread(i->j) - offset_i).
@@ -176,7 +200,12 @@ impl PsychoModel {
     /// `band_rms` / `band_peak` are measured on the (scaled) MDCT coefficients
     /// by the caller; `temporal.boost_db` is the running post-transient
     /// allowance, advanced by [`PsychoModel::advance_temporal`].
-    pub fn thresholds(&self, band_rms: &[f32], band_peak: &[f32], temporal: &TemporalState) -> Vec<f32> {
+    pub fn thresholds(
+        &self,
+        band_rms: &[f32],
+        band_peak: &[f32],
+        temporal: &TemporalState,
+    ) -> Vec<f32> {
         // Rounding-quantizer noise RMS is step/sqrt(12), so
         // step = sqrt(12) * 10^(thr/20).
         let sqrt12 = 12.0f32.sqrt();
@@ -204,7 +233,6 @@ impl PsychoModel {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -229,7 +257,18 @@ mod tests {
         let mid = ath_db_spl(3500.0);
         let high = ath_db_spl(15000.0);
         assert!(mid < low, "ATH at 3.5kHz {mid} should be below 100Hz {low}");
-        assert!(mid < high, "ATH at 3.5kHz {mid} should be below 15kHz {high}");
+        assert!(
+            mid < high,
+            "ATH at 3.5kHz {mid} should be below 15kHz {high}"
+        );
+    }
+
+    #[test]
+    fn tonality_is_band_width_normalized() {
+        for n in [2usize, 8, 64] {
+            assert!(tonality(1.0 / (n as f32).sqrt(), 1.0, n) > 0.999);
+            assert_eq!(tonality(1.0, 1.0, n), 0.0);
+        }
     }
 
     #[test]
@@ -245,9 +284,24 @@ mod tests {
         // Lower-side neighbors of the loud band must show a masking benefit
         // over distant bands; the immediate upper neighbor legitimately hits
         // the codec noise floor on this fixture (upper slope is steeper).
-        assert!(thr[3] > thr[20], "band 3 thr {} should exceed band 20 {}", thr[3], thr[20]);
-        assert!(thr[4] > thr[20], "band 4 thr {} should exceed band 20 {}", thr[4], thr[20]);
-        assert!(thr[5] > thr[20], "loud band thr {} should exceed band 20 {}", thr[5], thr[20]);
+        assert!(
+            thr[3] > thr[20],
+            "band 3 thr {} should exceed band 20 {}",
+            thr[3],
+            thr[20]
+        );
+        assert!(
+            thr[4] > thr[20],
+            "band 4 thr {} should exceed band 20 {}",
+            thr[4],
+            thr[20]
+        );
+        assert!(
+            thr[5] > thr[20],
+            "loud band thr {} should exceed band 20 {}",
+            thr[5],
+            thr[20]
+        );
         // And the ATH floor must hold everywhere (thresholds are positive).
         assert!(thr.iter().all(|&t| t > 0.0 && t.is_finite()));
     }
@@ -262,6 +316,10 @@ mod tests {
         assert!(boosted >= 6.0, "surge must set the boost, got {boosted}");
         model.advance_temporal(&mut st, false, 23.0);
         model.advance_temporal(&mut st, false, 23.0);
-        assert!(st.boost_db < boosted / 2.0, "boost must decay, got {}", st.boost_db);
+        assert!(
+            st.boost_db < boosted / 2.0,
+            "boost must decay, got {}",
+            st.boost_db
+        );
     }
 }

@@ -1,0 +1,44 @@
+{
+  "encoderRevision": 7,
+  "implementation": "shipping WASM encode_mp5c6_at",
+  "sampleRate": 48000,
+  "channels": 2,
+  "durationSeconds": 217.53060416666668,
+  "targetKbps": 128,
+  "streamBytes": 3479760,
+  "measuredKbps": 127.97316546167976,
+  "fullSnrDb": 20.597858128117316,
+  "quietDipErrorDbfs": -50.54604688191396,
+  "tiers": [
+    {
+      "targetKbps": 128,
+      "streamBytes": 3479760,
+      "measuredKbps": 127.97316546167976,
+      "fullSnrDb": 20.597858128117316,
+      "quietDipErrorDbfs": -50.54604688191396
+    },
+    {
+      "targetKbps": 192,
+      "streamBytes": 5219359,
+      "measuredKbps": 191.94941401444564,
+      "fullSnrDb": 26.305008965695112,
+      "quietDipErrorDbfs": -60.051027422892915
+    },
+    {
+      "targetKbps": 320,
+      "streamBytes": 8669940,
+      "measuredKbps": 318.84947989598015,
+      "fullSnrDb": 35.903413591714084,
+      "quietDipErrorDbfs": -72.84824789243547
+    }
+  ],
+  "referenceNmr": {
+    "maxNmrDb": 36.153,
+    "meanNmrDb": -31.323,
+    "frames": 20390,
+    "channels": 2
+  },
+  "nmrPass": true,
+  "nmrPassBasis": "cargo test -p mp5-codec passed the permanent psycho/degraded, ABR128 pre-echo, and full-stack NMR reject screens; full-reference max/mean are informational",
+  "heldOutUsed": false
+}
