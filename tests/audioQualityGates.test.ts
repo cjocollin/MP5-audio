@@ -13,7 +13,7 @@
  *
  * Requires `pnpm wasm:build` (the pkg is committed, so this normally just runs).
  */
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterEach } from "vitest";
 // @ts-expect-error — .mjs lab modules have no type declarations
 import { loadCodec } from "../tools/audio-lab/wasm.mjs";
 // @ts-expect-error
@@ -28,7 +28,7 @@ import { codecExportOptionLabel } from "../apps/web/src/lib/codecDisplay";
 type Fixture = { name: string; category: string; samples: Int16Array; channels: number; sampleRate: number };
 type Mode = { id: string; label: string; encode: (s: Int16Array, ch: number) => Uint8Array; decode: (b: Uint8Array) => Int16Array };
 
-let fixtures: Fixture[] = [];
+const fixtures: Fixture[] = allFixtures();
 let modes: Mode[] = [];
 
 function fx(name: string): Fixture {
@@ -55,8 +55,12 @@ function quietSnr(metrics: { quietWindowSnrDb: number | string | null }): number
 
 beforeAll(async () => {
   const codec = await loadCodec();
-  fixtures = allFixtures();
   modes = buildModes(codec);
+});
+
+afterEach(async () => {
+  // Let Vitest 3 drain worker RPC acknowledgements between CPU-bound cases.
+  await new Promise<void>((resolve) => setImmediate(resolve));
 });
 
 describe("MP5-L lossless gate", () => {
@@ -126,19 +130,18 @@ describe("MP5-C vNext prototype (lab-only, default OFF)", () => {
 });
 
 describe("robustness: no codec path crashes on any fixture", () => {
-  it(
-    "encodes+decodes every fixture in every non-MDCT mode without throwing",
-    () => {
+  it.each(fixtures.map(({ name }) => name))(
+    "encodes+decodes %s in every non-MDCT mode without throwing",
+    (name) => {
       const fastModes = modes.filter(
         (m) => !String(m.id).startsWith("mp5c3-") && !String(m.id).includes("mdct"),
       );
-      for (const f of fixtures) {
-        for (const m of fastModes) {
-          expect(() => {
-            const dec = m.decode(m.encode(f.samples, f.channels));
-            expect(dec.length).toBeGreaterThan(0);
-          }, `${m.id} on ${f.name}`).not.toThrow();
-        }
+      const f = fx(name);
+      for (const m of fastModes) {
+        expect(() => {
+          const dec = m.decode(m.encode(f.samples, f.channels));
+          expect(dec.length).toBeGreaterThan(0);
+        }, `${m.id} on ${f.name}`).not.toThrow();
       }
     },
     240_000,
