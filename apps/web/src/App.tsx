@@ -3,7 +3,6 @@ import { usePlayerStore } from "./store/playerStore";
 import { Mp5Player } from "./player/Mp5Player";
 import { WasmSetupBanner } from "./components/WasmSetupBanner";
 import { AppShell } from "./components/AppShell";
-import { WelcomeOnboarding } from "./components/WelcomeOnboarding";
 import { resolveThemeForFile } from "./lib/visualTheme/themeApplication";
 import { appChromeThemeStyle } from "./lib/visualTheme/applyVisualTheme";
 
@@ -88,7 +87,6 @@ export default function App() {
       </div>
 
       <main className="mp5-app-main">
-        <WelcomeOnboarding />
         <Mp5Player
           panelVisible={activeTab === "player"}
           onRequestPlayer={() => setActiveTab("player")}

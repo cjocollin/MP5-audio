@@ -17,6 +17,7 @@ export interface BatchAlbumLevelMeta {
   year: string;
   genre: string;
   credits: string;
+  gaplessDefault?: boolean;
   exportTarget: BatchAlbumExportTarget;
   /** When set and useAlbumCoverForAll, applied to tracks that inherit cover. */
   cover?: CoverArt;
@@ -87,6 +88,7 @@ export function emptyAlbumMeta(exportTarget: BatchAlbumExportTarget = "manifest"
     year: "",
     genre: "",
     credits: "",
+    gaplessDefault: false,
     exportTarget,
     useAlbumCoverForAll: true,
   };
@@ -130,6 +132,7 @@ export function suggestAlbumMetaFromBatch(
     year: first?.year?.trim() || "",
     genre: first?.genre?.trim() || "",
     credits: "",
+    gaplessDefault: false,
     exportTarget: "manifest",
     useAlbumCoverForAll: true,
   };

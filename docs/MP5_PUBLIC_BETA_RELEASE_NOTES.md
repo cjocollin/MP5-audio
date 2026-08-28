@@ -1,14 +1,23 @@
 # MP5 Public Beta Release Notes
 
-**Current release:** MP5 Audio v0.29.0-beta  
+**Current release:** MP5 Audio v0.30.1-beta
 **Hosted demo:** https://mp5-audio.vercel.app  
-**Last updated:** 2026-07-18
+**Last updated:** 2026-08-28
 
 ## What Is MP5?
 
 MP5 is an experimental, browser-based open-source audio format, container, codec, converter, and player. It packages audio with optional metadata such as cover art, lyrics, sections, stems, visual themes, integrity metadata, and album packages.
 
 MP5 is Public Beta, not production-ready for archival or legal use.
+
+## v0.30.1-beta Highlights
+
+- Faster entry with one compact Player start surface and workspace-aware file actions.
+- More natural playback with reactive visuals, native media controls, optional gapless albums,
+  and one authoritative queue/transport state.
+- Converter audition and outcome-first export actions.
+- Safer local-library verification, backup guidance, and clearer destructive-action boundaries.
+- Theme and Public Beta notice preferences persist on this device.
 
 ## v0.29.0-beta Highlights
 
@@ -45,7 +54,7 @@ See [MP5_KNOWN_ISSUES.md](./MP5_KNOWN_ISSUES.md).
 ## How To Test
 
 1. Open https://mp5-audio.vercel.app.
-2. Confirm the badge reads `MP5 Public Beta - v0.29.0-beta`.
+2. Confirm the badge reads `MP5 Public Beta - v0.30.1-beta`.
 3. Try the MP5-L demo, karaoke demo, and embedded album demo.
 4. Open Converter and Batch.
 5. Optional: convert your own local file with MP5-L v4 default.

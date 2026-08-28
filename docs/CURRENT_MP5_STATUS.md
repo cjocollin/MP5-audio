@@ -1,7 +1,7 @@
 # Current MP5 Status
 
-**Version:** MP5 Audio v0.29.0-beta (Public Beta)  
-**Last updated:** 2026-07-18
+**Version:** MP5 Audio v0.30.1-beta (Public Beta)
+**Last updated:** 2026-08-28
 
 ## What MP5 Is Today
 
@@ -19,13 +19,15 @@ MP5 is an experimental, browser-based music format and player stack. The hosted 
 | PCM | Reference/debug fallback |
 | `.mp5p` | Experimental album package; browser memory limits apply |
 
-## v0.29.0-beta Milestone
+## v0.30.1-beta Milestone
 
-Lab MDCT loud path + FFT + real-track validate ([MP5C_VNEXT_RESULTS.md](./MP5C_VNEXT_RESULTS.md)):
+- **Native player integration:** installed `.mp5` and `.mp5p` launches route into the player; Media Session exposes metadata, transport, and seek actions.
+- **Reactive VISU:** independent rounded bars use real playback analysis plus the active track's VISU palette; reduced motion stays static.
+- **Opt-in gapless albums:** album metadata controls decoded-buffer scheduling. Shuffle, repeat, stems, ranges, and ordinary queues retain their prior transitions.
+- **Converter audition:** retained source PCM and the exported MP5 share one clamped playhead for immediate A/B switching.
+- **Library safety:** browser-local tracks and packages can be verified and copied to a user-selected folder without upload or a new archive format.
 
-- **`mp5c3` / `TAG_MDCT`:** opt-in vNext loud path (`encode_mp5c_vnext_mdct`); quiet/fragile/tail stay MP5-L (protect 1.5).
-- **FFT Type-IV MDCT** for practical WASM; `dense_music` ~0.167× PCM; real-track MDCT High ~0.214× / Extreme ~0.268× with hiss risk **low**.
-- **Default C2 loud path is bit-exact:** `encode_mp5c_vnext` picks `min(TAG_SR+CORR, TAG_LOSSLESS)` per loud unit, so shipping CodecId 5 output is lossless. `TAG_MDCT` stays opt-in lab only. MP5-L stays default/batch. No mainstream-codec claims.
+This milestone changes app behavior only. It adds no format chunks or codec semantics.
 
 ## v0.26.0-beta Milestone (previous)
 

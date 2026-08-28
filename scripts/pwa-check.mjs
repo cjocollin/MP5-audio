@@ -47,7 +47,7 @@ else fail("vite PWA manifest name not found");
 if (viteConfig.includes('short_name: "MP5"')) ok('manifest short_name "MP5"');
 else fail("vite PWA short_name not found");
 
-if (viteConfig.includes('theme_color: "#0a0a0f"')) ok("theme_color #0a0a0f");
+if (viteConfig.includes('theme_color: "#070b12"')) ok("theme_color #070b12");
 else fail("theme_color mismatch");
 
 if (viteConfig.includes("navigateFallback")) ok("SPA navigateFallback configured");

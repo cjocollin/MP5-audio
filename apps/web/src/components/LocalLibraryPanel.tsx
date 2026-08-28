@@ -35,6 +35,17 @@ import { assessLibraryStorage, type GuardrailMessage } from "../lib/performance/
 import { GuardrailNotice } from "./GuardrailNotice";
 import { USER_ERRORS } from "../lib/userFacingErrors";
 import { LibraryCollectionCard } from "./LibraryCollectionCard";
+import { filesToFileList } from "../lib/pickMp5Files";
+import { usePlayerStore } from "../store/playerStore";
+import {
+  backupSavedLibrary,
+  verifySavedLibrary,
+  type LibraryBackupDirectory,
+} from "../lib/localLibrary/librarySafety";
+
+type DirectoryPickerWindow = Window & {
+  showDirectoryPicker?: () => Promise<LibraryBackupDirectory>;
+};
 
 const EMPTY_MESSAGE =
   "Save MP5 tracks and album packages to build a collection on this device. Nothing is uploaded.";
@@ -84,6 +95,7 @@ function LibrarySection({
 }
 
 export function LocalLibraryPanel() {
+  const consumePendingLibraryFiles = usePlayerStore((state) => state.consumePendingLibraryFiles);
   const [items, setItems] = useState<UnifiedLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -124,6 +136,9 @@ export function LocalLibraryPanel() {
     [items],
   );
   const isEmpty = !loading && savedCount === 0 && grouped.recent.length === 0;
+  const backupSupported =
+    typeof window !== "undefined" &&
+    typeof (window as DirectoryPickerWindow).showDirectoryPicker === "function";
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -154,7 +169,7 @@ export function LocalLibraryPanel() {
     void refresh();
   }, [refresh]);
 
-  const handleImport = async (files: FileList) => {
+  const handleImport = useCallback(async (files: FileList) => {
     setError("");
     setStatus("");
     const libraryFiles = Array.from(files).filter(
@@ -203,7 +218,12 @@ export function LocalLibraryPanel() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [refresh]);
+
+  useEffect(() => {
+    const files = consumePendingLibraryFiles();
+    if (files?.length) void handleImport(filesToFileList(files));
+  }, [consumePendingLibraryFiles, handleImport]);
 
   const handleClear = () => {
     if (savedCount === 0) return;
@@ -300,6 +320,47 @@ export function LocalLibraryPanel() {
     },
   });
 
+  const handleVerify = () => {
+    setBusy(true);
+    setError("");
+    setStatus("Checking saved files and packages…");
+    void verifySavedLibrary()
+      .then((report) => {
+        if (!report.issues.length) {
+          setStatus(`Verified ${report.healthy} of ${report.checked} saved items — no integrity problems found.`);
+          return;
+        }
+        setStatus(`Verified ${report.healthy} of ${report.checked} saved items.`);
+        setError(report.issues.map((item) => `${item.name}: ${item.message}`).join(" · "));
+      })
+      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)))
+      .finally(() => setBusy(false));
+  };
+
+  const handleBackup = async () => {
+    const pickerWindow = window as DirectoryPickerWindow;
+    if (!pickerWindow.showDirectoryPicker) {
+      setError("Folder backup is not supported by this browser. Download items individually instead.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setStatus("Preparing library backup…");
+    try {
+      const root = await pickerWindow.showDirectoryPicker();
+      const count = await backupSavedLibrary(root);
+      setStatus(count ? `Backed up ${count} saved files to a new timestamped folder.` : "There is nothing saved to back up.");
+    } catch (cause) {
+      if (!(cause instanceof DOMException && cause.name === "AbortError")) {
+        setError(cause instanceof Error ? cause.message : String(cause));
+      } else {
+        setStatus("");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-5" data-testid="local-library-panel">
       <div className="mp5-card p-4 sm:p-5 space-y-3">
@@ -332,6 +393,42 @@ export function LocalLibraryPanel() {
         disabled={busy}
         testId="local-library-file-input"
       />
+
+      <details className="mp5-card p-4" data-testid="library-safety-disclosure">
+        <summary className="cursor-pointer text-sm font-semibold text-gray-100">
+          Library safety &amp; backup
+        </summary>
+        <div className="mt-3 space-y-3">
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">
+            Check stored MP5 data for parse, sidecar, fragment, and hash problems, or copy every saved file to a folder.
+          </p>
+          {!backupSupported && (
+            <p className="text-xs text-amber-200/80">
+              Folder backup is not supported by this browser. Download items individually instead.
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="min-h-10 rounded-lg border border-white/10 px-3 text-xs font-medium text-gray-300 hover:bg-white/5 disabled:opacity-40"
+              onClick={handleVerify}
+              disabled={busy || savedCount === 0}
+              data-testid="local-library-verify"
+            >
+              Verify library
+            </button>
+            <button
+              type="button"
+              className="min-h-10 rounded-lg border border-white/10 px-3 text-xs font-medium text-gray-300 hover:bg-white/5 disabled:opacity-40"
+              onClick={() => void handleBackup()}
+              disabled={busy || savedCount === 0 || !backupSupported}
+              data-testid="local-library-backup"
+            >
+              Back up to folder
+            </button>
+          </div>
+        </div>
+      </details>
 
       <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2">
         <input
@@ -418,12 +515,17 @@ export function LocalLibraryPanel() {
       </div>
 
       {status && (
-        <p className="text-sm text-green-400/90" data-testid="local-library-status">
+        <p
+          className="text-sm text-green-400/90"
+          data-testid="local-library-status"
+          role="status"
+          aria-live="polite"
+        >
           {status}
         </p>
       )}
       {error && (
-        <p className="text-sm text-red-400" data-testid="local-library-error">
+        <p className="text-sm text-red-400" data-testid="local-library-error" role="alert">
           {error}
         </p>
       )}

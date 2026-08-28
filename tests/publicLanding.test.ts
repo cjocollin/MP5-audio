@@ -24,10 +24,11 @@ describe("public experience", () => {
     expect(HONESTY_NO_BEAT_CLAIM).not.toMatch(/MP5 beats/i);
   });
 
-  it("App mounts WelcomeOnboarding into the player workspace without auto-seeding demo audio", () => {
+  it("App enters the Player without a duplicate landing panel or demo audio", () => {
     const src = readFileSync(join(root, "apps/web/src/App.tsx"), "utf8");
-    expect(src).toContain("WelcomeOnboarding");
-    expect(src).toContain("<WelcomeOnboarding");
+    const nowPlaying = readFileSync(join(root, "apps/web/src/player/NowPlayingView.tsx"), "utf8");
+    expect(src).not.toContain("WelcomeOnboarding");
+    expect(nowPlaying).toContain("<PlayerEmptyState />");
     expect(src).not.toContain("fetchDemoMp5lFixture");
     expect(src).not.toContain("defaultDemoLoading");
     expect(src).not.toContain("<PublicLanding />");

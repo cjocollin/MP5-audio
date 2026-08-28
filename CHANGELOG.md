@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.30.1-beta] - 2026-08-28
+
+### Player experience and local safety
+
+- Added installed `.mp5` / `.mp5p` launch handling and native Media Session metadata and transport actions.
+- Added audio-reactive, song-colored VISU bars with a reduced-motion fallback.
+- Added opt-in album gapless playback using decoded-buffer scheduling and the existing neighbour cache.
+- Added synchronized source-versus-export auditioning to completed converter exports.
+- Added Local Library integrity verification and user-selected folder backup.
+- No new container chunks, codec semantics, telemetry, uploads, or cloud sync.
+
 ## [0.29.0-beta] - 2026-07
 
 ### Milestone - Player orchestration rebuilt on an explicit state machine

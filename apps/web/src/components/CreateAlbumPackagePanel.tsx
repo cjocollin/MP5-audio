@@ -23,6 +23,7 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
   const [albumArtist, setAlbumArtist] = useState("");
   const [year, setYear] = useState("");
   const [genre, setGenre] = useState("");
+  const [gaplessDefault, setGaplessDefault] = useState(false);
   const [exportMode, setExportMode] = useState<AlbumPackageExportMode>("manifest");
   const [exportBusy, setExportBusy] = useState(false);
 
@@ -72,6 +73,7 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
           albumArtist,
           year,
           genre,
+          gaplessDefault,
         },
         { includeFileHashes: true, embedded: exportMode === "embedded" },
       );
@@ -177,6 +179,19 @@ export function CreateAlbumPackagePanel({ tracks }: Props) {
           />
         </label>
       </div>
+
+      <label className="flex items-start gap-2 text-xs text-gray-400">
+        <input
+          type="checkbox"
+          checked={gaplessDefault}
+          onChange={(event) => setGaplessDefault(event.target.checked)}
+          data-testid="create-album-gapless"
+        />
+        <span>
+          Play this album gaplessly when the next track is already available. Players may ignore
+          this optional preference.
+        </span>
+      </label>
 
       <div className="space-y-1">
         <p className="text-xs text-gray-500 font-medium">Track order (playlist → package)</p>

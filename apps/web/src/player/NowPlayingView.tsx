@@ -11,6 +11,8 @@ import type { PlaylistTrack } from "../store/playerStore";
 import { buildNowPlayingSummary } from "./playerDisplay";
 import { hasContentNotice, trackDisplayInfo } from "./playlistUtils";
 import { NowPlayingClock } from "./SeekTimeline";
+import { AudioReactiveVisu } from "./AudioReactiveVisu";
+import { PlayerEmptyState } from "../components/PlayerEmptyState";
 
 interface Props {
   track?: PlaylistTrack;
@@ -24,6 +26,8 @@ interface Props {
   integrity?: IntegrityCheckResult | null;
   canPlaySimilar?: boolean;
   onPlaySimilar?: () => void;
+  isPlaying?: boolean;
+  getAnalysisFrame?: (target: Uint8Array) => boolean;
 }
 
 function coverFromParsed(parsed?: Mp5File) {
@@ -58,6 +62,8 @@ export function NowPlayingView({
   integrity,
   canPlaySimilar = false,
   onPlaySimilar,
+  isPlaying = false,
+  getAnalysisFrame = () => false,
 }: Props) {
   const coverUrl = useCoverObjectUrl(coverFromParsed(parsed));
   const info = track ? trackDisplayInfo(track) : null;
@@ -87,6 +93,8 @@ export function NowPlayingView({
   ]
     .filter(Boolean)
     .join(", ");
+
+  if (!track) return <PlayerEmptyState />;
 
   return (
     <div
@@ -121,6 +129,13 @@ export function NowPlayingView({
               style={playerTheme.coverOverlayStyle}
               data-testid="now-playing-cover-overlay"
               aria-hidden
+            />
+          )}
+          {track && (
+            <AudioReactiveVisu
+              active={isPlaying}
+              getAnalysisFrame={getAnalysisFrame}
+              theme={playerTheme}
             />
           )}
         </div>

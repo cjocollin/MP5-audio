@@ -103,7 +103,7 @@ describe("Public Beta hardening", () => {
       decodeCacheSummary: "0/3",
       librarySummary: "0 entries",
     });
-    expect(report).toMatch(/0.30.0-beta/);
+    expect(report).toMatch(/0.30.1-beta/);
     expect(report).toMatch(/No telemetry/i);
   });
 });
@@ -205,10 +205,11 @@ describe("user-facing error messages", () => {
     expect(USER_ERRORS.stemWorkerUnavailable).toMatch(/Background stem/i);
   });
 
-  it("App mounts WelcomeOnboarding without PublicLanding", () => {
+  it("App mounts the Player without a duplicate landing surface", () => {
     const app = scanFile("apps/web/src/App.tsx");
-    expect(app).toContain("WelcomeOnboarding");
-    expect(app).toContain("<WelcomeOnboarding");
+    const nowPlaying = scanFile("apps/web/src/player/NowPlayingView.tsx");
+    expect(app).not.toContain("WelcomeOnboarding");
+    expect(nowPlaying).toContain("<PlayerEmptyState />");
     expect(app).not.toContain("fetchDemoMp5lFixture");
     expect(app).not.toContain("PublicLanding");
     expect(app).not.toContain("DemoFixtureActions");
@@ -277,8 +278,8 @@ describe("user-facing error messages", () => {
 });
 
 describe("version alignment", () => {
-  it("package.json is 0.30.0-beta", () => {
-    expect(packageJson.version).toBe("0.30.0-beta");
+  it("package.json is 0.30.1-beta", () => {
+    expect(packageJson.version).toBe("0.30.1-beta");
   });
 
   it("CURRENT_MP5_STATUS references beta readiness", () => {

@@ -33,13 +33,13 @@ test.describe("MP5 player playback", () => {
     return seek;
   }
 
-  test("shows full empty Player chrome with queue tip", async ({ page }) => {
+  test("shows one compact empty Player start surface", async ({ page }) => {
     await expect(page.getByTestId("player-theme-root")).toBeVisible();
-    await expect(page.getByTestId("now-playing-title")).toBeVisible();
-    await expect(page.getByTestId("seek-slider")).toBeVisible();
-    await expect(page.locator(".mp5-inspector-tabs")).toBeVisible();
     await expect(page.getByTestId("player-empty-state")).toBeVisible();
-    await expect(page.getByTestId("player-empty-actions")).toHaveCount(0);
+    await expect(page.getByTestId("player-start-open")).toBeVisible();
+    await expect(page.getByTestId("player-start-convert")).toBeVisible();
+    await expect(page.getByTestId("player-start-demo")).toBeVisible();
+    await expect(page.locator(".mp5-inspector-tabs")).toHaveCount(0);
     await expect(page.getByTestId("playlist-item")).toHaveCount(0);
     await expect(page.getByTestId("demo-fixture-actions")).toHaveCount(0);
     await expect(page.getByTestId("player-empty-workspace")).toHaveCount(0);
@@ -121,7 +121,6 @@ test.describe("MP5 player playback", () => {
   test("next and previous change playlist selection", async ({ page }) => {
     await page.getByTestId("player-file-input").setInputFiles([pcmFixture, mp5lFixture]);
     await expect(page.getByTestId("playlist-item")).toHaveCount(2);
-    await expect(page.getByTestId("playlist-item-source-badge").first()).toContainText(".mp5");
     await expect(page.getByTestId("playlist-item").first().getByTestId("playlist-item-status")).toContainText(/selected/i);
     await page.getByTestId("player-next").click();
     const items = page.getByTestId("playlist-item");

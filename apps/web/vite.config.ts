@@ -40,6 +40,14 @@ export default defineConfig({
         display: "standalone",
         orientation: "any",
         categories: ["music", "utilities"],
+        file_handlers: [
+          {
+            action: "/",
+            accept: {
+              "application/octet-stream": [".mp5", ".mp5p"],
+            },
+          },
+        ],
         icons: [
           {
             src: "brand/mp5-brand-icon.svg",

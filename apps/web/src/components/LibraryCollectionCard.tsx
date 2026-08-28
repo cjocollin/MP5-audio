@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { formatBytes } from "../converter/exportSummary";
 import { formatDuration } from "../player/playlistUtils";
 import type { UnifiedLibraryItem } from "../lib/localLibrary/unifiedLibraryTypes";
@@ -42,6 +42,17 @@ export interface LibraryCardActions {
   onReopen?: () => void;
   onRemoveRecent?: () => void;
   onOpenAlbum?: () => void;
+}
+
+function MoreActions({ children }: { children: ReactNode }) {
+  return (
+    <details className="text-xs text-gray-400" data-testid="library-more-actions">
+      <summary className="cursor-pointer rounded border border-white/10 px-2 py-1.5 hover:bg-white/5 min-h-[32px]">
+        More
+      </summary>
+      <div className="mt-1 flex flex-wrap justify-end gap-1">{children}</div>
+    </details>
+  );
 }
 
 export function LibraryCollectionCard({
@@ -173,17 +184,6 @@ export function LibraryCollectionCard({
           </>
         ) : isAlbum ? (
           <>
-            {actions.onOpenAlbum && (
-              <button
-                type="button"
-                className="px-2 py-1 rounded text-xs border border-white/10 text-gray-200 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
-                disabled={busy}
-                onClick={actions.onOpenAlbum}
-                data-testid="saved-album-open"
-              >
-                Open
-              </button>
-            )}
             {actions.onPlay && (
               <button
                 type="button"
@@ -195,39 +195,52 @@ export function LibraryCollectionCard({
                 Play album
               </button>
             )}
-            {actions.onDownload && (
+            {actions.onOpenAlbum && (
               <button
                 type="button"
-                className="px-2 py-1 rounded text-xs border border-white/10 text-gray-300 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
+                className="px-2 py-1 rounded text-xs border border-white/10 text-gray-200 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
                 disabled={busy}
-                onClick={actions.onDownload}
-                data-testid="library-album-download"
+                onClick={actions.onOpenAlbum}
+                data-testid="saved-album-open"
               >
-                Download
+                Open
               </button>
             )}
-            {actions.onCopySummary && (
-              <button
-                type="button"
-                className="px-2 py-1 rounded text-xs border border-white/10 text-gray-400 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
-                disabled={busy}
-                onClick={actions.onCopySummary}
-                data-testid="library-copy-summary"
-              >
-                Copy
-              </button>
-            )}
-            {actions.onDelete && (
-              <button
-                type="button"
-                className="px-2 py-1 rounded text-xs text-gray-500 hover:text-red-300 min-h-[32px]"
-                disabled={busy}
-                onClick={actions.onDelete}
-                data-testid="saved-album-delete"
-              >
-                Delete
-              </button>
-            )}
+            <MoreActions>
+              {actions.onDownload && (
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded border border-white/10 text-gray-300 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
+                  disabled={busy}
+                  onClick={actions.onDownload}
+                  data-testid="library-album-download"
+                >
+                  Download
+                </button>
+              )}
+              {actions.onCopySummary && (
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded border border-white/10 text-gray-400 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
+                  disabled={busy}
+                  onClick={actions.onCopySummary}
+                  data-testid="library-copy-summary"
+                >
+                  Copy
+                </button>
+              )}
+              {actions.onDelete && (
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded text-gray-500 hover:text-red-300 min-h-[32px]"
+                  disabled={busy}
+                  onClick={actions.onDelete}
+                  data-testid="saved-album-delete"
+                >
+                  Delete
+                </button>
+              )}
+            </MoreActions>
           </>
         ) : (
           <>
@@ -253,39 +266,41 @@ export function LibraryCollectionCard({
                 Queue
               </button>
             )}
-            {actions.onDownload && (
-              <button
-                type="button"
-                className="px-2 py-1 rounded text-xs border border-white/10 text-gray-400 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
-                disabled={busy}
-                onClick={actions.onDownload}
-                data-testid="local-library-download"
-              >
-                Download
-              </button>
-            )}
-            {actions.onCopySummary && (
-              <button
-                type="button"
-                className="px-2 py-1 rounded text-xs border border-white/10 text-gray-400 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
-                disabled={busy}
-                onClick={actions.onCopySummary}
-                data-testid="library-copy-summary"
-              >
-                Copy
-              </button>
-            )}
-            {actions.onDelete && (
-              <button
-                type="button"
-                className="px-2 py-1 rounded text-xs text-gray-500 hover:text-red-300 min-h-[32px]"
-                disabled={busy}
-                onClick={actions.onDelete}
-                data-testid="local-library-delete"
-              >
-                Delete
-              </button>
-            )}
+            <MoreActions>
+              {actions.onDownload && (
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded border border-white/10 text-gray-400 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
+                  disabled={busy}
+                  onClick={actions.onDownload}
+                  data-testid="local-library-download"
+                >
+                  Download
+                </button>
+              )}
+              {actions.onCopySummary && (
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded border border-white/10 text-gray-400 hover:bg-white/5 disabled:opacity-40 min-h-[32px]"
+                  disabled={busy}
+                  onClick={actions.onCopySummary}
+                  data-testid="library-copy-summary"
+                >
+                  Copy
+                </button>
+              )}
+              {actions.onDelete && (
+                <button
+                  type="button"
+                  className="px-2 py-1 rounded text-gray-500 hover:text-red-300 min-h-[32px]"
+                  disabled={busy}
+                  onClick={actions.onDelete}
+                  data-testid="local-library-delete"
+                >
+                  Delete
+                </button>
+              )}
+            </MoreActions>
           </>
         )}
       </div>

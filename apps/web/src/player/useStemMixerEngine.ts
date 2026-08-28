@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef } from "react";
 import { tracePlayback } from "../lib/playback/playbackTrace";
 import { requestPlaybackAudioFocus } from "../lib/playback/audioFocus";
+import {
+  connectPlaybackAnalyser,
+  readPlaybackAnalysis,
+} from "../lib/playback/audioAnalysis";
 import { recordPatchPlayhead } from "../lib/playback/stemMixerAssert";
 import { computePlaybackTime } from "./playbackTime";
 
@@ -78,6 +82,7 @@ export function useStemMixerEngine({
 
   const ctxRef = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const stemGainsRef = useRef<Map<string, GainNode>>(new Map());
   const sourcesByStemIdRef = useRef<Map<string, AudioBufferSourceNode>>(new Map());
   const tracksRef = useRef<StemPcmTrack[]>([]);
@@ -174,7 +179,7 @@ export function useStemMixerEngine({
       ctxRef.current = new AudioContext();
       const master = ctxRef.current.createGain();
       master.gain.value = volumeRef.current;
-      master.connect(ctxRef.current.destination);
+      analyserRef.current = connectPlaybackAnalyser(ctxRef.current, master);
       masterGainRef.current = master;
     }
     if (ctxRef.current.state === "suspended") {
@@ -541,6 +546,7 @@ export function useStemMixerEngine({
       stopStemMix();
       void ctxRef.current?.close();
       ctxRef.current = null;
+      analyserRef.current = null;
     };
   }, [stopStemMix]);
 
@@ -564,6 +570,16 @@ export function useStemMixerEngine({
 
   const isGraphBusy = useCallback(() => graphBusyRef.current, []);
 
+  const getAnalysisFrame = useCallback(
+    (target: Uint8Array) =>
+      readPlaybackAnalysis(
+        analyserRef.current,
+        target,
+        sourcesByStemIdRef.current.size > 0,
+      ),
+    [],
+  );
+
   return {
     loadInitialTracksForMix,
     insertStemAtCurrentOffset,
@@ -580,5 +596,6 @@ export function useStemMixerEngine({
     hasActiveSources,
     isGraphBusy,
     resumeStemMixAt,
+    getAnalysisFrame,
   };
 }

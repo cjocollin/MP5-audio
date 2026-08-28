@@ -79,6 +79,7 @@ import { formatSectionsText } from "../lib/sections/sectionParser";
 import { formatSyncedLyricsText } from "../lib/lyrics/lyrcTimestampParser";
 import { sanitizeUnsyncedLyrics } from "../lib/ai/lyricSanitize";
 import { ConverterSourceCard } from "../components/ConverterSourceCard";
+import { ConverterAuditionPanel } from "../components/ConverterAuditionPanel";
 
 type PendingPcm = {
   samples: Int16Array;
@@ -1553,14 +1554,23 @@ export function ConverterPanel() {
 
               {librarySaveNote && <p className="mp5-converter-library-note" data-testid="converter-library-save-note">{librarySaveNote}</p>}
               {exportSummary && exportDone && (
-                <ExportSummaryPanel
-                  summary={exportSummary}
-                  onDownloadAgain={handleDownloadAgain}
-                  onOpenInPlayer={() => void handleOpenInPlayer()}
-                  onAddToPlaylist={() => void handleAddToPlaylist()}
-                  onSaveToLibrary={() => void handleSaveToLibrary()}
-                  onCopySummary={handleCopySummary}
-                />
+                <>
+                  {pending && lastExportFile && (
+                    <ConverterAuditionPanel
+                      key={`${lastExportFile.name}:${lastExportFile.size}:${lastExportFile.lastModified}`}
+                      source={pending.pcm}
+                      exportFile={lastExportFile}
+                    />
+                  )}
+                  <ExportSummaryPanel
+                    summary={exportSummary}
+                    onDownloadAgain={handleDownloadAgain}
+                    onOpenInPlayer={() => void handleOpenInPlayer()}
+                    onAddToPlaylist={() => void handleAddToPlaylist()}
+                    onSaveToLibrary={() => void handleSaveToLibrary()}
+                    onCopySummary={handleCopySummary}
+                  />
+                </>
               )}
             </aside>
           </div>

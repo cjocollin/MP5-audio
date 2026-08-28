@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 import { tracePlayback } from "../lib/playback/playbackTrace";
 import { requestPlaybackAudioFocus } from "../lib/playback/audioFocus";
+import {
+  connectPlaybackAnalyser,
+  readPlaybackAnalysis,
+} from "../lib/playback/audioAnalysis";
 import { computePlaybackTime } from "./playbackTime";
+import { gaplessScheduleTime } from "./gaplessPlayback";
 import {
   int16ToPlanarFloat,
   int16ToPlanarFloatAsync,
@@ -23,6 +28,7 @@ interface Options {
   setCurrentTime: (t: number) => void;
   setPlaying: (p: boolean) => void;
   onTrackEnded?: () => void;
+  onGaplessTransition?: (trackId: string) => boolean;
   onPcmReady?: () => void;
 }
 
@@ -55,14 +61,18 @@ export function useMp5AudioEngine({
   setCurrentTime,
   setPlaying,
   onTrackEnded,
+  onGaplessTransition,
   onPcmReady,
 }: Options) {
   const onTrackEndedRef = useRef(onTrackEnded);
   onTrackEndedRef.current = onTrackEnded;
+  const onGaplessTransitionRef = useRef(onGaplessTransition);
+  onGaplessTransitionRef.current = onGaplessTransition;
   const onPcmReadyRef = useRef(onPcmReady);
   onPcmReadyRef.current = onPcmReady;
   const ctxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const bufferRef = useRef<AudioBuffer | null>(null);
   const pcmRef = useRef<PcmData | null>(null);
   const srcRef = useRef<AudioBufferSourceNode | null>(null);
@@ -75,6 +85,13 @@ export function useMp5AudioEngine({
   trackDurationRef.current = duration;
   /** True while AudioBuffer is only a progressive first window. */
   const partialBufferRef = useRef(false);
+  const gaplessPrepareGenRef = useRef(0);
+  const gaplessNextRef = useRef<{
+    trackId: string;
+    buffer: AudioBuffer;
+    source?: AudioBufferSourceNode;
+    scheduledAt?: number;
+  } | null>(null);
 
   const clampDuration = useCallback(() => {
     const track = trackDurationRef.current;
@@ -88,12 +105,64 @@ export function useMp5AudioEngine({
     bufferRef.current = pcmToAudioBuffer(ctx, pcmRef.current);
   }, []);
 
+  const stopGaplessSource = useCallback((preserveBuffer: boolean) => {
+    const pending = gaplessNextRef.current;
+    if (!pending) return;
+    try {
+      pending.source?.stop();
+    } catch {
+      /* not started or already stopped */
+    }
+    if (preserveBuffer) {
+      pending.source = undefined;
+      pending.scheduledAt = undefined;
+    } else {
+      gaplessNextRef.current = null;
+    }
+  }, []);
+
+  const clearGaplessNext = useCallback(() => {
+    gaplessPrepareGenRef.current += 1;
+    stopGaplessSource(false);
+  }, [stopGaplessSource]);
+
+  const schedulePreparedGapless = useCallback(
+    (ctx: AudioContext, currentOffset: number) => {
+      const pending = gaplessNextRef.current;
+      const currentBuffer = bufferRef.current;
+      const gain = gainRef.current;
+      if (!pending || !currentBuffer || !gain || partialBufferRef.current) return;
+      stopGaplessSource(true);
+      const source = ctx.createBufferSource();
+      source.buffer = pending.buffer;
+      source.connect(gain);
+      const scheduledAt = gaplessScheduleTime(
+        ctx.currentTime,
+        currentOffset,
+        currentBuffer.duration,
+      );
+      source.onended = () => {
+        if (gaplessNextRef.current?.source === source) {
+          gaplessNextRef.current = null;
+        }
+      };
+      source.start(scheduledAt);
+      pending.source = source;
+      pending.scheduledAt = scheduledAt;
+      tracePlayback("main_source", "gapless next scheduled", {
+        trackId: pending.trackId,
+        scheduledAt,
+      });
+    },
+    [stopGaplessSource],
+  );
+
   const ensureContext = useCallback(async (resume = true) => {
     if (!isContextUsable(ctxRef.current)) {
       ctxRef.current = new AudioContext();
       const gain = ctxRef.current.createGain();
       gain.gain.value = volumeRef.current;
-      gain.connect(ctxRef.current.destination);
+      analyserRef.current = connectPlaybackAnalyser(ctxRef.current, gain);
       gainRef.current = gain;
       rebuildBuffer(ctxRef.current);
     }
@@ -121,8 +190,42 @@ export function useMp5AudioEngine({
       /* already stopped */
     }
     srcRef.current = null;
+    stopGaplessSource(true);
     tracePlayback("main_source", "stop");
-  }, [clampDuration]);
+  }, [clampDuration, stopGaplessSource]);
+
+  const wireCurrentSourceEnded = useCallback(
+    (source: AudioBufferSourceNode) => {
+      source.onended = () => {
+        if (srcRef.current !== source) return;
+        srcRef.current = null;
+        const bufDur = bufferRef.current?.duration ?? 0;
+        const trackDur = trackDurationRef.current;
+        if (partialBufferRef.current && bufDur + 0.05 < trackDur) {
+          offsetRef.current = bufDur;
+          setCurrentTime(bufDur);
+          tracePlayback("main_source", "partial buffer ended — waiting for full decode");
+          return;
+        }
+        const pending = gaplessNextRef.current;
+        if (pending?.source && pending.scheduledAt != null) {
+          const accepted = onGaplessTransitionRef.current?.(pending.trackId) === true;
+          if (accepted) {
+            offsetRef.current = 0;
+            setCurrentTime(0);
+            tracePlayback("main_source", "gapless handoff", { trackId: pending.trackId });
+            return;
+          }
+          stopGaplessSource(false);
+        }
+        offsetRef.current = trackDur;
+        setCurrentTime(trackDur);
+        setPlaying(false);
+        if (trackDur > 0) onTrackEndedRef.current?.();
+      };
+    },
+    [setCurrentTime, setPlaying, stopGaplessSource],
+  );
 
   const startAt = useCallback(
     async (offset: number) => {
@@ -165,25 +268,7 @@ export function useMp5AudioEngine({
       const safeOffset = Math.max(0, Math.min(offset, Math.max(0, maxOff - 0.001)));
       offsetRef.current = safeOffset;
       startedAtRef.current = ctx.currentTime;
-      src.onended = () => {
-        if (srcRef.current !== src) return;
-        srcRef.current = null;
-        const bufDur = bufferRef.current?.duration ?? 0;
-        const trackDur = trackDurationRef.current;
-        // Progressive window ended before full PCM arrived — wait for upgrade.
-        if (partialBufferRef.current && bufDur + 0.05 < trackDur) {
-          offsetRef.current = bufDur;
-          setCurrentTime(bufDur);
-          tracePlayback("main_source", "partial buffer ended — waiting for full decode");
-          return;
-        }
-        offsetRef.current = trackDur;
-        setCurrentTime(trackDur);
-        setPlaying(false);
-        if (trackDur > 0) {
-          onTrackEndedRef.current?.();
-        }
-      };
+      wireCurrentSourceEnded(src);
       if (gen !== startGenRef.current) {
         try {
           src.stop();
@@ -194,13 +279,14 @@ export function useMp5AudioEngine({
       }
       src.start(0, safeOffset);
       srcRef.current = src;
+      schedulePreparedGapless(ctx, safeOffset);
       tracePlayback("main_source", "start", {
         offset: safeOffset,
         bufferSec: bufferRef.current.duration,
         partial: partialBufferRef.current,
       });
     },
-    [ensureContext, rebuildBuffer, setCurrentTime, setPlaying, stopSource],
+    [ensureContext, rebuildBuffer, schedulePreparedGapless, stopSource, wireCurrentSourceEnded],
   );
 
   const isPlayingRef = useRef(isPlaying);
@@ -210,10 +296,34 @@ export function useMp5AudioEngine({
   startAtRef.current = startAt;
 
   const loadPcm = useCallback(
-    async (pcm: PcmData, opts?: { partial?: boolean }) => {
+    async (
+      pcm: PcmData,
+      opts?: { partial?: boolean; gaplessTrackId?: string },
+    ): Promise<boolean> => {
       pcmRef.current = pcm;
       partialBufferRef.current = !!opts?.partial;
+      const pending = gaplessNextRef.current;
+      const handoffContext = ctxRef.current;
+      if (
+        opts?.gaplessTrackId &&
+        pending?.trackId === opts.gaplessTrackId &&
+        pending.source &&
+        pending.scheduledAt != null &&
+        isContextUsable(handoffContext)
+      ) {
+        bufferRef.current = pending.buffer;
+        srcRef.current = pending.source;
+        startedAtRef.current = pending.scheduledAt;
+        offsetRef.current = Math.max(0, handoffContext.currentTime - pending.scheduledAt);
+        gaplessNextRef.current = null;
+        pcm.floatChannels = undefined;
+        wireCurrentSourceEnded(srcRef.current);
+        setCurrentTime(offsetRef.current);
+        onPcmReadyRef.current?.();
+        return true;
+      }
       stopSource();
+      clearGaplessNext();
       // Browsers are allowed to keep a new AudioContext suspended until a user
       // gesture. Building the buffer must not wait for that gesture, otherwise
       // a first-load track remains stuck in the "Decoding audio" state.
@@ -234,8 +344,41 @@ export function useMp5AudioEngine({
       if (isPlayingRef.current) {
         void startAtRef.current(offsetRef.current);
       }
+      return false;
     },
-    [ensureContext, stopSource],
+    [clearGaplessNext, ensureContext, setCurrentTime, stopSource, wireCurrentSourceEnded],
+  );
+
+  const prepareGaplessNext = useCallback(
+    async (trackId: string, pcm: PcmData): Promise<boolean> => {
+      if (gaplessNextRef.current?.trackId === trackId) return true;
+      const generation = ++gaplessPrepareGenRef.current;
+      const ctx = await ensureContext(false);
+      const buffer = await pcmToAudioBufferAsync(ctx, pcm);
+      pcm.floatChannels = undefined;
+      if (generation !== gaplessPrepareGenRef.current) return false;
+      stopGaplessSource(false);
+      gaplessNextRef.current = { trackId, buffer };
+      if (srcRef.current && isPlayingRef.current) {
+        const currentOffset = computePlaybackTime(
+          offsetRef.current,
+          ctx.currentTime,
+          startedAtRef.current,
+          clampDuration(),
+        );
+        schedulePreparedGapless(ctx, currentOffset);
+      }
+      return true;
+    },
+    [clampDuration, ensureContext, schedulePreparedGapless, stopGaplessSource],
+  );
+
+  const hasGaplessHandoff = useCallback(
+    (trackId: string) =>
+      gaplessNextRef.current?.trackId === trackId &&
+      !!gaplessNextRef.current.source &&
+      gaplessNextRef.current.scheduledAt != null,
+    [],
   );
 
   /**
@@ -306,6 +449,7 @@ export function useMp5AudioEngine({
       void startAtRef.current(offsetRef.current);
     } else if (!isPlaying) {
       stopSourceRef.current();
+      clearGaplessNext();
     }
   }, [isPlaying]);
 
@@ -317,9 +461,10 @@ export function useMp5AudioEngine({
       }
       ctxRef.current = null;
       gainRef.current = null;
+      analyserRef.current = null;
       bufferRef.current = null;
     };
-  }, []);
+  }, [clearGaplessNext]);
 
   const getPlaybackTime = useCallback(() => {
     const ctx = ctxRef.current;
@@ -338,6 +483,12 @@ export function useMp5AudioEngine({
 
   const hasPcm = useCallback(() => pcmRef.current !== null, []);
 
+  const getAnalysisFrame = useCallback(
+    (target: Uint8Array) =>
+      readPlaybackAnalysis(analyserRef.current, target, srcRef.current !== null),
+    [],
+  );
+
   return {
     loadPcm,
     upgradePcm,
@@ -346,5 +497,9 @@ export function useMp5AudioEngine({
     getPlaybackTime,
     isSourceActive,
     hasPcm,
+    getAnalysisFrame,
+    prepareGaplessNext,
+    clearGaplessNext,
+    hasGaplessHandoff,
   };
 }

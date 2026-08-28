@@ -3,20 +3,22 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = join(import.meta.dirname, "..");
+const rootPackage = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const currentVersion = `v${rootPackage.version}`;
 
 describe("deployment readiness", () => {
   it("has hosted demo validation guide", () => {
     const hosted = readFileSync(join(root, "docs/MP5_HOSTED_DEMO.md"), "utf8");
     expect(hosted).toContain("Hosted demo limitations");
     expect(hosted).toContain("mp5-audio");
-    expect(hosted).toContain("v0.29.0-beta");
+    expect(hosted).toContain(currentVersion);
   });
 
   it("has mp5-audio Vercel setup guide", () => {
     const setup = readFileSync(join(root, "docs/MP5_VERCEL_SETUP.md"), "utf8");
     expect(setup).toContain("mp5-audio");
     expect(setup).toContain("apps/web/dist");
-    expect(setup).toContain("v0.29.0-beta");
+    expect(setup).toContain(currentVersion);
     expect(setup).toContain("node scripts/vercel-build.mjs");
   });
 
@@ -47,9 +49,8 @@ describe("deployment readiness", () => {
   it("vite syncs version from root package.json", () => {
     const vite = readFileSync(join(root, "apps/web/vite.config.ts"), "utf8");
     expect(vite).toContain("mp5AppVersionPlugin");
-    const rootPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
     const generated = readFileSync(join(root, "apps/web/src/generated/appVersion.ts"), "utf8");
-    expect(generated).toContain(rootPkg.version);
+    expect(generated).toContain(rootPackage.version);
   });
 
   it("fixtures plugin copies demo to dist on build", () => {
@@ -58,7 +59,8 @@ describe("deployment readiness", () => {
     expect(plugin).toContain("copyDemoFixtureToDist");
   });
 
-  it("AppVersionBadge component exists", () => {
-    expect(existsSync(join(root, "apps/web/src/components/AppVersionBadge.tsx"))).toBe(true);
+  it("shell displays the generated root app version", () => {
+    const shell = readFileSync(join(root, "apps/web/src/components/AppShell.tsx"), "utf8");
+    expect(shell).toContain("APP_VERSION");
   });
 });

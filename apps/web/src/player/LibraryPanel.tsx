@@ -4,16 +4,11 @@ import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { MagnifyingGlass } from "@phosphor-icons/react/MagnifyingGlass";
 import { MusicNotes } from "@phosphor-icons/react/MusicNotes";
 import { Play } from "@phosphor-icons/react/Play";
-import { Repeat } from "@phosphor-icons/react/Repeat";
-import { Shuffle } from "@phosphor-icons/react/Shuffle";
 import { Trash } from "@phosphor-icons/react/Trash";
 import { X } from "@phosphor-icons/react/X";
-import { PlayerEmptyState } from "../components/PlayerEmptyState";
 import { SignalMarkSprite } from "../components/SignalMarkSprite";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
-import { codecLabel } from "../lib/codecDisplay";
-import type { PlaylistTrack, RepeatMode } from "../store/playerStore";
-import { repeatModeLabel } from "./queueNavigation";
+import type { PlaylistTrack } from "../store/playerStore";
 import { matchesSearch, trackDisplayInfo } from "./playlistUtils";
 import type { Mp5File } from "@mp5/container";
 import type { ResolvedAlbumPackage } from "../lib/album/resolveAlbum";
@@ -33,7 +28,6 @@ function PlaylistRow({
   index,
   isCurrent,
   isPlayingNow,
-  onSelect,
   onPlay,
   onRemove,
   onSaveToLibrary,
@@ -45,7 +39,6 @@ function PlaylistRow({
   index: number;
   isCurrent: boolean;
   isPlayingNow: boolean;
-  onSelect: () => void;
   onPlay: () => void;
   onRemove: () => void;
   onSaveToLibrary?: () => void;
@@ -80,9 +73,11 @@ function PlaylistRow({
     >
       <button
         type="button"
-        onClick={onSelect}
+        onClick={onPlay}
         className="flex flex-1 items-center gap-2 min-w-0 text-left"
-        data-testid="playlist-item-select"
+        data-testid="playlist-item-play"
+        disabled={failed}
+        aria-label={`Play ${summary.title}`}
         aria-current={isCurrent ? "true" : undefined}
       >
         <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-elevated">
@@ -121,7 +116,7 @@ function PlaylistRow({
                 {summary.statusLabel}
               </span>
             )}
-            <span className="mp5-queue-compact-duration font-mono text-[10px] text-gray-500">
+            <span className="font-mono text-[10px] text-gray-500">
               {summary.durationLabel}
             </span>
           </span>
@@ -137,34 +132,15 @@ function PlaylistRow({
               {summary.albumContextLabel}
             </span>
           )}
-          <span className="mp5-queue-technical mt-0.5 flex flex-wrap items-center gap-1.5">
+          {failed && (
             <span
-              className="text-[10px] px-1.5 py-0 rounded border border-white/10 text-gray-500"
-              data-testid="playlist-item-source-badge"
+              className="mt-0.5 block text-[10px] text-red-300/90"
+              data-testid="playlist-item-error"
+              title={track.parseError}
             >
-              {summary.sourceLabel}
+              Unreadable file
             </span>
-            {track.parsed?.head != null && (
-              <span className="text-[10px] font-semibold text-accent/90">
-                {codecLabel(track.parsed.head.codecId, track.parsed.audioFrames[0]?.data)}
-              </span>
-            )}
-            <span className="text-[10px] text-gray-600 font-mono">{summary.durationLabel}</span>
-            {info.hasContentNotice && (
-              <span className="text-[10px] px-1.5 py-0 rounded bg-gray-800 text-gray-400 border border-gray-700">
-                Content
-              </span>
-            )}
-            {failed && (
-              <span
-                className="text-[10px] px-1.5 py-0 rounded bg-red-950/50 text-red-300 border border-red-900/40"
-                data-testid="playlist-item-error"
-                title={track.parseError}
-              >
-                Unreadable file
-              </span>
-            )}
-          </span>
+          )}
         </span>
       </button>
       <div className="mp5-queue-actions">
@@ -180,16 +156,6 @@ function PlaylistRow({
             <FloppyDisk size={15} />
           </button>
         )}
-        <button
-          type="button"
-          className="mp5-queue-action"
-          onClick={onPlay}
-          disabled={failed}
-          aria-label={`Play ${summary.title}`}
-          data-testid="playlist-item-play"
-        >
-          <Play size={16} weight="fill" />
-        </button>
         <button
           type="button"
           className="mp5-queue-action hover:text-red-300"
@@ -209,14 +175,9 @@ interface Props {
   currentIndex: number;
   isPlaying: boolean;
   dropErrors: { name: string; message: string }[];
-  repeatMode: RepeatMode;
-  shuffle: boolean;
-  onSelect: (index: number) => void;
   onPlay: (index: number) => void;
   onRemove: (id: string) => void;
   onClear: () => void;
-  onToggleShuffle: () => void;
-  onCycleRepeat: () => void;
   onSaveToLibrary?: (track: PlaylistTrack) => void;
   librarySaveBusy?: boolean;
   album?: ResolvedAlbumPackage | null;
@@ -229,14 +190,9 @@ export function LibraryPanel({
   currentIndex,
   isPlaying,
   dropErrors,
-  repeatMode,
-  shuffle,
-  onSelect,
   onPlay,
   onRemove,
   onClear,
-  onToggleShuffle,
-  onCycleRepeat,
   onSaveToLibrary,
   librarySaveBusy,
   album,
@@ -304,30 +260,6 @@ export function LibraryPanel({
         </div>
       </div>
 
-      <div className="mp5-queue-toggles flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onToggleShuffle}
-          className={`mp5-queue-toggle ${
-            shuffle ? "border-accent/50 bg-accent/15 text-accent" : "border-white/10 text-gray-500"
-          }`}
-          data-testid="library-shuffle"
-        >
-          <Shuffle size={15} /> Shuffle {shuffle ? "on" : "off"}
-        </button>
-        <button
-          type="button"
-          onClick={onCycleRepeat}
-          className={`mp5-queue-toggle ${
-            repeatMode !== "off" ? "border-accent/50 bg-accent/15 text-accent" : "border-white/10 text-gray-500"
-          }`}
-          data-testid="library-repeat"
-          data-repeat-mode={repeatMode}
-        >
-          <Repeat size={15} /> {repeatModeLabel(repeatMode)}
-        </button>
-      </div>
-
       {tracks.length > 1 && (
         <label className="relative block">
           <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
@@ -353,9 +285,9 @@ export function LibraryPanel({
       )}
 
       {!tracks.length ? (
-        <div data-testid="library-empty">
-          <PlayerEmptyState />
-        </div>
+        <p className="py-4 text-center text-sm text-gray-500" data-testid="library-empty">
+          Queue is empty. Start from Now Playing.
+        </p>
       ) : filteredIndices.length === 0 ? (
         <p className="text-sm text-gray-500 italic py-6 text-center" data-testid="library-no-matches">
           No matching tracks.
@@ -374,7 +306,6 @@ export function LibraryPanel({
                 index={index}
                 isCurrent={index === currentIndex}
                 isPlayingNow={index === currentIndex && isPlaying}
-                onSelect={() => onSelect(index)}
                 onPlay={() => onPlay(index)}
                 onRemove={() => onRemove(track.id)}
                 onSaveToLibrary={

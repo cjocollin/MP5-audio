@@ -243,6 +243,7 @@ export async function exportBatchAlbumPackage(
     year: album.year,
     genre: album.genre,
     credits: album.credits,
+    gaplessDefault: album.gaplessDefault === true,
   };
 
   const mode = albumExportModeFromTarget(album.exportTarget)!;

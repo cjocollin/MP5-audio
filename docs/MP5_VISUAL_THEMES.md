@@ -1,6 +1,6 @@
 # MP5 Visual Themes (VISU)
 
-**Version:** MP5 Audio v0.29.0-beta  
+**Version:** MP5 Audio v0.30.1-beta
 **Status:** Optional display metadata
 
 The optional `VISU` chunk lets a file suggest player colors and mood without affecting audio decode, playback transport, volume, codec policy, or file semantics.
@@ -25,6 +25,7 @@ If secondary is omitted, players fall back to primary and then accent. If primar
 | Metadata VISU panel | yes |
 | Waveform accent | yes |
 | App shell/tabs/global nav accents | yes |
+| Audio-reactive Now Playing bars | yes |
 | Converter/library/settings accents | yes |
 | Main page/panel backgrounds | no |
 | Global cover-art wallpaper | no |
@@ -59,6 +60,7 @@ Invalid colors are dropped on decode/encode. Strings are sanitized.
 - Safe hex colors only; no arbitrary CSS or HTML from files.
 - Accessible contrast preferred when possible.
 - Active file accents reset to the default app theme when VISU is disabled, the queue is cleared, or the current file has no VISU metadata.
+- Reactive bars read the active playback analyser and use the track's primary, secondary, and accent colors. Reduced-motion users receive a stable, non-animated profile.
 
 ## Tooling
 

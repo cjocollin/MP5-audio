@@ -9,6 +9,7 @@ import { Info } from "@phosphor-icons/react/Info";
 import { List } from "@phosphor-icons/react/List";
 import { X } from "@phosphor-icons/react/X";
 import { APP_VERSION } from "../generated/appVersion";
+import { dismissBetaNotice, shouldShowBetaNotice } from "../lib/firstRun";
 import {
   CONVERTER_SOURCE_ACCEPT,
   MP5_FILE_ACCEPT,
@@ -37,54 +38,70 @@ const TABS: TabItem[] = [
   { id: "settings", label: "Settings", icon: Gear, mobile: true },
 ];
 
+const SHELL_FILE_ACTIONS = {
+  player: { label: "Open MP5", shortLabel: "Open", accept: MP5_FILE_ACCEPT, destination: "player", inputTestId: "player-file-input" },
+  converter: { label: "Add source audio", shortLabel: "Add", accept: CONVERTER_SOURCE_ACCEPT, destination: "converter", inputTestId: "converter-file-input" },
+  library: { label: "Add to Library", shortLabel: "Add", accept: MP5_FILE_ACCEPT, destination: "library", inputTestId: "local-library-file-input" },
+  demo: { label: "Open MP5", shortLabel: "Open", accept: MP5_FILE_ACCEPT, destination: "player", inputTestId: "player-file-input" },
+  about: { label: "Open MP5", shortLabel: "Open", accept: MP5_FILE_ACCEPT, destination: "player", inputTestId: "player-file-input" },
+  settings: { label: "Open MP5", shortLabel: "Open", accept: MP5_FILE_ACCEPT, destination: "player", inputTestId: "player-file-input" },
+} as const satisfies Record<AppTab, {
+  label: string;
+  shortLabel: string;
+  accept: string;
+  destination: "player" | "converter" | "library";
+  inputTestId: string;
+}>;
+
 interface Props {
   activeTab: AppTab;
   onTabChange: (tab: AppTab) => void;
 }
 
 export function AppShell({ activeTab, onTabChange }: Props) {
-  const [noticeVisible, setNoticeVisible] = useState(true);
+  const [noticeVisible, setNoticeVisible] = useState(shouldShowBetaNotice);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const setPendingPlayerFiles = usePlayerStore((s) => s.setPendingPlayerFiles);
   const setPendingConverterFiles = usePlayerStore((s) => s.setPendingConverterFiles);
+  const setPendingLibraryFiles = usePlayerStore((s) => s.setPendingLibraryFiles);
+  const fileAction = SHELL_FILE_ACTIONS[activeTab];
 
   const openFilePicker = () => {
-    // Pick first (keeps user gesture for showOpenFilePicker), then hand off.
-    // Player tab: .mp5/.mp5p to the player. Converter tab: source audio to the
-    // converter (an .mp5 is an *output*, never a conversion source).
     void (async () => {
-      const onConverter = activeTab === "converter";
       const picked = await pickMp5Files({
-        accept: onConverter ? CONVERTER_SOURCE_ACCEPT : MP5_FILE_ACCEPT,
+        accept: fileAction.accept,
       });
-      if (!onConverter) onTabChange("player");
       if (picked === null) {
         // Only fall back when the native picker does not exist; after a
         // failed native attempt a second picker is a bug, not a recovery.
         if (shouldFallbackToInputPicker()) {
-          const testId = onConverter ? "converter-file-input" : "player-file-input";
+          if (fileAction.destination === "player" && activeTab !== "player") {
+            onTabChange("player");
+          }
           window.setTimeout(() => {
-            document.querySelector<HTMLInputElement>(`[data-testid="${testId}"]`)?.click();
+            document.querySelector<HTMLInputElement>(`[data-testid="${fileAction.inputTestId}"]`)?.click();
           }, 0);
         }
         return;
       }
       if (!picked.length) return;
-      if (onConverter) {
-        setPendingConverterFiles(picked);
-      } else {
-        setPendingPlayerFiles(picked);
+      switch (fileAction.destination) {
+        case "converter":
+          setPendingConverterFiles(picked);
+          break;
+        case "library":
+          setPendingLibraryFiles(picked);
+          break;
+        case "player":
+          onTabChange("player");
+          setPendingPlayerFiles(picked);
+          break;
       }
     })();
   };
 
   const changeTab = (tab: AppTab) => {
-    const root = document.documentElement;
-    const previousScrollBehavior = root.style.scrollBehavior;
-    root.style.scrollBehavior = "auto";
-    window.scrollTo({ top: 0, left: 0 });
-    root.style.scrollBehavior = previousScrollBehavior;
     onTabChange(tab);
     setMobileMenuOpen(false);
   };
@@ -134,11 +151,11 @@ export function AppShell({ activeTab, onTabChange }: Props) {
             onClick={openFilePicker}
             className="mp5-btn-primary mp5-shell-open"
             data-testid="shell-open-mp5"
+            aria-label={fileAction.label}
           >
             <FolderOpen size={18} weight="bold" />
-            <span className="hidden lg:inline">Open / Add files</span>
-            <span className="hidden sm:inline lg:hidden">Open files</span>
-            <span className="sm:hidden">Open</span>
+            <span className="hidden sm:inline">{fileAction.label}</span>
+            <span className="sm:hidden">{fileAction.shortLabel}</span>
           </button>
           <button
             type="button"
@@ -176,7 +193,10 @@ export function AppShell({ activeTab, onTabChange }: Props) {
           <button
             type="button"
             className="mp5-beta-dismiss mp5-focus-ring"
-            onClick={() => setNoticeVisible(false)}
+            onClick={() => {
+              dismissBetaNotice();
+              setNoticeVisible(false);
+            }}
             aria-label="Dismiss Public Beta notice"
           >
             <X size={17} />

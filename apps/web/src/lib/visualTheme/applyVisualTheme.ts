@@ -16,6 +16,7 @@ export interface ResolvedPlayerTheme {
   themeName?: string;
   moodLabel?: string;
   playerStyle?: string;
+  visualIntensity?: string;
   source?: string;
   colorsDerived?: boolean;
   accent: string;
@@ -113,6 +114,7 @@ export function resolvePlayerTheme(visu: VisuPayload | null | undefined): Resolv
     themeName: filled.themeName,
     moodLabel: filled.moodLabel,
     playerStyle: filled.playerStyle,
+    visualIntensity: filled.visualIntensity,
     source: filled.source,
     colorsDerived,
     accent,

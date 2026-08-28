@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { loadDemoFromSettings } from "./helpers/demoFixtures";
 import {
   parseDisplayedPlaybackTime,
@@ -7,6 +8,7 @@ import {
 } from "./helpers/playbackTime";
 
 const hostedUrl = process.env.MP5_HOSTED_URL;
+const appVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
 test.skip(!hostedUrl, "Set MP5_HOSTED_URL to the deployed HTTPS origin");
 
 const MOBILE = { width: 375, height: 812 };
@@ -22,7 +24,7 @@ test.describe("MP5 hosted demo", () => {
     await expect(header).toBeVisible();
     await expect(header).toContainText("MP5 Audio");
     await expect(header).toContainText("Public Beta");
-    await expect(header).toContainText("v0.29.0-beta");
+    await expect(header).toContainText(`v${appVersion}`);
   });
 
   test("app shell and honest tagline", async ({ page }) => {

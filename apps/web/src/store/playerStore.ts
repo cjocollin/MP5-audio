@@ -84,6 +84,8 @@ interface PlayerState {
   pendingAlbumPackage: ResolvedAlbumPackage | null;
   /** Source audio staged from Player Open/drop for Converter handoff. */
   pendingConverterFiles: File[] | null;
+  /** MP5 files staged from the shell for Local Library import. */
+  pendingLibraryFiles: File[] | null;
   /** Files picked from shell/empty Open (named picker); consumed by Mp5Player. */
   pendingPlayerFiles: File[] | null;
   /**
@@ -127,6 +129,8 @@ interface PlayerState {
   consumePendingAlbumPackage: () => ResolvedAlbumPackage | null;
   setPendingConverterFiles: (files: File[] | null) => void;
   consumePendingConverterFiles: () => File[] | null;
+  setPendingLibraryFiles: (files: File[] | null) => void;
+  consumePendingLibraryFiles: () => File[] | null;
   setPendingPlayerFiles: (files: File[] | null) => void;
   consumePendingPlayerFiles: () => File[] | null;
   setPendingPlayTrackId: (id: string | null, source?: PlayIntentSource) => void;
@@ -153,6 +157,15 @@ function clampIndex(index: number, length: number): number {
 }
 
 const FILE_THEMES_STORAGE_KEY = "mp5-use-file-themes-v1";
+const MP5_THEME_STORAGE_KEY = "mp5-theme-v1";
+
+function loadThemePref(): "dark" | "light" {
+  try {
+    return localStorage.getItem(MP5_THEME_STORAGE_KEY) === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
+  }
+}
 
 function loadUseFileThemesPref(): boolean {
   try {
@@ -187,13 +200,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   repeatMode: "off",
   shuffle: false,
   shuffleOrder: [],
-  theme: "dark",
+  theme: loadThemePref(),
   useFileThemes: loadUseFileThemesPref(),
   activeTab: "player",
   sessionRestored: false,
   defaultDemoDismissed: false,
   pendingAlbumPackage: null,
   pendingConverterFiles: null,
+  pendingLibraryFiles: null,
   pendingPlayerFiles: null,
   pendingPlayTrackId: null,
   pendingPlaySource: null,
@@ -370,7 +384,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setCurrentTime: (currentTime) => set({ currentTime }),
   setDuration: (duration) => set({ duration }),
   setVolume: (volume) => set({ volume }),
-  setTheme: (theme) => set({ theme }),
+  setTheme: (theme) => {
+    try {
+      localStorage.setItem(MP5_THEME_STORAGE_KEY, theme);
+    } catch {
+      /* private mode */
+    }
+    set({ theme });
+  },
   setUseFileThemes: (useFileThemes) => {
     try {
       localStorage.setItem(FILE_THEMES_STORAGE_KEY, useFileThemes ? "1" : "0");
@@ -419,6 +440,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   consumePendingConverterFiles: () => {
     const files = get().pendingConverterFiles;
     set({ pendingConverterFiles: null });
+    return files;
+  },
+  setPendingLibraryFiles: (pendingLibraryFiles) => set({ pendingLibraryFiles }),
+  consumePendingLibraryFiles: () => {
+    const files = get().pendingLibraryFiles;
+    set({ pendingLibraryFiles: null });
     return files;
   },
   setPendingPlayerFiles: (pendingPlayerFiles) => {

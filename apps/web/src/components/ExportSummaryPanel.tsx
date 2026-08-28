@@ -3,8 +3,8 @@ import { suggestDuplicateExportFilename } from "../converter/exportFilename";
 
 interface Props {
   summary: ExportSummary;
-  onDownloadAgain: () => void;
   onOpenInPlayer: () => void;
+  onDownloadAgain: () => void;
   onAddToPlaylist: () => void;
   onSaveToLibrary?: () => void;
   onCopySummary?: () => void;
@@ -12,8 +12,8 @@ interface Props {
 
 export function ExportSummaryPanel({
   summary,
-  onDownloadAgain,
   onOpenInPlayer,
+  onDownloadAgain,
   onAddToPlaylist,
   onSaveToLibrary,
   onCopySummary,
@@ -71,26 +71,10 @@ export function ExportSummaryPanel({
         <button
           type="button"
           className="px-3 py-1.5 rounded-lg bg-accent text-black text-xs font-semibold hover:opacity-90"
-          onClick={onDownloadAgain}
-          data-testid="export-download-again"
-        >
-          Download again
-        </button>
-        <button
-          type="button"
-          className="px-3 py-1.5 rounded-lg border border-accent/40 text-accent text-xs font-medium hover:bg-accent/10"
           onClick={onOpenInPlayer}
           data-testid="export-open-player"
         >
           Open in Player
-        </button>
-        <button
-          type="button"
-          className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 text-xs hover:bg-white/5"
-          onClick={onAddToPlaylist}
-          data-testid="export-add-playlist"
-        >
-          Add to playlist
         </button>
         {onSaveToLibrary && (
           <button
@@ -102,16 +86,39 @@ export function ExportSummaryPanel({
             Save to library
           </button>
         )}
-        {onCopySummary && (
-          <button
-            type="button"
-            className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 text-xs hover:bg-white/5"
-            onClick={onCopySummary}
-            data-testid="export-copy-summary"
-          >
-            Copy summary
-          </button>
-        )}
+        <details className="text-xs text-gray-400" data-testid="export-more-actions">
+          <summary className="cursor-pointer rounded-lg border border-white/10 px-3 py-1.5 hover:bg-white/5">
+            More actions
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/5"
+              onClick={onAddToPlaylist}
+              data-testid="export-add-playlist"
+            >
+              Add to playlist
+            </button>
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/5"
+              onClick={onDownloadAgain}
+              data-testid="export-download-again"
+            >
+              Download again
+            </button>
+            {onCopySummary && (
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/5"
+                onClick={onCopySummary}
+                data-testid="export-copy-summary"
+              >
+                Copy summary
+              </button>
+            )}
+          </div>
+        </details>
       </div>
     </section>
   );

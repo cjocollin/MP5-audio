@@ -4,11 +4,12 @@
  * Runs golden fixture validation, beta docs tests, the legacy full gate, build, deploy:check.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
 function run(label, command, args) {
   console.log(`\n=== ${label} ===\n`);
@@ -23,7 +24,7 @@ function run(label, command, args) {
   }
 }
 
-console.log("MP5 Beta readiness check (v0.29.0-beta gate)\n");
+console.log(`MP5 Beta readiness check (v${version} gate)\n`);
 
 run("Container build", "pnpm", ["--filter", "@mp5/container", "build"]);
 run("Golden fixture validation", "node", ["scripts/validate-golden-fixtures.mjs"]);

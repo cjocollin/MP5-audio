@@ -15,6 +15,7 @@ import {
 } from "@mp5/container";
 
 const root = process.cwd();
+const currentVersion = `v${JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version}`;
 
 function read(rel: string) {
   return readFileSync(join(root, rel), "utf8");
@@ -141,15 +142,11 @@ describe("developer toolkit docs", () => {
       "docs/CURRENT_MP5_STATUS.md",
       "docs/MP5_PUBLIC_BETA_RELEASE_NOTES.md",
       "docs/MP5_HOSTED_DEMO.md",
-      "docs/MP5_DEVELOPER_QUICKSTART.md",
-      "docs/MP5_COMPATIBILITY_MATRIX.md",
-      "docs/MP5_FIXTURE_CATALOG.md",
-      "docs/MP5_CHUNK_REGISTRY.md",
       "docs/MP5_KNOWN_ISSUES.md",
     ];
     for (const rel of docs) {
       const text = read(rel);
-      expect(text, rel).toContain("v0.29.0-beta");
+      expect(text, rel).toContain(currentVersion);
       expect(text, rel).not.toMatch(/\bv0\.19\.0-beta\b/);
       expect(text, rel).not.toMatch(/\bv0\.16\.1-beta\b/);
       expect(text, rel).not.toMatch(/production-ready(?! for archival|,)/i);

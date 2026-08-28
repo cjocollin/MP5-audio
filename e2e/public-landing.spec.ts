@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { loadDemoFromSettings } from "./helpers/demoFixtures";
 import { dismissWelcomeOnboarding } from "./helpers/onboarding";
+import { readFileSync } from "node:fs";
+
+const appVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
 
 test.describe("direct-entry public experience", () => {
   test.beforeEach(async ({ page }) => {
@@ -63,10 +66,10 @@ test.describe("direct-entry public experience", () => {
     await expect(page.getByTestId("mp5-player")).toBeVisible();
   });
 
-  test("shell reports the integrated 0.27.0 Public Beta version", async ({ page }) => {
+  test("shell reports the current Public Beta version", async ({ page }) => {
     const header = page.getByTestId("app-shell-header");
     await expect(header).toContainText("MP5 Audio");
     await expect(header).toContainText("Public Beta");
-    await expect(header).toContainText("v0.29.0-beta");
+    await expect(header).toContainText(`v${appVersion}`);
   });
 });

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const vercelPath = join(root, "vercel.json");
 const buildScript = join(root, "scripts/vercel-build.mjs");
+const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 
 let failed = false;
 function ok(message) {
@@ -50,8 +51,8 @@ else fail("Commit apps/web/src/wasm/pkg/mp5_codec_bg.wasm for reliable Vercel bu
 const setup = readFileSync(join(root, "docs/MP5_VERCEL_SETUP.md"), "utf8");
 if (setup.includes("mp5-audio")) ok("MP5_VERCEL_SETUP.md references mp5-audio");
 else fail("setup doc missing mp5-audio");
-if (setup.includes("v0.29.0-beta")) ok("setup doc references v0.29.0-beta");
-else fail("setup doc should reference v0.29.0-beta");
+if (setup.includes(`v${version}`)) ok(`setup doc references v${version}`);
+else fail(`setup doc should reference v${version}`);
 if (setup.includes("apps/web/dist")) ok("setup doc references apps/web/dist");
 else fail("setup doc missing apps/web/dist");
 

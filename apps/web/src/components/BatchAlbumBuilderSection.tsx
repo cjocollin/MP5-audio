@@ -614,6 +614,20 @@ export function BatchAlbumBuilderSection({
         );
       })()}
 
+      {album.exportTarget !== "individual" && (
+        <label className="flex items-start gap-2 text-xs text-gray-400">
+          <input
+            type="checkbox"
+            checked={album.gaplessDefault === true}
+            onChange={(event) => handleAlbumField("gaplessDefault", event.target.checked)}
+            data-testid="batch-album-gapless"
+          />
+          <span>
+            Prefer gapless playback when the next album track is decoded and ready.
+          </span>
+        </label>
+      )}
+
       {exportBusy && exportStage && (
         <p className="text-xs text-accent/90" data-testid="batch-album-export-stage" aria-live="polite">
           {exportStage}

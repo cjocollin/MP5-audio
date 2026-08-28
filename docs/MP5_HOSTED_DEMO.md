@@ -1,8 +1,8 @@
 # MP5 Public Beta Hosted Demo Validation
 
-**Version:** MP5 Audio v0.29.0-beta (Public Beta)  
+**Version:** MP5 Audio v0.30.1-beta (Public Beta)
 **Canonical URL:** https://mp5-audio.vercel.app  
-**Last updated:** 2026-06-16
+**Last updated:** 2026-08-28
 
 Use this document for production hosted-demo validation after local gates pass.
 

@@ -1,9 +1,9 @@
 import { ListBullets } from "@phosphor-icons/react/ListBullets";
 import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
-import { CaretUp } from "@phosphor-icons/react/CaretUp";
 import { Pause } from "@phosphor-icons/react/Pause";
 import { Play } from "@phosphor-icons/react/Play";
 import { Repeat } from "@phosphor-icons/react/Repeat";
+import { RepeatOnce } from "@phosphor-icons/react/RepeatOnce";
 import { Shuffle } from "@phosphor-icons/react/Shuffle";
 import { SkipBack } from "@phosphor-icons/react/SkipBack";
 import { SkipForward } from "@phosphor-icons/react/SkipForward";
@@ -11,13 +11,14 @@ import { SpeakerHigh } from "@phosphor-icons/react/SpeakerHigh";
 import { CodecId, type Mp5File } from "@mp5/container";
 import { SignalMarkSprite } from "../components/SignalMarkSprite";
 import { useCoverObjectUrl } from "../hooks/useCoverObjectUrl";
-import type { PlaylistTrack } from "../store/playerStore";
+import type { PlaylistTrack, RepeatMode } from "../store/playerStore";
 import { usePlayerStore } from "../store/playerStore";
 import { trackDisplayInfo } from "./playlistUtils";
 import { audiKbps, bitrateBadgeLabel, c6BitrateInfo } from "../lib/c6Bitrate";
 import { codecLabel } from "../lib/codecDisplay";
 import { formatTimelineRange } from "./playerDisplay";
 import { SeekTimeline } from "./SeekTimeline";
+import { repeatModeLabel } from "./queueNavigation";
 
 function coverFromParsed(parsed?: Mp5File) {
   if (parsed?.coverArt?.data.length) return parsed.coverArt;
@@ -36,6 +37,8 @@ interface Props {
   onNext: () => void;
   onShuffle: () => void;
   onRepeat: () => void;
+  shuffle: boolean;
+  repeatMode: RepeatMode;
   canPrevious: boolean;
   canNext: boolean;
   duration: number;
@@ -55,6 +58,8 @@ export function PersistentTransport({
   onNext,
   onShuffle,
   onRepeat,
+  shuffle,
+  repeatMode,
   canPrevious,
   canNext,
   duration,
@@ -103,7 +108,7 @@ export function PersistentTransport({
             {info?.title ?? "Nothing playing"}
           </p>
           <p className="mp5-persistent-artist truncate text-xs text-gray-500">
-            {info?.artist ?? "Open a file or load a demo from Settings"}
+            {info?.artist ?? "Open an MP5 or try a demo from the Demo tab"}
           </p>
           <p className="mp5-persistent-mobile-time">
             {timeline.current} / {timeline.duration}
@@ -147,7 +152,9 @@ export function PersistentTransport({
           className="mp5-persistent-shuffle"
           onClick={onShuffle}
           disabled={!hasTrack}
-          aria-label="Toggle shuffle"
+          aria-label={shuffle ? "Turn shuffle off" : "Turn shuffle on"}
+          aria-pressed={shuffle}
+          data-active={shuffle ? "true" : "false"}
         >
           <Shuffle size={18} />
         </button>
@@ -183,9 +190,11 @@ export function PersistentTransport({
           className="mp5-persistent-repeat"
           onClick={onRepeat}
           disabled={!hasTrack}
-          aria-label="Cycle repeat mode"
+          aria-label={repeatModeLabel(repeatMode)}
+          aria-pressed={repeatMode !== "off"}
+          data-repeat-mode={repeatMode}
         >
-          <Repeat size={18} />
+          {repeatMode === "one" ? <RepeatOnce size={18} /> : <Repeat size={18} />}
         </button>
       </div>
 
@@ -220,14 +229,6 @@ export function PersistentTransport({
       <div className="mp5-persistent-queue-group">
         <button type="button" className="mp5-persistent-queue" onClick={onQueue} aria-label="Open queue">
           <ListBullets size={22} weight="bold" />
-        </button>
-        <button
-          type="button"
-          className="mp5-persistent-queue mp5-persistent-collapse"
-          onClick={onQueue}
-          aria-label="Open queue details"
-        >
-          <CaretUp size={17} weight="bold" />
         </button>
       </div>
     </section>

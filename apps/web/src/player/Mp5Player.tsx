@@ -82,6 +82,8 @@ import {
 import { NowPlayingView } from "./NowPlayingView";
 import { LibraryPanel } from "./LibraryPanel";
 import { PersistentTransport } from "./PersistentTransport";
+import { NativeMediaSession } from "./NativeMediaSession";
+import { resolveGaplessNextTrackId } from "./gaplessPlayback";
 import { PlayerInspectorOverview } from "./PlayerInspectorOverview";
 import { TrackMetadata } from "./TrackMetadata";
 import { ingestMp5Files, trackDurationSec, findSimilarTrackIndex, similarTrackAvailable, type IngestResult } from "./playlistUtils";
@@ -311,6 +313,7 @@ export function Mp5Player({
   }, []);
   const embeddedHydratingTrackIdRef = useRef<string | null>(null);
   const seekRef = useRef<(t: number) => void>(() => {});
+  const gaplessTransitionTrackIdRef = useRef<string | null>(null);
   const [karaokeStemPrepFailed, setKaraokeStemPrepFailed] = useState(false);
 
   // Track ended (or a load failed mid-auto-advance): apply the queue's advance
@@ -341,6 +344,10 @@ export function Mp5Player({
     getPlaybackTime: getMainPlaybackTime,
     isSourceActive: isMainSourceActive,
     hasPcm: hasMainPcm,
+    getAnalysisFrame: getMainAnalysisFrame,
+    prepareGaplessNext,
+    clearGaplessNext,
+    hasGaplessHandoff,
   } = useMp5AudioEngine({
     volume,
     isPlaying: isPlaying && !useStemPlayback,
@@ -349,6 +356,15 @@ export function Mp5Player({
     setPlaying,
     onTrackEnded: () => {
       advanceAfterEnd();
+    },
+    onGaplessTransition: (nextTrackId) => {
+      const state = usePlayerStore.getState();
+      const nextIndex = state.tracks.findIndex((candidate) => candidate.id === nextTrackId);
+      if (nextIndex < 0) return false;
+      gaplessTransitionTrackIdRef.current = nextTrackId;
+      setCurrentIndex(nextIndex, { keepPlaying: true });
+      setCurrentTime(0);
+      return true;
     },
   });
 
@@ -364,6 +380,7 @@ export function Mp5Player({
     getDiagnostics: getStemDiagnostics,
     hasActiveSources: hasStemActiveSources,
     isGraphBusy: isStemGraphBusy,
+    getAnalysisFrame: getStemAnalysisFrame,
   } = useStemMixerEngine({
     volume,
     isPlaying: isPlaying && useStemPlayback,
@@ -385,6 +402,14 @@ export function Mp5Player({
       advanceAfterEnd();
     },
   });
+
+  const getAnalysisFrame = useCallback(
+    (target: Uint8Array) =>
+      useStemPlayback
+        ? getStemAnalysisFrame(target)
+        : getMainAnalysisFrame(target),
+    [getMainAnalysisFrame, getStemAnalysisFrame, useStemPlayback],
+  );
 
   const invalidateStemGraph = useCallback(() => {
     stemGraphGenRef.current += 1;
@@ -711,6 +736,24 @@ export function Mp5Player({
   seekRef.current = seek;
 
   const track = tracks[currentIndex];
+  const albumTrackIds = useMemo(
+    () =>
+      activeAlbum?.tracks.map(
+        (row) => row.playlistTrack?.id ?? row.ref.trackId,
+      ) ?? [],
+    [activeAlbum],
+  );
+  const gaplessNextTrackId = resolveGaplessNextTrackId({
+    enabled: activeAlbum?.manifest.gaplessDefault === true,
+    playing: isPlaying,
+    shuffle,
+    repeatMode,
+    stemPlayback: useStemPlayback,
+    hasActiveRange: activePlaybackRange !== null,
+    currentIndex,
+    queue: tracks,
+    albumTrackIds,
+  });
 
   const getPlaybackTime = useCallback(() => {
     if (useStemPlayback) {
@@ -1018,6 +1061,7 @@ export function Mp5Player({
     async (playlistTrack: PlaylistTrack, loadGen: number, signal: AbortSignal) => {
       const { id: trackId, file, rawBuffer, parsed: ingestParsed } = playlistTrack;
       if (!file) return;
+      const gaplessHandoff = hasGaplessHandoff(trackId);
       // The playback controller owns the load lifecycle: it aborts a prior load
       // before starting this one and provides `signal` (aborts on supersede /
       // clear). Report readiness/failure back by `loadGen` so the machine tracks
@@ -1027,18 +1071,18 @@ export function Mp5Player({
       // effect's select({play}) and consumed on AUDIO_STARTED). loadFile just
       // decodes and reports loadReady/loadFailed by `loadGen`; the machine's
       // startAudio effect (via requestPlayback) is what actually starts audio.
-      stopMainSource();
+      if (!gaplessHandoff) stopMainSource();
       setLoadError("");
       setLoading(true);
       // Clear stale duration so Play stays disabled until this track is ready.
-      setDuration(0);
+      if (!gaplessHandoff) setDuration(0);
       setCurrentTime(0);
       setIngestStage("decoding_audio");
       setIngestStageDetail("Preparing decode…");
       // A new load means nothing is playing until this track reaches ready and
       // the machine starts it. (A partial→full upgrade of an already-playing
       // track is not a new load and never reaches here.)
-      setPlaying(false);
+      if (!gaplessHandoff) setPlaying(false);
 
       const cached = decodeCache.get(trackId);
       // Guard so loadReady is dispatched EXACTLY once per load: the progressive
@@ -1047,6 +1091,7 @@ export function Mp5Player({
       // re-emit startAudio before the isPlaying->machine bridge has consumed the
       // intent).
       let readyReported = false;
+      let adoptedGapless = false;
       const scheduleIntegrity = (pr: Mp5File, samples: Int16Array) => {
         const run = async () => {
           // This runs on an idle callback, long after loadFile returned, so it
@@ -1084,11 +1129,14 @@ export function Mp5Player({
           if (!stillCurrent()) return;
           setDecodePath(cached.decodePath);
           setMp5hInfo(cached.mp5h);
-          await loadPcm({
-            samples: cached.samples,
-            rate: cached.sampleRate,
-            ch: cached.channels,
-          });
+          adoptedGapless = await loadPcm(
+            {
+              samples: cached.samples,
+              rate: cached.sampleRate,
+              ch: cached.channels,
+            },
+            gaplessHandoff ? { gaplessTrackId: trackId } : undefined,
+          );
           if (!stillCurrent()) return;
           setParsed(cached.parsed);
           setDuration(cached.duration);
@@ -1267,12 +1315,15 @@ export function Mp5Player({
             setDecodePath(path);
             setMp5hInfo(mp5h);
             setIngestStageDetail("Preparing playback…");
-            await loadPcm({
-              samples,
-              rate: sampleRate,
-              ch: channels,
-              floatChannels,
-            });
+            adoptedGapless = await loadPcm(
+              {
+                samples,
+                rate: sampleRate,
+                ch: channels,
+                floatChannels,
+              },
+              gaplessHandoff ? { gaplessTrackId: trackId } : undefined,
+            );
             if (!stillCurrent()) return;
             setParsed(pr);
             setDuration(dur);
@@ -1297,6 +1348,11 @@ export function Mp5Player({
         // progressive branch already reported ready at its 8s window, so
         // loadReady fires exactly once per load.
         if (!readyReported) controllerRef.current?.loadReady(trackId, loadGen);
+        if (adoptedGapless) {
+          gaplessTransitionTrackIdRef.current = null;
+          controllerRef.current?.audioStarted(trackId);
+          setDecodeIdleTick((value) => value + 1);
+        }
       } catch (e) {
         if (!stillCurrent()) return;
         // Track switch / StrictMode cancel — clear busy UI so we never stick on
@@ -1324,6 +1380,7 @@ export function Mp5Player({
     },
     [
       loadPcm,
+      hasGaplessHandoff,
       upgradePcm,
       stopMainSource,
       setCurrentTime,
@@ -1451,7 +1508,7 @@ export function Mp5Player({
           if (!loadUnchanged()) return;
           const dur =
             result.samples.length / result.channels / result.sampleRate;
-          decodeCache.set(nextId, {
+          const admitted = decodeCache.set(nextId, {
             samples: result.samples,
             sampleRate: result.sampleRate,
             channels: result.channels,
@@ -1460,6 +1517,7 @@ export function Mp5Player({
             mp5h: result.mp5h,
             duration: dur,
           });
+          if (!admitted) return;
           decodeCache.retain(
             [
               tracks[currentIndex - 1]?.id,
@@ -1467,6 +1525,7 @@ export function Mp5Player({
               nextId,
             ].filter((id): id is string => !!id),
           );
+          setDecodeIdleTick((value) => value + 1);
         })
         .catch(() => {
           /* prefetch is best-effort */
@@ -1474,6 +1533,29 @@ export function Mp5Player({
     }, 600);
     return () => window.clearTimeout(timer);
   }, [loading, currentIndex, tracks, decodeIdleTick]);
+
+  useEffect(() => {
+    if (loading || gaplessTransitionTrackIdRef.current) return;
+    if (!gaplessNextTrackId) {
+      clearGaplessNext();
+      return;
+    }
+    const cached = decodeCache.get(gaplessNextTrackId);
+    if (!cached) return;
+    // ponytail: only already-loaded sidecar/embedded tracks are scheduled;
+    // prehydrate packaged tracks if real gapless-album usage justifies the memory cost.
+    void prepareGaplessNext(gaplessNextTrackId, {
+      samples: cached.samples,
+      rate: cached.sampleRate,
+      ch: cached.channels,
+    });
+  }, [
+    clearGaplessNext,
+    decodeIdleTick,
+    gaplessNextTrackId,
+    loading,
+    prepareGaplessNext,
+  ]);
 
   useEffect(() => {
     setKaraokeMode(false);
@@ -2432,62 +2514,68 @@ export function Mp5Player({
                 integrity={integrity}
                 canPlaySimilar={canPlaySimilar}
                 onPlaySimilar={handlePlaySimilar}
-              />
-            </div>
-
-            <div className="mp5-player-waveform">
-              <WaveformProgress duration={duration}>
-                {(progress) => (
-                  <WaveformView
-                    peaks={parsed?.waveform ?? []}
-                    progress={progress}
-                    durationSec={duration}
-                    sectionMarkers={waveformSectionMarkers}
-                    highlightMarkers={waveformHighlightMarkers}
-                    activeLoopRange={waveformLoopRange}
-                    playedFill={playerTheme?.waveformPlayedFill}
-                    unplayedFill={playerTheme?.waveformUnplayedFill}
-                    onSeek={handleWaveformSeek}
-                    disabled={loading || duration <= 0}
-                  />
-                )}
-              </WaveformProgress>
-            </div>
-
-            <div className="mp5-player-controls-wrap">
-              <PlayerControls
                 isPlaying={isPlaying}
-                onPlayPause={handlePlayPause}
-                playbackStatus={playbackSnapshot.playState}
-                playbackReadiness={playbackSnapshot.readiness}
-                hasTrack={!!track}
-                loading={loading}
-                playbackStatusDetail={
-                  playbackSnapshot.playState === "preparing"
-                    ? karaokePreparing
-                      ? "Preparing karaoke…"
-                      : ingestStageDetail || "Preparing audio…"
-                    : karaokeFallback
-                      ? "Karaoke audio unavailable — playing full mix with synced lyrics"
-                      : loadError || undefined
-                }
-                onPrev={handlePlayerPrev}
-                onNext={handlePlayerNext}
-                canPrev={canPrev}
-                canNext={canNext}
-                repeatMode={repeatMode}
-                shuffle={shuffle}
-                onToggleShuffle={toggleShuffle}
-                onCycleRepeat={cycleRepeatMode}
-                duration={duration}
-                onSeek={seek}
-                volume={volume}
-                onVolume={setVolume}
+                getAnalysisFrame={getAnalysisFrame}
               />
             </div>
+
+            {track && (
+              <>
+                <div className="mp5-player-waveform">
+                  <WaveformProgress duration={duration}>
+                    {(progress) => (
+                      <WaveformView
+                        peaks={parsed?.waveform ?? []}
+                        progress={progress}
+                        durationSec={duration}
+                        sectionMarkers={waveformSectionMarkers}
+                        highlightMarkers={waveformHighlightMarkers}
+                        activeLoopRange={waveformLoopRange}
+                        playedFill={playerTheme?.waveformPlayedFill}
+                        unplayedFill={playerTheme?.waveformUnplayedFill}
+                        onSeek={handleWaveformSeek}
+                        disabled={loading || duration <= 0}
+                      />
+                    )}
+                  </WaveformProgress>
+                </div>
+
+                <div className="mp5-player-controls-wrap">
+                  <PlayerControls
+                    isPlaying={isPlaying}
+                    onPlayPause={handlePlayPause}
+                    playbackStatus={playbackSnapshot.playState}
+                    playbackReadiness={playbackSnapshot.readiness}
+                    hasTrack
+                    loading={loading}
+                    playbackStatusDetail={
+                      playbackSnapshot.playState === "preparing"
+                        ? karaokePreparing
+                          ? "Preparing karaoke…"
+                          : ingestStageDetail || "Preparing audio…"
+                        : karaokeFallback
+                          ? "Karaoke audio unavailable — playing full mix with synced lyrics"
+                          : loadError || undefined
+                    }
+                    onPrev={handlePlayerPrev}
+                    onNext={handlePlayerNext}
+                    canPrev={canPrev}
+                    canNext={canNext}
+                    repeatMode={repeatMode}
+                    shuffle={shuffle}
+                    onToggleShuffle={toggleShuffle}
+                    onCycleRepeat={cycleRepeatMode}
+                    duration={duration}
+                    onSeek={seek}
+                    volume={volume}
+                    onVolume={setVolume}
+                  />
+                </div>
+              </>
+            )}
           </section>
 
-          <section className="mp5-player-inspector" aria-label="Track inspector">
+          {track && <section className="mp5-player-inspector" aria-label="Track inspector">
             <nav className="mp5-inspector-tabs" aria-label="Track details">
               {INSPECTOR_TABS.map((item) => (
                 <button
@@ -2640,7 +2728,7 @@ export function Mp5Player({
                 playerTheme={playerTheme}
               />
             </div>
-          </section>
+          </section>}
         </div>
 
         <aside className="mp5-player-sidebar" id="mp5-player-queue" tabIndex={-1}>
@@ -2650,18 +2738,9 @@ export function Mp5Player({
             currentIndex={currentIndex}
             isPlaying={isPlaying}
             dropErrors={dropErrors}
-            repeatMode={repeatMode}
-            shuffle={shuffle}
-            onSelect={(index) => {
-              // Plain selection (no play): the track-load effect will select it
-              // into the machine without play intent (mailbox is empty).
-              setCurrentIndex(index);
-            }}
             onPlay={handlePlayIndex}
             onRemove={removeTrack}
             onClear={handleClear}
-            onToggleShuffle={toggleShuffle}
-            onCycleRepeat={cycleRepeatMode}
             onSaveToLibrary={(item) => void handleSaveToLibrary(item)}
             librarySaveBusy={librarySaveBusy}
             album={activeAlbum}
@@ -2712,6 +2791,8 @@ export function Mp5Player({
         onNext={handlePlayerNext}
         onShuffle={toggleShuffle}
         onRepeat={cycleRepeatMode}
+        shuffle={shuffle}
+        repeatMode={repeatMode}
         canPrevious={canPrev}
         canNext={canNext}
         duration={duration}
@@ -2732,6 +2813,21 @@ export function Mp5Player({
           }
           revealQueue();
         }}
+      />
+      <NativeMediaSession
+        track={track}
+        parsed={parsed}
+        isPlaying={isPlaying}
+        duration={duration}
+        onPlay={() => {
+          if (!usePlayerStore.getState().isPlaying) handlePlayPause();
+        }}
+        onPause={() => {
+          if (usePlayerStore.getState().isPlaying) handlePlayPause();
+        }}
+        onPrevious={handlePlayerPrev}
+        onNext={handlePlayerNext}
+        onSeek={seek}
       />
     </>
   );
