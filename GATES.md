@@ -51,7 +51,7 @@ Scope: Improve CodecId 6 encoder quality at ABR 128 on the dev corpus without de
   EVIDENCE: shipping revision-7 WASM passed 19/19 rows; dev-corpus size ratio = 0.992418 and all-row ratio = 0.949946 in `.tmp-analysis/bench-lame-320-rev7-final.json`.
 
 - [x] G11: Listening-check files are generated from the final encoder and handed to the user with exact source/decode paths.
-  EVIDENCE: source `.tmp-analysis/src48.wav`; shipping revision-7 WASM decode `.tmp-analysis/mp5c6-rev7-final-abr128-listen.wav`; encoded stream `.tmp-analysis/mp5c6-rev7-final-abr128.c6stream`.
+  EVIDENCE: source `.tmp-analysis/src48.wav`; shipping revision-7 WASM decode `.tmp-analysis/mp5c6-rev7-final-abr128-listen.wav`; encoded stream `.tmp-analysis/mp5c6-rev7-final-abr128.c6stream`. User listening signoff on 2026-08-27: "these sound good for their quality."
 
 ## Audit gates: current encoder revision 6
 

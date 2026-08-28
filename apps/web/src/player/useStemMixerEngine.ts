@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { tracePlayback } from "../lib/playback/playbackTrace";
+import { requestPlaybackAudioFocus } from "../lib/playback/audioFocus";
 import { recordPatchPlayhead } from "../lib/playback/stemMixerAssert";
 import { computePlaybackTime } from "./playbackTime";
 
@@ -293,6 +294,7 @@ export function useStemMixerEngine({
       const tracks = tracksRef.current;
       if (!tracks.length) return;
 
+      requestPlaybackAudioFocus();
       graphBusyRef.current = true;
       try {
         disposeAllSources();

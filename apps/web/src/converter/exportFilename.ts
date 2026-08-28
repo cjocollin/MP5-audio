@@ -22,10 +22,23 @@ export function safeFilenameBase(part: string, fallback = "track"): string {
   return base;
 }
 
+const PRESET_LEVELS = ["Low", "Standard", "High", "Extreme"] as const;
+
+export function presetLevelLabel(preset: number): string | undefined {
+  return PRESET_LEVELS[preset];
+}
+
+export function normalizeExportFilename(filename: string, fallback = "track.mp5"): string {
+  const fallbackBase = fallback.replace(/\.mp5$/i, "");
+  const base = safeFilenameBase(filename.replace(/\.mp5$/i, ""), fallbackBase);
+  return `${base}.mp5`;
+}
+
 export function buildExportFilename(
   meta: { title?: string; artist?: string },
   codec: OutputCodec,
   sourceFilename?: string,
+  preset?: number,
 ): string {
   const artist = meta.artist?.trim();
   const title = meta.title?.trim();
@@ -58,7 +71,12 @@ export function buildExportFilename(
               ? " (MP5-C v6 lossy beta)"
               : "";
 
-  return `${base}${variant}.mp5`;
+  const presetLevel =
+    codec === "mp5l" || codec === "mp5l_v4" || codec === "pcm"
+      ? undefined
+      : presetLevelLabel(preset ?? -1);
+
+  return `${base}${variant}${presetLevel ? ` (${presetLevel})` : ""}.mp5`;
 }
 
 /** Suggested duplicate-friendly name when the browser may save a second copy. */

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { tracePlayback } from "../lib/playback/playbackTrace";
+import { requestPlaybackAudioFocus } from "../lib/playback/audioFocus";
 import { computePlaybackTime } from "./playbackTime";
 import {
   int16ToPlanarFloat,
@@ -129,6 +130,7 @@ export function useMp5AudioEngine({
         tracePlayback("main_source", "start skipped — no PCM");
         return;
       }
+      requestPlaybackAudioFocus();
       const gen = ++startGenRef.current;
       stopSource();
       const ctx = await ensureContext();

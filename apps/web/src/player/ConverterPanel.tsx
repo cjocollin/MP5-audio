@@ -21,7 +21,7 @@ import {
   visualThemeEditsFromPayload,
   type ManualMetadataEdits,
 } from "../converter/manualMetadata";
-import { buildExportFilename } from "../converter/exportFilename";
+import { buildExportFilename, normalizeExportFilename } from "../converter/exportFilename";
 import { buildExportSummary, type ExportSummary } from "../converter/exportSummary";
 import { LOAD_PHASE_LABELS } from "../converter/exportPipeline";
 import { runExportPipelineOffThread } from "../converter/exportPipelineClient";
@@ -242,6 +242,7 @@ export function ConverterPanel() {
   const [exportSummary, setExportSummary] = useState<ExportSummary | null>(null);
   const [lastExportFile, setLastExportFile] = useState<File | null>(null);
   const [lastExportBlob, setLastExportBlob] = useState<Blob | null>(null);
+  const [customOutputFilename, setCustomOutputFilename] = useState<string | null>(null);
   const [librarySaveNote, setLibrarySaveNote] = useState("");
   const [stems, setStems] = useState<PendingStemPcm[]>([]);
   const [stemIssues, setStemIssues] = useState<ReturnType<typeof validateStemsForExport>["issues"]>([]);
@@ -315,6 +316,7 @@ export function ConverterPanel() {
     setExportSummary(null);
     setLastExportFile(null);
     setLastExportBlob(null);
+    setCustomOutputFilename(null);
     setStage("source");
   }
 
@@ -335,6 +337,7 @@ export function ConverterPanel() {
     setExportSummary(null);
     setLastExportFile(null);
     setLastExportBlob(null);
+    setCustomOutputFilename(null);
     setStatus(LOAD_PHASE_LABELS.decoding);
     setPending(null);
     setEdits(null);
@@ -820,7 +823,16 @@ export function ConverterPanel() {
       );
 
       const validated = await import("@mp5/container").then((m) => m.parseMp5(mp5));
-      const filename = buildExportFilename(metaFromEdits(edits), exportCodec, pending.file.name);
+      const suggestedFilename = buildExportFilename(
+        metaFromEdits(edits),
+        exportCodec,
+        pending.file.name,
+        preset,
+      );
+      const filename = normalizeExportFilename(
+        customOutputFilename ?? suggestedFilename,
+        suggestedFilename,
+      );
       const summary = buildExportSummary({
         filename,
         exportCodec,
@@ -838,6 +850,7 @@ export function ConverterPanel() {
       }
       setLastExportBlob(blob);
       setLastExportFile(file);
+      if (customOutputFilename?.trim()) setCustomOutputFilename(filename);
       setExportSummary(summary);
       setExportDone(true);
       recordExportContext({
@@ -932,8 +945,24 @@ export function ConverterPanel() {
 
   const codecView = codecPresentation(codecUnavailable ? "pcm" : codec);
   const suggestedOutputFilename = pending && edits
-    ? buildExportFilename(metaFromEdits(edits), codecUnavailable ? "pcm" : codec, pending.file.name)
+    ? buildExportFilename(
+        metaFromEdits(edits),
+        codecUnavailable ? "pcm" : codec,
+        pending.file.name,
+        preset,
+      )
     : "Untitled.mp5";
+  const outputFilename = customOutputFilename ?? suggestedOutputFilename;
+
+  function commitOutputFilename() {
+    const filename = normalizeExportFilename(outputFilename, suggestedOutputFilename);
+    setCustomOutputFilename(customOutputFilename?.trim() ? filename : null);
+    if (lastExportBlob) {
+      setLastExportFile(new File([lastExportBlob], filename, { type: "audio/mp5" }));
+    }
+    setExportSummary((summary) => summary ? { ...summary, filename } : summary);
+  }
+
   const effectiveCover = edits?.cover === null
     ? undefined
     : edits?.cover ?? pending?.extracted.cover;
@@ -1183,10 +1212,10 @@ export function ConverterPanel() {
                 <span>Output filename</span>
                 <input
                   type="text"
-                  value={suggestedOutputFilename}
+                  value={outputFilename}
                   disabled={!pending || busy}
-                  readOnly
-                  aria-readonly="true"
+                  onChange={(event) => setCustomOutputFilename(event.target.value)}
+                  onBlur={commitOutputFilename}
                   data-testid="converter-output-filename"
                 />
               </label>
