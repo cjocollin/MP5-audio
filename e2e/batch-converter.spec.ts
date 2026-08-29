@@ -39,21 +39,23 @@ test.describe("Batch converter", () => {
     await expect(page.getByTestId("batch-converter-panel")).toHaveCount(0);
   });
 
-  test("single mode offers only MP5-L v4 + PCM until lab codecs are shown", async ({
+  test("single mode offers MP5-L v4, MP5-C v6 + PCM until lab codecs are shown", async ({
     page,
   }) => {
     await page.getByTestId("converter-mode-single").click();
     const select = page.getByTestId("codec-select");
     await expect(select).toHaveValue("mp5l_v4");
 
-    // Public surface: MP5-L v4 (recommended) + PCM (debug) only.
-    await expect(select.locator("option")).toHaveCount(2);
+    // Public surface: MP5-L v4 (recommended), MP5-C v6 (beta preview), and PCM (debug).
+    await expect(select.locator("option")).toHaveCount(3);
     await expect(select.locator('option[value="mp5l_v4"]')).toHaveCount(1);
+    await expect(select.locator('option[value="mp5c6"]')).toHaveCount(1);
     await expect(select.locator('option[value="pcm"]')).toHaveCount(1);
     for (const lab of ["mp5l", "mp5c", "mp5c2", "mp5h"]) {
       await expect(select.locator(`option[value="${lab}"]`)).toHaveCount(0);
     }
 
+    await page.getByTestId("converter-advanced-formats-toggle").click();
     await page.getByTestId("lab-codecs-toggle").click();
     for (const lab of ["mp5l", "mp5c", "mp5c2", "mp5h"]) {
       await expect(select.locator(`option[value="${lab}"]`)).toHaveCount(1);
@@ -70,6 +72,7 @@ test.describe("Batch converter", () => {
     const select = page.getByTestId("codec-select");
     const toggle = page.getByTestId("lab-codecs-toggle");
 
+    await page.getByTestId("converter-advanced-formats-toggle").click();
     await toggle.click();
     await select.selectOption("mp5h");
     await expect(select).toHaveValue("mp5h");

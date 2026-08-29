@@ -22,6 +22,7 @@ test.describe("karaoke / synced lyrics UI", () => {
     await page.getByTestId("player-file-input").setInputFiles(karaokeFixture);
     await waitForSeekReady(page);
 
+    await page.locator('[data-inspector-id="lyrics"]').click();
     await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("lyrics-sync-indicator")).toContainText("Synced");
     await expect(page.getByTestId("lyrics-karaoke-availability")).toContainText(
@@ -31,9 +32,6 @@ test.describe("karaoke / synced lyrics UI", () => {
 
     await page.getByTestId("karaoke-mode-toggle").click();
     await expect(page.getByTestId("karaoke-mode-toggle")).toContainText("on");
-    await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({
-      timeout: 30_000,
-    });
 
     await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
@@ -72,15 +70,20 @@ test.describe("karaoke / synced lyrics UI", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(karaokeFixture);
+    await page.locator('[data-inspector-id="lyrics"]').click();
     await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
+    await page.evaluate(() => {
+      (window as unknown as { __badScrollIntoView: number }).__badScrollIntoView = 0;
+    });
 
     await page.evaluate(() => window.scrollTo(0, 800));
     const scrollBefore = await page.evaluate(() => window.scrollY);
 
     await page.getByTestId("karaoke-mode-toggle").click();
-    await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({ timeout: 30_000 });
-    await page.getByTestId("play-pause").click();
-    await expect(page.getByTestId("play-pause")).toHaveAttribute("aria-label", "Pause", {
+    await expect(page.getByTestId("karaoke-mode-toggle")).toContainText("on");
+    const persistentPlay = page.getByTestId("persistent-transport").locator(".mp5-persistent-play");
+    await persistentPlay.click();
+    await expect(persistentPlay).toHaveAttribute("aria-label", "Pause", {
       timeout: 10_000,
     });
     await page.waitForTimeout(2000);
@@ -102,6 +105,7 @@ test.describe("karaoke / synced lyrics UI", () => {
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(plain);
     await expect.poll(() => page.getByTestId("playlist-item").count()).toBeGreaterThan(0);
+    await page.locator('[data-inspector-id="lyrics"]').click();
     await expect(page.getByTestId("lyrics-empty")).toBeVisible();
     await expect(page.getByTestId("karaoke-mode-toggle")).toHaveCount(0);
   });

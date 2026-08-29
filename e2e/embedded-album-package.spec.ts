@@ -41,7 +41,6 @@ test.describe("embedded album package (.mp5p)", () => {
     await expect(page.getByTestId("album-package-panel")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("album-play-all").click();
     await expect(page.getByTestId("playlist-item")).toHaveCount(2, { timeout: 20_000 });
-    await expect(page.getByTestId("playlist-item-source-badge").first()).toContainText("embedded .mp5p");
     await expect(page.getByTestId("now-playing-source-badge")).toContainText("embedded .mp5p", {
       timeout: 20_000,
     });

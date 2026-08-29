@@ -13,6 +13,7 @@ test.describe("fingerprint / integrity", () => {
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles([toneFixture]);
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 15_000 });
+    await page.locator('[data-inspector-id="integrity"]').click();
     await expect(page.getByTestId("metadata-integrity-panel")).toBeVisible();
     await expect(page.getByTestId("integrity-disclaimer")).toContainText("not DRM");
     await page.getByTestId("playlist-item-play").click();

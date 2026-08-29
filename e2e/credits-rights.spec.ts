@@ -15,6 +15,7 @@ test.describe("credits / rights metadata", () => {
     await expect(page.getByTestId("converter-panel")).toBeVisible();
     await page.getByTestId("converter-file-input").setInputFiles([wavFixture]);
     await expect(page.getByTestId("metadata-editor")).toBeVisible({ timeout: 60_000 });
+    await page.getByTestId("converter-credits-rights-toggle").click();
     await expect(page.getByTestId("credits-metadata-toggle")).toBeVisible();
     await expect(page.getByTestId("rights-metadata-toggle")).toBeVisible();
     await expect(page.getByTestId("identifiers-metadata-toggle")).toBeVisible();
@@ -28,6 +29,7 @@ test.describe("credits / rights metadata", () => {
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles([toneFixture]);
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 15_000 });
+    await page.locator('[data-inspector-id="metadata"]').click();
     await expect(page.getByTestId("metadata-credits-panel")).toBeVisible();
     await expect(page.getByTestId("metadata-rights-panel")).toBeVisible();
     await expect(page.getByTestId("metadata-identifiers-panel")).toBeVisible();

@@ -31,13 +31,16 @@ test.describe("demo guide", () => {
 });
 
 test.describe("first visit", () => {
-  test("shows Welcome onboarding without auto-loading demo audio", async ({ page }) => {
-    await page.addInitScript(() => localStorage.removeItem("mp5-onboarding-v1"));
+  test("shows focused start actions without auto-loading demo audio", async ({ page }) => {
+    await page.addInitScript(() => localStorage.removeItem("mp5-beta-notice-v1"));
     await page.goto("/");
-    await expect(page.getByTestId("welcome-onboarding")).toBeVisible();
     await expect(page.getByTestId("public-beta-notice")).toBeVisible();
     await expect(page.getByTestId("mp5-player")).toBeVisible();
     await expect(page.getByTestId("player-empty-state")).toBeVisible();
+    await expect(page.getByTestId("player-start-actions")).toBeVisible();
+    await expect(page.getByTestId("player-start-open")).toBeVisible();
+    await expect(page.getByTestId("player-start-convert")).toBeVisible();
+    await expect(page.getByTestId("player-start-demo")).toBeVisible();
     await expect(page.getByTestId("playlist-item")).toHaveCount(0);
   });
 });
