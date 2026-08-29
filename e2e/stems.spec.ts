@@ -7,6 +7,10 @@ import { dismissWelcomeOnboarding } from "./helpers/onboarding";
 const stemFixture = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_stems.mp5");
 const hasStemFixture = fs.existsSync(stemFixture);
 
+async function openStemsInspector(page: import("@playwright/test").Page): Promise<void> {
+  await page.locator('[data-inspector-id="stems"]').click();
+}
+
 test.describe("stem playback UI", () => {
   test.describe.configure({ timeout: 120_000 });
   test.skip(!hasStemFixture, "run pnpm fixtures:generate to create demo_mp5l_v3_stems.mp5");
@@ -22,6 +26,7 @@ test.describe("stem playback UI", () => {
     const input = page.getByTestId("player-file-input");
     await input.setInputFiles(stemFixture);
 
+    await openStemsInspector(page);
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("stems-panel-help")).toBeVisible();
     await expect(page.getByTestId("stems-list").locator("[data-testid=stems-item]")).toHaveCount(4);
@@ -56,6 +61,7 @@ test.describe("stem playback UI", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(stemFixture);
+    await openStemsInspector(page);
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
 
     const items = page.getByTestId("stems-item");
@@ -75,6 +81,7 @@ test.describe("stem playback UI", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(stemFixture);
+    await openStemsInspector(page);
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
 
     await page.getByTestId("play-pause").click();
@@ -105,6 +112,7 @@ test.describe("stem playback UI", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(stemFixture);
+    await openStemsInspector(page);
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
 
     const items = page.getByTestId("stems-item");
@@ -161,6 +169,7 @@ test.describe("stem playback UI", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(stemFixture);
+    await openStemsInspector(page);
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
 
     const items = page.getByTestId("stems-item");
@@ -249,11 +258,19 @@ test.describe("stem playback UI", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(stemFixture);
+    await openStemsInspector(page);
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
+    await page.locator('[data-inspector-id="format"]').click();
     await expect(page.getByTestId("song-map-panel")).toBeVisible();
+    await page.locator('[data-inspector-id="lyrics"]').click();
+    await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
+    await page.evaluate(() => {
+      (window as unknown as { __badScrollIntoView: number }).__badScrollIntoView = 0;
+    });
 
-    await page.getByTestId("play-pause").click();
+    const persistentPlay = page.getByTestId("persistent-transport").locator(".mp5-persistent-play");
+    await persistentPlay.click();
+    await expect(persistentPlay).toHaveAttribute("aria-label", "Pause", { timeout: 15_000 });
     await page.waitForTimeout(2000);
 
     const badScrolls = await page.evaluate(
@@ -266,6 +283,7 @@ test.describe("stem playback UI", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(stemFixture);
+    await openStemsInspector(page);
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 15_000 });
 
     const first = page.getByTestId("stems-item").first();

@@ -27,7 +27,7 @@ test.describe("direct-entry public experience", () => {
     await loadDemoFromSettings(page);
     await expect(page.getByTestId("playlist-item")).toHaveCount(1, { timeout: 20_000 });
     await expect(page.getByTestId("now-playing-title")).toContainText("Demo tone");
-    await expect(page.getByTestId("now-playing-badges")).toContainText("MP5-L v3");
+    await expect(page.getByTestId("now-playing-badges")).toContainText("MP5-L v4");
     await expect(page.getByTestId("now-playing-badges")).toContainText("Lossless");
     await expect(page.getByTestId("now-playing-badges")).toContainText("Bit-exact");
   });

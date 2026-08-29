@@ -56,6 +56,7 @@ test.describe("local library", () => {
       expect(dialog.message()).toMatch(/browser-local saved copy/i);
       dialog.dismiss();
     });
+    await page.getByTestId("library-more-actions").locator("summary").click();
     await page.getByTestId("local-library-delete").click();
   });
 

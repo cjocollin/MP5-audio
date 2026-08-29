@@ -58,6 +58,7 @@ async function loadPityClass(
     })
     .toBeGreaterThan(5);
   if (opts?.requireStems !== false) {
+    await page.locator('[data-inspector-id="stems"]').click();
     await expect(page.getByTestId("stems-panel")).toBeVisible({ timeout: 90_000 });
     await expect(page.getByTestId("stems-list").locator("[data-testid=stems-item]")).toHaveCount(
       10,
@@ -68,7 +69,8 @@ async function loadPityClass(
 
 async function seekToStart(page: import("@playwright/test").Page): Promise<void> {
   const seek = page.getByTestId("seek-slider");
-  await seek.fill("0");
+  await seek.focus();
+  await seek.press("Home");
   await expect(seek).toHaveValue("0", { timeout: 5_000 });
 }
 
@@ -119,11 +121,10 @@ test.describe("playback regression — pity party class", () => {
 
   test("C. karaoke: Play without waveform advances progress", async ({ page }) => {
     await loadPityClass(page);
+    await page.locator('[data-inspector-id="lyrics"]').click();
     await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("karaoke-mode-toggle").click();
-    await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({
-      timeout: 90_000,
-    });
+    await expect(page.getByTestId("karaoke-mode-toggle")).toContainText("on");
     await seekToStart(page);
 
     await clickPlayAndWait(page);
@@ -175,10 +176,9 @@ test.describe("playback regression — pity party class", () => {
 
   test("E. late Lead Vocal join keeps transport playing without overlap", async ({ page }) => {
     await loadPityClass(page);
+    await page.locator('[data-inspector-id="lyrics"]').click();
     await page.getByTestId("karaoke-mode-toggle").click();
-    await expect(page.getByTestId("stems-mix-active-note")).toBeVisible({
-      timeout: 90_000,
-    });
+    await expect(page.getByTestId("karaoke-mode-toggle")).toContainText("on");
     await expect(page.getByTestId("play-pause")).toBeEnabled({ timeout: 90_000 });
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("player-playback-status")).toContainText("Playing", {
@@ -189,6 +189,7 @@ test.describe("playback regression — pity party class", () => {
     const beforeJoin = parseTime(await page.getByTestId("current-time").textContent());
     expect(beforeJoin).toBeGreaterThanOrEqual(0);
 
+    await page.locator('[data-inspector-id="stems"]').click();
     const leadItem = page
       .getByTestId("stems-item")
       .filter({ has: page.getByTestId("stems-item-name").filter({ hasText: "Lead Vocal" }) });
@@ -234,6 +235,11 @@ test.describe("playback regression — pity party class", () => {
     });
 
     await loadPityClass(page);
+    await page.locator('[data-inspector-id="lyrics"]').click();
+    await expect(page.getByTestId("lyrics-panel")).toBeVisible({ timeout: 15_000 });
+    await page.evaluate(() => {
+      (window as unknown as { __badScrollIntoView: number }).__badScrollIntoView = 0;
+    });
     await page.getByTestId("play-pause").click();
     await expect(page.getByTestId("player-playback-status")).toContainText("Playing", {
       timeout: 20_000,

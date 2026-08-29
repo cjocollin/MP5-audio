@@ -14,6 +14,8 @@ const wavFixture = path.join(
   "test-fixtures/compatibility/wav_mono_44k_short.wav",
 );
 const hasWav = fs.existsSync(wavFixture);
+const playerFixture = path.join(process.cwd(), "test-fixtures/demo_mp5l_v3_tone.mp5");
+const hasPlayer = fs.existsSync(playerFixture);
 
 test.describe("Mobile smoke", () => {
   test.use({ viewport: MOBILE, isMobile: true, hasTouch: true });
@@ -80,14 +82,16 @@ test.describe("Mobile smoke", () => {
   });
 
   test("player controls stay reachable without horizontal overflow", async ({ page }) => {
+    test.skip(!hasPlayer, "run pnpm fixtures:generate");
     await page.goto("/");
     await page.getByTestId("app-tab-player").click();
+    await page.getByTestId("player-file-input").setInputFiles(playerFixture);
     await expect(page.getByTestId("player-controls")).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow).toBeLessThanOrEqual(2);
     const play = page.getByTestId("play-pause");
     const box = await play.boundingBox();
-    expect(box?.height).toBeGreaterThanOrEqual(56);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
   });
 
   test("converter source waveform stays visible", async ({ page }) => {

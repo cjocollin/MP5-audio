@@ -13,6 +13,7 @@ test.describe("song map / sections UI", () => {
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(demoFixture);
 
+    await page.locator('[data-inspector-id="format"]').click();
     await expect(page.getByTestId("song-map-panel")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("highlights-panel")).toBeVisible();
     await expect(page.getByTestId("song-map-list")).toBeVisible();
@@ -34,6 +35,7 @@ test.describe("song map / sections UI", () => {
     await page.getByRole("button", { name: "Player", exact: true }).click();
     await page.getByTestId("player-file-input").setInputFiles(plain);
     await expect.poll(() => page.getByTestId("playlist-item").count()).toBeGreaterThan(0);
+    await page.locator('[data-inspector-id="format"]').click();
     await expect(page.getByTestId("song-map-empty")).toBeVisible();
     await expect(page.getByTestId("nav-jump-chorus")).toHaveCount(0);
   });
